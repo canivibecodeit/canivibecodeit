@@ -1,0 +1,67 @@
+{
+  "slug": "lnkflow",
+  "name": "LnkFlow",
+  "domain": "lnkflow.io",
+  "category": "analytics",
+  "subcategory": "link tracking + ad conversion attribution",
+  "tagline": "Branded short links with server-side click tracking and conversion attribution back to ad platforms",
+  "priceMonthly": 10,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly",
+    "native": "9 EUR",
+    "source": "https://lnkflow.io/pricing",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Priced in EUR. Starter 9 EUR/month listed here because it matches the scope of the prompt below: 1 branded domain, 50 links, 30-day history. Growth is 39 EUR/month list (19.50 EUR launch promo) and Scale 99 EUR/month list (49.50 EUR promo). Worth stating plainly: conversion attribution and GA4 + Meta CAPI forwarding, the features this entry argues are the hard part, start on Growth, not Starter."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "A short link that 302s, logs the click, and injects UTMs is genuinely one sitting on Cloudflare Workers and KV, and the prompt below builds exactly that. What is not one sitting is the loop back out to the ad platforms. Meta and Google bid against the conversion events you send them, and since ATT the browser pixel misses a large share of purchases, which is the entire reason the Conversions API and offline conversion import exist. Closing that loop means persisting fbclid and gclid at redirect time, carrying that identity to a sale that happens days later on another device, posting a Purchase with a stable event_id so it deduplicates against the pixel, rebuilding fbc in Meta's fb.1.{timestamp}.{fbclid} form, importing offline conversions to Google on gclid, gbraid, or wbraid, and reversing all of it on refund. Every one of those fails silently. That is the expensive part: the dashboard still shows clicks while the bidder optimizes against nothing.",
+  "coreLoopDIY": "Resolve a slug to a destination at the edge, log the click, inject UTMs, pass ad click ids through untouched, and 302.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Cloudflare account (Workers, KV, D1)",
+    "a domain you control",
+    "wrangler CLI"
+  ],
+  "whatYouLose": [
+    "Purchase events delivered back to Meta CAPI with stable event_id deduplication against the browser pixel",
+    "Google offline conversion import keyed on gclid, gbraid, or wbraid",
+    "click to lead to sale attribution that survives a multi-day gap, with refund reversal",
+    "TLS on a customer's branded domain (Cloudflare for SaaS and 90-day DCV renewals, not one DNS record)",
+    "per-creator performance and commission reporting"
+  ],
+  "moatType": "ad-platform integration upkeep",
+  "whyPeopleStillPay": "The redirect is commodity and nobody should pay much for it. What is not commodity is staying current with Meta and Google as they change conversion endpoints, identifier formats, and consent requirements, which they do continuously and without waiting for you. Paying outsources that upkeep plus the attribution store that connects a click to a sale days later on a different device. Agencies pay for a second reason: issuing and renewing TLS for a client's branded domain is a genuinely different problem from pointing your own DNS record at a worker.",
+  "priorArt": [
+    {
+      "name": "Dub",
+      "url": "https://github.com/dubinc/dub",
+      "desc": "The most complete open-source link platform · analytics, custom domains, and a conversion API. Self-hostable.",
+      "status": "alive"
+    },
+    {
+      "name": "Shlink",
+      "url": "https://github.com/shlinkio/shlink",
+      "desc": "Self-hosted URL shortener with a REST API, click stats, and QR codes.",
+      "status": "alive"
+    },
+    {
+      "name": "YOURLS",
+      "url": "https://github.com/YOURLS/YOURLS",
+      "desc": "The long-running PHP shortener · drop it on any LAMP host and it works.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "plausible",
+    "fathom-analytics",
+    "linktree"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The redirector is a one-sitting build · the loop back into Meta and Google ad accounts is the actual product.",
+  "prompt": "Build me a branded link shortener with click tracking to replace LnkFlow. Requirements:\n\n- Cloudflare Workers via wrangler: KV for the slug lookup, D1 for the click\n  log. Free tier, nothing to babysit.\n- A worker on lnk.mydomain.com/{slug} reads KV, writes the click to D1 inside\n  ctx.waitUntil so the redirect never waits, then 302s with X-Robots-Tag:\n  noindex and Cache-Control: no-store.\n- Inject UTM params at redirect time from the link's KV record, and pass\n  incoming fbclid, gclid, gbraid, wbraid, and msclkid through to the\n  destination untouched.\n- Log per click: slug, timestamp, country from request.cf, user-agent,\n  referer, and those ad click ids. Skip bot user-agents from a pattern list\n  in one file.\n- An /admin page behind one password (wrangler secret) to create links and\n  show clicks per link per day as a plain table.\n- Secrets via wrangler secret, never in wrangler.toml. No accounts, no\n  third-party analytics, no telemetry.\n- Out of scope: posting Purchase events back to Meta CAPI or Google offline\n  conversion import · stable event_id for pixel dedup, fbc as\n  fb.1.{timestamp_ms}.{fbclid}, and refund reversal. A silently wrong\n  conversion feed is worse than none.\n- Out of scope: TLS for domains I do not own. My own subdomain is one DNS\n  record · a client's domain means Cloudflare for SaaS and DCV renewals.\n- README: wrangler setup, the KV namespace and D1 database, the DNS record,\n  and adding the first link.",
+  "promptCurated": true
+}
