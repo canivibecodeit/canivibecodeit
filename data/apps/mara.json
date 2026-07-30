@@ -1,0 +1,65 @@
+{
+  "slug": "mara",
+  "name": "Mara",
+  "domain": "hiremara.com",
+  "category": "newsletter",
+  "subcategory": "lifecycle email for SaaS, run by an agent",
+  "tagline": "An AI lifecycle marketer that proposes, writes, sends, and keeps rewriting a SaaS product's welcome, activation, and churn-save emails",
+  "priceMonthly": 99,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "flat monthly, 3 active programs and 25k sends",
+    "native": "99 USD",
+    "source": "https://hiremara.com/pricing",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Growth is 299 USD/month for 10 active programs and 150k sends. Overage sends bill at 1.50 USD per 1,000. Contacts are unlimited on both plans, 7-day trial."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The first send is a weekend. An agent can absolutely wire product events to an LLM draft to an email API with an approval queue, and that covers the visible part of the product. What does not come out of one prompt is the part after the first send: your own domain's reputation, suppression and compliance, variants split across real sends with the results read back, replies classified and answered, and someone still tuning it in month four. Build the sender, then be honest about whether you will keep running it.",
+  "coreLoopDIY": "Take product events, draft the next lifecycle email with an LLM in your voice, hold it for approval, and send it on a schedule.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Anthropic or OpenAI API key",
+    "email sending API (Resend, Postmark, or SES)",
+    "your own sending subdomain with SPF/DKIM/DMARC",
+    "an always-on host for the scheduler",
+    "product events from your app (webhook or DB)"
+  ],
+  "whatYouLose": [
+    "deliverability: warmup, domain reputation, bounce and complaint handling",
+    "the improvement loop: variants written, split across live sends, losers rewritten",
+    "reply handling: inbound classified, answers drafted, suppressions applied",
+    "outcome tracking wired back to the copy that caused it",
+    "the maintenance nobody does, which is the actual reason lifecycle programs rot"
+  ],
+  "moatType": "deliverability/iteration loop/operations",
+  "whyPeopleStillPay": "Lifecycle email is not a build problem, it is an upkeep problem. The DIY version works the week you build it and then sits at whatever quality your first draft happened to have, because nobody goes back to rewrite the activation email that quietly stopped working. Founders pay for the part that keeps happening after launch week: something reading the outcomes, rewriting the losers, and handling the replies without being asked.",
+  "priorArt": [
+    {
+      "name": "Mautic",
+      "url": "https://github.com/mautic/mautic",
+      "desc": "Open-source marketing automation with campaign builder, segments, and drip flows. Heavy, but it is the real self-hosted analog.",
+      "status": "alive"
+    },
+    {
+      "name": "Listmonk",
+      "url": "https://github.com/knadh/listmonk",
+      "desc": "Open-source, single-binary mailing-list and campaign manager. Good sending substrate to build the agent on top of.",
+      "status": "alive"
+    },
+    {
+      "name": "Keila",
+      "url": "https://github.com/pentacent/keila",
+      "desc": "Self-hosted newsletter tool with an API, lighter to run than Mautic.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": ["kit", "mailchimp", "beehiiv"],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Submitted by the maker. The honest split: the sender is a weekend, the loop that keeps rewriting it is not.",
+  "prompt": "Build me a self-hosted lifecycle email agent to replace Mara, for one SaaS product. Requirements:\n\n- Node + Express + better-sqlite3 on my VPS, one SQLite file holding contacts,\n  events, sequences, drafts, sends, and suppressions. node-cron ticks once a minute,\n  no queue service.\n- POST /events takes {type, email, properties} with a bearer token from .env. Every\n  event upserts a contact and appends a row I can read back later.\n- Sequences are JSON files in ./sequences/: an entry event type, then steps with a\n  wait (\"2d\"), an intent in plain words (\"nudge them to connect their first\n  integration\"), and an optional skip-if event type. Ship two: welcome and\n  trial-ending.\n- Each tick, find contacts due for a step, drop anyone whose skip-if event already\n  fired, then draft with the Anthropic API (key in .env): pass ./voice.md plus that\n  contact's last 20 events, get back a subject and a plain-text body.\n- Drafts land as pending. A localhost-only admin page lists them with subject, body,\n  recipient, and the step that produced it, with Approve and Reject buttons. Nothing\n  sends without a click.\n- Approved mail goes out through Resend or SMTP from .env, one send row per recipient\n  with the provider message id. Bounce and complaint webhooks write to a suppression\n  table checked before every send. One-click unsubscribe link in every footer, no\n  login.\n- Cap at 2 emails per contact per 7 days across all sequences, enforced in code\n  before drafting.\n- Out of scope: A/B variants, reply parsing, open tracking. Do not build multi-user\n  accounts or a visual sequence builder, this runs for one product and one operator.\n- README with the deliverability homework: SPF, DKIM, and DMARC on a subdomain like\n  mail.example.com, a two-week warmup at low volume, and a blunt line that mail from\n  a cold domain lands in spam no matter how good the copy is.",
+  "promptCurated": true
+}
