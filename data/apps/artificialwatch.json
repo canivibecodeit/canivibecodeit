@@ -1,0 +1,59 @@
+{
+  "slug": "artificialwatch",
+  "name": "ArtificialWatch",
+  "domain": "artificialwatch.com",
+  "category": "rss-research",
+  "subcategory": "new AI model launch alerts",
+  "tagline": "Alerts you the minute a new frontier AI model goes live",
+  "priceMonthly": 19.99,
+  "pricing": {
+    "plan": "The Call",
+    "basis": "monthly",
+    "native": "19.99 USD",
+    "source": "https://artificialwatch.com/#pricing",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Ladder is Free / Signal $12 / The Call $19.99 / Watchtower $34.99 (waitlist, not shipped yet). Yearly billing gives 2 months free. A LAUNCH50 code cuts The Call to $10/mo for 3 months and ends July 31 2026."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The core loop is a genuine one-sitting build: poll the model-list endpoint of every provider you hold a key for, diff the ids against a local table, push the new ones to your phone. What does not one-shot is the three things a launch alert is actually judged on. Coverage · your script sees only the labs you have accounts with, while the watchlist here runs to 48 models including Chinese labs, restricted previews and things that have not shipped at all, which no API returns. Telephony · a call that rings until you answer means Twilio, a purchased number and US A2P 10DLC registration, which is days of paperwork before a line of code. And uptime, which is the whole product · a poller on a laptop that slept through the drop is worth nothing, and the second-sweep debounce that keeps preview aliases from crying wolf is the part you only tune after it has already cried wolf twice.",
+  "coreLoopDIY": "Polls every provider's model-list endpoint on a one-minute cron, diffs new model ids against a local database, and pushes an alert to your phone.",
+  "diyTimeEstimate": "one sitting for the poller, a weekend to make it trustworthy",
+  "requirements": [
+    "API keys for the providers you want covered (OpenAI, Anthropic, Google, OpenRouter)",
+    "an always-on box · a small VPS or a Pi, not a laptop",
+    "an ntfy or Pushover topic for push"
+  ],
+  "whatYouLose": [
+    "coverage of labs you hold no key for · 48 tracked models including Chinese labs and restricted previews",
+    "the phone call that rings until you answer, and SMS · Twilio plus US A2P 10DLC registration",
+    "the pre-launch watchlist and live Polymarket odds on models that have not shipped, which no API can return",
+    "debounce and alias filtering tuned so dated snapshots and -preview ids do not fire false alarms",
+    "someone else owning the uptime · your poller sleeps when your machine does"
+  ],
+  "moatType": "coverage breadth + telephony + always-on uptime",
+  "whyPeopleStillPay": "Because the failure mode is asymmetric. A launch alerter that works 95% of the time is not 95% as good, it is worthless on the one morning it matters, and that is exactly the morning your VPS got rate limited or your ntfy topic was muted. Paying moves the pager duty to someone else, buys the labs you have no account with, and buys a phone that rings instead of a notification that stacks under forty others. At $19.99 it is priced against the AI subscriptions it watches, which is the comparison buyers actually make.",
+  "priorArt": [
+    {
+      "name": "models.dev",
+      "url": "https://github.com/anomalyco/models.dev",
+      "desc": "open-source database of AI models, providers and pricing · the data layer a DIY watcher can diff against"
+    },
+    {
+      "name": "changedetection.io",
+      "url": "https://github.com/dgtlmoon/changedetection.io",
+      "desc": "self-hosted page-change monitoring with notifications · covers the docs and pricing pages an API cannot"
+    }
+  ],
+  "relatedSlugs": [
+    "claude",
+    "chatgpt",
+    "cronitor"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Submitted by the maker · the poller one-shots, the pager duty does not.",
+  "prompt": "Build me a new-AI-model launch alerter to replace ArtificialWatch. Requirements:\n\n- Node 22 + node-cron + better-sqlite3, one process on a small VPS under pm2 so\n  it never sleeps · a laptop that naps misses the launch.\n- Every 60 seconds, GET the model-list endpoints for the keys in .env: OpenAI\n  /v1/models, Anthropic /v1/models, Google generativelanguage /v1beta/models,\n  and OpenRouter /api/v1/models, which covers labs I have no account with.\n- Store every model id ever seen in SQLite. A launch is an id new to that table\n  · seed it on first run so the first sweep is silent.\n- Debounce: an id fires only after two consecutive sweeps, and ids matching a\n  regex list in config.json (dated snapshots, -preview, -latest) never fire.\n- Alert by POSTing to an ntfy.sh topic: model id as the title, provider plus\n  context window and per-token price as the body, link to the provider's docs.\n- Append each confirmed launch to launches.md as `YYYY-MM-DD · provider · id`.\n- One page on localhost:8080: last 50 launches, last good sweep per provider,\n  red banner when a provider has errored 10 minutes · a silent poller is worse\n  than none.\n- Out of scope: SMS and phone calls (Twilio plus US A2P 10DLC registration is\n  paperwork, not code) and any watchlist of unshipped models.\n- README with the four .env keys and the pm2 command.",
+  "promptCurated": true
+}
