@@ -462,12 +462,30 @@
     }, 1800);
   };
 
-  root.addEventListener('change', (event) => {
+  root.addEventListener('change', async (event) => {
     const select = event.target.closest('[data-stack-status]');
     if (!select) return;
     const item = appsBySlug.get(select.dataset.slug);
     const status = select.value;
+    const previousStatus = currentItems.find((entry) => entry.slug === item?.slug)?.status;
     if (!item || !window.MyStack?.setStatus(item.slug, status)) return;
+
+    const voteResult = civci().setReplacementVote
+      ? await civci().setReplacementVote(item.slug, status === 'replaced')
+      : { ok: true };
+    if (!voteResult.ok) {
+      if (previousStatus) window.MyStack.setStatus(item.slug, previousStatus);
+      civci().toast?.(
+        `community count unavailable · ${item.name} restored to ${statusLabel(previousStatus)}`
+      );
+      return;
+    }
+    if (voteResult.changed) {
+      civci().track?.(status === 'replaced' ? 'vote' : 'unvote', {
+        app: item.slug,
+        source: 'stack',
+      });
+    }
 
     let message = `${item.name} marked ${status}`;
     if (status === 'building') message = `MISSION STARTED · ${item.name}`;

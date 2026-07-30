@@ -207,6 +207,57 @@
     return true;
   };
 
+  // Keep the personal replacement state in lockstep with the public
+  // "I replaced this" action. A first-time vote acquires the target as already
+  // replaced; taking the vote back returns only replaced items to TARGETED.
+  const setReplacement = (slug, replaced) => {
+    if (!validSlugs.has(slug)) return false;
+    const existing = state.items.find((item) => item.slug === slug);
+    const now = new Date().toISOString();
+
+    if (replaced) {
+      if (existing?.status === 'replaced') return false;
+      if (!existing) {
+        persist(
+          {
+            version: VERSION,
+            items: [
+              ...state.items,
+              { slug, status: 'replaced', addedAt: now, statusUpdatedAt: now },
+            ],
+          },
+          'added',
+          slug
+        );
+        return true;
+      }
+      persist(
+        {
+          version: VERSION,
+          items: state.items.map((item) =>
+            item.slug === slug ? { ...item, status: 'replaced', statusUpdatedAt: now } : item
+          ),
+        },
+        'status',
+        slug
+      );
+      return true;
+    }
+
+    if (existing?.status !== 'replaced') return false;
+    persist(
+      {
+        version: VERSION,
+        items: state.items.map((item) =>
+          item.slug === slug ? { ...item, status: 'targeted', statusUpdatedAt: now } : item
+        ),
+      },
+      'status',
+      slug
+    );
+    return true;
+  };
+
   document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-stack-toggle]');
     if (!button) return;
@@ -239,6 +290,7 @@
     remove,
     toggle,
     setStatus,
+    setReplacement,
     refreshControls: renderControls,
   };
 
