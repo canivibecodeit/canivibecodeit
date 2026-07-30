@@ -61,19 +61,30 @@
   }
 
   /* Dithered fill: paint cell-by-cell through the Bayer threshold matrix.
-     density 0..1 decides how many cells light up; cell = dot pitch in px. */
-  function ditherRect(ctx, x, y, w, h, rgb, density, cell = 3) {
+     density 0..1 decides how many cells light up; cell = dot pitch in px.
+     boost(px, py) optionally adds cursor-reactive density per cell. */
+  function ditherRect(ctx, x, y, w, h, rgb, density, cell = 3, boost) {
     ctx.fillStyle = `rgb(${rgb.join(',')})`;
     const x0 = Math.floor(x / cell), x1 = Math.ceil((x + w) / cell);
     const y0 = Math.floor(y / cell), y1 = Math.ceil((y + h) / cell);
     for (let cy = y0; cy < y1; cy++) {
       for (let cx = x0; cx < x1; cx++) {
-        if (BAYER[cy & 3][cx & 3] / 16 < density) {
+        const d = boost ? Math.min(0.96, density + boost(cx * cell, cy * cell)) : density;
+        if (BAYER[cy & 3][cx & 3] / 16 < d) {
           ctx.fillRect(cx * cell, cy * cell, cell - 1, cell - 1);
         }
       }
     }
   }
+
+  /* Cursor aura: gaussian falloff that breathes and ripples outward, so the
+     dots near the pointer wake up like a wave. */
+  const aura = (mx, my, t) => (px, py) => {
+    const dx = px - mx, dy = (py - my) * 1.6;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const ripple = 1 + 0.25 * Math.sin(dist / 14 - t / 180);
+    return 0.85 * Math.exp(-(dist * dist) / (2 * 70 * 70)) * ripple * (0.85 + 0.15 * Math.sin(t / 320));
+  };
 
   /* ---------- area chart ---------- */
   function areaChart(canvas, points, opts = {}) {
@@ -88,7 +99,7 @@
     const X = (i) => PAD.l + (i / Math.max(1, points.length - 1)) * iw;
     const Y = (v) => PAD.t + ih - (v / nice) * ih;
 
-    const draw = (progress = 1) => {
+    const draw = (progress = 1, cursor = null) => {
       ctx.clearRect(0, 0, w, h);
       ctx.font = '10px "JetBrains Mono Variable", monospace';
       ctx.fillStyle = t.muted;
@@ -115,6 +126,7 @@
 
       const upto = Math.max(2, Math.floor(points.length * progress));
       const visible = points.slice(0, upto);
+      const boost = cursor ? aura(cursor.x, cursor.y, cursor.t) : null;
 
       /* dithered fill under the line, density fading downward */
       ctx.save();
@@ -128,7 +140,15 @@
       const bands = 6;
       for (let b = 0; b < bands; b++) {
         const density = 0.55 * (1 - b / bands) + 0.06;
-        ditherRect(ctx, PAD.l, PAD.t + (ih / bands) * b, iw, ih / bands + 1, rgb, density);
+        ditherRect(ctx, PAD.l, PAD.t + (ih / bands) * b, iw, ih / bands + 1, rgb, density, 3, boost);
+      }
+      /* faint spray ABOVE the line near the cursor, so the wave crests */
+      if (boost) {
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ditherRect(ctx, PAD.l, PAD.t, iw, ih, rgb, 0, 3, (px, py) => boost(px, py) - 0.55);
+        ctx.globalAlpha = 1;
       }
       ctx.restore();
 
@@ -158,20 +178,36 @@
       requestAnimationFrame(tick);
     }
 
+    /* live cursor loop: the fill breathes and ripples around the pointer */
+    let mouse = null;
+    let raf = null;
+    const liveLoop = (now) => {
+      if (!mouse) return;
+      draw(1, { x: mouse.x, y: mouse.y, t: now });
+      const i = Math.round(((mouse.x - PAD.l) / iw) * (points.length - 1));
+      if (i >= 0 && i < points.length) {
+        ctx.strokeStyle = theme().muted;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(X(i), PAD.t);
+        ctx.lineTo(X(i), PAD.t + ih);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      raf = requestAnimationFrame(liveLoop);
+    };
+
     canvas.onmousemove = (e) => {
       const r = canvas.getBoundingClientRect();
-      const i = Math.round(((e.clientX - r.left - PAD.l) / iw) * (points.length - 1));
+      mouse = { x: e.clientX - r.left, y: e.clientY - r.top };
+      if (reduced) {
+        draw(1);
+      } else if (!raf) {
+        raf = requestAnimationFrame(liveLoop);
+      }
+      const i = Math.round(((mouse.x - PAD.l) / iw) * (points.length - 1));
       if (i < 0 || i >= points.length) return hideTip();
       const p = points[i];
-      draw(1);
-      const t2 = theme();
-      ctx.strokeStyle = t2.muted;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath();
-      ctx.moveTo(X(i), PAD.t);
-      ctx.lineTo(X(i), PAD.t + ih);
-      ctx.stroke();
-      ctx.setLineDash([]);
       tooltip(
         `<b>${p.full}</b><br>${fmt(p.v)} ${opts.unit || 'views'}${p.extra ? `<br><span>${p.extra}</span>` : ''}`,
         e.clientX,
@@ -180,6 +216,11 @@
     };
     canvas.onmouseleave = () => {
       hideTip();
+      mouse = null;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
       draw(1);
     };
 
@@ -197,18 +238,20 @@
     const max = Math.max(1, ...rows.map((r) => r.n));
     const iw = w - LABEL_W - 54;
 
-    const draw = (progress = 1) => {
+    const draw = (progress = 1, hoverI = -1, tNow = 0) => {
       ctx.clearRect(0, 0, w, h);
       ctx.font = '11px "JetBrains Mono Variable", monospace';
       rows.forEach((r, i) => {
         const y = i * ROW + ROW / 2;
         const bw = Math.max(2, (r.n / max) * iw * progress);
-        ctx.fillStyle = t.muted;
+        const hot = i === hoverI;
+        ctx.fillStyle = hot ? t.ink : t.muted;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         const label = r.label.length > 18 ? r.label.slice(0, 17) + '…' : r.label;
         ctx.fillText(label, 0, y);
-        ditherRect(ctx, LABEL_W, y - BAR / 2, bw, BAR, rgb, 0.45, 2);
+        const density = hot ? 0.62 + 0.1 * Math.sin(tNow / 260) : 0.45;
+        ditherRect(ctx, LABEL_W, y - BAR / 2, bw, BAR, rgb, density, 2);
         ctx.fillStyle = t.data;
         ctx.fillRect(LABEL_W + bw - 3, y - BAR / 2, 3, BAR);
         ctx.fillStyle = t.ink;
@@ -227,19 +270,63 @@
       requestAnimationFrame(tick);
     }
 
+    let hoverI = -1;
+    let raf = null;
+    const liveLoop = (now) => {
+      if (hoverI < 0) return;
+      draw(1, hoverI, now);
+      raf = requestAnimationFrame(liveLoop);
+    };
+
     canvas.onmousemove = (e) => {
       const r = canvas.getBoundingClientRect();
       const i = Math.floor((e.clientY - r.top) / ROW);
-      if (i < 0 || i >= rows.length) return hideTip();
+      if (i < 0 || i >= rows.length) {
+        hoverI = -1;
+        return hideTip();
+      }
+      hoverI = i;
+      if (reduced) draw(1, i);
+      else if (!raf) raf = requestAnimationFrame(liveLoop);
       tooltip(`<b>${rows[i].label}</b><br>${fmt(rows[i].n)} ${opts.unit || ''}`, e.clientX, e.clientY);
     };
-    canvas.onmouseleave = hideTip;
+    canvas.onmouseleave = () => {
+      hideTip();
+      hoverI = -1;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+      draw(1);
+    };
 
     return { redraw: () => draw(1) };
   }
 
+  /* number count-up for the stat tiles */
+  const countUp = (el, ms = 700) => {
+    const target = Number((el.textContent || '').replace(/[^0-9]/g, ''));
+    if (!Number.isFinite(target) || target === 0 || reduced) return;
+    const t0 = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / ms);
+      el.textContent = fmt(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+
   /* ---------- bootstrap the /stats page ---------- */
   const mount = () => {
+    /* staggered entrance for tiles + panels, charts draw as panels land */
+    const entering = $$('.dash .tile, .dash .panel');
+    entering.forEach((el, i) => {
+      setTimeout(() => el.classList.add('in'), reduced ? 0 : 70 * i);
+    });
+    $$('.dash .tile .t-num').forEach((el, i) => {
+      setTimeout(() => countUp(el), reduced ? 0 : 70 * i + 150);
+    });
+
     const dataEl = $('#dash-data');
     if (!dataEl) return;
     let data;
@@ -251,6 +338,8 @@
     if (!data || data.unavailable) return;
 
     const charts = [];
+    // draw once the panels have landed so the sweep/grow animations are seen
+    const drawDelay = reduced ? 0 : 420;
     const dayLabel = (iso) => {
       const d = new Date(iso + 'T00:00:00Z');
       return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
@@ -260,35 +349,37 @@
         weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
       });
 
-    const areaEl = $('#chart-views');
-    if (areaEl && data.byDay?.length > 1) {
-      charts.push(
-        areaChart(
-          areaEl,
-          data.byDay.map((r) => ({
-            v: r.views,
-            label: dayLabel(r.d),
-            full: fullLabel(r.d),
-            extra: `${fmt(r.visitors)} visitors`,
-          })),
-          { unit: 'views' }
-        )
-      );
-    }
+    setTimeout(() => {
+      const areaEl = $('#chart-views');
+      if (areaEl && data.byDay?.length > 1) {
+        charts.push(
+          areaChart(
+            areaEl,
+            data.byDay.map((r) => ({
+              v: r.views,
+              label: dayLabel(r.d),
+              full: fullLabel(r.d),
+              extra: `${fmt(r.visitors)} visitors`,
+            })),
+            { unit: 'views' }
+          )
+        );
+      }
 
-    const AGENT_NAMES = {
-      'claude-code': 'Claude Code', codex: 'Codex', cursor: 'Cursor', raw: 'raw copy',
-      unknown: 'unknown',
-    };
-    const pairs = [
-      ['#chart-pages', data.pages?.map((r) => ({ label: r.p, n: r.n })), 'views · 7d', 150],
-      ['#chart-agents', data.agents?.map((r) => ({ label: AGENT_NAMES[r.a] || r.a, n: r.n })), 'copies · 7d', 110],
-      ['#chart-prompts', data.topPrompts?.map((r) => ({ label: r.app, n: r.n })), 'copies · 7d', 110],
-    ];
-    for (const [sel, rows, unit, labelWidth] of pairs) {
-      const el = $(sel);
-      if (el && rows?.length) charts.push(barChart(el, rows, { unit, labelWidth }));
-    }
+      const AGENT_NAMES = {
+        'claude-code': 'Claude Code', codex: 'Codex', cursor: 'Cursor', raw: 'raw copy',
+        unknown: 'unknown',
+      };
+      const pairs = [
+        ['#chart-pages', data.pages?.map((r) => ({ label: r.p, n: r.n })), 'views · 7d', 150],
+        ['#chart-agents', data.agents?.map((r) => ({ label: AGENT_NAMES[r.a] || r.a, n: r.n })), 'copies · 7d', 110],
+        ['#chart-prompts', data.topPrompts?.map((r) => ({ label: r.app, n: r.n })), 'copies · 7d', 110],
+      ];
+      for (const [sel, rows, unit, labelWidth] of pairs) {
+        const el = $(sel);
+        if (el && rows?.length) charts.push(barChart(el, rows, { unit, labelWidth }));
+      }
+    }, drawDelay);
 
     /* redraw on theme flip or resize */
     new MutationObserver(() => charts.forEach((c) => c.redraw())).observe(
