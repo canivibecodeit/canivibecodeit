@@ -1,0 +1,66 @@
+{
+  "slug": "animam-ai",
+  "name": "Animam.ai",
+  "domain": "animam.ai",
+  "category": "no-code-apps",
+  "subcategory": "AI chat agent on your own website",
+  "tagline": "An agent that answers from your site's content, captures leads, quotes and books — server-side.",
+  "priceMonthly": 32,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly, per site (29 EUR converted)",
+    "native": "29 EUR",
+    "source": "https://animam.ai/pricing",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Free live demo (no signup), Starter 29 EUR/mo, Builder 49, Pro 79, Agency 199. Submitted by the vendor — prices read from the source of truth, not from a marketing page."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The chat is a weekend. Everything that makes it safe to point at customers is not. Ingest a site, search it, stream an answer — that part is commoditised and the prompt below really does it. What resists is the boring half: an amount computed by the server and never by the model, a visitor email verified before it triggers anything, signed webhooks with retries, and a sending domain whose reputation you did not build in an afternoon.",
+  "coreLoopDIY": "Crawl the sitemap, strip the chrome, store the text, retrieve the 5 best passages by keyword, stream a grounded answer, and refuse to answer outside the context.",
+  "diyTimeEstimate": "weekend",
+  "requirements": [
+    "An LLM API key (Anthropic, OpenAI, or a local model)",
+    "A place to run a small Node server (a 5 EUR VPS is enough)",
+    "SQLite, or any database you already run",
+    "A domain you can serve the widget from"
+  ],
+  "whatYouLose": [
+    "Amounts computed server-side from a price grid — the model picks the SKU, it never produces the number",
+    "Visitor identity verified by one-time code before any server-to-server action runs",
+    "Signed outgoing webhooks with exponential backoff, delivery log and manual redelivery",
+    "SSRF guard with DNS resolution on every URL the agent is allowed to call",
+    "Per-tenant secrets encrypted at rest, and tenant isolation you did not have to think about",
+    "Email deliverability — a warmed sending domain is not something you prompt into existence",
+    "The evening the model provider changes a default and your widget starts making things up"
+  ],
+  "moatType": "operations/compliance/deliverability",
+  "whyPeopleStillPay": "Because the demo is the easy half. A chat that answers is a weekend; a chat you can leave in front of customers for a year is an operations job — someone watches deliverability, re-crawls the site, keeps the model from inventing a price, and is there the day it breaks. People pay for the second half, and they are right to.",
+  "priorArt": [
+    {
+      "name": "Chatwoot",
+      "url": "https://github.com/chatwoot/chatwoot",
+      "desc": "Self-hosted support inbox with a website widget",
+      "status": "open-source"
+    },
+    {
+      "name": "Typebot",
+      "url": "https://github.com/baptisteArno/typebot.io",
+      "desc": "Open-source conversational forms and chat flows",
+      "status": "open-source"
+    },
+    {
+      "name": "Onyx (ex-Danswer)",
+      "url": "https://github.com/onyx-dot-app/onyx",
+      "desc": "Open-source RAG chat over your own documents",
+      "status": "open-source"
+    }
+  ],
+  "relatedSlugs": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Self-submitted by the people who sell it. The honest verdict is 'kinda', not 'not really': if we claimed our own chat layer could not be rebuilt in a weekend we would be lying, and this audience would know. The prompt below is the real one — it is not weakened to protect the subscription. What it deliberately leaves out is listed in whatYouLose, and that list is the product.",
+  "prompt": "Build a website chat widget that answers strictly from a site's own content. Node 20 + TypeScript, no framework.\n\n1. Install hono, @anthropic-ai/sdk, cheerio, turndown, better-sqlite3.\n2. scripts/ingest.ts takes a sitemap.xml URL as argv and fetches every page, concurrency 4, skipping non-HTML.\n3. Strip nav, header, footer and script tags with cheerio, then convert what is left to markdown with turndown.\n4. Upsert into SQLite pages(url PRIMARY KEY, title, body, fetched_at) so re-running updates rows instead of duplicating them.\n5. src/search.ts takes the 3 to 6 most distinctive words of the question and runs SELECT url, title, substr(body,1,1200) FROM pages WHERE body LIKE ? for each.\n6. Rank by number of hits and return the top 5. No embeddings: under ~500 pages LIKE is cheaper, instant, and you can read why a passage was picked.\n7. src/server.ts is a Hono app with POST /chat {message, sessionId}.\n8. Put the 5 passages and their URLs in the system prompt, call claude-haiku with stream:true, and pipe SSE to the client.\n9. System prompt: \"Answer only from the CONTEXT below, and cite the page you used.\"\n10. Continue it: \"If the answer is not in the context, say you do not know and offer to take a message.\"\n11. And the line that matters: \"Never state a price, a date or an availability that is not written in the context.\"\n12. public/widget.js is an IIFE that injects a bubble into a shadow DOM and keeps sessionId in localStorage.\n13. It consumes the SSE and writes every message with textContent, never innerHTML — the text comes from a model that read the internet.\n14. Store sessions and messages in the same SQLite file, so you can read back what people actually asked.\n15. ANTHROPIC_API_KEY lives in .env, server-side only, and never reaches the bundle.\n16. No telemetry, no third-party script in the widget.\n17. Serve /widget.js with CORS * and a 5 minute cache so a single <script> tag installs it on any page.\n\nOut of scope on purpose, and each of these is a week rather than a line: booking on a real calendar, payments,\nquotes with amounts computed server-side, human handover, transactional email that reaches the inbox,\nmulti-tenancy, GDPR consent, rate limiting and abuse protection.",
+  "promptCurated": true
+}
