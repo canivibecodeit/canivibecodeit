@@ -1,0 +1,66 @@
+{
+  "slug": "bitly",
+  "name": "Bitly",
+  "domain": "bitly.com",
+  "category": "analytics",
+  "subcategory": "link shortening + click analytics",
+  "tagline": "Short links, branded back-halves, QR codes, and click analytics",
+  "priceMonthly": 35,
+  "pricing": {
+    "plan": "Growth",
+    "basis": "monthly",
+    "native": "35 USD",
+    "source": "https://bitly.com/pages/pricing",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Growth listed because it is the cheapest tier that includes a custom domain, which is the whole point of paying · Core at 10 USD/month is annual-billed only and gives you no branded links at all. Growth is 35 USD billed monthly or 29 USD billed annually. Free is 5 links/month with no data history. Premium is 199 USD/month annual-billed."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "A slug, a lookup, a 302, and a row in a table. Cloudflare Workers plus KV and D1 does the whole job on the free tier, and QR codes are one library call. The only thing you are really buying is that bit.ly resolves links created in 2012 and will presumably still resolve them in 2032, which is an institutional promise rather than a technical one. If the links are going in a magazine ad or on packaging, that promise is worth something. If they are going in this week's newsletter, it is worth nothing, and Growth is 420 USD a year.",
+  "coreLoopDIY": "Map a short slug to a destination, 302 to it, log the click with device and country, and render a QR code for any link.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Cloudflare account (Workers, KV, D1)",
+    "a domain you control",
+    "wrangler CLI"
+  ],
+  "whatYouLose": [
+    "links that outlive your own infrastructure · a domain you stop renewing takes every link with it",
+    "bit.ly's recognition in the link itself, which cuts both ways now that shorteners get spam-filtered",
+    "bundled QR code management, landing pages, and campaign grouping",
+    "city-level and device-level analytics rollups without building them",
+    "an SLA and someone to call"
+  ],
+  "moatType": "link permanence",
+  "whyPeopleStillPay": "Bitly's actual product is a promise about the future: that a link printed on a box in 2019 still resolves today. No amount of code buys that, only an institution that intends to keep existing. Teams also pay for shared workspaces, SSO, and the audit trail, and marketing departments pay because the alternative is asking engineering for a redirect and waiting two weeks.",
+  "priorArt": [
+    {
+      "name": "Dub",
+      "url": "https://github.com/dubinc/dub",
+      "desc": "The most complete open-source link platform · analytics, custom domains, QR codes. Self-hostable.",
+      "status": "alive"
+    },
+    {
+      "name": "Shlink",
+      "url": "https://github.com/shlinkio/shlink",
+      "desc": "Self-hosted URL shortener with a REST API, click stats, and QR codes.",
+      "status": "alive"
+    },
+    {
+      "name": "YOURLS",
+      "url": "https://github.com/YOURLS/YOURLS",
+      "desc": "The long-running PHP shortener · drop it on any LAMP host and it works.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "linktree",
+    "qr"
+  ],
+  "pagePriority": 4,
+  "verifiedOneShot": false,
+  "notes": "You are not paying for the redirect · you are paying for the promise that it still works in ten years.",
+  "prompt": "Build me a link shortener with click analytics and QR codes to replace Bitly. Requirements:\n\n- Cloudflare Workers via wrangler: KV for the slug lookup, D1 for the click\n  log. Free tier, and it runs on my own domain.\n- A worker on go.mydomain.com/{slug} reads KV and 302s, writing the click to\n  D1 inside ctx.waitUntil so the redirect never waits on the database.\n- Slugs are random 6-character base62 by default, but I can set a custom\n  back-half, and creating one that already exists fails loudly instead of\n  overwriting it.\n- Log per click: slug, timestamp, country and city from request.cf,\n  device type parsed from the user-agent, and referer.\n- Generate a PNG QR code for any link with the qrcode npm package, served at\n  /qr/{slug} and cached, so print material points at the same tracked link.\n- Optional expiry and a click cap per link · past either, 302 to a fallback\n  URL I set instead of returning a 404.\n- An /admin page behind one password (wrangler secret) listing links with\n  clicks per day, plus top countries and device split per link.\n- Secrets via wrangler secret, never in wrangler.toml. No accounts, no\n  third-party analytics, no telemetry.\n- README: wrangler setup, the KV namespace and D1 database, the DNS record,\n  and a warning that these links die with the domain, so use a domain you\n  intend to keep renewing.",
+  "promptCurated": true
+}
