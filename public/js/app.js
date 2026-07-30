@@ -355,41 +355,119 @@
     btn.title = voted ? 'click to take your vote back' : '';
   };
 
+  const replacementVoteKey = (slug) => `voted:${slug}`;
+  const isReplacementVoted = (slug) => {
+    try {
+      return !!localStorage.getItem(replacementVoteKey(slug));
+    } catch {
+      return false;
+    }
+  };
+  const rememberReplacementVote = (slug, voted) => {
+    try {
+      if (voted) localStorage.setItem(replacementVoteKey(slug), '1');
+      else localStorage.removeItem(replacementVoteKey(slug));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const renderReplacementVote = (slug, voted, count) => {
+    $$(`[data-vote="${slug}"]`).forEach((btn) => voteLabel(btn, voted));
+    if (count !== undefined && count !== null) {
+      $$(`[data-votes="${slug}"]`).forEach((el) => (el.textContent = count));
+    }
+  };
+
+  // Serialise operations per app so a quick replace/unreplace sequence cannot
+  // leave the public count and the device-local status pointing different ways.
+  const replacementVoteOps = new Map();
+  const setReplacementVote = (slug, replaced) => {
+    const previous = replacementVoteOps.get(slug) || Promise.resolve();
+    const operation = previous
+      .catch(() => {})
+      .then(async () => {
+        const voted = isReplacementVoted(slug);
+        if (voted === replaced) {
+          renderReplacementVote(slug, replaced);
+          return { ok: true, changed: false };
+        }
+
+        try {
+          const res = await fetch(`/api/vote/${slug}`, {
+            method: replaced ? 'POST' : 'DELETE',
+          });
+          // A missing local marker can still represent a vote already counted
+          // for this IP. Treat that response as reconciled, as the existing
+          // vote control has always done.
+          if (replaced && res.status === 429) {
+            rememberReplacementVote(slug, true);
+            renderReplacementVote(slug, true);
+            return { ok: true, changed: false, alreadyCounted: true };
+          }
+          if (!res.ok) return { ok: false };
+
+          const { count } = await res.json();
+          rememberReplacementVote(slug, replaced);
+          renderReplacementVote(slug, replaced, count);
+          return { ok: true, changed: true, count };
+        } catch {
+          return { ok: false };
+        }
+      });
+
+    replacementVoteOps.set(slug, operation);
+    operation.finally(() => {
+      if (replacementVoteOps.get(slug) === operation) replacementVoteOps.delete(slug);
+    });
+    return operation;
+  };
+
+  Object.assign(window.CanIVibecodeIt, { isReplacementVoted, setReplacementVote });
+
   $$('[data-vote]').forEach((btn) => {
     const slug = btn.dataset.vote;
-    if (localStorage.getItem(`voted:${slug}`)) voteLabel(btn, true);
+    if (isReplacementVoted(slug)) voteLabel(btn, true);
 
     btn.addEventListener('click', async () => {
-      const voted = !!localStorage.getItem(`voted:${slug}`);
+      const voted = isReplacementVoted(slug);
       btn.classList.remove('voted');
       void btn.offsetWidth; // restart animation
       btn.classList.add('voted');
-      try {
-        const res = await fetch(`/api/vote/${slug}`, { method: voted ? 'DELETE' : 'POST' });
-        if (!voted && res.status === 429) {
-          localStorage.setItem(`voted:${slug}`, '1');
-          voteLabel(btn, true);
-          toast('already counted · one funeral per person');
-          return;
-        }
-        if (!res.ok) throw new Error();
-        const { count } = await res.json();
-        $$(`[data-votes="${slug}"]`).forEach((el) => (el.textContent = count));
-        if (voted) {
-          localStorage.removeItem(`voted:${slug}`);
-          voteLabel(btn, false);
-          toast('vote taken back · resurrection granted');
-          track('unvote', { app: slug });
-        } else {
-          localStorage.setItem(`voted:${slug}`, '1');
-          voteLabel(btn, true);
-          toast('☠ counted. RIP that subscription.');
-          track('vote', { app: slug });
-        }
-      } catch {
+      const result = await setReplacementVote(slug, !voted);
+      if (!result.ok) {
         toast('something broke · try again');
+        return;
+      }
+
+      window.MyStack?.setReplacement(slug, !voted);
+      if (voted) {
+        toast('vote taken back · target returned to your stack');
+        track('unvote', { app: slug });
+      } else if (result.alreadyCounted) {
+        toast('already counted · marked replaced in your stack');
+      } else {
+        toast('☠ counted · subscription eliminated in your stack');
+        track('vote', { app: slug });
       }
     });
+  });
+
+  // Reconcile pre-existing local state when an app detail page is visited.
+  // This backfills at most the app currently on screen, avoiding burst writes.
+  document.addEventListener('stack:ready', async (event) => {
+    const statuses = new Map(
+      (event.detail?.state?.items || []).map((item) => [item.slug, item.status])
+    );
+    for (const btn of $$('[data-vote]')) {
+      const slug = btn.dataset.vote;
+      if (isReplacementVoted(slug)) {
+        window.MyStack?.setReplacement(slug, true);
+      } else if (statuses.get(slug) === 'replaced') {
+        const result = await setReplacementVote(slug, true);
+        if (result.ok) track('vote_reconciled_from_stack', { app: slug });
+      }
+    }
   });
 
   /* ---------- share ---------- */
