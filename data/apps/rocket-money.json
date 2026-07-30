@@ -1,0 +1,68 @@
+{
+  "slug": "rocket-money",
+  "name": "Rocket Money",
+  "domain": "rocketmoney.com",
+  "category": "personal-finance",
+  "subcategory": "subscription tracking + bill cancellation",
+  "tagline": "Finds the recurring charges on your bank feed, cancels the ones you forgot, budgets the rest",
+  "priceMonthly": 7,
+  "pricing": {
+    "plan": "Premium (pay what you think is fair)",
+    "basis": "monthly",
+    "native": "7-14 USD",
+    "source": "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Official page checked 2026-07-30: Premium is pay-what-you-think-is-fair, typically 7 to 14 USD per month after a 7-day trial, and priceMonthly uses the 7 USD floor. Bill negotiation is priced separately and is open to free accounts too: 35 to 60 percent of the first year's savings, charged only when it works."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Plaid hands you the only hard part and it turns out not to be hard: link accounts in the browser, sync transactions nightly, and recurrence is a group-by with a date-gap check. One session gets a working subscription radar, price-hike alerts, budgets, and a net worth chart, on your own machine, with the free tier of Plaid covering a personal number of banks. What one session does not get is the person at Rocket Money who emails Sirius XM on your behalf. That concierge, and the phone in your pocket that buzzes when a balance drops, is what Premium actually sells.",
+  "coreLoopDIY": "Link accounts through Plaid, sync transactions nightly, cluster them into recurring merchants with a cadence and a predicted next charge, and render subscriptions, budgets, and net worth on one local dashboard.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Plaid developer account (free sandbox, self-serve production)",
+    "Node 22 + SQLite",
+    "Resend or SMTP for the weekly digest",
+    "a cron tick that actually runs"
+  ],
+  "whatYouLose": [
+    "the team that cancels a subscription on your behalf",
+    "bill negotiation, which is people on the phone, not code",
+    "the iOS and Android apps with balance and charge alerts",
+    "credit score and full credit report monitoring",
+    "Rocket's merchant database, which names the charge you cannot recognize"
+  ],
+  "moatType": "human concierge/mobile app/credit data",
+  "whyPeopleStillPay": "They pay because spotting the charge is the easy half. The half people actually want is somebody else doing the cancelling and the haggling, and a phone that tells them before the money leaves.",
+  "priorArt": [
+    {
+      "name": "Actual Budget",
+      "url": "https://github.com/actualbudget/actual",
+      "desc": "Open-source local-first budgeting app with bank sync through SimpleFIN and GoCardless.",
+      "status": "alive"
+    },
+    {
+      "name": "Firefly III",
+      "url": "https://github.com/firefly-iii/firefly-iii",
+      "desc": "Self-hosted personal finance manager with recurring-transaction handling and rules.",
+      "status": "alive"
+    },
+    {
+      "name": "Maybe",
+      "url": "https://github.com/maybe-finance/maybe",
+      "desc": "Open-source personal finance and net worth app, Plaid-backed.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "copilot-money",
+    "monarch-money",
+    "ynab"
+  ],
+  "pagePriority": 5,
+  "verifiedOneShot": false,
+  "notes": "The detection is a group-by. The cancellation is a person. Plaid gives away the only part that looks hard.",
+  "prompt": "Build me a local subscription radar and budget dashboard to replace Rocket Money.\nRequirements:\n\n- Node 22 + Express + better-sqlite3, server-rendered EJS with a little vanilla JS\n  and Chart.js. No frontend framework, no build step, binds to 127.0.0.1 only.\n- Bank data comes from Plaid: Link in the browser, one access_token per Item in\n  SQLite, and a nightly node-cron tick calling /transactions/sync with the cursor\n  persisted so every run is incremental. Keys in .env, sandbox until I flip one var.\n- Recurring detection is the whole point: group by normalized merchant and rounded\n  amount, call it recurring at three or more charges on a consistent weekly, monthly,\n  quarterly, or yearly cadence, and store cadence, average, last charge, next date.\n- /subscriptions is home: one row per recurring merchant with amount, cadence,\n  next charge, annual cost, and a status of active, price hiked, or dormant. Price\n  hiked means the latest charge is over 10 percent above the previous one and it\n  sorts to the top, because that row is what pays for this build.\n- Three more screens and no others. /transactions, a searchable table where editing\n  a category also saves a merchant-to-category rule for the next import. /budgets,\n  this month per category against a number I set, total turning red when I am over.\n  /networth, monthly balance snapshots per account as a stacked area chart, written\n  by the same nightly job.\n- Cancelling is a checklist, not a robot: flagging a subscription opens a note with\n  the cancellation URL and support email from a cancel-links.json I keep, and the row\n  stays flagged until one full cadence passes with no charge, then it self-confirms.\n- A Monday morning digest over Resend: new recurring charges found, price hikes, and\n  everything charging in the next seven days. Key in .env.\n- One SQLite file, no accounts, no telemetry, nothing leaves the machine except the\n  Plaid and Resend calls. Out of scope: bill negotiation and cancelling on my behalf,\n  both of which are human work, plus credit monitoring, holdings, and mobile apps.\n- README: how to get Plaid sandbox keys and move an Item to production, and that\n  production is self-serve but metered per linked Item, so keep the bank count small.",
+  "promptCurated": true
+}
