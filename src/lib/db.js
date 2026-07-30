@@ -73,6 +73,16 @@ async function pgDriver() {
       );
       return r.rows[0].count;
     },
+    async removeVote(slug) {
+      const r = await pool.query(
+        `UPDATE votes SET count = GREATEST(count - 1, 0) WHERE slug = $1 RETURNING count`,
+        [slug]
+      );
+      return r.rows[0]?.count ?? 0;
+    },
+    async clearRateLimit(key) {
+      await pool.query('DELETE FROM rate_limits WHERE key = $1', [key]);
+    },
     async addEmail(email) {
       const r = await pool.query(
         'INSERT INTO waitlist (email) VALUES ($1) ON CONFLICT DO NOTHING',
@@ -141,6 +151,13 @@ async function sqliteDriver() {
       stmts.addVote.run(slug);
       return stmts.getVote.get(slug).count;
     },
+    async removeVote(slug) {
+      db.prepare('UPDATE votes SET count = max(count - 1, 0) WHERE slug = ?').run(slug);
+      return stmts.getVote.get(slug)?.count ?? 0;
+    },
+    async clearRateLimit(key) {
+      db.prepare('DELETE FROM rate_limits WHERE key = ?').run(key);
+    },
     async addEmail(email) {
       return stmts.addEmail.run(email).changes > 0;
     },
@@ -178,6 +195,14 @@ export async function voteCounts() {
 
 export async function addVote(slug) {
   return (await getDriver()).addVote(slug);
+}
+
+export async function removeVote(slug) {
+  return (await getDriver()).removeVote(slug);
+}
+
+export async function clearRateLimit(key) {
+  return (await getDriver()).clearRateLimit(key);
 }
 
 export async function addToWaitlist(email) {

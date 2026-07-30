@@ -263,32 +263,47 @@
     });
   });
 
-  /* ---------- vote ---------- */
+  /* ---------- vote (toggles: click again to take it back) ---------- */
+  const voteLabel = (btn, voted) => {
+    const text = btn.childNodes[0];
+    if (text?.nodeType === 3) text.textContent = voted ? '✓ replaced it · ' : 'I replaced this · ';
+    btn.classList.toggle('is-voted', voted);
+    btn.title = voted ? 'click to take your vote back' : '';
+  };
+
   $$('[data-vote]').forEach((btn) => {
+    const slug = btn.dataset.vote;
+    if (localStorage.getItem(`voted:${slug}`)) voteLabel(btn, true);
+
     btn.addEventListener('click', async () => {
-      const slug = btn.dataset.vote;
-      if (localStorage.getItem(`voted:${slug}`)) {
-        toast('already counted — one funeral per person');
-        return;
-      }
+      const voted = !!localStorage.getItem(`voted:${slug}`);
       btn.classList.remove('voted');
       void btn.offsetWidth; // restart animation
       btn.classList.add('voted');
       try {
-        const res = await fetch(`/api/vote/${slug}`, { method: 'POST' });
-        if (res.status === 429) {
+        const res = await fetch(`/api/vote/${slug}`, { method: voted ? 'DELETE' : 'POST' });
+        if (!voted && res.status === 429) {
           localStorage.setItem(`voted:${slug}`, '1');
-          toast('already counted — one funeral per person');
+          voteLabel(btn, true);
+          toast('already counted · one funeral per person');
           return;
         }
-        const { count, mrr } = await res.json();
+        if (!res.ok) throw new Error();
+        const { count } = await res.json();
         $$(`[data-votes="${slug}"]`).forEach((el) => (el.textContent = count));
-        if (mrr) setOdometer(mrr);
-        localStorage.setItem(`voted:${slug}`, '1');
-        toast('☠ counted. RIP that subscription.');
-        track('vote', { app: slug });
+        if (voted) {
+          localStorage.removeItem(`voted:${slug}`);
+          voteLabel(btn, false);
+          toast('vote taken back · resurrection granted');
+          track('unvote', { app: slug });
+        } else {
+          localStorage.setItem(`voted:${slug}`, '1');
+          voteLabel(btn, true);
+          toast('☠ counted. RIP that subscription.');
+          track('vote', { app: slug });
+        }
       } catch {
-        toast('something broke — try again');
+        toast('something broke · try again');
       }
     });
   });
