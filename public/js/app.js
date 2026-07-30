@@ -34,7 +34,7 @@
 
   /* ---------- search filter + chips ---------- */
   const search = $('#search');
-  const rows = $$('#rows .row');
+  const rows = $$('#rows .row, #rows-rest .row');
   let activeCat = '';
   let activeVerdict = '';
 
@@ -158,6 +158,23 @@
     } catch {}
   };
   if ($('#ticker')) setInterval(refreshStats, 30000);
+
+  /* ---------- public analytics strip ---------- */
+  const strip = $('#stats-strip');
+  if (strip) {
+    const refreshStrip = async () => {
+      try {
+        const res = await fetch('/api/analytics');
+        const s = await res.json();
+        if (s.unavailable) return;
+        Object.entries(s).forEach(([k, v]) => {
+          const el = $(`[data-stat="${k}"]`, strip);
+          if (el && v != null) el.textContent = Number(v).toLocaleString('en-US');
+        });
+      } catch {}
+    };
+    setInterval(refreshStrip, 60000);
+  }
 
   /* ---------- open-in-agent deeplinks + raw copy ----------
      Each agent registers a URL scheme that opens its harness with the prompt
