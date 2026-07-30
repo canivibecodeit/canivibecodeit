@@ -49,8 +49,8 @@
       r.style.display = hit ? '' : 'none';
       if (hit) shown++;
     });
-    const empty = $('#no-results');
-    if (empty) empty.hidden = shown > 0;
+    const miss = $('#no-results');
+    if (miss) miss.classList.toggle('show', shown === 0 && (q.length > 0 || !!activeCat || !!activeVerdict));
     const count = $('#filter-count');
     if (count) count.textContent = shown === rows.length ? '' : `${shown} of ${rows.length}`;
   };
