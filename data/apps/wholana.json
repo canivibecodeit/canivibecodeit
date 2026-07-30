@@ -1,0 +1,59 @@
+{
+  "slug": "wholana",
+  "name": "Wholana",
+  "domain": "wholana.com",
+  "category": "social-media",
+  "subcategory": "short-form research + outlier analytics",
+  "tagline": "TikTok research tool that ranks videos against each creator's own baseline and labels what they did",
+  "priceMonthly": 5,
+  "pricing": {
+    "plan": "Personal",
+    "basis": "monthly per user",
+    "native": "5 USD",
+    "source": "https://wholana.com/pricing",
+    "checkedOn": "2026-07-31",
+    "confidence": "high",
+    "notes": "Personal 5 USD/month, Plus 20 USD/month (adds the MCP server), Team 20 USD per seat with a 2-seat floor. Every plan starts with a free month."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea is simple arithmetic: a video's views divided by that creator's own median. An agent can build that for a watchlist of creators you pick, over a weekend, on top of a paid scraper API. What it cannot hand you is the corpus, hundreds of thousands of videos already scraped, deduped, and labeled against a curated craft taxonomy, which is what makes search across creators useful instead of a list of your own bookmarks. So: yes for watching 25 creators you already know, no for finding the ones you don't.",
+  "coreLoopDIY": "Scrape a watchlist of creators nightly, compute each creator's rolling median views, and surface the videos that beat their own baseline.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "TikTok scraper API (Apify or similar, paid per run)",
+    "LLM API key for hook labeling",
+    "SQLite",
+    "a nightly cron job",
+    "a scrape budget that recurs every month"
+  ],
+  "whatYouLose": [
+    "the cross-creator corpus",
+    "search across videos you never chose to watch",
+    "a curated craft taxonomy instead of labels you invented",
+    "semantic and hybrid search",
+    "subject classification",
+    "creator equity and track-record views",
+    "someone else absorbing the scrape cost and keeping it running"
+  ],
+  "moatType": "accumulated corpus + labeling pipeline",
+  "whyPeopleStillPay": "The arithmetic is free, the data is not. A personal build only ever knows about the creators you thought to add, and you pay the scraper bill every month to keep even that fresh. The subscription is renting a corpus that was already collected and labeled, plus the discovery that only exists once videos from creators you have never heard of are sitting in the same index.",
+  "priorArt": [
+    {
+      "name": "TikTokApi",
+      "url": "https://github.com/davidteather/TikTok-Api",
+      "desc": "Unofficial Python wrapper for TikTok's web endpoints; gets you raw metrics, not a corpus, and breaks when TikTok changes",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "ahrefs",
+    "semrush",
+    "buffer"
+  ],
+  "pagePriority": 5,
+  "verifiedOneShot": false,
+  "notes": "Submitted by the maker, scored against the site's framework rather than the marketing page.",
+  "prompt": "Build me a personal TikTok outlier tracker to replace Wholana. Requirements:\n\n- A nightly Node script (node-cron) that pulls recent videos for up to 25 handles listed in\n  handles.txt, using a TikTok scraper actor on Apify, token in .env. Do not scrape TikTok\n  directly, you will be blocked inside a day.\n- Store videos in SQLite via better-sqlite3: handle, video id, url, caption, posted date,\n  views, likes, comments, shares, date first seen. Upsert on video id so a re-scrape\n  updates metrics instead of duplicating rows.\n- Per creator, keep a rolling median of views over their last 30 videos and score each\n  video as views divided by that median. 3x or higher is a breakout. Skip creators under\n  10 videos, the median is noise below that.\n- Label each breakout with one LLM call (Anthropic or OpenAI, key in .env): caption plus\n  the first 15 seconds of subtitles from yt-dlp, returning one hook type from a fixed list\n  of 12 in hooks.json. Fixed list, not free text, or nothing groups.\n- A page on localhost:3000 (Express, server-rendered HTML, Chart.js): last 7 days of\n  breakouts sorted by score, filterable by handle, each row showing score, views, hook\n  type, and a link, plus a per-creator sparkline of views over time.\n- A save button per row that writes the video into a swipe collection and appends it to\n  swipe.md, so my picks survive the database.\n- Localhost only. No accounts, no telemetry, everything on my machine except the Apify and\n  LLM calls.\n- Out of scope: search across creators I am not already tracking, and a shared craft\n  taxonomy. Do not build auth, multi-user workspaces, or hosting config.\n- README: Apify token and actor id, the cron entry, and the cost per 1,000 videos scraped.\n  The scraper bill, not the code, is what makes people quit this build.",
+  "promptCurated": true
+}
