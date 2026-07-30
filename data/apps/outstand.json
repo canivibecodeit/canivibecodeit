@@ -1,0 +1,59 @@
+{
+  "slug": "outstand",
+  "name": "Outstand",
+  "domain": "outstand.so",
+  "category": "dev-tools",
+  "subcategory": "unified social media API",
+  "tagline": "One API to post, schedule, and pull analytics across 11 social networks",
+  "priceMonthly": 19,
+  "pricing": {
+    "plan": "Base",
+    "basis": "monthly + usage",
+    "native": "19 USD",
+    "source": "https://outstand.so",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "$19/month includes 3,000 posts, then $0.007/post to 10k and $0.005/post beyond; no per-seat pricing, no free tier, enterprise on request."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "Writing your own posting service is a weekend build, and for the networks with open APIs (Bluesky, Mastodon, Telegram) it genuinely is: a queue, a cron tick, one adapter per network, done. The wall is not code. Instagram, TikTok, YouTube, LinkedIn, and Pinterest each require your own developer app and a platform review before they will accept a single post, X meters writes on a paid tier, and then eleven integrations keep changing under you: token refresh, media specs, rate-limit budgets, deprecated endpoints. You can build the API. You cannot one-shot permission to use it.",
+  "coreLoopDIY": "Run a small self-hosted service that takes a post plus target accounts over HTTP, queues it, publishes on schedule through one adapter per network, and records per-account delivery status.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "your own developer app per social network",
+    "paid X API tier for posting to X",
+    "always-on box for the scheduler",
+    "media storage"
+  ],
+  "whatYouLose": [
+    "pre-approved platform apps for Instagram, TikTok, YouTube and LinkedIn",
+    "eleven maintained integrations, kept alive as platforms change",
+    "automatic token refresh and rate-limit queueing",
+    "per-network media transcoding from a single upload",
+    "cross-platform analytics in one shape",
+    "the MCP server that hands all of it to an AI agent"
+  ],
+  "moatType": "platform app review + integration upkeep",
+  "whyPeopleStillPay": "Every network you actually want is gated by someone else's approval queue. Getting an Instagram or TikTok app cleared to post takes review cycles and a real business case, and that is before you own token refresh, per-platform media specs, and rate limits for eleven APIs forever. Paying converts an approval problem and permanent maintenance into a bearer token, which is exactly the trade a developer shipping a product wants to make.",
+  "priorArt": [
+    {
+      "name": "postiz-app",
+      "url": "https://github.com/gitroomhq/postiz-app",
+      "desc": "AGPL social scheduler with a public API and per-network adapters, self-hostable as a starting point",
+      "status": "alive"
+    },
+    {
+      "name": "mixpost",
+      "url": "https://github.com/inovector/mixpost",
+      "desc": "self-hosted social publishing app (Laravel) you point your own platform apps at",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": ["post-bridge", "postiz", "buffer"],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The rare entry where the moat is paperwork · the code is a weekend, the platform approvals are not.",
+  "prompt": "Build me a self-hosted unified posting API to replace Outstand. Requirements:\n\n- Node + Fastify + better-sqlite3, one headless service on localhost:8080.\n  No web UI: my own apps are the only consumer, every key in .env.\n- One normalized post shape in zod (text, media, targets, scheduledAt,\n  idempotencyKey) and one adapter per network mapping it onto that\n  platform's payload. Adapters export capabilities, publish, and metrics;\n  nothing platform-specific leaks into the core.\n- A capability table per adapter (character limit, media count, mime types,\n  aspect ratios, max video seconds). POST /posts returns 422 naming which\n  target rejected what, before a single network call goes out.\n- Ship the three networks that need no app review: Bluesky (@atproto/api),\n  Mastodon, Telegram. Adding a fourth must mean writing one adapter file\n  and touching nothing else.\n- A token-bucket limiter per network seeded with their published limits so\n  calls queue instead of returning 429. POST /posts answers 202 with a job\n  id and a worker drains the queue.\n- Idempotency: replaying a POST with the same idempotencyKey returns the\n  original job instead of posting twice, and every target gets its own\n  delivery row so partial success is readable.\n- GET /posts/:id/analytics folds each platform's metrics into one shape\n  (impressions, likes, comments, shares) with null where a network does not\n  report a field. Never invent a number to fill a gap.\n- An MCP server over stdio exposing create_post, list_accounts, and\n  get_analytics so Claude Code posts through it, plus an OpenAPI spec\n  generated from the zod schemas at /openapi.json.\n- Out of scope: Instagram, TikTok, YouTube, LinkedIn, Pinterest. Each needs\n  my own developer app approved by the platform first, a review queue and\n  not code. Say that in the README next to the three token setups.",
+  "promptCurated": true
+}
