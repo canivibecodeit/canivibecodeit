@@ -1,0 +1,66 @@
+{
+  "slug": "sleek",
+  "name": "Sleek",
+  "domain": "sleek.design",
+  "category": "design",
+  "subcategory": "AI mobile app design",
+  "tagline": "Prompt-to-design tool for multi-screen mobile app UI, with Figma and code export",
+  "priceMonthly": 24.99,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly",
+    "native": "24.99 USD",
+    "source": "https://sleek.design/pricing",
+    "checkedOn": "2026-07-30",
+    "confidence": "high",
+    "notes": "Starter $24.99/month or $240/year, capped at 5 projects and 3,000 credits (about 100 screens) a month. Pro $49.99/month or $360/year adds unlimited projects, 20,000 credits, and REST API access. Team $69.99/seat/month. Free is 1 project on one-time trial credits. All paid tiers currently carry an Early Bird badge, and the pricing page opens on the yearly toggle showing $20/month until you switch it. A cheaper Lite tier exists but only renders for purchasing-power-parity regions."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "One screen is already a yes, and you do not need this site for it: paste \"design me a settings screen for an iOS app, Tailwind, 402x874\" into the agent you already pay for and you get something decent. What Sleek sells is everything that makes twelve screens look like the same app, and most of that turns out to be prompt discipline rather than product. Decide the design system once, paste it verbatim into every later call, and hand the model the mobile conventions it does not apply unprompted: safe areas, 44px tap targets, native navigation instead of a website cropped to phone width. Two gaps survive that. There is no canvas, so every change is a re-prompt of a whole file rather than a click, and one call to one model is a rougher first draft than a tuned chain of them, which you pay for in your own iteration time. The Figma handoff is not one of the gaps: Sleek's own team ships the converter as MIT on npm, so the DIY build gets editable layers from one install.",
+  "coreLoopDIY": "Generate one design system, generate each mobile screen as a standalone Tailwind HTML file against it, review them together in phone frames, and export PNGs plus editable Figma layers.",
+  "diyTimeEstimate": "weekend",
+  "requirements": [
+    "LLM API key",
+    "Node 22+",
+    "Playwright for screenshot export"
+  ],
+  "whatYouLose": [
+    "clicking an element to change it instead of re-prompting the whole file",
+    "a tuned multi-step pipeline · you get one prompt on one model, and you close the gap in your own iteration time",
+    "sketch input · photograph a hand-drawn screen and get it back as a design",
+    "share links, project history, and team seats"
+  ],
+  "moatType": "output quality + editing UX",
+  "whyPeopleStillPay": "Nobody pays for one screen, and that is the honest read on this category: the single-screen version got free the day coding agents got good. What is left is thinner than it looks. There is no network here, no proprietary dataset, no integration treadmill, and the Figma converter that used to be the hard part is MIT on npm. What is left is real work all the same. The prompt below is one call to one model; the product is a chain of them, each step routed to whichever model is the right trade of quality against speed for that step, with the prompts behind each layer rewritten over months of iteration. None of that shows up on screen one. It shows up on screen nine, and in how many re-prompts it took to get there. The other thing money buys is a canvas, where a change is a click instead of a whole file re-prompted. Neither is a moat, and the prompt below is the honest test of what they are worth to you.",
+  "priorArt": [
+    {
+      "name": "dom-to-figma",
+      "url": "https://github.com/figitdesign/web-to-figma",
+      "desc": "MIT converter turning a DOM tree into editable Figma layers on paste; Sleek's own team ships it and the README says it runs in production there",
+      "status": "alive"
+    },
+    {
+      "name": "Penpot",
+      "url": "https://github.com/penpot/penpot",
+      "desc": "open-source design tool where a multi-screen mobile file stays editable, if you want layers rather than a folder of PNGs",
+      "status": "alive"
+    },
+    {
+      "name": "Onlook",
+      "url": "https://github.com/onlook-dev/onlook",
+      "desc": "Apache-2.0 visual editor for React codebases, the nearest thing to click-to-edit; web-focused, and the hosted product is now waitlisted",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "figma",
+    "canva",
+    "gamma"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The first AI mobile-UI entry on the list, and an awkward one: the thing it sells is largely free inside the reader's own coding agent, and the Figma converter it leaned on is MIT on npm.",
+  "prompt": "Build me a mobile app screen designer to replace Sleek. Requirements:\n\n- A local Next.js app (App Router) calling the Anthropic API (claude-opus-5,\n  key in .env). Stream it with max_tokens 32000 · a screen plus its thinking\n  share that budget, and it rejects sampling params and assistant prefills\n  outright. Screens are files on disk, no database.\n- One route handler takes a plain-language description of the app, or a sketch\n  I drop on the page, and answers with a screen list first: 6 to 10 names, one\n  line of purpose each. I edit that list, then it builds every screen on it.\n- That same first call writes design-system.json (5 hex colors, 2 fonts with a\n  6-step type scale, radius, spacing unit, icon set) and _nav.html, and nothing\n  regenerates either afterwards · every later call gets both pasted in verbatim,\n  which is what stops screen 9 drifting away from screen 1.\n- Each screen is public/screens/<name>.html: one standalone file, Tailwind via\n  CDN, Lucide icons, a 402x874 viewport with 62px top and 34px bottom insets as\n  CSS variables, 44px minimum tap targets, and that same nav.\n- Edits re-send the current file plus my instruction and overwrite it in place,\n  so untouched parts stay put; every version lands in screens/.history/.\n- The page is a gallery: each screen in an iframe inside a phone frame, side by\n  side, a text box under each for the next edit. `npm run export` runs\n  Playwright at deviceScaleFactor 3 into exports/ plus a contact sheet.\n- A \"copy all to Figma\" button: @figit/dom-to-figma (MIT), one frame per screen\n  passing that iframe's contentDocument.body, convert({ frames }), then\n  clipboard.write with its toClipboardItem(). Cmd+V in Figma lands the whole\n  set as editable layers. Keep it in a client component and fire it from a real\n  click, or the write is blocked.\n- Out of scope, do not build: a click-to-edit canvas, share links, or hosting.\n  Runs on my machine, no accounts, no telemetry.\n- README: the API key, `npx playwright install chromium`, where files land, and\n  that remote images need an imageLoader proxying around CORS.",
+  "promptCurated": true
+}
