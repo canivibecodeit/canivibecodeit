@@ -7,6 +7,7 @@ export async function GET() {
     ...allApps().map((a) => `${base}/${a.slug}`),
     ...categoriesInUse().map((c) => `${base}/category/${c.slug}`),
     `${base}/categories`,
+    `${base}/stats`,
     `${base}/vibecode-this-site`,
   ];
 

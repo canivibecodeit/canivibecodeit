@@ -1,0 +1,90 @@
+---
+import Base from '../layouts/Base.astro';
+import { dashboardStats } from '../lib/analytics.js';
+
+const data = await dashboardStats();
+const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US'));
+const s = data?.tiles;
+
+const title = 'Site analytics — Can I Vibecode It?';
+const description =
+  'Live, public analytics for canivibecodeit.com: who is online, what gets viewed, and which prompts get copied into which AI coding agent.';
+---
+
+<Base {title} {description}>
+  <main class="wrap dash">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/">the death list</a> / <span class="here">stats</span>
+    </nav>
+
+    <div class="list-head" style="padding-top: 20px;">
+      <h2>Site analytics</h2>
+      <span class="note">public, because why not · refreshed every minute</span>
+    </div>
+
+    <div class="dash-tiles">
+      <div class="tile" title="Unique visitors with any activity in the last 5 minutes">
+        <span class="t-label"><i class="dot"></i>online now</span>
+        <span class="t-num" data-stat="online">{fmt(s?.online)}</span>
+        <span class="t-def">active in the last 5 min</span>
+      </div>
+      <div class="tile" title="Page views since midnight UTC">
+        <span class="t-label">views today</span>
+        <span class="t-num" data-stat="viewsToday">{fmt(s?.viewsToday)}</span>
+        <span class="t-def">since midnight UTC</span>
+      </div>
+      <div class="tile" title="Unique visitors in the last 7 days">
+        <span class="t-label">visitors · 7d</span>
+        <span class="t-num" data-stat="visitors7d">{fmt(s?.visitors7d)}</span>
+        <span class="t-def">unique people</span>
+      </div>
+      <div class="tile" title="Prompt copy and open-in-agent clicks in the last 7 days">
+        <span class="t-label">prompts copied · 7d</span>
+        <span class="t-num" data-stat="copies7d">{fmt(s?.copies7d)}</span>
+        <span class="t-def">copy + open-in-agent</span>
+      </div>
+    </div>
+
+    {
+      data ? (
+        <div class="panels">
+          <section class="panel span-2">
+            <header>
+              <span class="microlabel">page views · last 14 days</span>
+            </header>
+            <canvas id="chart-views" height="220"></canvas>
+          </section>
+          <section class="panel">
+            <header>
+              <span class="microlabel">top pages · 7d</span>
+            </header>
+            <canvas id="chart-pages" height="240"></canvas>
+          </section>
+          <section class="panel">
+            <header>
+              <span class="microlabel">copies by agent · 7d</span>
+            </header>
+            <canvas id="chart-agents" height="150"></canvas>
+            <header style="margin-top: 18px;">
+              <span class="microlabel">most-copied prompts · 7d</span>
+            </header>
+            <canvas id="chart-prompts" height="200"></canvas>
+          </section>
+        </div>
+      ) : (
+        <p style="padding-top: 40px; color: var(--muted); font-size: 14px;">
+          Analytics warming up. Numbers appear once the first events land.
+        </p>
+      )
+    }
+
+    <p class="dash-foot">
+      First-party analytics, self-queried and published on purpose · the dithered
+      charts are ~200 lines of vanilla canvas ·
+      <a href="/vibecode-this-site">yes, you can vibecode this too</a>
+    </p>
+  </main>
+
+  <script type="application/json" id="dash-data" set:html={JSON.stringify(data ?? { unavailable: true })} />
+  <script src="/js/dither.js" defer></script>
+</Base>
