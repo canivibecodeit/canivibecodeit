@@ -198,6 +198,16 @@
       link: (p) => `https://cursor.com/link/prompt?text=${encodeURIComponent(p)}`,
       newTab: true,
     },
+    vibekit: {
+      // Plain https landing, nothing to install: ?build= prefills the build
+      // wizard with the prompt (it survives signup for first-time visitors),
+      // then an agent builds and hosts the result on a subdomain. The one
+      // option in this row that works from a phone. Free tier available;
+      // hosted, so the no-subscription note in the FAQ does not apply to it.
+      name: 'VibeKit',
+      link: (p) => `https://app.vibekit.bot/?build=${encodeURIComponent(p)}`,
+      newTab: true,
+    },
   };
 
   // Clipboard API needs a secure context (https / localhost); the textarea +
