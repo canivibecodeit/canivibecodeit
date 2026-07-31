@@ -32,17 +32,15 @@
     track('theme_toggle', { theme: next });
   });
 
-  /* ---------- mobile back to top ---------- */
+  /* ---------- back to top ---------- */
   const backToTop = $('[data-back-to-top]');
   if (backToTop) {
-    const mobile = matchMedia('(max-width: 760px)');
     const updateBackToTop = () => {
-      const visible = mobile.matches && scrollY > 480;
+      const visible = scrollY > 480;
       backToTop.classList.toggle('visible', visible);
       backToTop.disabled = !visible;
     };
     addEventListener('scroll', updateBackToTop, { passive: true });
-    mobile.addEventListener('change', updateBackToTop);
     updateBackToTop();
     backToTop.addEventListener('click', () => {
       const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
