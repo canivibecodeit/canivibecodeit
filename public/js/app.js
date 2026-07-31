@@ -32,6 +32,22 @@
     track('theme_toggle', { theme: next });
   });
 
+  /* ---------- back to top ---------- */
+  const backToTop = $('[data-back-to-top]');
+  if (backToTop) {
+    const updateBackToTop = () => {
+      const visible = scrollY > 480;
+      backToTop.classList.toggle('visible', visible);
+      backToTop.disabled = !visible;
+    };
+    addEventListener('scroll', updateBackToTop, { passive: true });
+    updateBackToTop();
+    backToTop.addEventListener('click', () => {
+      const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+  }
+
   /* ---------- search filter + chips ---------- */
   const search = $('#search');
   const rows = $$('#rows .row, #rows-rest .row');
@@ -78,18 +94,25 @@
   const BADGE = { yes: 'YES', kinda: 'KINDA', no: 'NOT REALLY' };
   let srActive = -1;
 
+  const closeDropdown = () => {
+    if (!srBox) return;
+    srActive = -1;
+    srBox.replaceChildren();
+    srBox.classList.remove('open');
+    search?.setAttribute('aria-expanded', 'false');
+    search?.removeAttribute('aria-activedescendant');
+  };
+
   const renderDropdown = (q) => {
     if (!srBox) return;
     srActive = -1;
     if (!q) {
-      srBox.classList.remove('open');
-      search?.setAttribute('aria-expanded', 'false');
+      closeDropdown();
       return;
     }
     const hits = rowData.filter((r) => r.lower.includes(q));
     if (!hits.length) {
-      srBox.classList.remove('open');
-      search?.setAttribute('aria-expanded', 'false');
+      closeDropdown();
       return;
     }
     const top = hits.slice(0, 6);
@@ -115,7 +138,17 @@
   const setActive = (i) => {
     const items = srRows();
     srActive = ((i % items.length) + items.length) % items.length;
-    items.forEach((el, j) => el.classList.toggle('active', j === srActive));
+    items.forEach((el, j) => {
+      const active = j === srActive;
+      el.classList.toggle('active', active);
+      el.setAttribute('aria-selected', String(active));
+      if (active) {
+        el.id = 'search-result-active';
+        search?.setAttribute('aria-activedescendant', el.id);
+      } else {
+        el.removeAttribute('id');
+      }
+    });
   };
 
   search?.addEventListener('input', () => {
@@ -131,14 +164,21 @@
       e.preventDefault();
       setActive(srActive - 1);
     } else if (e.key === 'Escape') {
-      renderDropdown('');
+      closeDropdown();
     } else if (e.key === 'Enter') {
-      const target = items[srActive >= 0 ? srActive : 0];
-      if (target) location.href = target.getAttribute('href');
+      // Never follow stale results from an earlier, broader query. Mobile
+      // keyboards send Enter even when the now-empty dropdown is invisible.
+      const target = srBox?.classList.contains('open')
+        ? items[srActive >= 0 ? srActive : 0]
+        : null;
+      if (target) {
+        e.preventDefault();
+        location.href = target.getAttribute('href');
+      }
     }
   });
   document.addEventListener('click', (e) => {
-    if (srBox && !e.target.closest('.search-wrap')) renderDropdown('');
+    if (srBox && !e.target.closest('.search-wrap')) closeDropdown();
   });
 
   // Chips are real links (SEO); on the homepage they filter in place instead.
