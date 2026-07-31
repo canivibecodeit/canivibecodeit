@@ -1,0 +1,41 @@
+{
+  "slug": "transcriptapi",
+  "name": "TranscriptAPI",
+  "domain": "transcriptapi.com",
+  "category": "dev-tools",
+  "subcategory": "YouTube transcript / caption API",
+  "tagline": "API for pulling YouTube video transcripts and captions as JSON, at scale.",
+  "priceMonthly": 5,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly, 1000 credits",
+    "source": "https://transcriptapi.com",
+    "checkedOn": "2026-07-31",
+    "confidence": "high",
+    "notes": "Top-up credits from 1.50 USD per 1000.",
+    "native": "5 USD"
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The core fetch is trivially DIY: the open-source youtube-transcript-api library pulls a video's caption track in a few lines, so a personal script is one sitting. It falls over the moment you hit real volume. YouTube rate-limits and IP-blocks scrapers, silently changes its internal caption endpoints, and serves nothing for videos with disabled or auto-generated captions. The product you are paying for is not the fetch, it is the part that stays unblocked.",
+  "coreLoopDIY": "Call the youtube-transcript-api library to pull a video's caption track and return it as JSON.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": ["Python", "a rotating proxy pool once you hit any real volume"],
+  "whatYouLose": [
+    "reliability once YouTube rate-limits or IP-blocks your scraper",
+    "a proxy pool and rotation to stay unblocked",
+    "caching so repeat lookups are instant and cheap",
+    "graceful handling of videos with no or auto-generated captions",
+    "uptime when YouTube quietly changes its internal caption endpoints"
+  ],
+  "moatType": "anti-blocking infra and an owned proxy pool",
+  "whyPeopleStillPay": "The 30-line build works on your laptop and dies in production. Staying unblocked against YouTube at thousands of requests a day means an owned, rotating proxy pool, retry and caching layers, and someone watching for the day YouTube changes its endpoints. That operational moat, not the parsing, is the whole product.",
+  "priorArt": [
+    { "name": "youtube-transcript-api", "url": "https://github.com/jdepoix/youtube-transcript-api", "desc": "open-source Python library that does the core caption fetch" }
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The one-shot build works until YouTube blocks you; the product is the part that does not get blocked.",
+  "prompt": "Build a YouTube transcript API as a single FastAPI service. Stack: Python 3.11, FastAPI, the youtube-transcript-api library, uvicorn. No database. Endpoint: GET /transcript?video=... returns JSON { video_id, language, segments: [{start, duration, text}], text } where text is the full joined transcript. Accept either a raw 11-character video id or a full YouTube URL and extract the id. If captions are disabled or missing, return 404 with a clear JSON error, never a 500. Support an optional and lang= param; otherwise fall back to the first available track and report which language was used. Add a 24-hour in-memory cache keyed by (video_id, lang) so repeat calls are instant. Read an optional comma-separated PROXIES env var and pick one per request; this is the part that keeps you unblocked once you hit real volume. Include a /health endpoint, a README with run instructions, and a .env.example. Deliberately out of scope: auth, billing, a proxy pool you do not own, and any UI. This is the personal-use core, not the hosted product.",
+  "promptCurated": true
+}
