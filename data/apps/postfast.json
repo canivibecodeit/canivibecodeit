@@ -1,0 +1,58 @@
+{
+  "slug": "postfast",
+  "name": "PostFast",
+  "domain": "postfa.st",
+  "category": "social-media",
+  "subcategory": "social scheduling + agent/API posting",
+  "tagline": "Schedule and auto-publish to 11 social platforms, with analytics, approval workflows, an API, and an MCP server for AI agents",
+  "priceMonthly": 33,
+  "pricing": {
+    "plan": "Creator",
+    "basis": "monthly",
+    "native": "29 EUR",
+    "source": "https://postfa.st/pricing",
+    "checkedOn": "2026-07-31",
+    "confidence": "high",
+    "notes": "Official pricing checked 2026-07-31, listed in EUR. Creator 29 EUR/month billed monthly (24 EUR/month billed yearly, 288 EUR); Starter 10, Growth 49 monthly / 40 yearly, Pro (Agency) 82.50, Enterprise 199. priceMonthly converts 29 EUR at 1.1476 USD/EUR (ECB, 2026-07-30). 7-day free trial, no card."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The core loop is the one every scheduler shares and it is genuinely one-shottable: a compose box, a slot queue, a cron tick, one adapter per network. Two things sit outside what a coding agent hands you in a session. The first is paperwork. Only Bluesky and Telegram give you working credentials on signup; the other nine of PostFast's eleven destinations wait behind Meta App Review for Instagram, Facebook, and Threads, a TikTok audit before an app may post publicly rather than to a private draft, YouTube's default 10,000-unit daily quota against 1,600 units per upload, approval flows at LinkedIn, Pinterest, and Google Business Profile, and X, where the free tier is capped tightly enough that real volume means paying. The second is video. Every platform enforces its own container, codec, aspect ratio, duration, and size rules, so anything past text and a JPEG turns into a transcode pipeline with somewhere to actually run the jobs and a retry story for the upload that dies at 90 percent. Build the text-and-image version for the two open networks in a sitting; the rest is review forms and a transcode queue.",
+  "coreLoopDIY": "Compose posts into a slot-based queue, publish them on schedule to the open-API networks via per-network adapters, and expose the same queue over MCP so a coding agent can schedule too.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "OAuth/API access per social network",
+    "always-on box for the scheduler",
+    "database",
+    "media storage",
+    "ffmpeg and somewhere to run transcodes for anything past text and images"
+  ],
+  "whatYouLose": [
+    "nine of the eleven destinations, which need app review or a paid API tier rather than more code",
+    "pre-approved OAuth apps for Instagram, TikTok, YouTube, LinkedIn, Pinterest, and Google Business Profile",
+    "the video pipeline: per-platform container, codec, aspect ratio, duration, and size rules, plus async processing and the retries for when a large upload fails partway",
+    "token refresh and the steady patching as platform policies move",
+    "analytics, follower history, approval workflows, and per-client workspaces",
+    "the hosted API, MCP server, and n8n/Zapier/Make integrations that let an agent post for you"
+  ],
+  "moatType": "platform app review + video pipeline + integration upkeep",
+  "whyPeopleStillPay": "Connecting Instagram or TikTok here is one click because the OAuth app behind it already passed Meta App Review, TikTok's audit, and Google's business verification, a process that takes weeks and that a solo builder often cannot qualify for at all. Video is the other half of the bill: each platform enforces its own container, codec, aspect ratio, duration, and size rules, so a working scheduler runs a real transcode pipeline with async jobs, retries, and honest failure states rather than one hopeful upload call. The subscription also absorbs the work that never finishes: tokens expiring, per-platform media rules changing, endpoints deprecating on someone else's schedule. Above that sits the part a rebuild would not reach anyway, which is cross-account analytics and follower history, approvals and workspaces for running client accounts, and an API plus MCP server so your agent schedules through it instead of you maintaining a poster forever.",
+  "priorArt": [
+    {
+      "name": "Postiz",
+      "url": "https://github.com/gitroomhq/postiz-app",
+      "desc": "AGPL social scheduler, self-hostable, covers the DIY core for the open-API networks.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "post-bridge",
+    "postiz",
+    "buffer"
+  ],
+  "pagePriority": 4,
+  "verifiedOneShot": false,
+  "notes": "Same shape as the other schedulers · the code is a weekend, the nine platform approvals and the video pipeline behind it are not.",
+  "prompt": "Build me a personal social scheduler my coding agent can drive, to replace PostFast. Requirements:\n\n- Node + Express + better-sqlite3 on my always-on box. Two interfaces over one core:\n  a localhost page (compose box, media attach, queue by send time) and a stdio MCP\n  server via @modelcontextprotocol/sdk with create_post, list_posts, and delete_post,\n  so Claude Code can schedule without me opening the page.\n- Open-API networks only: Bluesky (app password via @atproto/api), Mastodon (access\n  token), Telegram channel (bot token). One adapter file per network, creds in .env.\n- For the gated platforms (Instagram, TikTok, YouTube, Facebook, Threads, LinkedIn,\n  Pinterest, Google Business Profile) do not fight the APIs: at send time push me an\n  ntfy.sh alert with the caption and media path and I post by hand. The README says\n  plainly that these need reviewed developer apps, not more code.\n- Slot-based queue: posting times per weekday in my timezone, new posts take the next\n  free slot or pin to an exact datetime; one post fans out to several networks with\n  per-network text.\n- A node-cron tick every minute sends what is due, marks the row sending before it\n  calls anything so a crash never double-posts, retries 3 times with backoff, then\n  records sent or failed with the error.\n- Media in media/ beside the database, images resized per network with sharp. Video:\n  accept MP4 only and check duration, aspect ratio, and size against each network's\n  limits at attach time, rejecting with the limit in the message rather than fixing it.\n- A history page of the last 100 sends linking to the live posts.\n- Binds to localhost only. No accounts, no telemetry, everything stays on my box.\n- Out of scope: video transcoding, analytics, approval workflows, and workspaces.\n  Do not build auth.\n- README: Bluesky app password, Mastodon token, Telegram bot token, wiring the MCP\n  server into Claude Code, and a warning that social APIs drift and need patching.",
+  "promptCurated": true
+}
