@@ -78,6 +78,47 @@
   const BADGE = { yes: 'YES', kinda: 'KINDA', no: 'NOT REALLY' };
   let srActive = -1;
 
+  /* ---------- randomized hero logo typewriter ---------- */
+  const heroLogo = $('[data-hero-logo]');
+  if (heroLogo && rowData.length) {
+    const logoImg = $('img', heroLogo);
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let previousLogo = -1;
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const randomLogo = () => {
+      let next = Math.floor(Math.random() * rowData.length);
+      if (rowData.length > 1 && next === previousLogo) next = (next + 1) % rowData.length;
+      previousLogo = next;
+      return rowData[next];
+    };
+    const setLogo = async (item) => {
+      logoImg.src = item.icon;
+      heroLogo.title = item.name;
+      try {
+        await logoImg.decode();
+      } catch {
+        // The next cycle will try another local icon if this one cannot decode.
+      }
+    };
+
+    if (reduceMotion) {
+      void setLogo(randomLogo()).then(() => heroLogo.classList.add('typed'));
+    } else {
+      void (async () => {
+        while (heroLogo.isConnected) {
+          heroLogo.classList.remove('typed');
+          await setLogo(randomLogo());
+          await wait(420);
+          heroLogo.classList.add('typed');
+          await wait(1400);
+          heroLogo.classList.remove('typed');
+          await wait(500);
+        }
+      })();
+    }
+  }
+
   const renderDropdown = (q) => {
     if (!srBox) return;
     srActive = -1;
