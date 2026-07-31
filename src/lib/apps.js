@@ -41,6 +41,7 @@ export const CATEGORIES = {
   'presentations': { label: 'Presentations', emoji: '🖥️' },
   'hosting': { label: 'Hosting', emoji: '☁️' },
   'community': { label: 'Community', emoji: '👥' },
+  'live-chat': { label: 'Live chat', emoji: '🗨️' },
   'read-it-later': { label: 'Read it later', emoji: '🔖' },
   'bookmarks': { label: 'Bookmarks', emoji: '📌' },
   'tasks': { label: 'Tasks', emoji: '✅' },
