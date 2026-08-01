@@ -132,6 +132,8 @@ const PURCHASE_FIELDS = [
   'reminder_renew_at',
 ];
 
+const PURCHASE_LOOKUP_COLS = new Set(['id', 'stripe_session_id', 'details_token']);
+
 const NUMERIC_COLUMNS = [
   'amount_cents', 'created_at', 'hold_expires_at', 'paid_at', 'submitted_at',
   'approved_at', 'starts_at', 'ends_at', 'reminder_details_at', 'reminder_renew_at',
@@ -247,16 +249,17 @@ async function pgDriver() {
       return r.rows.map(purchaseRow);
     },
     async purchaseBy(column, value) {
-      const r = await pool.query(`SELECT * FROM sponsor_purchases WHERE ${column} = $1`, [value]);
+      if (!PURCHASE_LOOKUP_COLS.has(column)) throw new Error('purchaseBy: invalid column: ' + column);
+      const r = await pool.query('SELECT * FROM sponsor_purchases WHERE ' + column + ' = $1', [value]);
       return purchaseRow(r.rows[0]);
     },
     async updatePurchase(id, fields, whereStatusIn) {
       const keys = updateParts(fields);
       const params = [id, ...keys.map((k) => fields[k])];
-      let sql = `UPDATE sponsor_purchases SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')} WHERE id = $1`;
+      let sql = 'UPDATE sponsor_purchases SET ' + keys.map((k, i) => k + ' = $' + (i + 2)).join(', ') + ' WHERE id = $1';
       if (whereStatusIn) {
         params.push(whereStatusIn);
-        sql += ` AND status = ANY($${params.length})`;
+        sql += ' AND status = ANY($' + params.length + ')';
       }
       const r = await pool.query(sql, params);
       return r.rowCount;
@@ -356,19 +359,20 @@ async function sqliteDriver() {
     async activePurchases() {
       const marks = ACTIVE_STATUSES.map(() => '?').join(', ');
       return db
-        .prepare(`SELECT * FROM sponsor_purchases WHERE status IN (${marks}) ORDER BY created_at, id`)
+        .prepare('SELECT * FROM sponsor_purchases WHERE status IN (' + marks + ') ORDER BY created_at, id')
         .all(...ACTIVE_STATUSES)
         .map(purchaseRow);
     },
     async purchaseBy(column, value) {
-      return purchaseRow(db.prepare(`SELECT * FROM sponsor_purchases WHERE ${column} = ?`).get(value));
+      if (!PURCHASE_LOOKUP_COLS.has(column)) throw new Error('purchaseBy: invalid column: ' + column);
+      return purchaseRow(db.prepare('SELECT * FROM sponsor_purchases WHERE ' + column + ' = ?').get(value));
     },
     async updatePurchase(id, fields, whereStatusIn) {
       const keys = updateParts(fields);
       const params = [...keys.map((k) => fields[k]), id];
-      let sql = `UPDATE sponsor_purchases SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`;
+      let sql = 'UPDATE sponsor_purchases SET ' + keys.map((k) => k + ' = ?').join(', ') + ' WHERE id = ?';
       if (whereStatusIn) {
-        sql += ` AND status IN (${whereStatusIn.map(() => '?').join(', ')})`;
+        sql += ' AND status IN (' + whereStatusIn.map(() => '?').join(', ') + ')';
         params.push(...whereStatusIn);
       }
       return db.prepare(sql).run(...params).changes;
