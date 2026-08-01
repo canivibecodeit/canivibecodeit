@@ -1,0 +1,62 @@
+{
+  "slug": "ideafast",
+  "name": "IdeaFast",
+  "domain": "ideafast.pro",
+  "category": "user-research",
+  "subcategory": "Reddit pain mining + idea generation",
+  "tagline": "Scans Reddit conversations, clusters them into scored pain themes backed by real quotes, and turns the strongest into startup ideas",
+  "priceMonthly": 19,
+  "pricing": {
+    "plan": "Founder",
+    "basis": "monthly",
+    "native": "19 USD",
+    "source": "https://www.ideafast.pro/#pricing",
+    "checkedOn": "2026-08-01",
+    "confidence": "high",
+    "notes": "Three tiers: Explorer 9 USD, Founder 19 USD (most popular), Builder 49 USD. Scan-pack top-ups sold separately."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pipeline is honest work an agent can do: pull public Reddit JSON, prefilter complaint-shaped text, classify with an LLM, embed and cluster, rank by frequency times severity times recency. A weekend gets you ranked pain themes with real permalinks for two or three subreddits you already know. What does not fall out of one session is everything after the demo: staying inside Reddit's rate limits at scale, picking which communities are worth scanning when you do not already know, deduping the same pain across runs so week two is not week one again, and keeping the LLM bill under the price of the subscription. Verdict is kinda, not yes, because the first run is easy and the tenth is where the product actually lives.",
+  "coreLoopDIY": "Pull posts and comments from a handful of public subreddits, classify complaints with an LLM, cluster them into named pain themes, and rank them with clickable quote evidence.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Anthropic or OpenAI API key",
+    "embedding model",
+    "SQLite",
+    "patience with Reddit rate limits"
+  ],
+  "whatYouLose": [
+    "community discovery, you can only scan subreddits you already thought of",
+    "cross-scan dedupe, so repeat runs resurface the same pains as if they were new",
+    "a warmed corpus, every fresh scan pays the full ingestion wait",
+    "cost control, naive LLM classification of a busy subreddit gets expensive fast",
+    "the idea generation and validation layer on top of the raw clusters"
+  ],
+  "moatType": "ingestion pipeline + cost control, not data ownership",
+  "whyPeopleStillPay": "The clustering is not the hard part, the boring infrastructure around it is. Reddit throttles aggressive clients, so a real corpus takes patient background ingestion rather than a scan you kick off and watch. People pay to skip the warm-up and the API bill, not because the data is secret. It is all public.",
+  "priorArt": [
+    {
+      "name": "PRAW",
+      "url": "https://github.com/praw-dev/praw",
+      "desc": "Python Reddit API wrapper, the usual starting point for the ingestion half",
+      "status": "alive"
+    },
+    {
+      "name": "BERTopic",
+      "url": "https://github.com/MaartenGr/BERTopic",
+      "desc": "Topic clustering over embeddings, covers the grouping step without an LLM",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "dovetail",
+    "maze",
+    "apify"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Good kinda entry: the demo is a weekend, the product is the ingestion plumbing behind it.",
+  "prompt": "Build me a Reddit pain finder: a local CLI plus a small dashboard that reads public\nReddit and turns complaints into ranked pain themes with clickable evidence.\n\n- TypeScript on Node 22, SQLite via better-sqlite3, Hono for the dashboard. One\n  repo, one `npm run scan` entrypoint. No accounts, no cloud, no telemetry.\n- Input: subreddits.txt plus a timeframe flag (default 90 days). Fetch posts and\n  top level comments from Reddit's public JSON endpoints, for example\n  https://www.reddit.com/r/<sub>/top.json?t=year. One request every 2 seconds, a\n  real descriptive User-Agent, and cache every raw response in SQLite so re-runs\n  cost nothing. No OAuth, no logged-in scraping.\n- Prefilter to complaint-shaped text with cheap regexes (\"I hate\", \"why is there\n  no\", \"wasted hours\", \"workaround\", \"gave up on\") before spending a single\n  token. This is the whole cost story, do it first.\n- Classify survivors with Claude (ANTHROPIC_API_KEY in .env, batched, cached by\n  content hash) into: is_pain, severity 1 to 5, one line summary.\n- Cluster: embed the summaries, group at cosine similarity above 0.82, then have\n  Claude name each cluster and pick its 5 strongest verbatim quotes with\n  permalinks. Never paraphrase a quote, evidence has to be clickable or it is\n  worthless.\n- Score each cluster as frequency x mean severity x recency decay, and persist\n  scores per run so a later scan can show what moved.\n- Dashboard on localhost:3000: ranked clusters, expandable quotes with permalinks,\n  filter by subreddit, CSV export.\n- README: how to choose subreddits, the rate limit rule and why breaking it gets\n  you blocked, and rough token cost per 1000 comments.\n- Out of scope: sources other than Reddit, idea generation, and cross-scan dedupe.\n  Get one subreddit list producing clusters you actually trust first.",
+  "promptCurated": true
+}
