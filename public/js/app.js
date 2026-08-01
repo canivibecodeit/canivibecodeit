@@ -154,7 +154,7 @@
   if (chips && rows.length) {
     chips.addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
-      if (!chip || e.metaKey || e.ctrlKey) return;
+      if (!chip || !chip.hasAttribute('data-cat') || e.metaKey || e.ctrlKey) return;
       e.preventDefault();
       activeCat = chip.dataset.cat || '';
       $$('.chip', chips).forEach((c) => c.classList.toggle('active', c === chip));
