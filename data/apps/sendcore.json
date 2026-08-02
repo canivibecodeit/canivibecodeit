@@ -1,0 +1,77 @@
+{
+  "slug": "sendcore",
+  "name": "Sendcore",
+  "domain": "sendcore.me",
+  "appURL": "https://sendcore.me",
+  "category": "newsletter",
+  "subcategory": "Shopify + WooCommerce email marketing",
+  "tagline": "Campaigns, automations, popups and store attribution, installed into a Shopify or WooCommerce shop",
+  "priceMonthly": 16,
+  "pricing": {
+    "plan": "Standard",
+    "kind": "usage-based",
+    "basis": "monthly, by billable contacts",
+    "unit": "usage",
+    "currency": "USD",
+    "native": "Free up to 250 contacts · Standard from 16 USD/mo · Pro from 59 USD/mo · Enterprise from 99 USD/mo",
+    "source": "https://apps.shopify.com/sendcore",
+    "checkedOn": "2026-08-02",
+    "confidence": "high",
+    "notes": "Contact-based ladder, so 16 USD is the Standard entry rung rather than a flat fee. Billable contacts are subscribers plus non-subscribers contacted by an automation in the last 30 days. Shopify installs are billed through Shopify App Billing on the merchant's own invoice."
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The editor is the copyable part. A coding agent will happily build a private Shopify app that pulls your products, composes an HTML campaign and sends it with your own provider key, and for one store that is genuinely useful. What does not fall out of a one-shot is everything that makes it a product a merchant can run a business on: a listed App Store app with OAuth, mandatory GDPR data webhooks and billing that lands on the merchant's own Shopify invoice, per-tenant domain authentication with the DNS handholding it needs, and the consent, suppression and bounce records that keep sending both legal and delivered. Worth saying plainly: Sendcore is small and recent, with no audience network and no proprietary dataset to hide behind. It survives on platform surface, compliance plumbing and the unglamorous backlog that only real merchant sending reveals, which is a narrower moat than Klaviyo's and an honest one.",
+  "coreLoopDIY": "Build a private Shopify app that syncs your products and customers, composes an HTML campaign with a product block, and sends it to a consented segment through your own email provider key.",
+  "diyTimeEstimate": "one sitting for a single store; not a multi-tenant product",
+  "replacementScope": "consolation build only; one store, your own credentials, your own sending domain",
+  "requirements": [
+    "Node.js 22",
+    "SQLite",
+    "Shopify custom app Admin API token (read_products, read_customers, read_orders)",
+    "Bulk email provider key in .env",
+    "A sending domain you control, with SPF and DKIM already verified"
+  ],
+  "whatYouLose": [
+    "App Store distribution: OAuth install, app review and the mandatory GDPR data webhooks",
+    "billing that appears on the merchant's own Shopify invoice instead of a separate card",
+    "domain authentication onboarding and per-tenant sender reputation",
+    "bounce, complaint and suppression handling",
+    "order-level revenue attribution and automations that fire on real store events"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "scale-infra"
+  ],
+  "moatNotes": "platform surface and compliance plumbing, plus the merchant feedback loop behind automations and the editor",
+  "whyPeopleStillPay": "Merchants pay for the parts nobody enjoys building: staying installed and billed inside Shopify, keeping consent and suppression records defensible when a customer or a regulator asks, and getting mail into inboxes from a domain the merchant owns. The campaign editor is the part that demos well and the part an agent reproduces in an afternoon, right up to the moment other people's content meets other people's inboxes. Pasted rich text with mixed inline formatting, merge tags that must not eat the punctuation around them, product blocks that survive Outlook, automation timing that has to line up with a real order: none of these are design problems. They are a backlog you only discover by sending mail on behalf of other businesses, and grinding through it is what separates a demo from something a shop trusts with its list.",
+  "ongoingBurden": "Own DNS and domain verification, consent records, unsubscribe and suppression lists, bounce and complaint handling, Shopify API version upgrades and webhook re-registration, and template rendering that survives Gmail and Outlook.",
+  "priorArt": [
+    {
+      "name": "listmonk",
+      "url": "https://github.com/knadh/listmonk",
+      "desc": "High-performance self-hosted newsletter and mailing-list manager."
+    },
+    {
+      "name": "Mautic",
+      "url": "https://github.com/mautic/mautic",
+      "desc": "Open-source marketing automation platform."
+    },
+    {
+      "name": "Keila",
+      "url": "https://github.com/pentacent/keila",
+      "desc": "Open-source newsletter tool with campaigns, segments and forms."
+    }
+  ],
+  "relatedSlugs": [
+    "klaviyo",
+    "omnisend",
+    "mailchimp"
+  ],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Credibility row: a small, recent app in a category owned by incumbents, listed because the reason it survives is structural rather than clever interface work.",
+  "prompt": "Build a private Shopify campaign sender for ONE store I already own. Not a SaaS, not multi-tenant, no signup.\nStack, no substitutions: Node.js 22, TypeScript, Fastify, SQLite through better-sqlite3, and server-rendered HTML with no client framework.\nCore loop: sync products and customers from my store, compose an HTML email with a product block, send it to a chosen segment, and record what happened to every recipient.\nRead the store with a Shopify custom app Admin API token I create myself (read_products, read_customers, read_orders). Do not implement OAuth or an App Store install flow.\nSend through one bulk email provider using my API key and my already-authenticated sending domain. Both go in .env, and ship a .env.example.\nData model: contacts (email, consent state, source, created_at), products cached from Shopify, campaigns (subject, body_html, status, sent_at), and sends (contact_id, campaign_id, status, error).\nEvery contact carries an explicit consent state. Never send to an unsubscribed or unconsented contact, and prove that with a test.\nGive every email a working one-click unsubscribe link plus List-Unsubscribe headers, backed by a signed token, and honour it immediately.\nThe composer is a plain HTML textarea plus a product picker that inserts image, title, price and link from the synced cache.\nRender emails with inline styles and a table layout so they survive Gmail and Outlook. No external stylesheets, no web fonts.\nAlways send a test to myself first, and require a typed confirmation of the recipient count before any real send.\nSend in batches with retry and backoff, writing one send row per recipient, so a crash resumes instead of double-sending.\nBuild the report from the sends table only: delivered, failed, and failure reasons. Do not invent open or click tracking.\nInclude CSV import and export for contacts so the data is never trapped in the app.\nSeed clearly-labelled sample data that a single command deletes.\nWrite unit tests for the consent gate, the unsubscribe token and the batch resume, plus one end-to-end test that composes and sends a campaign against a mocked provider.\nWrite a README that states what this is not: no deliverability operations, no bounce or complaint processing, no App Store distribution, no billing. Say plainly that real volume from a cold domain lands in spam, and that warmup and suppression handling are now the reader's job.\nRun the tests and the build before finishing, and fix what fails rather than describing it.",
+  "promptCurated": true
+}
