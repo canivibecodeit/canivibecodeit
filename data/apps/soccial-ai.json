@@ -1,0 +1,51 @@
+{
+  "slug": "soccial-ai",
+  "name": "Soccial AI",
+  "domain": "soccial.ai",
+  "category": "social-media",
+  "subcategory": "Instagram DM automation + CRM",
+  "tagline": "AI Instagram DM and comment automation with a CRM that turns followers into customers you own",
+  "priceMonthly": 139,
+  "pricing": {
+    "plan": "Professional",
+    "basis": "monthly, early-adopter pricing (anchor $199 at public launch)",
+    "unit": "flat",
+    "source": "https://www.soccial.ai/pricing",
+    "checkedOn": "2026-08-03",
+    "confidence": "high",
+    "notes": "Starter $34, Professional $139, Enterprise $419, managed CRM from $1,049; all currently 30% off anchor prices as early-adopter pricing.",
+    "native": "139 USD"
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The code is the easy part; Meta is the hard part. The core loop, an LLM that auto-replies to your Instagram DMs, is a small webhook server any coding agent writes in an afternoon. But it only runs against a Meta developer app: you need an Instagram professional account, a public HTTPS endpoint that is up 24/7 (DMs arrive while your laptop is closed), webhook signature verification, and token refresh. And your app stays in development mode, which is fine for your own account but serving anyone else means Meta App Review plus business verification. What the subscription actually sells is connector upkeep across Instagram, Facebook, Shopify and GoHighLevel, hosted always-on webhooks, and a CRM wrapped around the conversations.",
+  "coreLoopDIY": "A small webhook server that receives your Instagram DMs and auto-replies through an LLM using your own system prompt.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Meta developer app (free) + Instagram professional account",
+    "Anthropic or OpenAI API key",
+    "Always-on public HTTPS endpoint (Cloudflare Tunnel on a Pi, or a $5 VPS)"
+  ],
+  "whatYouLose": [
+    "Anyone-but-you: without Meta App Review your app only serves accounts you add as testers",
+    "Shopify and GoHighLevel context behind replies, and the CRM around the conversations",
+    "Comment-to-DM automations, scheduled follow-ups, and human-approval gates on AI writes",
+    "Someone else babysitting webhook uptime, token refresh, and Meta API deprecations"
+  ],
+  "moatTags": ["integrations", "scale-infra", "execution-polish"],
+  "moatNotes": "The moat is Meta's gate, not the code: App Review + business verification to operate beyond your own account, plus permanent connector upkeep across four platform APIs.",
+  "whyPeopleStillPay": "Because the product is the plumbing. Instagram automation is 10% LLM calls and 90% staying connected: OAuth token lifecycles, webhook receivers that never sleep, Meta App Review, deprecation churn across Instagram, Facebook, Shopify and GoHighLevel APIs, and a CRM so conversations turn into customers instead of scrollback.",
+  "priorArt": [
+    {
+      "name": "Chatwoot",
+      "url": "https://github.com/chatwoot/chatwoot",
+      "desc": "open-source support inbox with an official Instagram DM channel, bring-your-own Meta app"
+    }
+  ],
+  "relatedSlugs": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Submitted by the founder; the verdict is written honestly against our own product · argue with it in the PR.",
+  "prompt": "Build a self-hosted Instagram DM auto-responder for my own Instagram professional account, in this empty folder.\n\nStack: Node 22 + Hono + better-sqlite3 + the Anthropic SDK (claude-sonnet-5). One small server, no frontend. Secrets in .env: IG_ACCESS_TOKEN, IG_ACCOUNT_ID, META_APP_SECRET, META_VERIFY_TOKEN, ANTHROPIC_API_KEY.\n\nEndpoints:\n- GET /webhook: Meta's hub.challenge verification handshake.\n- POST /webhook: verify X-Hub-Signature-256 with META_APP_SECRET, ACK 200 immediately, process async.\n\nOn each incoming DM: skip echoes of my own outbound messages (is_echo); dedupe by message id in SQLite; load the last 10 messages of that conversation from SQLite as context; generate a reply with Claude using the editable system prompt in persona.md; send it via POST https://graph.instagram.com/v23.0/me/messages with recipient.id set to the sender's IGSID; log both sides to SQLite.\n\nGuardrails: never reply twice to the same message id; hard cap of one auto-reply per user per two minutes; if the model's reply contains the token HUMAN, send nothing and log it for me instead.\n\nWrite a README that walks through the Meta side, which is the actual hard part: create a Meta app, add the Instagram API with Instagram Login, generate a long-lived access token for my account, subscribe the app to the messages webhook field, and expose this server with a Cloudflare Tunnel. Note plainly that in development mode this works only for my own account, and that is the point.\n\nDeliberately out of scope: comment automation, multiple accounts, any CRM, Shopify or calendar integrations, and Meta App Review.",
+  "promptCurated": true
+}
