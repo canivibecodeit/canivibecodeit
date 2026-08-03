@@ -1,0 +1,75 @@
+{
+  "slug": "reslug",
+  "name": "ReSlug",
+  "domain": "reslug.com",
+  "appURL": "https://reslug.com",
+  "category": "analytics",
+  "subcategory": "link shortening + click analytics",
+  "tagline": "Short links with click analytics, routing rules, QR codes, and bio pages",
+  "priceMonthly": 9,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly",
+    "unit": "flat",
+    "native": "9 USD",
+    "source": "https://reslug.com/pricing",
+    "checkedOn": "2026-08-03",
+    "confidence": "high",
+    "notes": "Pro is 9 USD monthly or 79 USD annually. The free plan is unusually generous for the category: 500 active links, 1,000 tracked clicks/month, one custom domain with auto-SSL, 30 days of analytics, QR codes, and one bio page.",
+    "kind": "fixed",
+    "currency": "USD"
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "The redirect is a slug, a lookup, a 302, and a row in a table · Cloudflare Workers with KV and D1 does the whole job on the free tier, and the QR code is one library call. Routing rules, expiry, and password links are an afternoon more. What you cannot build in a sitting is permanence: your links only outlive the project if you keep renewing the domain and the account. The wrinkle with ReSlug specifically is that its free plan already includes a custom domain and real analytics at personal scale, so the DIY build is competing with 0 USD rather than 9 · build it for the ownership, not the savings.",
+  "coreLoopDIY": "Map a short slug to a destination, 302 to it, log each click with country, device, and referrer, filter obvious bots, and render a QR code for any link.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Cloudflare account (Workers, KV, D1)",
+    "a domain you control",
+    "wrangler CLI"
+  ],
+  "whatYouLose": [
+    "links that outlive your own infrastructure · a domain you stop renewing takes every link with it",
+    "bot filtering that actually works · the heuristics take iteration you will not do for one project",
+    "geo and device routing rules, scheduled links, and click caps behind a dashboard instead of a config file",
+    "bio pages and branded QR codes",
+    "a REST API and webhooks other tools can call"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "generous free tier · the hosted product undercuts the DIY build at personal scale",
+  "whyPeopleStillPay": "The redirect was never the product. What the subscription buys is a redirect that stays up when your side project does not, analytics you did not have to build or debug, and routing, expiry, and password controls behind a dashboard instead of a config file. ReSlug's own twist is that most of that is on the free plan, custom domain included, so the paid tier is really about unlimited tracked clicks, longer analytics retention, and API access · the people paying 9 USD are past personal scale anyway.",
+  "priorArt": [
+    {
+      "name": "Dub",
+      "url": "https://github.com/dubinc/dub",
+      "desc": "The most complete open-source link platform · analytics, custom domains, QR codes. Self-hostable.",
+      "status": "alive"
+    },
+    {
+      "name": "Shlink",
+      "url": "https://github.com/shlinkio/shlink",
+      "desc": "Self-hosted URL shortener with a REST API, click stats, and QR codes.",
+      "status": "alive"
+    },
+    {
+      "name": "YOURLS",
+      "url": "https://github.com/YOURLS/YOURLS",
+      "desc": "The long-running PHP shortener · drop it on any LAMP host and it works.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "bitly",
+    "linktree",
+    "qr"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Same build as Bitly · the difference is ReSlug's free tier already includes the custom domain, so check what you actually need before building anything.",
+  "prompt": "Build me a link shortener with click analytics and QR codes to replace ReSlug. Requirements:\n\n- Cloudflare Workers via wrangler: KV for the slug lookup, D1 for the click\n  log. Free tier, and it runs on my own domain.\n- A worker on go.mydomain.com/{slug} reads KV and 302s, writing the click to\n  D1 inside ctx.waitUntil so the redirect never waits on the database.\n- Slugs are random 6-character base62 by default, but I can set a custom\n  back-half, and creating one that already exists fails loudly instead of\n  overwriting it.\n- Log per click: slug, timestamp, country and city from request.cf, device\n  type parsed from the user-agent, and referer. Drop clicks whose user-agent\n  matches a known bot list before they reach the stats.\n- Per-link routing rules: an optional country-to-URL and device-to-URL map\n  checked before the default destination.\n- Optional expiry date, click cap, and password per link · expired or capped\n  links 302 to a fallback URL I set, password links show a minimal form first.\n- Generate a PNG QR code for any link with the qrcode npm package, served at\n  /qr/{slug} and cached, so print material points at the same tracked link.\n- An /admin page behind one password (wrangler secret) listing links with\n  clicks per day, top countries, top referrers, and device split per link.\n- Secrets via wrangler secret, never in wrangler.toml. No accounts, no\n  third-party analytics, no telemetry.\n- Out of scope: bio pages, teams, and a public API.\n- README: wrangler setup, the KV namespace and D1 database, the DNS record,\n  and a warning that these links die with the domain, so use a domain you\n  intend to keep renewing.",
+  "promptCurated": true
+}
