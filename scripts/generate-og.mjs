@@ -3,12 +3,42 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import sharp from 'sharp';
-import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const outDir = path.join(root, 'public/og');
 mkdirSync(outDir, { recursive: true });
+
+// Local build cache: maps output file -> hash of everything that fed its render.
+// Not committed (gitignored) — a fresh checkout just rebuilds everything once.
+// Delete it to force a full rebuild after editing the templates below.
+const cacheFile = path.join(root, '.og-cache.json');
+const loadCache = () => {
+  try { return JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { return {}; }
+};
+const saveCache = (cache) => writeFileSync(cacheFile, JSON.stringify(cache));
+
+// Changing the template, background, or fonts invalidates every cached hash at
+// once — the only case where a stale image would otherwise slip through.
+const templateHash = createHash('sha256')
+  .update(readFileSync(new URL(import.meta.url)))
+  .update(readFileSync(path.join(root, 'scripts/og-background.png')))
+  .digest('hex');
+
+const hashFor = (key) => createHash('sha256').update(templateHash).update(key).digest('hex');
+
+// Cheap stand-in for the icon's bytes: size+mtime changes whenever the file does,
+// without re-reading and base64-encoding it just to check the cache.
+const iconStatKey = (slug) => {
+  try {
+    const s = statSync(path.join(root, 'public/icons', `${slug}.png`));
+    return `${s.size}:${s.mtimeMs}`;
+  } catch {
+    return 'noicon';
+  }
+};
 
 const fonts = [
   { name: 'Space Grotesk', weight: 700, data: readFileSync(path.join(root, 'scripts/fonts/SpaceGrotesk-Bold.ttf')) },
@@ -149,6 +179,16 @@ async function render(node, file) {
   console.log('og:', file);
 }
 
+async function renderCached(node, file, hashKey, cache) {
+  const hash = hashFor(hashKey);
+  if (cache[file] === hash && existsSync(path.join(outDir, file))) {
+    console.log('og (cached):', file);
+    return;
+  }
+  await render(node, file);
+  cache[file] = hash;
+}
+
 const apps = readdirSync(path.join(root, 'data/apps'))
   .filter((f) => f.endsWith('.json'))
   .map((f) => JSON.parse(readFileSync(path.join(root, 'data/apps', f), 'utf8')));
@@ -186,10 +226,16 @@ function siteCard() {
 const range = process.env.OG_RANGE;
 if (range) {
   const [start, end] = range.split(':').map(Number);
-  for (const app of apps.slice(start, end)) await render(appCard(app), `${app.slug}.png`);
+  const cache = loadCache();
+  for (const app of apps.slice(start, end)) {
+    await renderCached(appCard(app), `${app.slug}.png`, JSON.stringify(app) + '|' + iconStatKey(app.slug), cache);
+  }
+  saveCache(cache);
 } else {
-  await render(homeCard(mrr), 'home.png');
-  await render(siteCard(), 'vibecode-this-site.png');
+  const cache = loadCache();
+  await renderCached(homeCard(mrr), 'home.png', `home:${mrr}`, cache);
+  await renderCached(siteCard(), 'vibecode-this-site.png', 'site', cache);
+  saveCache(cache);
   const { spawnSync } = await import('node:child_process');
   const self = new URL(import.meta.url).pathname;
   const CHUNK = 100;
