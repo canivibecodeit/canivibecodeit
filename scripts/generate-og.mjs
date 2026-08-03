@@ -2,6 +2,7 @@
    One background template + programmatic text = pixel-accurate, $0 per new app. */
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
+import sharp from 'sharp';
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
@@ -138,7 +139,13 @@ function homeCard(mrr) {
 async function render(node, file) {
   const svg = await satori(node, { width: 1200, height: 630, fonts });
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } }).render().asPng();
-  writeFileSync(path.join(outDir, file), png);
+  // resvg's raw PNG is unquantized (~900KB for a flat-color card). These cards
+  // only ever use a handful of distinct colors, so a 64-color palette is
+  // visually identical and ~10x smaller — matters a lot at 950+ files in git.
+  const optimized = await sharp(png)
+    .png({ palette: true, colors: 64, effort: 10, compressionLevel: 9 })
+    .toBuffer();
+  writeFileSync(path.join(outDir, file), optimized);
   console.log('og:', file);
 }
 
