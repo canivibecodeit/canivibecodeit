@@ -1,0 +1,66 @@
+{
+  "slug": "zernio",
+  "name": "Zernio",
+  "domain": "zernio.com",
+  "category": "social-media",
+  "subcategory": "social + messaging API",
+  "tagline": "Developer API for 15+ social platforms plus messaging infra: WhatsApp, SMS, RCS, voice calls, and provisionable phone numbers",
+  "priceMonthly": 6,
+  "pricing": {
+    "plan": "Usage-based",
+    "basis": "monthly per connected social account",
+    "unit": "usage",
+    "native": "6 USD",
+    "source": "https://zernio.com/pricing",
+    "checkedOn": "2026-08-03",
+    "confidence": "high",
+    "notes": "First 2 accounts free, then graduated: $6/account (3-10), $3 (11-100), $1 (101+). Every feature on every plan. Phone numbers, SMS, and calls metered separately; X/Twitter API costs passed through at cost."
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "The scheduler is the easy 10 percent and an agent can build it in a sitting. The other 90 percent is approval-gated: Instagram, TikTok, LinkedIn, Threads, YouTube, and Pinterest publishing all require a reviewed developer app (Meta App Review, TikTok audit, LinkedIn partner access), and X's API starts at $200/mo. Past the gate, the real product is upkeep: OAuth token refresh and revocation handling across 15 networks, per-platform media validation and transcoding, rate-limit cooldowns, and error remediation when platforms change behavior. Then there is the half that is not software at all: Zernio provisions real phone numbers across dozens of countries and runs WhatsApp Business, SMS, RCS, and voice calling on them, which means carrier relationships, per-country regulatory documents, and Meta business verification. No coding agent can conjure a phone number or pass KYC for you. Add the rest of the surface (unified DM/comment inbox, analytics, ads management across six ad platforms) and this is infra plus compliance, not a weekend of code.",
+  "coreLoopDIY": "Expose a small REST API that accepts a post with media and a schedule time, queues it, and publishes to networks with open APIs (Bluesky, Mastodon, Telegram, Discord, Reddit) with retries and per-target status.",
+  "diyTimeEstimate": "not a true replacement; consolation build in a weekend",
+  "requirements": [
+    "reviewed developer app per closed platform (Meta App Review, TikTok audit, LinkedIn partner program, Pinterest; X API paid tier)",
+    "OAuth flows plus token storage, refresh, and revocation handling",
+    "hosted scheduler, database, and job queue",
+    "media storage with per-platform validation and transcoding",
+    "webhook receivers for platform callbacks",
+    "for messaging: WhatsApp Business API access, phone numbers with per-country KYC, and SMS/voice carrier contracts (or reselling Twilio, the kind of subscription you were replacing)"
+  ],
+  "whatYouLose": [
+    "publishing to approval-gated networks at all (Instagram, TikTok, LinkedIn, Threads, YouTube) without your own reviewed apps",
+    "token lifecycle handling: refresh, revocation detection, reconnect flows across 15 networks",
+    "platform error remediation, retry logic, and rate-limit cooldowns that keep queues alive",
+    "the media pipeline: per-platform validation, compression, transcoding, re-hosting",
+    "the entire messaging stack: phone numbers provisioned per country with KYC handled, WhatsApp Business templates and broadcasts, SMS, RCS, and voice calling",
+    "everything else beyond posting: unified DM/comment/review inbox, contacts, analytics, ads APIs, conversion tracking"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "scale-infra"
+  ],
+  "moatNotes": "Approved platform apps and their review processes gate the social side; phone numbers, carrier contracts, and per-country KYC gate the messaging side. Ongoing multi-network API maintenance is the tax on both.",
+  "whyPeopleStillPay": "You are not paying for scheduling code, you are paying for two things code cannot get you. First, publishing through someone else's approved platform apps without going through six app reviews yourself, plus the long tail those approvals unlock: DM and comment inboxes, analytics, ads creation and reporting across Meta, Google, TikTok, LinkedIn, Pinterest, and X. Second, telecom: phone numbers provisioned in dozens of countries with regulatory paperwork handled, running WhatsApp Business with templates and broadcasts, SMS, RCS, and voice calls behind the same REST API. Ironically its main buyers are vibe coders: people who build their own app in a weekend and mount Zernio for the parts that cannot be vibecoded.",
+  "priorArt": [
+    {
+      "name": "Postiz",
+      "url": "https://github.com/gitroomhq/postiz-app",
+      "desc": "Open-source social scheduler with an API; still requires bringing your own approved platform apps.",
+      "status": "alive"
+    }
+  ],
+  "relatedSlugs": [
+    "buffer",
+    "postiz",
+    "post-bridge",
+    "postfast"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "API infra play: the code is replaceable; the platform approvals, phone numbers, and carrier compliance are not.",
+  "prompt": "Build me a personal social publishing API to replace Zernio. Requirements:\n\n- Node + Fastify + better-sqlite3, single API key from .env, runs on my\n  always-on box.\n- Adapters ONLY for networks that hand out credentials on signup: Bluesky\n  (app password via @atproto/api), Mastodon (access token), Telegram channel\n  (bot token), Discord (webhook URL), Reddit (script app). One small adapter\n  file per network so a sixth is addable later; scaffold nothing I don't use.\n- POST /posts accepts text, image URLs, scheduledFor (ISO, my timezone), and\n  a list of target accounts; media is downloaded once to media/ and checked\n  for type and size before the post is accepted.\n- A node-cron tick every minute publishes due posts: mark a row as sending\n  before publishing so nothing ever double-posts, per-target status, 3\n  retries with backoff, partial failures don't block other targets.\n- GET /posts and GET /posts/:id return queue state and per-network\n  permalinks; a plain localhost page lists the queue and recent failures.\n- Optional webhook: POST to a URL from .env on published and failed.\n- Binds to localhost only. No accounts, no telemetry.\n- Out of scope: the approval-gated networks (Instagram, TikTok, LinkedIn,\n  Threads, YouTube, Pinterest), DMs, comments, analytics, and ads. Skip\n  anything that needs a phone number (WhatsApp, SMS, calls): numbers,\n  carrier access, and KYC cannot be vibecoded.\n- README: how to get each credential (Bluesky app password, Mastodon token,\n  Telegram bot via BotFather, Reddit script app), plus an honest note that\n  the closed networks need app review or paid API tiers.",
+  "promptCurated": true
+}
