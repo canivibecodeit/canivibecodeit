@@ -3,8 +3,13 @@
 How to write the `prompt` field in `data/apps/*.json`. A one-shot build prompt is what a
 reader pastes into Claude Code, Codex CLI, or Cursor in an empty folder to get a working
 personal replacement for a paid product in one session. This guide exists to rewrite the
-~94 prompts with `"promptCurated": false`, which were template-generated and read like
-filled-in forms, not like a builder telling an agent what to make.
+template-generated prompts, which read like filled-in forms, not like a builder telling an
+agent what to make.
+
+`npm run validate` prints the current count under `prompt-shape`. It checks the shape
+below rather than the `promptCurated` flag, because the flag is self-reported and wrong in
+both directions: entries carrying hand-written prompts still say `false`, and a few say
+`true` over generator output.
 
 Reference exemplars (match their voice and density):
 - `data/apps/granola.json`
