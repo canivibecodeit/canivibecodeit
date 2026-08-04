@@ -1,0 +1,68 @@
+{
+  "slug": "amicited",
+  "name": "AmICited",
+  "domain": "amicited.com",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility and answer engine optimization (AEO)",
+  "tagline": "Grow your brand in AI search by feeding your AI agents the right context, and track prompts, page citations, and competitors' visibility to optimize your pages for AEO",
+  "priceMonthly": 54,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly",
+    "unit": "flat",
+    "native": "50 EUR",
+    "currency": "EUR",
+    "source": "https://www.amicited.com/pricing/",
+    "checkedOn": "2026-08-04",
+    "confidence": "high",
+    "notes": "Prices are billed in EUR; priceMonthly is the ~54 USD equivalent of the 50 EUR Starter (1 domain, 200 prompts, 50 credits ≈ 3,000 responses, all 8 engines). Pro is 120 EUR/month (5 domains, 800 prompts, MCP server + AI agents), Premium 500 EUR/month (50 domains, client workspaces), Enterprise from 1,500 EUR/year with API/SSO. Higher plans include human AEO consultations. 14-day free trial, no card."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The scoring loop is genuinely weekend-buildable, but a faithful replacement is not, and that gap is the honest reason to keep paying. The naive personal build sends your questions through the model APIs, but API answers are not what a real user sees when they open ChatGPT, Perplexity, or AI Overviews, so that number is only a proxy. AmICited does not use LLM APIs at all: it drives real browsers to ask the actual consumer surfaces the way a person in a given country would, a browser-automation fleet routed through country-level proxies, kept working as every surface changes. The other gaps are the historical archive that compounds from day one and cannot be backfilled, an MCP server that lets your AI agents act on your visibility gaps, and, on higher plans, human AEO consulting from real experience that no script replaces. You can build the weekend proxy; the prompt below is that honest consolation build, with its limits stated plainly.",
+  "coreLoopDIY": "Run your buyer questions through the answer-engine APIs on a schedule, store each answer, and score brand and competitor mentions plus cited sources, as a rough personal proxy for the real consumer-surface answers.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "headless browser automation (Playwright/Puppeteer) to reach the real consumer surfaces, not just model APIs",
+    "residential or geo-targeted proxies to query from specific countries",
+    "a scalable scheduler/queue and the infra to run and retry many browser sessions in parallel",
+    "durable per-run storage that never overwrites an answer, so history compounds",
+    "ongoing upkeep as each engine and surface changes its UI, models, and citation format"
+  ],
+  "whatYouLose": [
+    "the faithful signal: API answers only approximate what the ChatGPT app, AI Overviews, AI Mode, Copilot, and Grok actually serve real users, which is what AmICited measures with real browsers",
+    "country-level results: what users see varies by geography, which needs a proxy fleet a solo build will not stand up",
+    "scale and reliability: running and retrying thousands of real browser sessions in parallel is the hard engineering, not the scoring",
+    "months of stored answers and competitor baselines, without which a single week's visibility number is noise, and which you cannot backfill once you start late",
+    "human AEO consultations on higher plans, advice from real experience acting on your data, which no self-hosted script reproduces"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "a geo-proxied real-browser fleet plus the compounding archive of full answers, with an MCP server and human AEO consulting on top",
+  "whyPeopleStillPay": "Because the scoring is the cheap half and everything real is the expensive half. AmICited does not call the model APIs, it drives real browsers through country-level proxies to capture what users genuinely see, which is faithful and hard to run at scale and keep working as the surfaces change. It stores every full answer so the value compounds into a history you cannot recreate once you start late, exposes an MCP server so your AI agents can act on the gaps, and on higher plans adds human AEO consulting that acts on your data from real experience. A personal API script gives you a rough proxy; it does not give you any of that.",
+  "priorArt": [
+    {
+      "name": "Elmo",
+      "url": "https://github.com/elmohq/elmo",
+      "desc": "MIT-licensed self-hosted AEO/GEO tracker: runs your prompts across the major answer engines and records mentions, competitors, and cited sources"
+    },
+    {
+      "name": "llm-brand-tracker",
+      "url": "https://github.com/sarahkb125/llm-brand-tracker",
+      "desc": "Small research-grade toolkit for monitoring brand visibility in LLM search; a reasonable starting point"
+    }
+  ],
+  "relatedSlugs": [
+    "profound",
+    "100-questions",
+    "semrush"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scoring is a weekend project; the geo-proxied real-browser fleet, the compounding archive, and the human consulting behind it are not. Recheck EUR pricing before merge.",
+  "prompt": "Build me a local AI answer-engine citation tracker for one brand, as a rough personal proxy. Requirements:\n\n- Node 22, TypeScript, SQLite via better-sqlite3, a CLI, and a plain server-rendered\n  dashboard. Local only, no accounts, no telemetry.\n- brand.json holds my brand name, aliases, domain, and competitor names. prompts.json\n  holds up to 50 buyer questions.\n- `track run` sends every prompt through OpenAI, Anthropic, Gemini, Perplexity, and xAI\n  (Grok) with each provider's web search or grounding tool enabled. Keys live in .env.\n- Store one immutable row per run, prompt, and provider: the full raw answer, cited\n  URLs, model id, latency, and error text. Never overwrite an existing run, so the\n  archive compounds over time.\n- Cap concurrency at 3 per provider, retry twice on 429 and 5xx with backoff, and keep\n  failed cells visible in the report instead of dropping them.\n- Detect brand and competitor mentions case-insensitively using the alias list, and\n  record the first-mention character offset as a crude prominence proxy.\n- Normalize citations to hostname plus canonical path, strip tracking parameters, then\n  compute owned-domain citation share and a top 25 cited-sources table.\n- `track serve` renders visibility per provider over time, share of voice against each\n  competitor, the sources table, and the prompts where competitors are cited and I am\n  not (the gap list is the point).\n- `track export` writes runs, mentions, and citations to CSV.\n- Fixture tests for mention detection and URL normalization.\n- Out of scope, and be honest in the README that these are exactly what a paid product\n  like this sells: the real consumer surfaces (this uses model APIs, which do NOT match\n  what the ChatGPT app, AI Overviews, AI Mode, Copilot, or Grok actually serve users),\n  country-specific results via a proxied real-browser fleet, running that fleet at\n  scale, and any human AEO consulting. Do not try to automate the consumer web UIs.\n- README: setup, a per-run cost estimate, a cron line for daily runs, and a plain note\n  that API answers only approximate what users actually see.",
+  "promptCurated": true
+}
