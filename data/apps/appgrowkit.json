@@ -1,0 +1,86 @@
+{
+  "slug": "appgrowkit",
+  "name": "AppGrowKit",
+  "domain": "appgrowkit.com",
+  "appURL": "https://appgrowkit.com",
+  "category": "seo-marketing",
+  "subcategory": "App Store optimization and screenshot generation",
+  "tagline": "Generate App Store screenshots and track your own keyword ranks without buying a catalog",
+  "priceMonthly": 19,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly",
+    "unit": "flat",
+    "source": "https://appgrowkit.com/pricing",
+    "checkedOn": "2026-08-07",
+    "confidence": "high",
+    "notes": "Credit-metered. Starter 9 USD/60 credits, Pro 19 USD/180, Growth 39 USD/500; yearly is cheaper per month. Pro is the first tier with MCP/agent access. Screenshot generation spends credits; keyword and rank tracking do not.",
+    "native": "19 USD",
+    "kind": "fixed",
+    "currency": "USD"
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "Split the product in half and the answer changes. The screenshot generator is genuinely one-shottable: it is an image model behind a prompt, and a weekend of iteration gets you panels good enough to ship. The tracking half is too, if you only care about apps you own, because Apple's public endpoints hand you ratings, reviews, and chart positions for free. What you cannot build is the part you would be paying for: a catalog of 1.7 million apps across 36 storefronts, with 22 million rating observations and 11 million rank observations accumulated over months. 1.25 million of those apps have more than one day of history and 960,000 have ten days or more, which is the difference between a table of apps and a time series. You can start collecting today, and in six months you will have six months of it. Competitor intelligence, keyword difficulty, and revenue estimates are all reads over that history, so they arrive empty on day one and stay thin for a season. Build it if you track a handful of your own apps. Pay if you need to answer questions about apps you have never opened.",
+  "coreLoopDIY": "Generate App Store screenshot panels from my real app screens with an image model, and poll Apple's public endpoints daily for my own apps' ranks, ratings, and reviews.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "image model API key (fal.ai or OpenAI)",
+    "vision model API key for the QA pass",
+    "SQLite or Postgres",
+    "a scheduler that actually runs daily"
+  ],
+  "whatYouLose": [
+    "months of rank, rating, and keyword history you cannot backfill",
+    "the 1.7M-app, 36-storefront catalog behind competitor lookups and keyword difficulty",
+    "revenue and download estimates, which are calibrated against that catalog",
+    "keyword volume and competition scores, which need a corpus to be relative to",
+    "the MCP server that answers ASO questions from Claude, Cursor, or ChatGPT",
+    "an accuracy pass on generated screenshots: the QA critic, best-of-2 scoring, and exact-size output"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "self-collected App Store time series; the history, not the scrape, is the moat",
+  "replacementScope": "screenshot generator plus a rank tracker for apps you own",
+  "ongoingBurden": "daily polling that must not miss days, Apple rate limits, storefront and category sprawl, schema drift when Apple changes a response, and image API spend per regeneration",
+  "whyPeopleStillPay": "Because the scrape is easy and the history is not. Anyone can pull today's chart positions from Apple's public endpoints; nobody can pull last quarter's. Scale compounds the same way: 1.7M apps across 36 storefronts is 65 GB of ClickHouse and a crawler that has been running for months, and a single-box copy polite enough not to get rate-limited spends a long time getting there. The paid tiers gate the catalog reads, not the AI, and that is the honest tell about where the cost sits. There is also real engineering in the screenshot pipeline that a one-sitting build skips: a vision critic that inspects each render for garbled text and sliced elements, two candidates scored against each other, and output resized to exact Apple dimensions. You can reach decent panels without that. Reaching consistent ones across a 6-panel set in three device formats is where the weekend goes.",
+  "priorArt": [
+    {
+      "name": "SerpBear",
+      "url": "https://github.com/towfiqi/serpbear",
+      "desc": "Self-hosted rank tracker for keyword sets you own. Web SEO rather than App Store, but the same daily-poll-and-chart shape.",
+      "status": "alive"
+    },
+    {
+      "name": "app-store-scraper",
+      "url": "https://github.com/facundoolano/app-store-scraper",
+      "desc": "Node library for Apple's public lookup, search, chart, and review endpoints. This is the data layer a DIY tracker is built on.",
+      "status": "alive"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [
+    {
+      "name": "Fastlane Frameit",
+      "url": "https://docs.fastlane.tools/actions/frameit/",
+      "desc": "Frames screenshots and adds captions from a config file. Real, free, and widely used, but it composites images you already designed rather than generating them, so it replaces the export step and not the product."
+    },
+    {
+      "name": "Google Play Console / App Store Connect",
+      "url": "https://appstoreconnect.apple.com/",
+      "desc": "Free and authoritative for your own apps' metrics, which is exactly the limit: no competitor data, no keyword ranks, and nothing about apps you do not own."
+    }
+  ],
+  "relatedSlugs": [
+    "accuranker",
+    "semrush",
+    "screenshotone"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Submitted by the maintainer, who supplied the catalog figures from the production warehouse: 1.7M apps, 36 storefronts, 22M rating and 11M rank observations over 82 collection days, 65 GB on disk. Coverage is uneven by design, so the numbers are worth reading precisely: breadth is global, but deep multi-month rank history is concentrated in the apps and keywords the crawler prioritises rather than spread evenly across all 1.7M. Verdict written against the paid Pro tier; the DIY comparison targets a personal tracker for apps you own plus a screenshot generator.",
+  "prompt": "Build me an App Store screenshot generator and a personal rank tracker to replace AppGrowKit, single user, my own apps only.\nUse Node 22, TypeScript, SQLite (better-sqlite3), sharp, and a small React frontend on localhost. Do not offer alternative stacks.\n\n- Screenshots: I upload my real app screens. Compose a 3-panel App Store set by sending each panel to an image model (fal.ai key in .env), passing my screens as reference images so the in-phone UI stays faithful.\n- Send every render back to a vision model with a checklist: garbled text, elements sliced by a panel edge, invented star ratings or award badges, phone hardware where the style said none. If it fails, re-render once with the failures pasted in as corrections.\n- Composite the headline as real text with sharp, not model-drawn glyphs. Resize output to exactly 1290x2796 (iPhone) and 2064x2752 (iPad).\n- Tracking: a config file lists my App Store track IDs and the keywords I care about. A daily job hits Apple's public endpoints (itunes.apple.com/lookup, /search, the RSS chart feeds, and the customerreviews feed) with a real User-Agent and one request every 1.5 seconds.\n- Store every poll as a row with a timestamp, never an upsert. Rank history is the whole point and you cannot recover a day you overwrote.\n- The page shows my apps' rating and rank over time, new reviews since I last looked, and where I sit for each tracked keyword.\n- Out of scope: competitor intelligence, keyword difficulty scores, and revenue estimates. Those need a catalog of hundreds of thousands of apps with months of history. Say so in the README rather than faking them from a single day of data.\n- README: the two API keys, cost per screenshot set, and a warning that the tracker is worth little until it has been running for a month.",
+  "promptCurated": true
+}
