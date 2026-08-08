@@ -1,0 +1,70 @@
+{
+  "slug": "cuescout",
+  "name": "CueScout",
+  "domain": "cuescout.com",
+  "category": "seo-marketing",
+  "subcategory": "AI visibility tracking, buyer-thread mining, and writing-plan generation for one product",
+  "tagline": "Tracks AI visibility on Perplexity and ChatGPT, mines Reddit and Hacker News for buyer questions, and turns the gaps into a dated writing plan",
+  "priceMonthly": 49,
+  "discontinued": null,
+  "pricing": {
+    "plan": "Basic",
+    "basis": "monthly; quarterly billing is the default toggle",
+    "unit": "flat",
+    "native": "49 USD",
+    "source": "https://cuescout.com/pricing",
+    "checkedOn": "2026-08-08",
+    "confidence": "high",
+    "notes": "Basic is Perplexity only, 450 checks/mo. Growth is 99 USD/mo and adds ChatGPT as a second engine. Agency is 249 USD/mo for multi-client work. Quarterly (the default) is 129/259/649 USD per 3 months; monthly and annual billing are also offered. No free trial."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visibility-check loop is the weekend-buildable half: generate buyer questions, run them through Perplexity and ChatGPT, detect brand and competitor mentions, normalize citations, and score a GEO number. That much is close to what a $49/mo plan actually ships, since Basic only covers one engine. What does not fit in a prompt is the continuous Reddit and Hacker News scan that mines buyer questions from real threads instead of guessing them, the writing-plan-to-draft loop that turns a score into dated work, and weeks of trend history without which one run tells you almost nothing.",
+  "coreLoopDIY": "Generate buyer questions for a product, run them through Perplexity and ChatGPT, detect brand and competitor mentions, collect citations, and score a basic GEO number.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Perplexity API key",
+    "OpenAI API key",
+    "durable per-run storage",
+    "a scheduler for repeat runs"
+  ],
+  "whatYouLose": [
+    "the continuous Reddit and Hacker News scan and buyer-question clustering, which finds where buyers are already asking instead of guessing questions to feed a model",
+    "Google rank badges on matched threads, sourced from a paid search API",
+    "the writing-plan-to-draft loop that turns a gap into a dated 30-day plan and AI-ready page drafts, not just a dashboard number",
+    "weeks of trend history and a competitor 'what moved' digest; a single run is mostly noise",
+    "a hosted, shareable report link you can hand a client without exposing your own infra"
+  ],
+  "moatTags": ["execution-polish", "integrations"],
+  "moatNotes": "continuous scan + writing-plan orchestration, not proprietary data; the underlying Reddit/HN corpus is public and unlicensed",
+  "whyPeopleStillPay": "They're paying for the parts that don't fit in a prompt: a script that runs every day for months without babysitting, buyer questions mined from real Reddit and Hacker News threads instead of guessed ones, a writing plan and AI-ready drafts wired to the same gaps the scores found, and a link they can hand a client. None of that is a moat a bigger company can't cross; it's the upkeep most people quit paying attention to by week three.",
+  "priorArt": [
+    {
+      "name": "Elmo",
+      "url": "https://github.com/elmohq/elmo",
+      "desc": "MIT-licensed self-hosted AEO/GEO tracker: runs prompts across the major answer engines and records mentions, competitors, and cited sources",
+      "status": "alive"
+    }
+  ],
+  "alternatives": [
+    {
+      "name": "Elmo",
+      "url": "https://www.elmohq.com/",
+      "type": "open-source",
+      "repo": "https://github.com/elmohq/elmo",
+      "platforms": ["web", "self-hosted"],
+      "desc": "Covers the visibility-check half well; it has no Reddit/HN buyer-thread mining and no writing-plan or draft generation on top of the scores.",
+      "stars": 224,
+      "lastCommit": "2026-08",
+      "selfHost": "docker",
+      "checkedOn": "2026-08-08"
+    }
+  ],
+  "rejectedAlternatives": [],
+  "relatedSlugs": ["profound", "100-questions", "semrush"],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The visibility checks are two providers, not nine; the Reddit/HN scan and writing-plan loop are the part actually worth paying for.",
+  "prompt": "Build me a local AI buyer-question visibility tracker for one product. Requirements:\n\n- Node 22, TypeScript, SQLite via better-sqlite3, a CLI, and a plain server-rendered dashboard. Local only, no accounts, no telemetry.\n- product.json holds my product name, aliases, domain, and up to 5 competitor names.\n- `track questions` generates 20 buyer-intent questions from the product name and a one-paragraph description, or accepts a JSON list I supply.\n- `track run` sends every question through Perplexity's API and OpenAI's Chat Completions API with web search enabled where supported. Keys live in .env.\n- Store one immutable row per run, question, and provider: raw answer, cited URLs, model id, and error text. Never overwrite a prior run.\n- Retry transient failures twice with backoff; keep failed cells visible in the report instead of dropping them.\n- Detect brand and competitor mentions case-insensitively against the alias list.\n- Normalize citation URLs to hostname plus canonical path, strip tracking parameters, then compute a top-sources table and an owned-domain citation rate.\n- Compute one GEO score per run: mention rate times citation rate, shown with the raw counts behind it, never just the number.\n- `track serve` renders visibility over time by provider, share of voice against each competitor, and the sources table.\n- `track export` writes questions, answers, mentions, and citations to CSV.\n- Fixture tests for mention detection, URL normalization, and the GEO score calculation.\n- Out of scope: Reddit/Hacker News monitoring, Google rank tracking, writing-plan or content generation, hosted sharing, teams, and billing.\n- README: setup, per-run API cost estimate, and a cron line for a daily run.",
+  "promptCurated": true
+}
