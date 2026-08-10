@@ -1,0 +1,78 @@
+{
+  "slug": "debriefing",
+  "name": "Debriefing",
+  "domain": "debriefing.io",
+  "category": "rss-research",
+  "subcategory": "competitor monitoring and briefing for B2B SaaS",
+  "tagline": "Watches your competitors' pages, pricing, changelogs and hiring, then writes the brief with what changed and what to do",
+  "priceMonthly": 80,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly",
+    "unit": "flat",
+    "native": "80 USD",
+    "source": "https://debriefing.io/pricing",
+    "checkedOn": "2026-08-10",
+    "confidence": "high",
+    "notes": "Starter covers 3 core plus 1 horizon competitor at a monthly cadence. Growth is 160 USD/month (5 core, 3 horizon, biweekly), Portfolio is 320 USD/month (8 core, 5 horizon, weekly). Flat, not per-seat.",
+    "freeTier": "No standing free plan, but the first debrief is free and arrives in 5 to 10 minutes."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Diffing a competitor's pricing page on a cron and asking a model what changed is genuinely an afternoon. changedetection.io will do the watching for you before you write a line. The gap is everything between a diff and a brief. Most page changes are noise: a rotated testimonial, a reordered nav, a CDN hash. Deciding which changes are real, tying them to hiring and funding signals, and turning that into three sentences a founder acts on is judgement encoded over many iterations. Build it and your first month is mostly you deleting alerts about nothing.",
+  "coreLoopDIY": "Snapshot each competitor's key pages on a schedule, diff against the last version, and have a model summarise the meaningful changes into a digest.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "an OpenAI or Anthropic API key",
+    "a scheduler and somewhere to keep page snapshots",
+    "a headless browser for pages that render client-side",
+    "SMTP or a Slack webhook for delivery",
+    "patience for the first month of false positives"
+  ],
+  "whatYouLose": [
+    "noise filtering, which is the actual product: most diffs are rotated testimonials and changed asset hashes, not competitive moves",
+    "horizon watch, meaning the substitutes and new entrants you did not think to add to the list",
+    "the non-page signals stitched into the same brief: hiring, funding, traffic and LinkedIn movement",
+    "the analytical step from what changed to why it matters to what to do next",
+    "an archive going back far enough that a change reads as a trend rather than an event"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "the accumulated change history, and the tuning that keeps noise out of the brief",
+  "whyPeopleStillPay": "Because a diff is not intelligence. The hard part is not fetching a pricing page every week, it is knowing that this particular change matters and the other eleven do not, then saying so in three sentences a founder can act on before a Monday call. That judgement lives in accumulated history and a lot of tuning against false positives. It also survives being ignored: a brief that arrives whether or not you remembered to look is worth more than a script you stop reading in week three.",
+  "priorArt": [
+    {
+      "name": "changedetection.io",
+      "url": "https://github.com/dgtlmoon/changedetection.io",
+      "desc": "Apache-2.0 web page change monitor with browser rendering, CSS/xpath filters and notification hooks; the watching layer, ready-made",
+      "status": "alive"
+    }
+  ],
+  "alternatives": [
+    {
+      "name": "changedetection.io",
+      "url": "https://changedetection.io",
+      "type": "open-source",
+      "repo": "https://github.com/dgtlmoon/changedetection.io",
+      "platforms": [
+        "web",
+        "self-hosted"
+      ],
+      "desc": "Tells you a competitor's pricing page moved. Deciding whether that mattered is back to being your job.",
+      "stars": 33048,
+      "lastCommit": "2026-08",
+      "selfHost": "docker",
+      "checkedOn": "2026-08-10"
+    }
+  ],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Watching pages is free and solved. Knowing which change is worth your Monday is not.",
+  "prompt": "Build me a local competitor watch that emails me a weekly brief, to replace Debriefing. Requirements:\n\n- Node 22, TypeScript, SQLite via better-sqlite3, Playwright for fetching, node-cron for\n  the schedule. CLI only. No accounts, no telemetry, keys in .env.\n- competitors.json lists each rival: name, and the URLs that matter (homepage, pricing,\n  changelog, careers). Ship it seeded with 3 competitors and 4 URLs each.\n- `watch snapshot` fetches every URL with Playwright, strips scripts, styles, nav and\n  footer, converts the main content to plain text, and stores it with a SHA-256 hash and\n  a timestamp. Skip storage entirely when the hash is unchanged.\n- Diff each new snapshot against the previous one as unified text diff. Discard diffs\n  under 40 changed characters, and drop lines matching an editable noise.json of regexes\n  (dates, cache-busting hashes, view counts, testimonial rotations).\n- `watch brief` sends the surviving diffs for the period to Claude or GPT in one call\n  and asks for, per competitor: what changed, why it matters, and one suggested response.\n  Require a citation back to the exact URL for every claim, and drop any bullet without\n  one.\n- Render the brief to Markdown in ~/CompetitorBriefs/YYYY-MM-DD.md and send it via SMTP\n  from .env. The file is the source of truth, email is just delivery.\n- Keep every snapshot and every brief. `watch history <competitor>` prints that rival's\n  changes over time, which is the only way a single diff becomes a trend.\n- Out of scope: hiring feeds, funding data, traffic estimates, dashboards and any login\n  wall. Public pages only, respect robots.txt, one request per URL per run.\n- README: setup, a cron line for the weekly run, the per-brief token cost, and a warning\n  that month one is mostly tuning noise.json.",
+  "promptCurated": true
+}
