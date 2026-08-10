@@ -1,0 +1,85 @@
+{
+  "slug": "cvmatchscore",
+  "name": "CVMatchScore",
+  "domain": "cvmatchscore.com",
+  "category": "career",
+  "subcategory": "resume vs job description match scoring",
+  "tagline": "Scores your resume against a job description across 19 parameters before you hit apply",
+  "priceMonthly": 4.08,
+  "discontinued": null,
+  "pricing": {
+    "plan": "PRO",
+    "basis": "yearly, converted to monthly",
+    "unit": "flat",
+    "native": "49 USD/year",
+    "source": "https://cvmatchscore.com/en/pricing",
+    "checkedOn": "2026-08-10",
+    "confidence": "high",
+    "notes": "PRO is 49 USD/year for unlimited reports and priority support. A 9 USD one-time Interview-Ready Pack buys 5 non-expiring report credits with improvement plans and tailored cover letters.",
+    "freeTier": "3 full reports in the first 7 days, all 19 parameters, no credit card."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop, resume plus job posting into an LLM holding a scoring rubric, is one prompt and an afternoon, and for improving one resume against one posting it genuinely works. The honest gap is calibration: a rubric you wrote today measures today's mood, two runs of the same resume can disagree, and a 72 means nothing without a baseline of scored applications behind it. Fine as a mirror, thin as a measuring stick.",
+  "coreLoopDIY": "Extract text from the resume PDF, send it with the job description to an LLM holding a fixed scoring rubric, get structured JSON scores per criterion with quoted evidence, render a Markdown report.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "OpenAI or Anthropic API key",
+    "pdf-parse or pdfplumber for resume text extraction",
+    "a written rubric with a 0-10 definition per criterion",
+    "a few real resume and posting pairs to sanity-check the scores"
+  ],
+  "whatYouLose": [
+    "a calibrated rubric that scores the same resume the same way twice",
+    "50+ language support tested per parameter",
+    "DOC, DOCX, and RTF parsing beyond PDF",
+    "improvement plans and tailored cover letters built from the same analysis",
+    "scores comparable across weeks of applications"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "rubric calibration against real resume and posting pairs",
+  "whyPeopleStillPay": "At 49 USD a year it is priced below the hassle of maintaining your own: job seekers pay for stable scores they can track across applications, cover letters generated from the same pass, and not burning API credits mid job hunt.",
+  "priorArt": [
+    {
+      "name": "pdfplumber",
+      "url": "https://github.com/jsvine/pdfplumber",
+      "desc": "reliable PDF text extraction, the unglamorous half of every resume tool"
+    },
+    {
+      "name": "Resume-Matcher (repo)",
+      "url": "https://github.com/srbhr/Resume-Matcher",
+      "desc": "open-source resume vs job description matcher, a working reference for the whole loop"
+    }
+  ],
+  "alternatives": [
+    {
+      "name": "Resume-Matcher",
+      "url": "https://www.resumematcher.fyi/",
+      "type": "open-source",
+      "repo": "https://github.com/srbhr/Resume-Matcher",
+      "platforms": [
+        "web",
+        "self-hosted"
+      ],
+      "desc": "A local resume-vs-posting matcher that runs against Ollama, so the scoring stays on your machine; you install it, it does the job, and nobody bills you.",
+      "stars": 28078,
+      "lastCommit": "2026-08",
+      "selfHost": "docker",
+      "checkedOn": "2026-08-10"
+    }
+  ],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "jobscan",
+    "resume-worded",
+    "careerflow"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One prompt gets you the score. What it does not get you is the same score tomorrow.",
+  "prompt": "Build me a local resume match scorer to replace CVMatchScore. Requirements:\n\n- A Node 22 CLI: `match score resume.pdf job.txt` prints a score table and writes\n  a Markdown report to reports/YYYY-MM-DD-<company>.md.\n- Extract resume text with pdf-parse; accept .txt and .md for the job posting.\n- Keep the rubric in rubric.json: 10 criteria (skills overlap, seniority fit,\n  domain experience, quantified achievements, education, keyword coverage,\n  employment gaps, clarity, length, ATS-safety), each with a 0-10 definition\n  and a weight.\n- One Anthropic structured-outputs call scores all criteria at once and must\n  quote the resume line that justifies each score, no unquoted claims.\n- A second cheap pass lists the 10 most important posting keywords missing from\n  the resume and where each could honestly fit.\n- Weighted total out of 100, computed in code from rubric.json, not by the model.\n- Store every run in SQLite via better-sqlite3: date, company, total, and the\n  per-criterion JSON, so `match history` shows my scores over time.\n- API key from .env. No accounts, no telemetry, the resume never leaves my\n  machine except the API call.\n- Out of scope: cover letter generation, DOC/DOCX parsing, multi-language\n  support, and recruiter-style bulk ranking.\n- README: setup, cost per run, and a warning that scores are only comparable\n  within one rubric version, so bump a version field in rubric.json when I edit it.",
+  "promptCurated": true
+}
