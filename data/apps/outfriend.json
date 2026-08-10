@@ -1,0 +1,88 @@
+{
+  "slug": "outfriend",
+  "name": "OutFriend",
+  "domain": "outfriend.com",
+  "category": "sales-outreach",
+  "subcategory": "cold email written in your voice, sent from your own Gmail",
+  "tagline": "Learns your voice from emails you have actually sent, drafts the campaign, and sends it from your inbox on a schedule",
+  "priceMonthly": 29,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "native": "29 USD",
+    "source": "https://outfriend.com/pricing",
+    "checkedOn": "2026-08-10",
+    "confidence": "high",
+    "notes": "Pro is 29 USD/month or 290 USD/year. Max is 79 USD/month or 790 USD/year for unlimited lead gens and unlimited connected inboxes. Annual billing saves 20 percent.",
+    "freeTier": "A permanent free plan with no card and no trial clock: 1 campaign, CSV upload, emails generated in your voice, intro emails only."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This one is closer to buildable than most outreach tools, because OutFriend sends through your own Gmail rather than its own infrastructure. That removes the moat that usually saves this category: no warmup pools, no IP reputation, no deliverability engineering you cannot replicate. What is left is a Gmail OAuth integration, a voice sample you pass to a model, a scheduler with send windows and daily caps, and the one piece that is genuinely fiddly, watching threads so a sequence stops the instant someone replies. That is a weekend if you have written against the Gmail API before, and a long weekend if you have not.",
+  "coreLoopDIY": "Pass a sample of your sent mail to a model as voice reference, draft one email per CSV row, queue them through the Gmail API on a throttle, and halt the follow-ups on any reply.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "a Google Cloud project with Gmail API access and OAuth consent configured",
+    "an OpenAI or Anthropic API key",
+    "a leads CSV you sourced yourself",
+    "a scheduler that survives your laptop sleeping",
+    "your own read of CAN-SPAM and GDPR before you send anything"
+  ],
+  "whatYouLose": [
+    "reply detection that is thread-based rather than naive, so out-of-office replies do not count as interest and a reply from a different address still stops the sequence",
+    "verification and suppression, meaning unverified, bounced and opted-out addresses filtered before anything queues",
+    "a review surface where every draft is readable and editable before it goes, instead of trusting a script with your inbox",
+    "lead generation, which the paid tiers include and your CSV does not",
+    "the Google OAuth verification process, which you will meet the moment you want this on more than your own account"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "Gmail OAuth and thread-state handling, not deliverability infrastructure",
+  "whyPeopleStillPay": "Because the failure modes are expensive and quiet. A homemade sender that misses a reply and fires the follow-up anyway does not throw an error, it just makes you look careless to the exact person who answered. Same for a bounced address you never suppressed, or an out-of-office you read as engagement. OutFriend is mostly selling the correctness of the stop conditions and a place to read every draft before it leaves. Sending from your own Gmail is the honest part of the pitch, and also the reason a personal build gets closer here than in the rest of this category.",
+  "priorArt": [
+    {
+      "name": "Gmail API",
+      "url": "https://developers.google.com/gmail/api",
+      "desc": "Sending, threading and history endpoints; the whole send-and-detect-replies loop is here if you are willing to read it",
+      "status": "alive"
+    }
+  ],
+  "alternatives": [
+    {
+      "name": "Mautic",
+      "url": "https://www.mautic.org",
+      "type": "open-source",
+      "repo": "https://github.com/mautic/mautic",
+      "platforms": [
+        "web",
+        "self-hosted"
+      ],
+      "desc": "Runs the campaign, the throttling and the stop-on-reply. Writing in your voice is not in the box, and neither is a light afternoon of setup.",
+      "stars": 10311,
+      "lastCommit": "2026-08",
+      "selfHost": "ops",
+      "checkedOn": "2026-08-10"
+    }
+  ],
+  "rejectedAlternatives": [
+    {
+      "name": "Gmail mail merge templates",
+      "url": null,
+      "desc": "Apps Script merge sheets are templates, not products: no reply detection, no suppression list, and they break the moment the sheet layout changes."
+    }
+  ],
+  "relatedSlugs": [
+    "instantly",
+    "lemlist",
+    "smartlead"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Sends from your own Gmail, so the usual deliverability moat is absent. What is left is stop conditions that have to be right.",
+  "prompt": "Build me a local cold email sender that drafts in my voice and sends from my own Gmail, to replace OutFriend. Requirements:\n\n- Node 22, TypeScript, SQLite via better-sqlite3, googleapis for Gmail, node-cron for the\n  schedule. CLI only. No accounts, no telemetry, OAuth token and API keys in .env.\n- `mail auth` runs the Gmail OAuth device flow once and stores the refresh token locally.\n  Scopes: gmail.send, gmail.readonly.\n- `mail voice` pulls my last 200 sent messages, strips quoted replies and signatures, and\n  saves 20 of the shortest complete ones to voice.md as the style reference.\n- leads.csv holds email, first name, company and one context column. `mail draft` writes\n  one email per row using voice.md plus the context column, saves each as status=draft,\n  and refuses to draft for any address already in suppression.txt.\n- `mail review` prints drafts one at a time in the terminal and takes approve, edit or\n  skip. Nothing sends without an approve. This gate is not optional.\n- `mail send` delivers approved drafts through the Gmail API inside a send window from\n  config.json, with a daily cap and a random 30 to 180 second gap between sends.\n- Every 30 minutes, `mail watch` polls threads for inbound messages. Any reply sets the\n  lead to replied and cancels its remaining follow-ups. Treat an auto-reply as a stop\n  too, and never as interest.\n- Follow-ups are two fixed templates at day 4 and day 10 in the same thread, cancelled by\n  any reply or bounce. Parse bounce DSNs and write those addresses to suppression.txt.\n- Out of scope: lead sourcing, email verification, inbox warmup, and sending from any\n  address that is not my own connected Gmail.\n- README: OAuth setup, the send window config, and a plain warning to read CAN-SPAM and\n  GDPR before the first campaign.",
+  "promptCurated": true
+}
