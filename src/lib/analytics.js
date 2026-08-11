@@ -61,13 +61,45 @@ const cleanPath = (p) =>
 let dashCache = { at: 0, data: null };
 let dashInFlight = null;
 
+// Dev-only stand-in so /stats has something to render with no PostHog creds
+// locally. Deliberately includes one wildly oversized day (a real shape seen
+// on prod) to exercise the chart's scaling with skewed data. Never used in a
+// build (import.meta.env.DEV is false there) so prod is untouched either way.
+const MOCK_DASHBOARD = {
+  tiles: { viewsToday: 4876, views7d: 29663, visitors7d: 29663, copies7d: 2226, bestDay: 49118 },
+  allTime: { views: 203252, visitors: 44840, copies: 3467, since: '2026-07-29' },
+  byDay: [1180, 1340, 980, 1510, 1720, 1290, 49118, 2140, 1860, 1590, 2210, 1970, 1680, 4876].map(
+    (views, i) => ({
+      d: new Date(Date.UTC(2026, 7, 11) - (13 - i) * 86400000).toISOString().slice(0, 10),
+      views,
+      visitors: Math.round(views * 0.6),
+    })
+  ),
+  pages: [
+    { p: '/', n: 8210 }, { p: '/alternatives', n: 3140 }, { p: '/stats', n: 2870 },
+    { p: '/notion', n: 1920 }, { p: '/linktree', n: 1440 }, { p: '/moats', n: 1105 },
+    { p: '/sponsor', n: 860 }, { p: '/wispr-flow', n: 640 },
+  ],
+  agents: [
+    { a: 'claude-code', n: 812 }, { a: 'codex', n: 540 }, { a: 'cursor', n: 410 },
+    { a: 'raw', n: 280 }, { a: 'unknown', n: 184 },
+  ],
+  topPrompts: [
+    { app: 'Notion', n: 320 }, { app: 'Linktree', n: 210 }, { app: 'Calendly', n: 190 },
+    { app: 'Figma', n: 160 }, { app: 'Webflow', n: 140 },
+  ],
+};
+
 // Fuller dataset for the /stats page. One shared 2-minute cache; concurrent
 // callers at TTL expiry share one refresh instead of racing PostHog.
 // Stale-while-revalidate: an expired cache still serves instantly while one
 // background refresh runs, so page renders never wait on PostHog. Only a
 // cold cache (first hit after a deploy) blocks.
 export async function dashboardStats() {
-  if (!PROJECT || !KEY) return null;
+  // MOCK_STATS is a manual, server-only escape hatch for testing the built
+  // (production) bundle locally with chart data present — Railway never sets
+  // it, so prod is unaffected either way.
+  if (!PROJECT || !KEY) return import.meta.env.DEV || process.env.MOCK_STATS === '1' ? MOCK_DASHBOARD : null;
   if (Date.now() - dashCache.at >= 120_000 && !dashInFlight)
     dashInFlight = refreshDashboard().finally(() => {
       dashInFlight = null;
