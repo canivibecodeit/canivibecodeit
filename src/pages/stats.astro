@@ -1,13 +1,23 @@
 ---
 import Base from '../layouts/Base.astro';
 import VisitorGlobe from '../components/VisitorGlobe.astro';
-import { dashboardStats } from '../lib/analytics.js';
+import { dashboardStats, globeStats } from '../lib/analytics.js';
 import { allApps, appsWithAlternativesPage, moatsInUse, VERDICTS } from '../lib/apps.js';
 import { sponsorTotals } from '../lib/db.js';
 import { scriptJson } from '../lib/request.js';
 import { getBoard, nextRunMonthName } from '../lib/sponsors.js';
 
-const data = await dashboardStats();
+// Four independent data sources feeding this page: run them concurrently
+// instead of one-after-another, so a cold PostHog cache (right after a
+// deploy) costs the slowest of the four, not the sum of all four. globeStats
+// here just warms analytics.js's own cache — <VisitorGlobe> below awaits it
+// again and gets the already-resolved promise back instantly.
+const [data, sponsors, board] = await Promise.all([
+  dashboardStats(),
+  sponsorTotals().catch(() => null),
+  getBoard(),
+  globeStats(),
+]);
 const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US'));
 const s = data?.tiles;
 const at = data?.allTime;
@@ -33,8 +43,6 @@ const altPages = appsWithAlternativesPage().length;
 const moatTags = moatsInUse().length;
 
 // Sponsor cards: aggregate across all slots only, never per-sponsor numbers.
-const sponsors = await sponsorTotals().catch(() => null);
-const board = await getBoard();
 const nextMonth = nextRunMonthName();
 const nextLeft = board.slots.length - board.prebookedCount;
 

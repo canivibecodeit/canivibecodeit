@@ -37,21 +37,38 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* shared tooltip */
+  /* shared tooltip. Writing innerHTML then reading getBoundingClientRect
+     forces a synchronous layout — cheap once, but onmousemove can fire far
+     more than 60x/sec on a high-poll-rate mouse/trackpad, and each of those
+     was forcing its own reflow. Batching through rAF caps it at one
+     measure+write per frame no matter how many mousemove events land in it. */
   let tip;
+  let tipFrame = null;
+  let pendingTip = null;
   const tooltip = (html, x, y) => {
-    if (!tip) {
-      tip = document.createElement('div');
-      tip.className = 'chart-tip';
-      document.body.appendChild(tip);
-    }
-    tip.innerHTML = html;
-    tip.style.display = 'block';
-    const r = tip.getBoundingClientRect();
-    tip.style.left = `${Math.min(x + 14, innerWidth - r.width - 10)}px`;
-    tip.style.top = `${Math.max(y - r.height - 12, 8)}px`;
+    pendingTip = { html, x, y };
+    if (tipFrame) return;
+    tipFrame = requestAnimationFrame(() => {
+      tipFrame = null;
+      if (!tip) {
+        tip = document.createElement('div');
+        tip.className = 'chart-tip';
+        document.body.appendChild(tip);
+      }
+      tip.innerHTML = pendingTip.html;
+      tip.style.display = 'block';
+      const r = tip.getBoundingClientRect();
+      tip.style.left = `${Math.min(pendingTip.x + 14, innerWidth - r.width - 10)}px`;
+      tip.style.top = `${Math.max(pendingTip.y - r.height - 12, 8)}px`;
+    });
   };
-  const hideTip = () => tip && (tip.style.display = 'none');
+  const hideTip = () => {
+    if (tipFrame) {
+      cancelAnimationFrame(tipFrame);
+      tipFrame = null;
+    }
+    if (tip) tip.style.display = 'none';
+  };
 
   function setupCanvas(canvas) {
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -81,6 +98,27 @@
     }
   }
 
+  /* Same threshold rule as ditherRect, but paints only the cells the boost
+     newly lights up (boost only ever adds density, never removes it, so
+     anything already on stays on). Used to patch a cursor-reactive aura onto
+     an already-rendered static bitmap instead of redrawing the whole fill
+     just to move a highlight. */
+  function ditherRectBoostOnly(ctx, x, y, w, h, rgb, density, cell, boost) {
+    ctx.fillStyle = `rgb(${rgb.join(',')})`;
+    const x0 = Math.floor(x / cell), x1 = Math.ceil((x + w) / cell);
+    const y0 = Math.floor(y / cell), y1 = Math.ceil((y + h) / cell);
+    for (let cy = y0; cy < y1; cy++) {
+      for (let cx = x0; cx < x1; cx++) {
+        const b = boost(cx * cell, cy * cell);
+        if (b <= 0.0008) continue;
+        const thresh = BAYER[cy & 3][cx & 3] / 16;
+        if (thresh >= density && thresh < Math.min(0.96, density + b)) {
+          ctx.fillRect(cx * cell, cy * cell, cell - 1, cell - 1);
+        }
+      }
+    }
+  }
+
   /* Cursor aura: a calm gaussian glow in the dither field around the pointer.
      Localized on purpose (a full-field pulse proved headache-inducing), and it
      only ever touches dot density, never the data geometry. */
@@ -98,10 +136,15 @@
     const PAD = { l: 44, r: 10, t: 12, b: 24 };
     const iw = w - PAD.l - PAD.r;
     const ih = h - PAD.t - PAD.b;
+    /* sqrt scale: a single viral day can be 30x+ a normal one, and a linear
+       axis flattens every other point to the floor while that one day spikes
+       through the ceiling. Square-rooting both the axis and the gridline
+       labels below compresses the outlier without hiding it or lying about
+       the smaller days. */
     const max = Math.max(1, ...points.map((p) => p.v));
-    const nice = Math.ceil(max / 4) * 4;
+    const nice = Math.sqrt(max);
     const X = (i) => PAD.l + (i / Math.max(1, points.length - 1)) * iw;
-    const Y = (v) => PAD.t + ih - (v / nice) * ih;
+    const Y = (v) => PAD.t + ih - (Math.sqrt(v) / nice) * ih;
 
     const draw = (progress = 1, cursor = null) => {
       ctx.clearRect(0, 0, w, h);
@@ -119,7 +162,8 @@
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.textAlign = 'right';
-        ctx.fillText(fmt(nice - (nice / 4) * g), PAD.l - 8, gy + 3);
+        const gridVal = Math.round(((nice * (4 - g)) / 4) ** 2);
+        ctx.fillText(fmt(gridVal), PAD.l - 8, gy + 3);
       }
 
       ctx.textAlign = 'center';
@@ -165,13 +209,30 @@
       ctx.fill();
     };
 
-    if (reduced) draw(1);
-    else {
+    /* Static bitmap cache: draw() redraws gridlines, labels, the ~12k-cell
+       dithered fill and the line — real work, fine once. The hover loop
+       below used to call it 60x/sec just to move a small cursor glow, which
+       is what actually made the chart laggy under the mouse. snapshot()
+       freezes the finished picture into an offscreen canvas so hover only
+       has to blit it plus the tiny aura patch, not redraw everything. */
+    let bg = null;
+    const snapshot = () => {
+      if (!bg) bg = document.createElement('canvas');
+      bg.width = canvas.width;
+      bg.height = canvas.height;
+      bg.getContext('2d').drawImage(canvas, 0, 0);
+    };
+
+    if (reduced) {
+      draw(1);
+      snapshot();
+    } else {
       const t0 = performance.now();
       const tick = (now) => {
         const p = Math.min(1, (now - t0) / 650);
         draw(1 - Math.pow(1 - p, 3));
         if (p < 1) requestAnimationFrame(tick);
+        else snapshot();
       };
       requestAnimationFrame(tick);
     }
@@ -181,6 +242,7 @@
     let mouse = null;
     let amp = 0;
     let raf = null;
+    const AURA_R = 230; // beyond this the gaussian is visually ~0; bounds the patch
     const liveLoop = (now) => {
       const target = mouse ? 1 : 0;
       amp += (target - amp) * 0.12;
@@ -188,11 +250,42 @@
         amp = 0;
         raf = null;
         draw(1);
+        snapshot();
         return;
       }
       const c = mouse || liveLoop.last;
       liveLoop.last = c;
-      draw(1, { x: c.x, y: c.y, t: now, amp });
+
+      if (!bg) {
+        // hovered before the entrance animation finished caching a bitmap:
+        // fall back to a full draw for this one frame rather than blit garbage
+        draw(1, { x: c.x, y: c.y, t: now, amp });
+      } else {
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(bg, 0, 0, w, h);
+
+        const ys = points.map((p) => Y(p.v));
+        const boost = (px, py) => aura(c.x, c.y)(px, py) * amp;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(X(0), PAD.t + ih);
+        ys.forEach((y, i) => ctx.lineTo(X(i), y));
+        ctx.lineTo(X(points.length - 1), PAD.t + ih);
+        ctx.closePath();
+        ctx.clip();
+        const bx0 = Math.max(PAD.l, c.x - AURA_R);
+        const bx1 = Math.min(w - PAD.r, c.x + AURA_R);
+        if (bx1 > bx0) {
+          const bands = 6;
+          for (let b = 0; b < bands; b++) {
+            const density = 0.55 * (1 - b / bands) + 0.06;
+            ditherRectBoostOnly(ctx, bx0, PAD.t + (ih / bands) * b, bx1 - bx0, ih / bands + 1, rgb, density, 3, boost);
+          }
+        }
+        ctx.restore();
+      }
+
       if (mouse) {
         const i = Math.round(((mouse.x - PAD.l) / iw) * (points.length - 1));
         if (i >= 0 && i < points.length) {
@@ -230,7 +323,12 @@
       mouse = null; // liveLoop keeps running until the wave decays out
     };
 
-    return { redraw: () => draw(1) };
+    return {
+      redraw: () => {
+        draw(1);
+        snapshot();
+      },
+    };
   }
 
   /* ---------- horizontal bars ---------- */
