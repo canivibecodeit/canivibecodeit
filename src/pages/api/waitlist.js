@@ -30,7 +30,10 @@ export async function POST({ request, clientAddress }) {
   // Honeypot: bots fill every field. Pretend success, store nothing.
   if (body.website) return json({ ok: true });
 
-  const email = body.email?.trim().toLowerCase();
+  // Coerced, not assumed: readBody falls through to formData() for anything
+  // that isn't JSON, and a multipart file part arrives as a File — which has
+  // no .trim, so the bare call throws past this endpoint's try/catch.
+  const email = String(body.email ?? '').trim().toLowerCase();
   if (!validEmail(email) || unreachable(email)) return json({ error: 'invalid email' }, 400);
 
   const source = SOURCES.includes(body.source) ? body.source : 'unknown';
