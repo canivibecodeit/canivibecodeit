@@ -16,9 +16,13 @@ export async function POST({ request, clientAddress }) {
 
   if (body.website) return json({ ok: true });
 
-  const email = body.email?.trim().toLowerCase();
+  // Coerced, not assumed: readBody falls through to formData() for anything
+  // that isn't JSON, and a multipart file part arrives as a File. It has no
+  // .trim (throws past the try/catch above), and its .slice returns a Blob the
+  // driver can't bind.
+  const email = String(body.email ?? '').trim().toLowerCase();
   if (!validEmail(email)) return json({ error: 'invalid email' }, 400);
 
-  await addSponsorInquiry(email, body.message);
+  await addSponsorInquiry(email, typeof body.message === 'string' ? body.message : null);
   return json({ ok: true });
 }

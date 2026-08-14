@@ -222,13 +222,22 @@ export function signAction(id, action) {
 
 export function verifyAction(id, action, sig) {
   const expected = signAction(id, action);
-  if (!expected || typeof sig !== 'string' || sig.length !== expected.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+  if (!expected || typeof sig !== 'string') return false;
+  return timingSafeMatch(sig, expected);
 }
 
+/* Byte length, never string length. A JS string length counts UTF-16 code
+   units while the Buffers below are UTF-8, so a value carrying any multi-byte
+   character passes an a.length === b.length guard with buffers of different
+   sizes — and timingSafeEqual THROWS on a size mismatch rather than returning
+   false. Callers don't catch that, so the request 500s instead of 404ing, and
+   on the admin token the 404/500 split leaks its exact length to anyone who
+   asks. Same shape as the origin check in middleware.js. */
 export function timingSafeMatch(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length || !a) return false;
-  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  if (typeof a !== 'string' || typeof b !== 'string' || !a) return false;
+  const got = Buffer.from(a);
+  const want = Buffer.from(b);
+  return got.length === want.length && crypto.timingSafeEqual(got, want);
 }
 
 export function isAdmin(token) {

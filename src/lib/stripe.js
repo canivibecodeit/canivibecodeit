@@ -166,9 +166,13 @@ export function verifyStripeSignature(rawBody, header, secret) {
     .createHmac('sha256', secret)
     .update(`${timestamp}.${rawBody}`)
     .digest('hex');
-  return candidates.some(
-    (sig) =>
-      sig.length === expected.length &&
-      crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
-  );
+  // Byte length, not string length: the header is attacker-suppliable, and a
+  // v1= value of multi-byte characters matches the 64-char digest on string
+  // length while its buffer is twice the size. timingSafeEqual throws on that
+  // mismatch, which would 500 the webhook instead of rejecting the delivery.
+  const want = Buffer.from(expected);
+  return candidates.some((sig) => {
+    const got = Buffer.from(sig);
+    return got.length === want.length && crypto.timingSafeEqual(got, want);
+  });
 }

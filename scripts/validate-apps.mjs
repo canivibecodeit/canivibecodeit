@@ -164,10 +164,15 @@ for (const file of files) {
     bad('discontinued must be a non-empty string or null');
   }
 
+  // The url lands in an href on the app page, so it gets the same scheme
+  // allowlist as every other URL field here. The angle-bracket scan above does
+  // not catch "javascript:" — it carries no "<" or ">".
   if (Array.isArray(app.priorArt)) {
     app.priorArt.forEach((p, i) => {
       if (!p || typeof p !== 'object' || !isStr(p.name) || !isStr(p.url)) {
         bad(`priorArt[${i}] needs a name and a url`);
+      } else if (!/^https?:\/\//.test(p.url)) {
+        bad(`priorArt[${i}].url must be an http(s) URL`);
       }
     });
   }
