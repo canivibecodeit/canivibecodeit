@@ -3,9 +3,14 @@
    Run with `npm run validate`. No dependencies, on purpose. */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CATEGORIES, MOAT_TAGS, VERDICTS } from '../src/lib/apps.js';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+// fileURLToPath, not new URL().pathname: on Windows the latter yields "/C:/..."
+// and leaves "%20" in place for a path with spaces, so readdirSync throws ENOENT
+// before a single file is checked. Every app entry arrives as a contributor PR,
+// so this has to run wherever the contributor happens to be.
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'data/apps');
 
 const UNITS = ['flat', 'per-seat', 'usage', 'one-time', 'custom'];
