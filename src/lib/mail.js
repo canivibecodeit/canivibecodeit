@@ -46,6 +46,82 @@ export async function alertRob(subject, html) {
   return sendMail({ to: process.env.DIGEST_ALERT_EMAIL, subject, html });
 }
 
+/* Provider-synthesized addresses that can never receive mail; keep them out
+   of the digest list, they only bounce and burn sender reputation. */
+export function unmailable(email) {
+  return /@users\.noreply\.github\.com$/i.test(email);
+}
+
+/* Add an email to the digest audience. Inert until the Resend vars are set:
+   the site's waitlist table is the source of truth, the audience is a mirror.
+   Fire-and-forget: never blocks or fails the caller. Callers must only
+   mirror NEW rows so a re-post can't resubscribe someone who unsubscribed
+   on Resend's side. */
+export function mirrorToResend(email) {
+  const key = process.env.RESEND_API_KEY;
+  const audience = process.env.RESEND_AUDIENCE_ID;
+  if (!key || !audience) return;
+  fetch(`https://api.resend.com/audiences/${audience}/contacts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {});
+}
+
+/* Flip a contact's subscribed state on the Resend audience (the /account
+   digest toggle). Resubscribing a missing contact creates it. Returns whether
+   Resend confirmed; never throws. No-op true when Resend isn't configured so
+   local dev behaves. */
+export async function setResendSubscribed(email, subscribed) {
+  const key = process.env.RESEND_API_KEY;
+  const audience = process.env.RESEND_AUDIENCE_ID;
+  if (!key || !audience) return true;
+  const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+  try {
+    const res = await fetch(
+      `https://api.resend.com/audiences/${audience}/contacts/${encodeURIComponent(email)}`,
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ unsubscribed: !subscribed }),
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+    if (res.ok) return true;
+    if (res.status === 404 && subscribed) {
+      const created = await fetch(`https://api.resend.com/audiences/${audience}/contacts`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email, unsubscribed: false }),
+        signal: AbortSignal.timeout(10000),
+      });
+      return created.ok;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/* GDPR account deletion: take the contact off the audience entirely.
+   Returns whether Resend confirmed (a 404 counts: already gone); callers
+   alert on false so a stray contact never keeps receiving broadcasts. */
+export async function deleteResendContact(email) {
+  const key = process.env.RESEND_API_KEY;
+  const audience = process.env.RESEND_AUDIENCE_ID;
+  if (!key || !audience) return true;
+  try {
+    const res = await fetch(
+      `https://api.resend.com/audiences/${audience}/contacts/${encodeURIComponent(email)}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10000) }
+    );
+    return res.ok || res.status === 404;
+  } catch {
+    return false;
+  }
+}
+
 /* Everyone in the Resend audience who has unsubscribed. Unsubscribes live
    there, not in our tables, so anything that mails a local list must check
    here first. Throws when it can't know — mailing blind is worse than not

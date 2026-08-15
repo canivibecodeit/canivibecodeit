@@ -1,7 +1,8 @@
 import { addToWaitlist, rateLimit } from '../../lib/db.js';
+import { mirrorToResend } from '../../lib/mail.js';
 import { clientIp, json, readBody, validEmail } from '../../lib/request.js';
 
-const SOURCES = ['home', 'app', 'app_copy', 'category', 'moat', '404', 'bar', 'sponsor'];
+const SOURCES = ['home', 'app', 'app_copy', 'category', 'moat', '404', 'bar', 'sponsor', 'account'];
 
 // RFC 2606 reserved names can never receive mail, and Resend refuses to send a
 // broadcast while any @example.com contact sits in the audience.
@@ -11,20 +12,6 @@ const RESERVED_TLDS = ['.test', '.invalid', '.example', '.localhost'];
 function unreachable(email) {
   const domain = email.slice(email.lastIndexOf('@') + 1);
   return RESERVED_DOMAINS.has(domain) || RESERVED_TLDS.some((t) => domain.endsWith(t));
-}
-
-// Inert until the Resend vars are set: the site is the source of truth, the
-// audience is a mirror. Never blocks or fails the signup.
-function mirrorToResend(email) {
-  const key = process.env.RESEND_API_KEY;
-  const audience = process.env.RESEND_AUDIENCE_ID;
-  if (!key || !audience) return;
-  fetch(`https://api.resend.com/audiences/${audience}/contacts`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-    signal: AbortSignal.timeout(5000),
-  }).catch(() => {});
 }
 
 export async function POST({ request, clientAddress }) {

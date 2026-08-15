@@ -1,15 +1,14 @@
-import { allApps, alternativesSitemapApps, categoriesInUse, moatsInUse } from '../lib/apps.js';
+import { allApps, alternativesSitemapApps, productsSitemap, categoriesInUse, moatsInUse } from '../lib/apps.js';
 
 export async function GET() {
   const base = 'https://canivibecodeit.com';
-  // Staged rollout — swap to appsWithAlternativesPage() ~6-8 weeks after launch
-  // (see planning/16-alternatives/progress.md TODO, dated).
   const altPages = alternativesSitemapApps();
   const urls = [
     `${base}/`,
     ...allApps().map((a) => `${base}/${a.slug}`),
     ...altPages.map((a) => `${base}/${a.slug}/alternatives`),
     ...(altPages.length > 0 ? [`${base}/alternatives`] : []),
+    ...productsSitemap().map((p) => `${base}/alternative/${p.slug}`),
     ...categoriesInUse().map((c) => `${base}/category/${c.slug}`),
     `${base}/categories`,
     ...moatsInUse().map((m) => `${base}/moat/${m.tag}`),

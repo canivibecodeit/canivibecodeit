@@ -4,7 +4,7 @@ import Ticker from '../components/Ticker.astro';
 import AppRow from '../components/AppRow.astro';
 import VisitorGlobe from '../components/VisitorGlobe.astro';
 import DigestCard from '../components/DigestCard.astro';
-import { allApps, appsWithAlternativesPage, topCategories } from '../lib/apps.js';
+import { allApps, appsWithAlternativesPage, topCategories, categoriesInUse } from '../lib/apps.js';
 import { voteCounts } from '../lib/db.js';
 
 const votes = await voteCounts();
@@ -15,6 +15,8 @@ const apps = allApps().sort(
     a.name.localeCompare(b.name)
 );
 const cats = topCategories();
+// Every category with apps, biggest first, for the list-header dropdown filter.
+const ddCats = categoriesInUse().sort((a, b) => b.count - a.count);
 
 // Strip under the chips: numbers computed from the same source as the
 // /alternatives hub, so the claim can never drift from the pages.
@@ -63,10 +65,14 @@ const jsonld = [
     <div class="search-wrap">
       <div class="search">
         <span class="chevron">&gt;</span>
+        {/* Placeholder stays short on purpose: mobile bumps this input to 16px
+            (the iOS zoom guard), which clipped the old "(N on the list)" at
+            390px and narrower, and would clip harder once the count goes four
+            digits. The full count is in the line right above the box. */}
         <input
           type="search"
           id="search"
-          placeholder={`type an app… (${apps.length} on the list)`}
+          placeholder={`type an app… (${apps.length})`}
           autocomplete="off"
           aria-label="Search apps"
           role="combobox"
@@ -83,24 +89,21 @@ const jsonld = [
       <span class="miss-note">verdicts are added daily · thousands more on the way</span>
     </p>
     <nav class="chips" aria-label="Categories">
-      {/* #chips holds only the filtering chips: clicks inside it filter in place
-          instead of navigating, so the links out sit outside the group. */}
-      <span id="chips" style="display: contents;">
-        <a class="chip active" href="/" data-cat="">⚡ all</a>
-        {
-          cats.map((c) => (
-            <a class="chip" href={`/category/${c.slug}`} data-cat={c.slug}>
-              {c.emoji} {c.label.toLowerCase()}
-            </a>
-          ))
-        }
-      </span>
+      {/* Plain navigation: each chip goes to its category page. In-place list
+          filtering happens in the dropdown next to the list header instead —
+          up here the list isn't even on screen on small viewports. */}
+      {
+        cats.map((c) => (
+          <a class="chip" href={`/category/${c.slug}`}>
+            {c.emoji} {c.label.toLowerCase()}
+          </a>
+        ))
+      }
       <a class="chip chip-new" href="/alternatives">🚪 escape hatches <span class="new-tag">NEW</span></a>
       <a class="chip" href="/moats">🏰 moats</a>
       <a class="chip" href="/categories">all categories →</a>
     </nav>
     <a class="hatch-strip" href="/alternatives">
-      <span class="new-tag">NEW</span>
       <span class="hs-copy">
         every verdict now has an escape hatch: {totalAlts.toLocaleString('en-US')} free
         alternatives across {altApps.length} apps
@@ -116,7 +119,34 @@ const jsonld = [
       <h2>The Death List</h2>
       <span class="note">ranked by "I replaced this" votes</span>
     </div>
-    <div class="verdict-filter" id="verdict-filter" role="group" aria-label="Filter by verdict">
+    <div class="verdict-filter" id="verdict-filter" role="group" aria-label="Filter the list">
+      <span class="cat-dd" id="cat-dd">
+        <button type="button" class="cat-dd-btn" id="cat-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="cat-dd-panel">
+          <span id="cat-dd-label">⚡ all categories</span>
+          <span class="dd-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="cat-dd-panel" id="cat-dd-panel" role="listbox" aria-label="Filter by category" hidden>
+          <button type="button" class="cat-opt active" role="option" aria-selected="true" data-cat="" data-label="⚡ all categories">
+            <span class="co-label">⚡ all categories</span>
+            <span class="co-count">{apps.length}</span>
+          </button>
+          {
+            ddCats.map((c) => (
+              <button
+                type="button"
+                class="cat-opt"
+                role="option"
+                aria-selected="false"
+                data-cat={c.slug}
+                data-label={`${c.emoji} ${c.label.toLowerCase()}`}
+              >
+                <span class="co-label">{c.emoji} {c.label.toLowerCase()}</span>
+                <span class="co-count">{c.count}</span>
+              </button>
+            ))
+          }
+        </div>
+      </span>
       <span class="microlabel">verdict</span>
       <button class="vchip all active" data-verdict="">all</button>
       <button class="vchip yes" data-verdict="yes">YES</button>
@@ -147,6 +177,7 @@ const jsonld = [
       <span class="c-price">price</span>
       <span class="c-verdict">verdict</span>
       <span class="c-votes">replaced it</span>
+      <span class="c-save"></span>
     </div>
     <div id="rows">
       {
@@ -164,6 +195,96 @@ const jsonld = [
 </Base>
 
 <style>
+  /* Category dropdown: the site's own take on a select, sitting where the
+     filtering actually happens (next to the list), not up in the hero. */
+  .cat-dd {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .cat-dd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 11px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--card);
+    color: var(--fg);
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .cat-dd-btn:hover,
+  .cat-dd-btn[aria-expanded='true'] {
+    border-color: var(--muted);
+  }
+
+  .cat-dd-btn.filtering {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .dd-caret {
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  .cat-dd-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 60;
+    min-width: 264px;
+    max-height: 340px;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 5px;
+  }
+
+  .cat-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 9px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    border-radius: 5px;
+    text-align: left;
+    transition: background-color 0.12s ease;
+  }
+
+  .cat-opt:hover {
+    background: var(--bg);
+  }
+
+  .cat-opt.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .co-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .co-count {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  @media (max-width: 760px) {
+    .cat-dd-panel {
+      max-height: 300px;
+      min-width: min(280px, calc(100vw - 48px));
+    }
+  }
+
   .team-label {
     margin-left: 6px;
   }

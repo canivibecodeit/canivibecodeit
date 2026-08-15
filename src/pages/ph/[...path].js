@@ -21,6 +21,9 @@ async function proxy({ params, request, clientAddress }) {
     if (name.startsWith('cf-') || name.startsWith('x-railway-')) headers.delete(name);
   }
   headers.delete('cdn-loop');
+  // The origin-lock secret our own edge stamps on every request must never
+  // travel to a third party.
+  headers.delete('x-origin-verify');
   headers.delete('x-forwarded-host');
   headers.delete('x-forwarded-proto');
   headers.delete('x-forwarded-for');

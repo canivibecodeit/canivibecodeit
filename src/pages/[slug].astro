@@ -5,11 +5,14 @@ import DigestCard from '../components/DigestCard.astro';
 import DigestReveal from '../components/DigestReveal.astro';
 import AltCard from '../components/AltCard.astro';
 import { getApp, relatedApps, yearlySaving, sortedAlternatives, ALTERNATIVES_PAGE_MIN, CATEGORIES, VERDICTS, MOAT_TAGS, MOAT_TAG_EMOJI, VIBE_CODING_TOOL_SLUGS } from '../lib/apps.js';
-import { voteCount, voteCounts } from '../lib/db.js';
+import { stackSlugs, voteCount, voteCounts } from '../lib/db.js';
 
 const { slug } = Astro.params;
 const app = getApp(slug);
 if (!app) return new Response(null, { status: 404 });
+
+const user = Astro.locals.user ?? null;
+const inStack = user ? (await stackSlugs(user.id)).includes(app.slug) : false;
 
 const votes = await voteCount(app.slug);
 const related = relatedApps(app, await voteCounts());
@@ -44,6 +47,16 @@ const brandDescription = discontinued
 // share cards keep the brand title via socialTitle. The H1 never changes.
 const freeTier = typeof app.pricing?.freeTier === 'string' ? app.pricing.freeTier : null;
 const pricingLed = freeTier != null && app.priceMonthly != null;
+
+// Researched tier block (all tiers + caps + billing facts, live-verified).
+// Its presence upgrades the pricing section to a full table; the pricing-led
+// <title> stays gated on freeTier (that rollout has its own read date).
+const tiers = !discontinued && Array.isArray(app.pricing?.tiers) ? app.pricing.tiers : null;
+const tierPrice = (usd, per) => {
+  if (usd == null) return null;
+  const n = usd % 1 === 0 ? usd : usd.toFixed(2);
+  return `$${n}${per === 'user' ? '/user' : per === 'workspace' ? '/workspace' : ''}`;
+};
 const title = pricingLed
   ? `${baseName} pricing ${new Date().getFullYear()}: plans, free tier, and our verdict`
   : brandTitle;
@@ -147,7 +160,19 @@ const tweet = encodeURIComponent(
         <img src={`/icons/${app.slug}.png`} alt="" width="48" height="48" />
         <h1>Can I vibecode {app.name.split(' / ')[0]}?</h1>
       </span>
-      <VerdictBadge verdict={app.verdict} big />
+      <span class="verdict-side">
+        <VerdictBadge verdict={app.verdict} big />
+        <button
+          class:list={['head-save', { saved: inStack }]}
+          data-stack-icon
+          data-slug={app.slug}
+          aria-pressed={inStack ? 'true' : 'false'}
+        >
+          <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+          <span class="off">save to my stack</span>
+          <span class="on">in your stack</span>
+        </button>
+      </span>
     </div>
 
     {
@@ -306,6 +331,11 @@ const tweet = encodeURIComponent(
         href={`https://twitter.com/intent/tweet?text=${tweet}`}
         data-share={app.slug}
       >share on X ↗</a>
+      <button
+        class:list={['btn', 'ghost', 'stack-btn', { 'in-stack': inStack }]}
+        data-stack={app.slug}
+        data-saved={inStack ? '1' : null}
+      >{inStack ? '✓ in your stack' : '+ save to my stack'}</button>
       <span class="tweet">"I just replaced {app.name.split(' / ')[0]}{app.priceMonthly != null ? ` ($${app.priceMonthly}/mo)` : ''} with one prompt"</span>
     </div>
 
@@ -353,33 +383,90 @@ const tweet = encodeURIComponent(
     }
 
     {
-      pricingLed && (
+      (pricingLed || tiers) && (
         <section class="pricing-sec">
           <span class="microlabel">the numbers</span>
           <h2>{baseName} pricing</h2>
-          <div class="p-rows">
-            <p class="p-row">
-              <span class="p-k">{app.pricing?.plan ? app.pricing.plan.toLowerCase() : 'paid'}</span>
-              <span class="p-v">
-                ${app.priceMonthly}/mo{app.pricing?.basis ? ` · ${app.pricing.basis}` : ''} · ${saving?.toLocaleString('en-US')}/yr
-              </span>
-            </p>
-            <p class="p-row">
-              <span class="p-k">free tier</span>
-              <span class="p-v">{freeTier}</span>
-            </p>
-          </div>
-          <p class="p-verified">
-            verified {app.pricing?.checkedOn}
-            {app.pricing?.source && (
-              <>
+          {tiers ? (
+            <>
+              <div class="tier-wrap">
+                <table class="alt-table">
+                  <thead>
+                    <tr><th>plan</th><th>monthly</th><th>annual (per mo)</th><th>what you get</th></tr>
+                  </thead>
+                  <tbody>
+                    {tiers.map((t) => (
+                      <tr>
+                        <td class="t-name">{t.name.toLowerCase()}</td>
+                        <td>{tierPrice(t.monthly, t.per) ?? (t.annualPerMonth == null ? 'custom' : '—')}</td>
+                        <td>{tierPrice(t.annualPerMonth, t.per) ?? '—'}</td>
+                        <td class="t-limits">{t.limits ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-rows">
+                <p class="p-row">
+                  <span class="p-k">free tier</span>
+                  <span class="p-v">{app.pricing.freeTierCaps}</span>
+                </p>
+                <p class="p-row">
+                  <span class="p-k">billing</span>
+                  <span class="p-v">{app.pricing.billingTerms}</span>
+                </p>
+                {app.pricing.hiddenCosts && (
+                  <p class="p-row">
+                    <span class="p-k">hidden costs</span>
+                    <span class="p-v">{app.pricing.hiddenCosts}</span>
+                  </p>
+                )}
+                {app.pricing.priceChanges?.length > 0 && (
+                  <p class="p-row">
+                    <span class="p-k">price history</span>
+                    <span class="p-v">
+                      {app.pricing.priceChanges
+                        .map((c) => `${c.what}: ${c.fromUsd != null ? `$${c.fromUsd} → ` : 'now '}$${c.toUsd} (${c.when})`)
+                        .join(' · ')}
+                    </span>
+                  </p>
+                )}
+              </div>
+              <p class="p-verified">
+                verified {app.pricing.tiersCheckedOn}
                 {' '}·{' '}
-                <a href={app.pricing.source} rel="nofollow noopener" target="_blank">
+                <a href={app.pricing.tiersSources[0]} rel="nofollow noopener" target="_blank">
                   source ↗
                 </a>
-              </>
-            )}
-          </p>
+              </p>
+            </>
+          ) : (
+            <>
+              <div class="p-rows">
+                <p class="p-row">
+                  <span class="p-k">{app.pricing?.plan ? app.pricing.plan.toLowerCase() : 'paid'}</span>
+                  <span class="p-v">
+                    ${app.priceMonthly}/mo{app.pricing?.basis ? ` · ${app.pricing.basis}` : ''} · ${saving?.toLocaleString('en-US')}/yr
+                  </span>
+                </p>
+                <p class="p-row">
+                  <span class="p-k">free tier</span>
+                  <span class="p-v">{freeTier}</span>
+                </p>
+              </div>
+              <p class="p-verified">
+                verified {app.pricing?.checkedOn}
+                {app.pricing?.source && (
+                  <>
+                    {' '}·{' '}
+                    <a href={app.pricing.source} rel="nofollow noopener" target="_blank">
+                      source ↗
+                    </a>
+                  </>
+                )}
+              </p>
+            </>
+          )}
         </section>
       )
     }
@@ -444,10 +531,34 @@ const tweet = encodeURIComponent(
     padding-top: 12px;
   }
 
+  .tier-wrap {
+    max-width: 900px;
+    overflow-x: auto;
+  }
+
+  .tier-wrap .t-name {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .tier-wrap .t-limits {
+    font-size: 12px;
+    min-width: 220px;
+    max-width: 52ch;
+    overflow-wrap: anywhere;
+  }
+
   .p-rows {
     margin-top: 14px;
     border-top: 1px solid var(--border);
     max-width: 76ch;
+  }
+
+  /* Below the tier table the table's own bottom rule already draws the line;
+     a second border-top here reads as an ugly double rule. */
+  .tier-wrap + .p-rows {
+    border-top: 0;
+    margin-top: 0;
   }
 
   .p-row {

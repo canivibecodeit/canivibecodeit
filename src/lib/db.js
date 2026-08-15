@@ -77,6 +77,68 @@ const SCHEMA_SQLITE = `
     country TEXT,
     created_at INTEGER NOT NULL
   );
+
+  /* Better Auth tables, exactly as \`npx auth generate\` emits them for the
+     kysely/sqlite adapter (camelCase quoted columns are the adapter's own
+     naming, do not snake_case them). Plus our stack table. */
+  CREATE TABLE IF NOT EXISTS "user" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL UNIQUE,
+    "emailVerified" INTEGER NOT NULL,
+    "image" TEXT,
+    "createdAt" DATE NOT NULL,
+    "updatedAt" DATE NOT NULL,
+    "newsletter" INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS "session" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "expiresAt" DATE NOT NULL,
+    "token" TEXT NOT NULL UNIQUE,
+    "createdAt" DATE NOT NULL,
+    "updatedAt" DATE NOT NULL,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS "session_userId_idx" ON "session" ("userId");
+  CREATE TABLE IF NOT EXISTS "account" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "accountId" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+    "accessToken" TEXT,
+    "refreshToken" TEXT,
+    "idToken" TEXT,
+    "accessTokenExpiresAt" DATE,
+    "refreshTokenExpiresAt" DATE,
+    "scope" TEXT,
+    "password" TEXT,
+    "createdAt" DATE NOT NULL,
+    "updatedAt" DATE NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS "account_userId_idx" ON "account" ("userId");
+  CREATE TABLE IF NOT EXISTS "verification" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "identifier" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "expiresAt" DATE NOT NULL,
+    "createdAt" DATE NOT NULL,
+    "updatedAt" DATE NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS "verification_identifier_idx" ON "verification" ("identifier");
+  CREATE TABLE IF NOT EXISTS "rateLimit" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "key" TEXT NOT NULL UNIQUE,
+    "count" INTEGER NOT NULL,
+    "lastRequest" BIGINT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS stack (
+    user_id TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+    app_slug TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, app_slug)
+  );
 `;
 
 const SCHEMA_PG = `
@@ -151,6 +213,68 @@ const SCHEMA_PG = `
     country TEXT,
     created_at BIGINT NOT NULL
   );
+
+  /* Better Auth tables (kysely/postgres dialect: text / boolean / timestamptz,
+     camelCase quoted columns are the adapter's own naming, do not snake_case
+     them). Plus our stack table. */
+  CREATE TABLE IF NOT EXISTS "user" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL UNIQUE,
+    "emailVerified" BOOLEAN NOT NULL,
+    "image" TEXT,
+    "createdAt" TIMESTAMPTZ NOT NULL,
+    "updatedAt" TIMESTAMPTZ NOT NULL,
+    "newsletter" BOOLEAN NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS "session" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "expiresAt" TIMESTAMPTZ NOT NULL,
+    "token" TEXT NOT NULL UNIQUE,
+    "createdAt" TIMESTAMPTZ NOT NULL,
+    "updatedAt" TIMESTAMPTZ NOT NULL,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS "session_userId_idx" ON "session" ("userId");
+  CREATE TABLE IF NOT EXISTS "account" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "accountId" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+    "accessToken" TEXT,
+    "refreshToken" TEXT,
+    "idToken" TEXT,
+    "accessTokenExpiresAt" TIMESTAMPTZ,
+    "refreshTokenExpiresAt" TIMESTAMPTZ,
+    "scope" TEXT,
+    "password" TEXT,
+    "createdAt" TIMESTAMPTZ NOT NULL,
+    "updatedAt" TIMESTAMPTZ NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS "account_userId_idx" ON "account" ("userId");
+  CREATE TABLE IF NOT EXISTS "verification" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "identifier" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "expiresAt" TIMESTAMPTZ NOT NULL,
+    "createdAt" TIMESTAMPTZ NOT NULL,
+    "updatedAt" TIMESTAMPTZ NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS "verification_identifier_idx" ON "verification" ("identifier");
+  CREATE TABLE IF NOT EXISTS "rateLimit" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "key" TEXT NOT NULL UNIQUE,
+    "count" INTEGER NOT NULL,
+    "lastRequest" BIGINT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS stack (
+    user_id TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+    app_slug TEXT NOT NULL,
+    created_at BIGINT NOT NULL,
+    PRIMARY KEY (user_id, app_slug)
+  );
 `;
 
 /* Six fixed slots, three per rail side. Seed prices only — editable at runtime. */
@@ -216,9 +340,41 @@ function lookupCol(column) {
 
 let driver;
 
+/* Raw connection handles, shared between the query driver below and Better
+   Auth (which wants the pg Pool / better-sqlite3 Database instance itself).
+   One pool, one sqlite handle, never two connections to the same store. */
+let pgPool;
+async function rawPgPool() {
+  if (!pgPool) {
+    const { default: pg } = await import('pg');
+    pgPool = new pg.Pool({ connectionString: PG_URL, max: 5 });
+  }
+  return pgPool;
+}
+
+let sqliteDb;
+async function rawSqliteDb() {
+  if (!sqliteDb) {
+    const { default: Database } = await import('better-sqlite3');
+    const { mkdirSync } = await import('node:fs');
+    const path = await import('node:path');
+    const dir = process.env.DATA_DIR || 'data/private';
+    mkdirSync(dir, { recursive: true });
+    sqliteDb = new Database(path.join(dir, 'site.db'));
+    sqliteDb.pragma('journal_mode = WAL');
+  }
+  return sqliteDb;
+}
+
+/* For Better Auth: the raw handle, guaranteed post-schema (getDriver applies
+   the schema, including the auth tables). */
+export async function authDatabase() {
+  await getDriver();
+  return PG_URL ? rawPgPool() : rawSqliteDb();
+}
+
 async function pgDriver() {
-  const { default: pg } = await import('pg');
-  const pool = new pg.Pool({ connectionString: PG_URL, max: 5 });
+  const pool = await rawPgPool();
   await pool.query(SCHEMA_PG);
   // A NULL source means the row predates per-placement tracking: scanner era.
   await pool.query('ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS source TEXT');
@@ -263,8 +419,15 @@ async function pgDriver() {
       );
       return r.rows[0]?.count ?? 0;
     },
-    async clearRateLimit(key) {
-      await pool.query('DELETE FROM rate_limits WHERE key = $1', [key]);
+    // Atomically spend a live rate-limit key: true only for the one caller
+    // that got to delete it. Checking and clearing as two statements let two
+    // concurrent unvotes both see the same key and both decrement.
+    async consumeRateLimit(key, windowMs) {
+      const r = await pool.query(
+        'DELETE FROM rate_limits WHERE key = $1 AND window_start >= $2 RETURNING key',
+        [key, Date.now() - windowMs]
+      );
+      return r.rowCount > 0;
     },
     async addEmail(email, source) {
       const r = await pool.query(
@@ -399,6 +562,33 @@ async function pgDriver() {
       );
       return r.rows.map((x) => ({ ...x, id: Number(x.id), created_at: Number(x.created_at) }));
     },
+    async stackAdd(userId, slug) {
+      const r = await pool.query(
+        'INSERT INTO stack (user_id, app_slug, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+        [userId, slug, Date.now()]
+      );
+      return r.rowCount > 0;
+    },
+    async stackRemove(userId, slug) {
+      const r = await pool.query('DELETE FROM stack WHERE user_id = $1 AND app_slug = $2', [userId, slug]);
+      return r.rowCount > 0;
+    },
+    async stackSlugs(userId) {
+      const r = await pool.query(
+        'SELECT app_slug FROM stack WHERE user_id = $1 ORDER BY created_at DESC, app_slug',
+        [userId]
+      );
+      return r.rows.map((x) => x.app_slug);
+    },
+    async stackClear(userId) {
+      await pool.query('DELETE FROM stack WHERE user_id = $1', [userId]);
+    },
+    async setUserNewsletter(userId, on) {
+      await pool.query('UPDATE "user" SET "newsletter" = $2 WHERE "id" = $1', [userId, on]);
+    },
+    async removeFromWaitlist(email) {
+      await pool.query('DELETE FROM waitlist WHERE email = $1', [email]);
+    },
     async sponsorTotals() {
       const [imp, clk] = await Promise.all([
         pool.query('SELECT COALESCE(SUM(count), 0) AS n, MIN(day) AS since FROM sponsor_impressions'),
@@ -415,13 +605,7 @@ async function pgDriver() {
 }
 
 async function sqliteDriver() {
-  const { default: Database } = await import('better-sqlite3');
-  const { mkdirSync } = await import('node:fs');
-  const path = await import('node:path');
-  const dir = process.env.DATA_DIR || 'data/private';
-  mkdirSync(dir, { recursive: true });
-  const db = new Database(path.join(dir, 'site.db'));
-  db.pragma('journal_mode = WAL');
+  const db = await rawSqliteDb();
   db.exec(SCHEMA_SQLITE);
   // A NULL source means the row predates per-placement tracking: scanner era.
   try {
@@ -487,8 +671,14 @@ async function sqliteDriver() {
       db.prepare('UPDATE votes SET count = max(count - 1, 0) WHERE slug = ?').run(slug);
       return stmts.getVote.get(slug)?.count ?? 0;
     },
-    async clearRateLimit(key) {
-      db.prepare('DELETE FROM rate_limits WHERE key = ?').run(key);
+    // Atomically spend a live rate-limit key: true only for the one caller
+    // that got to delete it. Checking and clearing as two statements let two
+    // concurrent unvotes both see the same key and both decrement.
+    async consumeRateLimit(key, windowMs) {
+      const r = db
+        .prepare('DELETE FROM rate_limits WHERE key = ? AND window_start >= ?')
+        .run(key, Date.now() - windowMs);
+      return r.changes > 0;
     },
     async addEmail(email, source) {
       return stmts.addEmail.run(email, source).changes > 0;
@@ -592,6 +782,29 @@ async function sqliteDriver() {
         )
         .all(afterId, limit);
     },
+    async stackAdd(userId, slug) {
+      return db
+        .prepare('INSERT OR IGNORE INTO stack (user_id, app_slug, created_at) VALUES (?, ?, ?)')
+        .run(userId, slug, Date.now()).changes > 0;
+    },
+    async stackRemove(userId, slug) {
+      return db.prepare('DELETE FROM stack WHERE user_id = ? AND app_slug = ?').run(userId, slug).changes > 0;
+    },
+    async stackSlugs(userId) {
+      return db
+        .prepare('SELECT app_slug FROM stack WHERE user_id = ? ORDER BY created_at DESC, app_slug')
+        .all(userId)
+        .map((x) => x.app_slug);
+    },
+    async stackClear(userId) {
+      db.prepare('DELETE FROM stack WHERE user_id = ?').run(userId);
+    },
+    async setUserNewsletter(userId, on) {
+      db.prepare('UPDATE "user" SET "newsletter" = ? WHERE "id" = ?').run(on ? 1 : 0, userId);
+    },
+    async removeFromWaitlist(email) {
+      db.prepare('DELETE FROM waitlist WHERE email = ?').run(email);
+    },
     async sponsorTotals() {
       const imp = db
         .prepare('SELECT COALESCE(SUM(count), 0) AS n, MIN(day) AS since FROM sponsor_impressions')
@@ -610,7 +823,14 @@ async function sqliteDriver() {
 }
 
 async function getDriver() {
-  if (!driver) driver = PG_URL ? pgDriver() : sqliteDriver();
+  // A rejected init must not be cached: clear it so the next request retries
+  // (a Postgres blip would otherwise take the DB layer down until restart).
+  if (!driver) {
+    driver = (PG_URL ? pgDriver() : sqliteDriver()).catch((err) => {
+      driver = null;
+      throw err;
+    });
+  }
   return driver;
 }
 
@@ -632,8 +852,8 @@ export async function removeVote(slug) {
   return (await getDriver()).removeVote(slug);
 }
 
-export async function clearRateLimit(key) {
-  return (await getDriver()).clearRateLimit(key);
+export async function consumeRateLimit(key, windowMs) {
+  return (await getDriver()).consumeRateLimit(key, windowMs);
 }
 
 export async function addToWaitlist(email, source) {
@@ -730,6 +950,32 @@ export async function searchRows(afterId = 0, limit = 5000) {
 
 export async function purchasesForAdmin(limit = 60) {
   return (await getDriver()).purchasesForAdmin(limit);
+}
+
+export async function stackAdd(userId, slug) {
+  return (await getDriver()).stackAdd(userId, slug);
+}
+
+export async function stackRemove(userId, slug) {
+  return (await getDriver()).stackRemove(userId, slug);
+}
+
+export async function stackSlugs(userId) {
+  return (await getDriver()).stackSlugs(userId);
+}
+
+// GDPR delete-account cascade. SQLite doesn't enforce FKs by default, so this
+// is the delete path on both drivers rather than trusting ON DELETE CASCADE.
+export async function stackClear(userId) {
+  return (await getDriver()).stackClear(userId);
+}
+
+export async function setUserNewsletter(userId, on) {
+  return (await getDriver()).setUserNewsletter(userId, on);
+}
+
+export async function removeFromWaitlist(email) {
+  return (await getDriver()).removeFromWaitlist(email);
 }
 
 // The headline number: total monthly cost of every subscription on the death list.

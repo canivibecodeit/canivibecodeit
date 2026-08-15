@@ -5,9 +5,12 @@ import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
 import DigestBar from '../components/DigestBar.astro';
 import Radio from '../components/Radio.astro';
+import SignupModal from '../components/SignupModal.astro';
 import SponsorRails from '../components/SponsorRails.astro';
 import SponsorTape from '../components/SponsorTape.astro';
 import { getBoard, nextRunMonthName } from '../lib/sponsors.js';
+import { scriptJson } from '../lib/request.js';
+import { THEME_SCRIPT } from '../lib/csp.js';
 
 // Next-month pre-book count for the footer link. Board is cached, so this
 // costs the layout nothing extra; the month names itself.
@@ -25,6 +28,9 @@ const {
   socialTitle = Astro.props.title,
 } = Astro.props;
 
+const user = Astro.locals.user ?? null;
+const userInitial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
+
 const canonical = new URL(Astro.url.pathname, 'https://canivibecodeit.com').href;
 // Pages whose URL carries a token: they stay out of the index, and out of
 // analytics, because $current_url would otherwise record the token. Any URL
@@ -33,7 +39,10 @@ const isPrivate =
   Astro.url.pathname.startsWith('/admin') ||
   Astro.url.pathname.startsWith('/sponsor/details') ||
   Astro.url.pathname.startsWith('/sponsor/stats') ||
+  Astro.url.pathname.startsWith('/account') ||
   Astro.url.search.includes('token=');
+// noindex without going full private (keeps analytics): /signin wants this.
+const { noindex = false } = Astro.props;
 // Version query = cache-buster: OG images are regenerated in place, and a
 // cached miss (or stale card) at any edge must never outlive a deploy.
 const ogUrl = new URL(`${ogImage}?v=${__BUILD_ID__}`, 'https://canivibecodeit.com').href;
@@ -59,7 +68,7 @@ const blocks = [orgLd, ...jsonld];
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    {isPrivate && <meta name="robots" content="noindex, nofollow" />}
+    {(isPrivate || noindex) && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/logo-512.png" />
     <meta name="theme-color" content="#0b0d0b" />
@@ -75,27 +84,16 @@ const blocks = [orgLd, ...jsonld];
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogUrl} />
 
-    {blocks.map((b) => <script type="application/ld+json" set:html={JSON.stringify(b)} />)}
+    {blocks.map((b) => <script type="application/ld+json" set:html={scriptJson(b)} />)}
 
     <!-- theme before first paint: stored choice wins, else system preference.
-         ClientRouter swaps <html> attributes on soft navigations, so the theme
-         is re-applied on astro:after-swap (fires before paint). -->
-    <script is:inline>
-      (() => {
-        const apply = () => {
-          const stored = localStorage.getItem('theme');
-          const theme =
-            stored || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-          document.documentElement.dataset.theme = theme;
-        };
-        apply();
-        document.addEventListener('astro:after-swap', apply);
-      })();
-    </script>
+         The script text lives in lib/csp.js because the CSP header allows
+         exactly this string by hash; edit it THERE, never here. -->
+    <script is:inline set:html={THEME_SCRIPT} />
     {!isPrivate && <script is:inline src="/analytics.js" defer></script>}
     <ClientRouter />
   </head>
-  <body>
+  <body data-user={user ? '1' : undefined}>
     <SponsorTape side="left" />
     <header class="site-header">
       <div class="inner">
@@ -111,8 +109,20 @@ const blocks = [orgLd, ...jsonld];
           <a href="/#death-list">the death list</a>
           <a href="/alternatives">alternatives</a>
           <a href="/stats">stats</a>
-          <a href="https://github.com/canivibecodeit/canivibecodeit/blob/main/CONTRIBUTING.md">submit an app</a>
+          <a class="nav-submit" href="https://github.com/canivibecodeit/canivibecodeit/blob/main/CONTRIBUTING.md">submit an app</a>
           <a href="/sponsor">sponsor</a>
+          {
+            user ? (
+              <a class="avatar-chip" href="/account" aria-label="your account" title="your account">{userInitial}</a>
+            ) : (
+              <>
+                <a class="signin" href="/signin" data-signin>sign in</a>
+                <a class="signin-chip" href="/signin" data-signin aria-label="sign in">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="4" r="2.2" stroke="currentColor" stroke-width="1.3"></circle><path d="M1.8 10.6C2.4 8.7 4 7.6 6 7.6C8 7.6 9.6 8.7 10.2 10.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+                </a>
+              </>
+            )
+          }
           <button
             class="theme-toggle"
             aria-label="Toggle light or dark theme"
@@ -132,6 +142,15 @@ const blocks = [orgLd, ...jsonld];
     <SponsorRails />
 
     <footer class="site-footer">
+      {/* Sitewide section links. The header hides most of these on narrow
+          viewports (and "submit an app" in the rail-squeezed band), so this
+          row is the guaranteed path to every section from every page. */}
+      <nav class="inner footer-nav" aria-label="Site sections">
+        <a href="/#death-list">the death list</a>
+        <a href="/alternatives">alternatives</a>
+        <a href="/stats">stats</a>
+        <a href="https://github.com/canivibecodeit/canivibecodeit/blob/main/CONTRIBUTING.md">submit an app</a>
+      </nav>
       <div class="inner">
       <span>
         Yes, you can vibecode this site too.&ensp;<a href="/vibecode-this-site">Here's the prompt</a>&ensp;·&ensp;<a href="https://github.com/canivibecodeit/canivibecodeit">Source on GitHub</a>
@@ -141,8 +160,7 @@ const blocks = [orgLd, ...jsonld];
         built by <a href="https://x.com/robj3d3">@robj3d3</a>
       </span>
       <span>
-        MIT · no third-party trackers ·
-        <a href="/sponsor">pre-book {prebookLabel}{septBoard.prebookedCount > 0 ? ` · ${septLeft} of ${septBoard.slots.length} left` : ''}</a>
+        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a> · <a href="/sponsor">pre-book {prebookLabel}{septBoard.prebookedCount > 0 ? ` · ${septLeft} of ${septBoard.slots.length} left` : ''}</a>
       </span>
       </div>
     </footer>
@@ -150,6 +168,8 @@ const blocks = [orgLd, ...jsonld];
     <div class="sp-tape-spacer"></div>
     <SponsorTape side="right" />
     <DigestBar />
+
+    {!user && <SignupModal />}
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src={`/js/app.js?v=${__BUILD_ID__}`} defer></script>

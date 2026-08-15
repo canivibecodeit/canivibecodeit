@@ -12,14 +12,21 @@ const UNITS = ['flat', 'per-seat', 'usage', 'one-time', 'custom'];
 const ALT_TYPES = ['open-source', 'free'];
 const ALT_PLATFORMS = ['web', 'macos', 'windows', 'linux', 'ios', 'android', 'self-hosted', 'cli', 'browser-extension'];
 const ALT_SELF_HOST = ['hosted', 'one-click', 'docker', 'ops'];
+const FACT_RUNS = ['local', 'cloud', 'both', 'self-hosted'];
+const TIER_PER = ['user', 'workspace', 'flat'];
 
 const isStr = (v) => typeof v === 'string' && v.trim() !== '';
+// The slug is the one field that becomes URLs, file paths (/icons/<slug>.png)
+// and DOM attributes, so it gets a format allowlist rather than a character
+// blocklist: quotes and event-handler attributes need no angle brackets.
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const isSlug = (v) => isStr(v) && SLUG_RE.test(v);
 const isStrArray = (v) => Array.isArray(v) && v.every((x) => isStr(x));
 
 // Every key every entry carries today. A missing one is a PR that copied an old
 // template; the pages read all of them.
 const REQUIRED = {
-  slug: isStr,
+  slug: isSlug,
   name: isStr,
   domain: isStr,
   category: isStr,
@@ -60,6 +67,26 @@ for (const file of files) {
     continue;
   }
 
+  // Defense in depth against markup injection: app JSON is rendered into pages,
+  // including a JSON-LD <script> block, so no string field may carry the angle
+  // brackets that could break out of a tag. Reject "<" and ">" anywhere.
+  // `prompt` is exempt: the copy-paste prompts legitimately contain "<"/">"
+  // (comparisons, code) and are only ever rendered as escaped text, never into
+  // a <script>/JSON-LD block.
+  const scanAngles = (val, keyPath) => {
+    if (typeof val === 'string') {
+      if (val.includes('<') || val.includes('>')) bad(`"${keyPath}" contains "<" or ">" (not allowed in app content)`);
+    } else if (Array.isArray(val)) {
+      val.forEach((v, i) => scanAngles(v, `${keyPath}[${i}]`));
+    } else if (val && typeof val === 'object') {
+      for (const [k, v] of Object.entries(val)) {
+        if (k === 'prompt') continue;
+        scanAngles(v, keyPath ? `${keyPath}.${k}` : k);
+      }
+    }
+  };
+  scanAngles(app, '');
+
   if (app.slug !== path.basename(file, '.json')) {
     bad(`slug "${app.slug}" does not match the filename`);
   }
@@ -93,6 +120,40 @@ for (const file of files) {
     // present the page leads with pricing in <title>/meta, so it must be real.
     if (app.pricing.freeTier !== undefined && app.pricing.freeTier !== null && !isStr(app.pricing.freeTier)) {
       bad('pricing.freeTier must be a non-empty string or null');
+    }
+
+    // Optional researched tier block: all tiers with numeric caps and billing
+    // facts. The fields travel together: a tiers array without the caps and
+    // billing lines renders a half-empty pricing section.
+    const p = app.pricing;
+    if (p.tiers !== undefined) {
+      const strOrNull = (v) => v === null || isStr(v);
+      const priceOrNull = (v) => v === null || (typeof v === 'number' && Number.isFinite(v) && v >= 0);
+      const httpUrl = (v) => isStr(v) && /^https?:\/\//.test(v);
+      if (!Array.isArray(p.tiers) || p.tiers.length < 1) bad('pricing.tiers must be a non-empty array');
+      else p.tiers.forEach((t, i) => {
+        const w = `pricing.tiers[${i}]`;
+        if (!t || typeof t !== 'object' || Array.isArray(t)) return bad(`${w} must be an object`);
+        if (!isStr(t.name)) bad(`${w}.name is required`);
+        if (!priceOrNull(t.monthly)) bad(`${w}.monthly must be a number or null`);
+        if (!priceOrNull(t.annualPerMonth)) bad(`${w}.annualPerMonth must be a number or null`);
+        if (!TIER_PER.includes(t.per)) bad(`${w}.per must be ${TIER_PER.join(' | ')}`);
+        if (!strOrNull(t.limits)) bad(`${w}.limits must be a string or null`);
+        if (!strOrNull(t.notes)) bad(`${w}.notes must be a string or null`);
+      });
+      if (!isStr(p.freeTierCaps)) bad('pricing.freeTierCaps is required alongside pricing.tiers');
+      if (!isStr(p.billingTerms)) bad('pricing.billingTerms is required alongside pricing.tiers');
+      if (!Array.isArray(p.priceChanges)) bad('pricing.priceChanges must be an array (empty when unsourceable)');
+      else p.priceChanges.forEach((c, i) => {
+        if (!c || !isStr(c.what) || typeof c.toUsd !== 'number' || !/^\d{4}-\d{2}$/.test(c.when ?? '') || !httpUrl(c.source)) {
+          bad(`pricing.priceChanges[${i}] needs what, toUsd, when "YYYY-MM", source URL`);
+        }
+      });
+      if (p.hiddenCosts !== null && !isStr(p.hiddenCosts)) bad('pricing.hiddenCosts must be a string or null');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(p.tiersCheckedOn ?? '')) bad('pricing.tiersCheckedOn must be "YYYY-MM-DD"');
+      if (!Array.isArray(p.tiersSources) || p.tiersSources.length < 1 || !p.tiersSources.every(httpUrl)) {
+        bad('pricing.tiersSources must be a non-empty array of URLs');
+      }
     }
   }
 
@@ -140,6 +201,26 @@ for (const file of files) {
       if (!isStr(a.desc)) bad(`${where}.desc is required`);
       if (!ALT_SELF_HOST.includes(a.selfHost)) bad(`${where}.selfHost must be ${ALT_SELF_HOST.join(' | ')}`);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(a.checkedOn ?? '')) bad(`${where}.checkedOn must be "YYYY-MM-DD"`);
+      // Optional verified fact block (license/runtime/install/data facts).
+      // null inside it is data ("verified none"/"does not apply"), not "unknown":
+      // anything unverifiable stays null and claims no source.
+      if (a.facts !== undefined) {
+        const f = a.facts;
+        const fw = `${where}.facts`;
+        const strOrNull = (v) => v === null || isStr(v);
+        if (!f || typeof f !== 'object' || Array.isArray(f)) bad(`${fw} must be an object`);
+        else {
+          if (!strOrNull(f.license)) bad(`${fw}.license must be a string (SPDX id or "proprietary-free") or null`);
+          if (!FACT_RUNS.includes(f.runs)) bad(`${fw}.runs must be ${FACT_RUNS.join(' | ')}`);
+          for (const k of ['install', 'engines', 'dataFormat', 'gapVsPaid', 'setupBlocker']) {
+            if (!strOrNull(f[k])) bad(`${fw}.${k} must be a string or null`);
+          }
+          if (!Array.isArray(f.sources) || f.sources.length < 1 || !f.sources.every((s) => isStr(s) && /^https?:\/\//.test(s))) {
+            bad(`${fw}.sources must be a non-empty array of URLs`);
+          }
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(f.checkedOn ?? '')) bad(`${fw}.checkedOn must be "YYYY-MM-DD"`);
+        }
+      }
       if (a.url && urls.has(a.url)) bad(`${where}.url duplicates another entry`);
       urls.add(a.url);
     });

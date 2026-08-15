@@ -115,7 +115,7 @@ try {
   while (day <= to) {
     const views = await hogql(`
       SELECT toDate(timestamp) AS day, properties.$pathname AS path,
-             count() AS views, count(DISTINCT person_id) AS visitors
+             count() AS views, count(DISTINCT distinct_id) AS visitors
       FROM events
       WHERE event = '$pageview' ${dayFilter(day)}
       GROUP BY day, path

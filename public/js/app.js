@@ -70,11 +70,26 @@
       track('theme_toggle', { theme: next });
     });
 
-    /* ---------- search filter + chips ---------- */
+    /* ---------- search filter + category dropdown ---------- */
     const search = $('#search');
     const rows = $$('#rows .row, #rows-rest .row');
     let activeCat = '';
     let activeVerdict = '';
+
+    // The live globe rides after the 10th VISIBLE row. A fixed DOM slot means
+    // a filtered list can render the globe before its first matching entry.
+    const placeGlobe = () => {
+      const box = $('#rows');
+      const globe = $('#globe-strip');
+      if (!box || !globe || !box.contains(globe)) return;
+      const visible = $$('.row', box).filter((r) => r.style.display !== 'none');
+      if (!visible.length) {
+        globe.style.display = 'none';
+        return;
+      }
+      globe.style.display = '';
+      visible[Math.min(9, visible.length - 1)].after(globe);
+    };
 
     const applyFilter = () => {
       const q = (search?.value || '').trim().toLowerCase();
@@ -97,7 +112,46 @@
       $$('.sp-banner, #stats-strip').forEach((b) => {
         b.style.display = filtering ? 'none' : '';
       });
+      placeGlobe();
     };
+
+    /* ---------- category dropdown (list header) ---------- */
+    const catDD = $('#cat-dd');
+    if (catDD && rows.length) {
+      const ddBtn = $('#cat-dd-btn');
+      const ddPanel = $('#cat-dd-panel');
+      const ddLabel = $('#cat-dd-label');
+      const ddClose = () => {
+        ddPanel.hidden = true;
+        ddBtn.setAttribute('aria-expanded', 'false');
+      };
+      ddBtn.addEventListener('click', () => {
+        const opening = ddPanel.hidden;
+        ddPanel.hidden = !opening;
+        ddBtn.setAttribute('aria-expanded', String(opening));
+        if (opening) $('.cat-opt.active', ddPanel)?.scrollIntoView({ block: 'nearest' });
+      });
+      ddPanel.addEventListener('click', (e) => {
+        const opt = e.target.closest('.cat-opt');
+        if (!opt) return;
+        activeCat = opt.dataset.cat || '';
+        $$('.cat-opt', ddPanel).forEach((o) => {
+          o.classList.toggle('active', o === opt);
+          o.setAttribute('aria-selected', String(o === opt));
+        });
+        ddLabel.textContent = opt.dataset.label;
+        ddBtn.classList.toggle('filtering', !!activeCat);
+        ddClose();
+        applyFilter();
+        track('category_filter', { category: activeCat || 'all' });
+      });
+      document.addEventListener('click', (e) => {
+        if (!catDD.contains(e.target)) ddClose();
+      }, { signal: page.signal });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') ddClose();
+      }, { signal: page.signal });
+    }
 
     $('#verdict-filter')?.addEventListener('click', (e) => {
       // Verdict chips only: the sort toggle is a .vchip in the same row, and it
@@ -166,6 +220,9 @@
       const frag = document.createDocumentFragment();
       ordered.forEach((el) => frag.appendChild(el));
       rowsBox.appendChild(frag);
+      // Re-appending startOrder put the globe back at its server-rendered
+      // slot; a filtered or re-sorted list wants it after the 10th visible row.
+      placeGlobe();
     };
 
     if (teamInput) {
@@ -209,6 +266,17 @@
     const BADGE = { yes: 'YES', kinda: 'KINDA', no: 'NOT REALLY' };
     let srActive = -1;
 
+    /* Rows are built as DOM nodes, never as an HTML string. The values here
+       come back out of the rendered page decoded (getAttribute/textContent),
+       so re-parsing them as markup would undo the server's escaping and hand
+       an app entry a way to smuggle attributes into this dropdown. */
+    const el = (tag, cls, text) => {
+      const n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    };
+
     const renderDropdown = (q) => {
       if (!srBox) return;
       srActive = -1;
@@ -218,25 +286,33 @@
         // stale row from three keystrokes ago must not swallow the keypress and
         // redirect someone whose full query matches nothing.
         srBox.classList.remove('open');
-        srBox.innerHTML = '';
+        srBox.replaceChildren();
         search?.setAttribute('aria-expanded', 'false');
         return;
       }
       const top = hits.slice(0, 6);
-      srBox.innerHTML =
-        top
-          .map(
-            (r, i) => `<a class="sr-row" role="option" data-i="${i}" href="${r.href}">
-              <img src="${r.icon}" alt="" width="20" height="20">
-              <span class="sr-name">${r.name}</span>
-              <span class="badge ${r.verdict}">${BADGE[r.verdict]}</span>
-              <span class="sr-meta">${r.meta}</span>
-            </a>`
-          )
-          .join('') +
-        (hits.length > top.length
-          ? `<a class="sr-foot" href="#death-list">↓ all ${hits.length} matches in the death list</a>`
-          : '');
+      const nodes = top.map((r, i) => {
+        const a = el('a', 'sr-row');
+        a.setAttribute('role', 'option');
+        a.dataset.i = i;
+        a.href = r.href;
+        const img = el('img', null);
+        img.src = r.icon;
+        img.alt = '';
+        img.width = 20;
+        img.height = 20;
+        const badge = el('span', 'badge', BADGE[r.verdict] ?? '');
+        // Only the three known verdicts get to name a class.
+        if (r.verdict in BADGE) badge.classList.add(r.verdict);
+        a.append(img, el('span', 'sr-name', r.name), badge, el('span', 'sr-meta', r.meta));
+        return a;
+      });
+      if (hits.length > top.length) {
+        const foot = el('a', 'sr-foot', `↓ all ${hits.length} matches in the death list`);
+        foot.href = '#death-list';
+        nodes.push(foot);
+      }
+      srBox.replaceChildren(...nodes);
       srBox.classList.add('open');
       search?.setAttribute('aria-expanded', 'true');
     };
@@ -310,20 +386,6 @@
       });
       search.addEventListener('blur', logSearch);
       srBox?.addEventListener('click', logSearch);
-    }
-
-    // Chips are real links (SEO); on the homepage they filter in place instead.
-    const chips = $('#chips');
-    if (chips && rows.length) {
-      chips.addEventListener('click', (e) => {
-        const chip = e.target.closest('.chip');
-        if (!chip || !chip.hasAttribute('data-cat') || e.metaKey || e.ctrlKey) return;
-        e.preventDefault();
-        activeCat = chip.dataset.cat || '';
-        $$('.chip', chips).forEach((c) => c.classList.toggle('active', c === chip));
-        applyFilter();
-        track('category_filter', { category: activeCat || 'all' });
-      });
     }
 
     /* ---------- odometer ---------- */
@@ -583,6 +645,365 @@
     $$('[data-share]').forEach((a) =>
       a.addEventListener('click', () => track('share', { app: a.dataset.share }))
     );
+
+    /* ---------- accounts + my stack ---------- */
+    const authed = document.body.dataset.user === '1';
+    const jsonPost = (url, method, body) =>
+      fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    /* Signup modal: stays on the page (converts better than navigating away).
+       The [data-signin] links keep href=/signin so no-JS still works. */
+    const modal = $('#signup-modal');
+    let pendingSlug = null;
+    let modalCloseTimer;
+    const openSignup = (slug) => {
+      pendingSlug = slug || null;
+      if (!modal) {
+        window.location.href = '/signin';
+        return;
+      }
+      /* The title is conditional: "Sign in" from the nav, the save pitch only
+         when a save actually triggered it. */
+      const title = $('#signup-title');
+      if (title) title.textContent = pendingSlug ? 'Save it to your stack' : 'Sign in';
+      /* Hiding the scrollbar shrinks the viewport and shifts the page; pad the
+         body by exactly the scrollbar width so nothing moves. */
+      const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+      document.body.style.overflow = 'hidden';
+      clearTimeout(modalCloseTimer);
+      modal.hidden = false;
+      requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add('open')));
+      track('signup_open', { app: pendingSlug || undefined });
+    };
+    const closeSignup = () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      if (!modal || modal.hidden) return;
+      modal.classList.remove('open');
+      clearTimeout(modalCloseTimer);
+      modalCloseTimer = setTimeout(() => {
+        modal.hidden = true;
+      }, 240);
+    };
+    onLeave(closeSignup);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.closest('[data-signup-close]')) closeSignup();
+    });
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Escape' && modal && !modal.hidden) closeSignup();
+      },
+      { signal: page.signal }
+    );
+    $$('[data-signin]').forEach((a) =>
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        openSignup();
+      })
+    );
+
+    /* The checkbox value rides inside the signed OAuth state; the pending save
+       comes back as a ?stacksave= param on the callback URL. The callback is
+       pathname-only: Better Auth's trustedOrigins regex rejects several legal
+       query characters, and a rejected callback means sign-in dies with a 403.
+       The checkbox is read from the SAME surface as the clicked button; the
+       hidden modal also has one and must never shadow the /signin page's. */
+    const oauthStart = async (btn) => {
+      const provider = btn.dataset.oauth;
+      const box = btn
+        .closest('.signup-card, .signin-card')
+        ?.querySelector('input[type="checkbox"]');
+      let callbackURL = location.pathname === '/signin' ? '/' : location.pathname;
+      if (pendingSlug) callbackURL += `?stacksave=${encodeURIComponent(pendingSlug)}`;
+      try {
+        const res = await jsonPost('/api/auth/sign-in/social', 'POST', {
+          provider,
+          callbackURL,
+          additionalData: { newsletter: !!box?.checked },
+        });
+        if (!res.ok) throw new Error();
+        const { url } = await res.json();
+        if (!url) throw new Error();
+        track('signup_start', { provider, digest: !!box?.checked });
+        window.location.href = url;
+      } catch {
+        toast('sign-in failed to start · try again');
+      }
+    };
+    $$('[data-oauth]').forEach((btn) =>
+      btn.addEventListener('click', () => oauthStart(btn))
+    );
+
+    const markIcons = (slug, saved) =>
+      $$(`[data-stack-icon][data-slug="${CSS.escape(slug)}"]`).forEach((el) => {
+        el.classList.toggle('saved', saved);
+        if (el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed', String(saved));
+      });
+    const setStackBtn = (btn, saved) => {
+      btn.dataset.saved = saved ? '1' : '';
+      btn.classList.toggle('in-stack', saved);
+      btn.textContent = saved ? '✓ in your stack' : '+ save to my stack';
+    };
+    /* Two-step confirm, in place of a browser confirm(): the button arms
+       itself, says so, and disarms on second thoughts (a click anywhere else,
+       Escape, or 4s of hesitation). One armed button at a time. Returns true
+       only on the click that confirms. */
+    let armedBtn = null;
+    let armedLabel = '';
+    let armedTimer;
+    const disarm = () => {
+      if (!armedBtn) return;
+      clearTimeout(armedTimer);
+      armedBtn.textContent = armedLabel;
+      armedBtn.classList.remove('armed');
+      armedBtn = null;
+    };
+    const armConfirm = (btn, label) => {
+      if (armedBtn === btn) {
+        disarm();
+        return true;
+      }
+      disarm();
+      armedBtn = btn;
+      armedLabel = btn.textContent;
+      armedTimer = setTimeout(disarm, 4000);
+      btn.textContent = label;
+      btn.classList.add('armed');
+      return false;
+    };
+    /* The arming click reaches this on the way up, but the button still
+       contains the target then, so it never disarms itself. */
+    document.addEventListener(
+      'click',
+      (e) => {
+        if (armedBtn && !armedBtn.contains(e.target)) disarm();
+      },
+      { signal: page.signal }
+    );
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Escape') disarm();
+      },
+      { signal: page.signal }
+    );
+    onLeave(disarm);
+
+    const toggleStack = async (slug, saved) => {
+      const res = await jsonPost('/api/stack', saved ? 'DELETE' : 'POST', { slug });
+      if (!res.ok) throw new Error();
+      const btn = $(`[data-stack="${CSS.escape(slug)}"]`);
+      if (btn) setStackBtn(btn, !saved);
+      markIcons(slug, !saved);
+      toast(saved ? 'removed from your stack' : '✓ saved to your stack');
+      track(saved ? 'stack_remove' : 'stack_add', { app: slug });
+    };
+
+    /* verdict-page button */
+    $$('[data-stack]').forEach((btn) =>
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.stack;
+        if (!authed) return openSignup(slug);
+        const saved = btn.dataset.saved === '1';
+        if (saved && !armConfirm(btn, 'click again to remove')) return;
+        try {
+          await toggleStack(slug, saved);
+        } catch {
+          toast('something broke · try again');
+        }
+      })
+    );
+
+    /* death-list quick-save icons (span[role=button] inside the row link) */
+    const iconAct = async (el) => {
+      const slug = el.dataset.slug;
+      if (!authed) return openSignup(slug);
+      try {
+        await toggleStack(slug, el.classList.contains('saved'));
+      } catch {
+        toast('something broke · try again');
+      }
+    };
+    $$('[data-stack-icon]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        iconAct(el);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        e.stopPropagation();
+        iconAct(el);
+      });
+    });
+
+    /* signed-in: paint saved states on the list icons once per page */
+    if (authed && $('[data-stack-icon]')) {
+      fetch('/api/stack')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d?.slugs?.forEach((s) => markIcons(s, true)))
+        .catch(() => {});
+    }
+
+    /* back from OAuth with a pending save: finish it, clean the URL */
+    const params = new URLSearchParams(location.search);
+    const pendingSave = params.get('stacksave');
+    if (pendingSave) {
+      params.delete('stacksave');
+      history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
+      if (authed) {
+        jsonPost('/api/stack', 'POST', { slug: pendingSave })
+          .then((r) => {
+            if (!r.ok) return;
+            const btn = $(`[data-stack="${CSS.escape(pendingSave)}"]`);
+            if (btn) setStackBtn(btn, true);
+            markIcons(pendingSave, true);
+            toast('✓ saved to your stack');
+          })
+          .catch(() => {});
+      }
+    }
+
+    /* ---------- /account ---------- */
+    $('[data-signout]')?.addEventListener('click', async () => {
+      try {
+        await jsonPost('/api/auth/sign-out', 'POST', {});
+      } catch {}
+      window.location.href = '/';
+    });
+
+    $$('[data-stack-remove]').forEach((btn) =>
+      btn.addEventListener('click', async () => {
+        if (!armConfirm(btn, 'confirm?')) return;
+        try {
+          const res = await jsonPost('/api/stack', 'DELETE', { slug: btn.dataset.stackRemove });
+          if (!res.ok) throw new Error();
+          btn.closest('.stack-row')?.remove();
+          toast('removed from your stack');
+        } catch {
+          toast('something broke · try again');
+        }
+      })
+    );
+
+    /* empty-stack suggestions: save without leaving /account. Reload rather
+       than patch the DOM: the count, the total and the whole section are
+       server-rendered, and this fires at most three times per account. */
+    $$('[data-stack-suggest]').forEach((btn) =>
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.stackSuggest;
+        btn.disabled = true;
+        try {
+          const res = await jsonPost('/api/stack', 'POST', { slug });
+          if (!res.ok) throw new Error();
+          track('stack_add', { app: slug });
+          window.location.reload();
+        } catch {
+          btn.disabled = false;
+          toast('something broke · try again');
+        }
+      })
+    );
+
+    const digestToggle = $('[data-digest-toggle]');
+    digestToggle?.addEventListener('click', async () => {
+      const next = digestToggle.dataset.on !== '1';
+      digestToggle.dataset.on = next ? '1' : '';
+      digestToggle.classList.toggle('on', next);
+      digestToggle.setAttribute('aria-checked', String(next));
+      const state = $('[data-digest-state]');
+      if (state) state.textContent = next ? 'subscribed' : 'not subscribed';
+      try {
+        const res = await jsonPost('/api/account/digest', 'POST', { on: next });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error(d.error || '');
+        }
+        toast(next ? 'digest on · see you thursday' : 'digest off');
+      } catch (err) {
+        digestToggle.dataset.on = next ? '' : '1';
+        digestToggle.classList.toggle('on', !next);
+        digestToggle.setAttribute('aria-checked', String(!next));
+        if (state) state.textContent = !next ? 'subscribed' : 'not subscribed';
+        toast(err?.message || 'something broke · try again');
+      }
+    });
+
+    /* Delete account: the one destructive action here, so it gets a real
+       modal and a typed phrase rather than a button you can fat-finger.
+       Same open/close mechanics as the signup modal. */
+    const delModal = $('#delete-modal');
+    const delPhrase = $('[data-delete-phrase]');
+    const delGo = $('[data-delete-go]');
+    let delCloseTimer;
+    const closeDelete = () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      if (!delModal || delModal.hidden) return;
+      delModal.classList.remove('open');
+      clearTimeout(delCloseTimer);
+      delCloseTimer = setTimeout(() => {
+        delModal.hidden = true;
+      }, 240);
+    };
+    const openDelete = () => {
+      if (!delModal) return;
+      if (delPhrase) delPhrase.value = '';
+      if (delGo) delGo.disabled = true;
+      const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+      document.body.style.overflow = 'hidden';
+      clearTimeout(delCloseTimer);
+      delModal.hidden = false;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        delModal.classList.add('open');
+        delPhrase?.focus();
+      }));
+    };
+    onLeave(closeDelete);
+    $('[data-delete-account]')?.addEventListener('click', openDelete);
+    delModal?.addEventListener('click', (e) => {
+      if (e.target === delModal || e.target.closest('[data-delete-cancel]')) closeDelete();
+    });
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Escape' && delModal && !delModal.hidden) closeDelete();
+      },
+      { signal: page.signal }
+    );
+    delPhrase?.addEventListener('input', () => {
+      if (delGo) delGo.disabled = delPhrase.value.trim().toLowerCase() !== 'delete';
+    });
+    delGo?.addEventListener('click', async () => {
+      if (delGo.disabled) return;
+      delGo.disabled = true;
+      delGo.textContent = 'deleting…';
+      try {
+        const res = await fetch('/api/account/delete', { method: 'POST' });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          delGo.textContent = 'delete account';
+          delGo.disabled = false;
+          closeDelete();
+          toast(d.error || 'delete failed · sign in again and retry');
+          return;
+        }
+        window.location.href = '/';
+      } catch {
+        delGo.textContent = 'delete account';
+        delGo.disabled = false;
+        closeDelete();
+        toast('something broke · try again');
+      }
+    });
 
     /* ---------- sponsors ---------- */
     $$('.sp-card, .sp-banner, .sp-tape-item').forEach((el) =>

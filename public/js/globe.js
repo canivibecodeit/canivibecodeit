@@ -123,6 +123,7 @@
     let dataAt = Date.now() - (data?.age || 0) * 1000;
 
     let pins = [];
+    let hasFresh = false; // any pin young enough to pulse (checked per payload, not per frame)
     const buildPins = () => {
       pins = (data?.pins || [])
         .map((p) => {
@@ -139,6 +140,7 @@
           };
         })
         .filter(Boolean);
+      hasFresh = pins.some((p) => p.ago < 300);
     };
     buildPins();
 
@@ -309,6 +311,7 @@
       }
       hovering = true;
       const hit = hitPin(x, y);
+      if ((hit ? hit.pin : null) !== hoverPin) dirty = true; // hot-pin highlight changed
       hoverPin = hit ? hit.pin : null;
       canvas.style.cursor = hit ? 'pointer' : 'grab';
       if (hit) showTip(hit.pin, e.clientX, e.clientY);
@@ -332,6 +335,7 @@
     canvas.addEventListener('pointercancel', release);
     canvas.addEventListener('pointerleave', () => {
       hovering = false;
+      if (hoverPin) dirty = true;
       hoverPin = null;
       hideTip();
       canvas.style.cursor = 'grab';
@@ -341,18 +345,29 @@
     let visible = false;
     let raf = null;
     let lastT = 0;
+    let dirty = true; // something changed while the loop wasn't animating (hover, poll, theme)
     const loop = (t) => {
       raf = null;
       if (!visible) return;
+      raf = requestAnimationFrame(loop);
+      /* 30fps cap unless dragging: a 4.2 deg/s drift and a slow pin pulse
+         can't show the difference, and on /stats the globe shares the main
+         thread with four animating charts. Skipped frames leave lastT alone,
+         so dt still spans the real elapsed time. */
+      if (!dragging && t - lastT < 28) return;
       // dt spans any off-screen gap (and, on the first frame, the whole time
       // since page load): the globe appears to have been spinning all along
       // instead of waking up when scrolled to.
       const dt = t - lastT;
       lastT = t;
       const idle = performance.now() - lastPointer > 4000;
-      if (!dragging && !hovering && idle) lon0 = (lon0 + (SPIN * dt) / 1000) % 360;
+      const spinning = !dragging && !hovering && idle;
+      if (spinning) lon0 = (lon0 + (SPIN * dt) / 1000) % 360;
+      // paused (pointer resting on it), nothing pulsing, no state change:
+      // repainting would produce the identical frame, so don't
+      if (!spinning && !dragging && !hasFresh && !dirty) return;
+      dirty = false;
       draw(t);
-      raf = requestAnimationFrame(loop);
     };
     const start = () => {
       if (reduced) { draw(0); return; }
@@ -374,7 +389,7 @@
       if (visible) start();
     }, { signal: page.signal });
 
-    const mo = new MutationObserver(() => { readTheme(); if (reduced) draw(0); });
+    const mo = new MutationObserver(() => { readTheme(); dirty = true; if (reduced) draw(0); });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     /* Width changes only: mobile URL-bar collapse fires height-only resizes
@@ -385,7 +400,7 @@
       if (innerWidth === lastW) return;
       lastW = innerWidth;
       clearTimeout(rt);
-      rt = setTimeout(() => { setup(); if (reduced) draw(0); }, 200);
+      rt = setTimeout(() => { setup(); dirty = true; if (reduced) draw(0); }, 200);
     }, { signal: page.signal });
 
     /* ---------- keep the numbers and feed fresh ---------- */
@@ -435,6 +450,7 @@
           dataAt = Date.now() - (next.age || 0) * 1000;
           buildPins();
           renderData();
+          dirty = true;
           if (reduced) draw(0);
         }
       } catch { /* keep the last picture */ }

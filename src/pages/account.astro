@@ -1,0 +1,492 @@
+---
+// Your account: stack list, digest toggle, sign out, delete. Server-rendered
+// from the session; signed-out visitors go to /signin.
+import Base from '../layouts/Base.astro';
+import VerdictBadge from '../components/VerdictBadge.astro';
+import { allApps, getApp } from '../lib/apps.js';
+import { stackSlugs, voteCounts } from '../lib/db.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/signin');
+
+const slugs = await stackSlugs(user.id);
+const apps = slugs.map((s) => getApp(s)).filter(Boolean);
+const monthly = Math.round(apps.reduce((sum, a) => sum + (a.priceMonthly ?? 0), 0));
+const digestOn = user.newsletter === true;
+
+// Empty stack: seed the section with the most-replaced apps so the first save
+// can happen right here. Priced YES verdicts only: anything else is a
+// suggestion you can't act on. Votes are a running total, not a time window.
+const votes = apps.length === 0 ? await voteCounts() : null;
+const suggestions =
+  apps.length === 0
+    ? allApps()
+        .filter((a) => a.verdict === 'yes' && a.priceMonthly != null)
+        .sort(
+          (a, b) =>
+            votes(b.slug) - votes(a.slug) ||
+            (b.pagePriority ?? 3) - (a.pagePriority ?? 3) ||
+            b.priceMonthly - a.priceMonthly ||
+            a.name.localeCompare(b.name)
+        )
+        .slice(0, 3)
+    : [];
+const totalApps = allApps().length;
+---
+
+<Base title="Your account · canivibecodeit" description="Your stack, your digest, nothing else.">
+  <main class="wrap account-wrap">
+    <header class="account-head">
+      <h1>Your account</h1>
+      <p class="microlabel">{user.email}</p>
+    </header>
+
+    <section class="account-section">
+      <div class="section-head">
+        <span class="microlabel">my stack · {apps.length} {apps.length === 1 ? 'app' : 'apps'}</span>
+        {monthly > 0 && <span class="microlabel saved-line">${monthly}/mo you could stop paying</span>}
+        {apps.length === 0 && <span class="microlabel">most replaced</span>}
+      </div>
+      {
+        apps.length === 0 ? (
+          <div class="empty-stack">
+            <p class="empty">
+              nothing saved yet. save the subscriptions you actually pay for and we'll total up
+              what they cost you.
+            </p>
+            <div class="stack-rows">
+              {suggestions.map((app) => (
+                <div class="stack-row">
+                  <img src={`/icons/${app.slug}.png`} alt="" width="24" height="24" loading="lazy" />
+                  <a class="stack-name" href={`/${app.slug}`}>{app.name}</a>
+                  <span class="stack-price">${app.priceMonthly}/mo</span>
+                  <span class="stack-verdict"><VerdictBadge verdict={app.verdict} /></span>
+                  <button class="stack-save" data-stack-suggest={app.slug}>+ save</button>
+                </div>
+              ))}
+            </div>
+            <div class="empty-cta">
+              <a class="btn primary" href="/">browse all {totalApps} →</a>
+              <span class="empty-note">the death list: every app with a verdict</span>
+            </div>
+          </div>
+        ) : (
+          <div class="stack-rows">
+            {apps.map((app) => (
+              <div class="stack-row">
+                <img src={`/icons/${app.slug}.png`} alt="" width="24" height="24" loading="lazy" />
+                <a class="stack-name" href={`/${app.slug}`}>{app.name}</a>
+                <span class="stack-price">{app.priceMonthly != null ? `$${app.priceMonthly}/mo` : 'varies'}</span>
+                <span class="stack-verdict"><VerdictBadge verdict={app.verdict} /></span>
+                <button class="stack-remove" data-stack-remove={app.slug}>remove</button>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <section class="account-section">
+      <span class="microlabel">weekly digest</span>
+      <div class="digest-panel">
+        <div class="digest-text">
+          <span class="digest-state" data-digest-state>{digestOn ? 'subscribed' : 'not subscribed'}</span>
+          <span class="digest-desc">verdicts that changed, case studies, tips. one email a week, one click to leave.</span>
+        </div>
+        <button
+          class:list={['toggle', { on: digestOn }]}
+          data-digest-toggle
+          data-on={digestOn ? '1' : null}
+          role="switch"
+          aria-checked={digestOn ? 'true' : 'false'}
+          aria-label="weekly digest subscription"
+        ><span class="knob"></span></button>
+      </div>
+    </section>
+
+    <section class="account-section">
+      <span class="microlabel">account</span>
+      <div class="account-actions">
+        <button class="btn ghost" data-signout>sign out</button>
+        <button class="btn danger" data-delete-account>delete account</button>
+      </div>
+      <p class="danger-note">delete wipes your stack and takes your email off the digest. no soft-delete, no exit survey.</p>
+    </section>
+
+    <div class="confirm-backdrop" id="delete-modal" hidden>
+      <div
+        class="confirm-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-title"
+        aria-describedby="delete-body"
+      >
+        <h2 id="delete-title">Delete your account?</h2>
+        <p class="confirm-sub" id="delete-body">
+          This wipes your stack{apps.length > 0 ? ` (${apps.length} ${apps.length === 1 ? 'app' : 'apps'})` : ''}, takes
+          your email off the digest, and deletes the account rows. No soft-delete, no exit survey,
+          no undo.
+        </p>
+        <label class="confirm-type">
+          <span class="microlabel">type <b>delete</b> to confirm</span>
+          <input
+            type="text"
+            data-delete-phrase
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="delete"
+          />
+        </label>
+        <div class="confirm-actions">
+          <button class="btn ghost" data-delete-cancel>cancel</button>
+          <button class="btn danger" data-delete-go disabled>delete account</button>
+        </div>
+        <button class="confirm-close" data-delete-cancel aria-label="close">×</button>
+      </div>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .account-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding-top: 48px;
+    padding-bottom: 96px;
+  }
+  .account-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .account-head h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 5vw, 36px);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .account-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .saved-line {
+    color: var(--primary);
+  }
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .empty-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .stack-save {
+    flex-shrink: 0;
+    padding: 7px 13px;
+    border: 1px solid var(--primary-dim);
+    border-radius: 6px;
+    background: none;
+    color: var(--primary);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .stack-save:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+  .stack-save[disabled] {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .empty-cta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .empty-note {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .stack-rows {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+  }
+  .stack-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack-row img {
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .stack-name {
+    flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--fg);
+  }
+  .stack-name:hover {
+    color: var(--primary);
+  }
+  .stack-price {
+    width: 90px;
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .stack-verdict {
+    width: 110px;
+    flex-shrink: 0;
+  }
+  .stack-remove {
+    background: none;
+    border: none;
+    padding: 4px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .stack-remove:hover {
+    color: var(--no, #ff4444);
+  }
+  /* Armed state for the two-step confirm: the label already changed, so this
+     just has to make it read as the dangerous click it now is. */
+  .stack-remove.armed {
+    color: #ff4444;
+    font-weight: 500;
+  }
+
+  /* Delete confirmation modal. Mirrors the signup modal's mechanics (fade the
+     backdrop, lift the card) so both dialogs feel like the same object. */
+  .confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.18s var(--ease-out);
+  }
+  /* display:flex would otherwise defeat [hidden] and leave an invisible
+     backdrop swallowing every click on the page. */
+  .confirm-backdrop[hidden] {
+    display: none;
+  }
+  .confirm-backdrop.open {
+    opacity: 1;
+  }
+  .confirm-card {
+    position: relative;
+    width: min(440px, 100%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 32px 32px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    transition: transform 0.22s var(--ease-out), opacity 0.18s var(--ease-out);
+  }
+  .confirm-backdrop.open .confirm-card {
+    opacity: 1;
+    transform: none;
+  }
+  .confirm-card h2 {
+    font-family: var(--font-display);
+    font-size: 21px;
+    margin: 0;
+  }
+  .confirm-sub {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .confirm-type {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .confirm-type b {
+    color: var(--fg);
+  }
+  .confirm-type input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 11px 13px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+  }
+  .confirm-type input:focus {
+    border-color: #ff4444;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #ff4444 16%, transparent);
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+  .confirm-actions .btn.danger[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .confirm-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+    cursor: pointer;
+  }
+  .confirm-close:hover {
+    color: var(--fg);
+  }
+  @media (max-width: 560px) {
+    .confirm-card {
+      transform: translateY(28px);
+    }
+    /* Plain column, not column-reverse: keeps cancel before delete, the same
+       order as the desktop row, instead of putting the destructive button
+       under the thumb. */
+    .confirm-actions {
+      flex-direction: column;
+    }
+    .confirm-actions .btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .confirm-backdrop,
+    .confirm-card,
+    .confirm-type input {
+      transition: none;
+    }
+    .confirm-card {
+      transform: none;
+    }
+  }
+  /* NOT .digest-card: global.css owns that name for the homepage signup block
+     (column, centred, margin-top 72px) and those three would leak in here. */
+  .digest-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .digest-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .digest-state {
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .digest-desc {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .toggle {
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    border: none;
+    background: var(--surface-2);
+    padding: 2px;
+    display: flex;
+    justify-content: flex-start;
+    cursor: pointer;
+    transition: background 0.15s var(--ease-out, ease);
+  }
+  .toggle .knob {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--muted);
+    transition: transform 0.15s var(--ease-out, ease), background 0.15s var(--ease-out, ease);
+  }
+  .toggle.on {
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
+  }
+  .toggle.on .knob {
+    transform: translateX(18px);
+    background: var(--primary);
+  }
+  .account-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .btn.danger {
+    border: 1px solid color-mix(in srgb, #ff4444 30%, transparent);
+    color: #ff4444;
+    background: transparent;
+  }
+  .btn.danger:hover {
+    background: color-mix(in srgb, #ff4444 8%, transparent);
+  }
+  .danger-note {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0;
+  }
+  @media (max-width: 600px) {
+    .stack-price {
+      display: none;
+    }
+    .stack-verdict {
+      width: auto;
+    }
+    .account-actions {
+      flex-direction: column;
+    }
+    .account-actions .btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

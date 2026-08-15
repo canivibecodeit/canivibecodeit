@@ -127,7 +127,7 @@ const ACTIONS = {
       method="post"
       action="/api/sponsor/admin"
       data-astro-reload
-      onsubmit={`return confirm('Email all ${queue.length} people in the queue?')`}
+      data-confirm={`Email all ${queue.length} people in the queue?`}
     >
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="return_to" value={returnTo} />
@@ -261,3 +261,20 @@ const ACTIONS = {
     }
   }
 </style>
+
+<script>
+  // Confirm-before-submit for forms carrying data-confirm. Document-level and
+  // guarded so ClientRouter re-running body scripts on soft navigations can't
+  // stack duplicate listeners. Inline onsubmit= is off the table under CSP.
+  if (!window.__confirmArmed) {
+    window.__confirmArmed = true;
+    document.addEventListener(
+      'submit',
+      (e) => {
+        const form = e.target.closest('form[data-confirm]');
+        if (form && !confirm(form.dataset.confirm)) e.preventDefault();
+      },
+      true
+    );
+  }
+</script>

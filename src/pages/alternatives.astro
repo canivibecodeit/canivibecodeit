@@ -1,12 +1,25 @@
 ---
 /* The hub: every dedicated alternatives page, grouped by category. Flattens
    crawl depth to 2 for each child page and concentrates internal links. */
+import { existsSync } from 'node:fs';
 import Base from '../layouts/Base.astro';
 import DigestCard from '../components/DigestCard.astro';
-import { appsWithAlternativesPage, CATEGORIES } from '../lib/apps.js';
+import { appsWithAlternativesPage, productsWithPage, CATEGORIES } from '../lib/apps.js';
 
 const apps = appsWithAlternativesPage();
 const totalAlts = apps.reduce((s, a) => s + a.alternatives.length, 0);
+
+// The inverted axis: the free products that replace the most paid apps at
+// once. Every product page is reachable from the alt cards; this section
+// surfaces the heavy hitters.
+const products = productsWithPage();
+const topProducts = products.slice(0, 12).map((p) => {
+  let host = null;
+  try {
+    host = new URL(p.url).hostname.replace(/^www\./, '');
+  } catch {}
+  return { ...p, icon: host && existsSync(`public/icons/alt/${host}.png`) ? `/icons/alt/${host}.png` : null };
+});
 
 const groups = Object.entries(CATEGORIES)
   .map(([slug, meta]) => ({
@@ -50,9 +63,39 @@ const jsonld = [
     <p class="alt-intro">
       Don't feel like building it? Every list below is curated and verified: open
       source or genuinely free, maintained, and usable by a normal human. No votes,
-      no pay-to-list. Building after all? Start with
-      <a href="/best-vibe-coding-tools">the best vibe coding tools</a>.
+      no pay-to-list. Building after all? Start
+      with <a href="/best-vibe-coding-tools">the best vibe coding tools</a>.
     </p>
+
+    {
+      topProducts.length > 0 && (
+        <section class="alt-hub-group">
+          <span class="microlabel">🧨 one tool, many subscriptions</span>
+          <div class="related-grid">
+            {topProducts.map((p) => (
+              <a class="mini-card" href={`/alternative/${p.slug}`}>
+                {p.icon ? (
+                  <img src={p.icon} alt="" width="26" height="26" loading="lazy" />
+                ) : (
+                  <span class="hub-prod-tile">{p.name[0].toUpperCase()}</span>
+                )}
+                <span>
+                  <span class="m-name">{p.name}</span>
+                  <br />
+                  <span class="m-meta">
+                    replaces {p.pairings.length} apps{p.spendMonthly > 0 ? ` · $${p.spendMonthly.toLocaleString('en-US')}/mo` : ''}
+                  </span>
+                </span>
+              </a>
+            ))}
+          </div>
+          <p class="hub-prod-note">
+            {products.length} free tools carry a page like this; every one is linked from the
+            lists below.
+          </p>
+        </section>
+      )
+    }
 
     {
       groups.map((g) => (
@@ -77,3 +120,28 @@ const jsonld = [
 
   <DigestCard source="alternatives_hub" />
 </Base>
+
+<style>
+  .hub-prod-tile {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--card);
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .hub-prod-note {
+    margin: 12px 0 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>

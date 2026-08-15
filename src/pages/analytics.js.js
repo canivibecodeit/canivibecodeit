@@ -16,12 +16,18 @@ export function GET() {
     posthog.init(${JSON.stringify(key)}, {
       api_host: location.origin + '/ph',
       ui_host: ${JSON.stringify(uiHost)},
-      person_profiles: 'always',
+      // Nothing ever calls identify(), so every event stays anonymous —
+      // billed at the anonymous rate, no person profiles created.
+      person_profiles: 'identified_only',
       // ClientRouter navigations are pushState, not loads: history_change
-      // captures a pageview (and pageleave) for each soft navigation too.
+      // captures a pageview for each soft navigation too.
       capture_pageview: 'history_change',
-      capture_pageleave: true,
-      autocapture: true,
+      // Only $pageview and the explicit custom events are consumed anywhere
+      // (stats page, strip, globe, exports). Pageleave, autocapture and web
+      // vitals were ~68% of event volume with zero readers.
+      capture_pageleave: false,
+      autocapture: false,
+      capture_performance: { web_vitals: false },
       disable_session_recording: true,
       // Private pages never load this script on a full load, but a soft
       // navigation carries the already-initialised posthog with it. Same
@@ -29,7 +35,7 @@ export function GET() {
       // reach analytics, so drop every event captured on one.
       before_send: function (ev) {
         var url = (ev && ev.properties && ev.properties.$current_url) || '';
-        if (/\\/admin|\\/sponsor\\/(details|stats)|[?&]token=/.test(url)) return null;
+        if (/\\/admin|\\/sponsor\\/(details|stats)|\\/account|[?&]token=/.test(url)) return null;
         return ev;
       }
     });

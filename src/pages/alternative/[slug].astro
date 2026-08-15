@@ -1,0 +1,355 @@
+---
+/* The inverted axis of /<app>/alternatives: one page per FREE product,
+   listing every paid app on the death list it replaces. Exists only when a
+   product replaces 2+ apps (a one-app product is already fully told on that
+   app's own alternatives page). */
+import { existsSync } from 'node:fs';
+import Base from '../../layouts/Base.astro';
+import DigestCard from '../../components/DigestCard.astro';
+import VerdictBadge from '../../components/VerdictBadge.astro';
+import {
+  getProduct,
+  productsWithPage,
+  formatStars,
+  formatMonth,
+  formatLicense,
+  FACT_RUNS_LABELS,
+  SELF_HOST_LABELS,
+  ALT_PRODUCT_PAGE_MIN,
+  CATEGORIES,
+} from '../../lib/apps.js';
+
+const { slug } = Astro.params;
+const p = getProduct(slug);
+if (!p || p.pairings.length < ALT_PRODUCT_PAGE_MIN) return new Response(null, { status: 404 });
+
+const n = p.pairings.length;
+const host = (() => {
+  try {
+    return new URL(p.url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+})();
+const iconFile = host ? `/icons/alt/${host}.png` : null;
+const hasIcon = iconFile && existsSync(`public${iconFile}`);
+const TINTS = ['#A78BFA', '#7DD3FC', '#F87171', '#FBBF24', '#34D399', '#F472B6'];
+const tint = TINTS[[...p.name].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length];
+
+const stars = formatStars(p.stars);
+const active = formatMonth(p.lastCommit);
+const cat = CATEGORIES[p.category];
+const spendYearly = p.spendMonthly * 12;
+
+// Verified product-level facts (the pairing-specific gap renders per app
+// below). Short facts are ledger rows; a real setup blocker is a callout.
+const f = p.facts;
+const setupClean = f ? f.setupBlocker == null : false;
+const ledgerRows = f
+  ? [
+      ['license', formatLicense(f.license)],
+      ['runs', FACT_RUNS_LABELS[f.runs]],
+      ['install', f.install],
+      ['engines', f.engines],
+      ['data', f.dataFormat],
+      ...(setupClean ? [['setup', '✓ installs clean', 'ok']] : []),
+    ].filter(([, v]) => v != null)
+  : [];
+const setupBlocker = f && !setupClean ? f.setupBlocker : null;
+
+// Sideways links: other multi-app products whose apps live in the same category.
+const siblings = productsWithPage()
+  .filter((x) => x.category === p.category && x.slug !== p.slug)
+  .slice(0, 6);
+
+const title = `${p.name}: one free tool that replaces ${n} paid apps`;
+const description = `${p.name} stands in for ${n} paid apps on the death list${
+  p.spendMonthly > 0 ? `, up to $${p.spendMonthly.toLocaleString('en-US')}/mo of subscriptions` : ''
+}. ${p.type === 'open-source' ? 'Open source, ' : 'Genuinely free, '}verified by hand: what it replaces, what you give up, and the exact prompt if you'd rather build.`;
+
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: title,
+    numberOfItems: n,
+    itemListElement: p.pairings.map((x, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: x.app.name,
+      url: `https://canivibecodeit.com/${x.app.slug}`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'The Death List', item: 'https://canivibecodeit.com/' },
+      { '@type': 'ListItem', position: 2, name: 'Alternatives', item: 'https://canivibecodeit.com/alternatives' },
+      { '@type': 'ListItem', position: 3, name: p.name, item: `https://canivibecodeit.com/alternative/${p.slug}` },
+    ],
+  },
+];
+---
+
+<Base {title} {description} {jsonld}>
+  <main class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/">the death list</a> / <a href="/alternatives">alternatives</a> / <span class="here">{p.slug}</span>
+    </nav>
+
+    <div class="app-head alt-head">
+      <span class="title">
+        {hasIcon ? (
+          <img src={iconFile} alt="" width="48" height="48" />
+        ) : (
+          <span class="prod-tile" style={`color: ${tint}`}>{p.name[0].toUpperCase()}</span>
+        )}
+        <h1>{p.name} replaces {n} paid apps</h1>
+      </span>
+    </div>
+
+    <p class="alt-intro">
+      One {p.type === 'open-source' ? 'open-source' : 'genuinely free'} tool, {n} subscriptions
+      it can stand in for. Each pairing below is curated and verified by hand, with the honest
+      catch spelled out. No votes, no pay-to-list.
+    </p>
+
+    <div class="alt-strip">
+      <span class="alt-pill zero">{p.name} <b>$0</b></span>
+      <span class="strip-arrow">→</span>
+      <span class="alt-pill">
+        replaces <b>{p.spendMonthly > 0 ? `$${p.spendMonthly.toLocaleString('en-US')}/mo` : `${n} apps`}</b>
+      </span>
+      {stars && (
+        <span class="alt-pill">
+          ★ <b>{stars}</b>{active ? ` · active ${active}` : ''}
+        </span>
+      )}
+      {SELF_HOST_LABELS[p.selfHost] && <span class="alt-pill">{SELF_HOST_LABELS[p.selfHost]}</span>}
+      {cat && (
+        <a class="alt-pill cat" href={`/category/${p.category}`}>{cat.emoji} {cat.label.toLowerCase()}</a>
+      )}
+    </div>
+
+    <p class="prod-links">
+      <a href={p.url} target="_blank" rel="noopener">{host} ↗</a>
+      {p.repo && <a href={p.repo} target="_blank" rel="noopener">repo ↗</a>}
+    </p>
+
+    {
+      ledgerRows.length > 0 && (
+        <section class="seg">
+          <span class="microlabel">the facts, verified</span>
+          <div class="alt-facts">
+            <div class="af-grid">
+              {ledgerRows.map(([k, v, cls]) => (
+                <p class:list={['af-lrow', String(v).length > 42 ? 'long' : String(v).length > 24 && 'mid']}>
+                  <span class="af-k">{k}</span>
+                  <span class="af-leader" />
+                  <span class:list={['af-v', cls]}>{v}</span>
+                </p>
+              ))}
+            </div>
+            {setupBlocker && (
+              <p class="af-catch plain">
+                <span class="af-ck">setup</span>
+                <span class="af-cv">{setupBlocker}</span>
+              </p>
+            )}
+            <p class="af-verified">facts verified {f.checkedOn}</p>
+          </div>
+        </section>
+      )
+    }
+
+    <section class="seg">
+      <span class="microlabel">what it lets you cancel</span>
+      {
+        p.pairings.map(({ app, desc, gapVsPaid }, i) => (
+          <div class="kill-row" style={`--i: ${i}`}>
+            <img src={`/icons/${app.slug}.png`} alt="" width="34" height="34" loading="lazy" />
+            <div class="kill-body">
+              <span class="kill-title">
+                <a href={`/${app.slug}`}>{app.name.split(' / ')[0]}</a>
+                <VerdictBadge verdict={app.verdict} />
+                <b class="kill-price">
+                  {app.priceMonthly != null
+                    ? `${app.discontinued ? 'was ' : ''}$${app.priceMonthly.toLocaleString('en-US')}/mo`
+                    : 'usage-based'}
+                </b>
+              </span>
+              <p class="kill-desc">{desc}</p>
+              {gapVsPaid && (
+                <p class="af-catch kill-gap">
+                  <span class="af-ck">the catch</span>
+                  <span class="af-cv">{gapVsPaid}</span>
+                </p>
+              )}
+              <span class="kill-links">
+                <a href={`/${app.slug}`}>the verdict →</a>
+                {(app.alternatives ?? []).length >= 3 && <a href={`/${app.slug}/alternatives`}>all {app.name.split(' / ')[0]} alternatives →</a>}
+              </span>
+            </div>
+          </div>
+        ))
+      }
+    </section>
+
+    <p class="eh-foot">
+      <span>
+        last updated {p.checkedOn}
+        {spendYearly > 0 && ` · up to $${spendYearly.toLocaleString('en-US')}/yr replaced`} · no votes, no pay-to-list
+      </span>
+    </p>
+
+    <section class="alt-build reveal">
+      <span>Rather build your own version of any of these? Every verdict page above has the exact one-shot prompt, free.</span>
+      <a class="btn primary" href="/alternatives">all escape hatches →</a>
+    </section>
+
+    {
+      siblings.length > 0 && (
+        <section class="related seg">
+          <span class="microlabel">more one-tool escape hatches{cat ? ` in ${cat.label.toLowerCase()}` : ''}</span>
+          <div class="related-grid">
+            {siblings.map((s) => {
+              const sHost = (() => {
+                try {
+                  return new URL(s.url).hostname.replace(/^www\./, '');
+                } catch {
+                  return null;
+                }
+              })();
+              const sIcon = sHost && existsSync(`public/icons/alt/${sHost}.png`) ? `/icons/alt/${sHost}.png` : null;
+              return (
+                <a class="mini-card" href={`/alternative/${s.slug}`}>
+                  {sIcon ? (
+                    <img src={sIcon} alt="" width="26" height="26" loading="lazy" />
+                  ) : (
+                    <span class="prod-tile small">{s.name[0].toUpperCase()}</span>
+                  )}
+                  <span>
+                    <span class="m-name">{s.name}</span>
+                    <br />
+                    <span class="m-meta">replaces {s.pairings.length} apps</span>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      )
+    }
+  </main>
+
+  <DigestCard source="alternative_product" />
+</Base>
+
+<style>
+  .prod-tile {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    background: var(--card);
+    flex-shrink: 0;
+  }
+
+  .prod-tile.small {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .prod-links {
+    display: flex;
+    gap: 14px;
+    padding-top: 12px;
+    font-size: 13px;
+  }
+
+  .prod-links a {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .kill-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    animation: pop-in 0.5s var(--ease-snap) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  .kill-row img {
+    border-radius: 8px;
+    margin-top: 2px;
+  }
+
+  .kill-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .kill-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .kill-title > a {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .kill-title > a:hover {
+    color: var(--primary);
+  }
+
+  .kill-price {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .kill-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--fg);
+    max-width: 76ch;
+  }
+
+  .kill-gap {
+    max-width: 76ch;
+    margin: 3px 0;
+  }
+
+  .kill-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 12.5px;
+  }
+
+  .kill-links a {
+    color: var(--primary);
+    font-weight: 500;
+  }
+</style>

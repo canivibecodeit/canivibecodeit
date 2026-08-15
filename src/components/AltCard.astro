@@ -1,10 +1,37 @@
 ---
 /* One curated free/OSS alternative. compact = the verdict-page row;
-   full = the dedicated-page card with platform icons and repo link. */
+   full = the dedicated-page card with platform icons, repo link and, when the
+   entry carries a verified `facts` block, the fact rows. */
 import { existsSync } from 'node:fs';
-import { formatStars, formatMonth, SELF_HOST_LABELS } from '../lib/apps.js';
+import { formatStars, formatMonth, formatLicense, productPageLink, SELF_HOST_LABELS, FACT_RUNS_LABELS } from '../lib/apps.js';
 
-const { alt, compact = false, i = 0 } = Astro.props;
+const { alt, compact = false, i = 0, appName = null } = Astro.props;
+
+// Two-way mesh with the /alternative/<product> pages: when this product has
+// one (it replaces 2+ apps), the full card links across to it.
+const prod = compact ? null : productPageLink(alt.name, alt.url);
+
+// Verified facts (skip what wasn't verified; null setupBlocker IS a finding:
+// it means the install was verified clean). Short facts render as ledger rows;
+// prose facts (the catch, a real setup blocker) render as left-bar callouts.
+const f = alt.facts;
+const setupClean = f ? f.setupBlocker == null : false;
+const ledgerRows = f
+  ? [
+      ['license', formatLicense(f.license)],
+      ['runs', FACT_RUNS_LABELS[f.runs]],
+      ['install', f.install],
+      ['engines', f.engines],
+      ['data', f.dataFormat],
+      ...(setupClean ? [['setup', '✓ installs clean', 'ok']] : []),
+    ].filter(([, v]) => v != null)
+  : [];
+const proseRows = f
+  ? [
+      [appName ? `the catch vs ${appName}` : 'the catch vs paid', f.gapVsPaid, 'catch'],
+      ...(setupClean ? [] : [['setup', f.setupBlocker, 'plain']]),
+    ].filter(([, v]) => v != null)
+  : [];
 
 const host = (() => {
   try {
@@ -112,6 +139,28 @@ const ICONS = {
           </span>
         </div>
         <p class="alt-desc">{alt.desc}</p>
+        {(ledgerRows.length > 0 || proseRows.length > 0) && (
+          <div class="alt-facts">
+            {ledgerRows.length > 0 && (
+              <div class="af-grid">
+                {ledgerRows.map(([k, v, cls]) => (
+                  <p class:list={['af-lrow', String(v).length > 42 ? 'long' : String(v).length > 24 && 'mid']}>
+                    <span class="af-k">{k}</span>
+                    <span class="af-leader" />
+                    <span class:list={['af-v', cls]}>{v}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+            {proseRows.map(([k, v, cls]) => (
+              <p class:list={['af-catch', cls === 'plain' && 'plain']}>
+                <span class="af-ck">{k}</span>
+                <span class="af-cv">{v}</span>
+              </p>
+            ))}
+            <p class="af-verified">facts verified {f.checkedOn}</p>
+          </div>
+        )}
       </div>
       <div class="alt-side">
         {stars ? (
@@ -128,6 +177,7 @@ const ICONS = {
         <span class="alt-links">
           <a href={alt.url} target="_blank" rel="noopener">{host} ↗</a>
           {alt.repo && <a href={alt.repo} target="_blank" rel="noopener">repo ↗</a>}
+          {prod && <a href={`/alternative/${prod.slug}`}>replaces {prod.count} apps →</a>}
         </span>
       </div>
     </div>

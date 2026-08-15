@@ -23,10 +23,26 @@ No web form, no account — the repo is the admin panel.
     "unit": "per-seat",          // flat | per-seat | usage | one-time | custom
     "source": "https://www.granola.ai/pricing", "checkedOn": "2026-07-30",
     "confidence": "high", "notes": null, "native": "14 USD",
-    "freeTier": "The free Basic plan includes AI notes but only limited meeting history."
+    "freeTier": "The free Basic plan includes AI notes but only limited meeting history.",
     // freeTier is optional: one plain sentence on the free tier (or that there
     // isn't one), verified against the live pricing page. Pages that have it
     // show a pricing section, so only add it with a fresh checkedOn.
+    "tiers": [                   // optional researched block; all fields below
+      {                          // travel together when tiers is present
+        "name": "Business",
+        "monthly": 14,           // USD/month billed monthly; null = not offered
+        "annualPerMonth": null,  // USD/month billed annually; null = not offered
+        "per": "user",           // "user" | "workspace" | "flat"
+        "limits": "Unlimited meetings and history.",  // numeric caps, one line
+        "notes": null
+      }
+    ],
+    "freeTierCaps": "Unlimited meetings, 30 days of history.", // numeric caps in one line, or "no free tier"
+    "billingTerms": "monthly only, no annual plan",  // says plainly when there is NO annual plan
+    "priceChanges": [],          // only sourced changes: { what, fromUsd, toUsd, when: "YYYY-MM", source }
+    "hiddenCosts": null,         // overages, add-ons, seat minimums in one line, or null
+    "tiersCheckedOn": "2026-08-11",
+    "tiersSources": ["https://www.granola.ai/pricing"]
   },
   "verdict": "yes",              // "yes" | "kinda" | "no"
   "verdictConfidence": "medium", // how sure we are
@@ -52,7 +68,18 @@ No web form, no account — the repo is the admin panel.
       "stars": 64100,                        // GitHub stars at check time; null for "free"
       "lastCommit": "2026-07",               // "YYYY-MM"; null for "free"
       "selfHost": "one-click",               // what running it costs: "hosted" | "one-click" | "docker" | "ops"
-      "checkedOn": "2026-08-05"              // when you verified it's real, free, and alive
+      "checkedOn": "2026-08-05",             // when you verified it's real, free, and alive
+      "facts": {                             // optional verified fact block, see rules below
+        "license": "AGPL-3.0",               // SPDX id, "proprietary-free", or null
+        "runs": "both",                      // "local" | "cloud" | "both" | "self-hosted"
+        "install": "Desktop download; docker compose for the server",  // one line
+        "engines": null,                     // AI tools: models/backends it uses, else null
+        "dataFormat": "Markdown files on disk",  // where user data lives, or null
+        "gapVsPaid": "One sentence: the single biggest thing it does WORSE than the paid app.",
+        "setupBlocker": null,                // first real obstacle for a non-expert; null = installs clean
+        "sources": ["https://github.com/AppFlowy-IO/AppFlowy/blob/main/LICENSE"],
+        "checkedOn": "2026-08-11"
+      }
     }
   ],
   "rejectedAlternatives": [        // the obvious recommendations that FAIL the bar, [] if none
@@ -153,6 +180,13 @@ what "free" costs to run: `hosted` (they run it), `one-click` (installer or
 desktop app), `docker` (a container and a compose file), `ops` (a real stack —
 databases, proxies, upkeep). Write `desc` in site voice (dry, honest), never the
 vendor's marketing line.
+
+`facts` is optional per entry: verifiable facts checked against live primary
+sources (license file, repo, docs, pricing page), each block carrying its own
+`sources` and `checkedOn`. Inside it `null` is a finding, not a blank:
+`setupBlocker: null` means "verified to install clean", `engines: null` means
+"not an AI tool". Never guess a fact: leave the whole block off rather than
+padding it.
 
 `rejectedAlternatives` captures the tools everyone recommends that FAIL the bar
 (archived, trial-only, a template rather than a product) with the reason in
