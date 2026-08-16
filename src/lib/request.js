@@ -59,9 +59,14 @@ export function crossOrigin(request) {
 }
 
 // Accepts JSON or classic form posts, so the forms work without JS too.
+const MAX_BODY_BYTES = 100_000;
 export async function readBody(request) {
   const type = request.headers.get('content-type') || '';
-  if (type.includes('application/json')) return await request.json();
+  if (type.includes('application/json')) {
+    const text = await request.text();
+    if (text.length > MAX_BODY_BYTES) throw new Error('Payload too large');
+    return JSON.parse(text);
+  }
   const form = await request.formData();
   return Object.fromEntries(form.entries());
 }
