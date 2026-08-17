@@ -1,0 +1,50 @@
+{
+  "slug": "okara",
+  "name": "Okara",
+  "domain": "okara.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI assistant / LLM wrapper",
+  "tagline": "An AI assistant product at okara.ai, marketed thinly enough that the actual scope is hard to pin down from the outside.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://okara.ai/",
+    "checkedOn": "2026-08-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "We know very little about this one with confidence, so treat this entry as a judgment about the category rather than a teardown of the product. Anything in the AI assistant shape is mostly a prompt layer, a retrieval layer, and a chat UI sitting on top of a model someone else trained, and all three of those are well inside what a coding agent can produce in a weekend. What does not fall out of a one-shot build is the part nobody screenshots: connector auth, background sync, mobile, and the hundred small behaviors that make an assistant feel reliable instead of a demo. If Okara turns out to be a thin wrapper, a local build gets you eighty percent of it and cheaper inference. If it turns out to hold real proprietary data or a fine-tuned model of its own, downgrade this to a no and move on.",
+  "coreLoopDIY": "A local assistant that ingests your files and notes, indexes them, and answers questions over that corpus with citations through a chat UI.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted model, or a local model via Ollama",
+    "Node 20 and a machine you are willing to leave running",
+    "Your own documents in a folder, since there is no cloud corpus to inherit"
+  ],
+  "whatYouLose": [
+    "Any connectors it ships with: mail, calendar, Slack, Drive, whatever the OAuth dance is",
+    "A mobile app, and therefore the ability to use it away from your desk",
+    "Someone else tuning prompts and model choice as the underlying models change",
+    "Multi-user and sharing, if the product has any team features at all",
+    "Whatever proprietary data or domain tuning is baked in that you cannot see from the marketing site"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Assistant products live or die on the boring parts: connector reliability and answers that do not embarrass you. Neither shows up in a feature list.",
+  "whyPeopleStillPay": "People pay for assistants because the value is in never thinking about the plumbing. A self-hosted version means you own the ingest pipeline, the index, the model upgrade path, and every bug at 11pm. That trade is fine for one person with a clear corpus and a tolerance for maintenance, and it is a bad trade for anyone who wants the thing to just work on their phone while they are in a taxi. Price matters too: if the subscription is cheaper than the API bill you would rack up asking it questions all day, the calculation is already over.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Filed with low confidence: the public site does not say enough for us to be harsher or kinder than this.",
+  "prompt": "Build a local, single-user AI assistant that answers questions over my own files. No accounts, no hosted backend, no telemetry.\n\nStack, non-negotiable:\n- TypeScript, Node 20, Fastify for the server\n- SQLite via better-sqlite3, with sqlite-vec for vector search and FTS5 for keyword search\n- Plain server-rendered HTML plus htmx for the UI, no React, no build step\n- Model calls go through one small provider module with two implementations: OpenAI-compatible HTTP, and Ollama at localhost. Pick the provider from env.\n\nIn scope:\n- An ingest command that walks a folder from env (WATCH_DIR), reads .md, .txt, .pdf, and .docx, chunks to roughly 800 tokens with 100 token overlap, embeds each chunk, and stores text plus embedding plus file path plus mtime in SQLite. Re-running ingest must be incremental: skip unchanged files by mtime and hash, delete chunks for files that vanished.\n- A chat page at / with a message list and an input box. Each answer streams in and ends with a citation list of source file paths and chunk snippets.\n- Retrieval is hybrid: vector top 20 plus FTS top 20, merged with reciprocal rank fusion, trimmed to a token budget before the model call.\n- Conversation history persisted in SQLite so reloading the page keeps the thread. Support multiple threads with a simple sidebar.\n- A /health endpoint that reports document count, chunk count, and last ingest time.\n\nOut of scope, do not build: authentication, multi-user, OAuth connectors, mobile app, background file watching daemon, agent tool use, anything that phones home.\n\nRules:\n- All secrets and paths in .env, read via a typed config module that fails loudly on startup if something is missing. Ship .env.example.\n- One `npm run dev` to serve, one `npm run ingest` to index.\n- Never invent citations: if retrieval returns nothing above threshold, the answer must say it found nothing in the corpus.\n- README with setup in under ten lines, and one paragraph on what this deliberately does not do.",
+  "promptCurated": false
+}
