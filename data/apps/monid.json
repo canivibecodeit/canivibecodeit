@@ -1,0 +1,52 @@
+{
+  "slug": "monid",
+  "name": "Monid",
+  "domain": "monid.ai",
+  "category": "social-media",
+  "subcategory": "AI feed reading and digests",
+  "tagline": "An AI layer that reads social feeds for you and hands back filtered, summarized takeaways instead of an infinite scroll.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://monid.ai/blog/claude-for-reading-social-media",
+    "checkedOn": "2026-08-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is genuinely simple: pull posts, score them against your stated interests, summarize the survivors, ship a digest. An agent can build that against Bluesky's public API, Mastodon, Reddit JSON, Hacker News and plain RSS in a single sitting, and it will work well enough that you stop opening the apps. The wall is the platforms that actually hold your attention: X, LinkedIn, Instagram and TikTok either gate their APIs behind real money or ban scraping outright, and no amount of clever prompting fixes a 401. So you get most of the value for the open networks and a shrug for the closed ones, which is exactly the gap a paid product is charging to absorb. Also expect to spend a week tuning relevance prompts before the digest stops surfacing things you do not care about.",
+  "coreLoopDIY": "Polls a list of social and RSS sources on a schedule, scores each post against your interest profile with an LLM, and emails or serves a daily digest of the few that matter with one-line summaries.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An Anthropic or OpenAI API key",
+    "Accounts or app passwords for the networks you want to read (Bluesky, Mastodon, Reddit)",
+    "A machine or small VPS that can run a cron job",
+    "Tolerance for X and LinkedIn simply not being in scope"
+  ],
+  "whatYouLose": [
+    "Access to the closed networks that gate or price out API reads",
+    "Someone else paying the token bill for hundreds of posts a day",
+    "Mobile app and push notifications; you get email or a local web page",
+    "Tuned relevance models that already know what a low-value post looks like",
+    "Ongoing repair when a platform changes its endpoints, which they do casually"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "proprietary-data"
+  ],
+  "moatNotes": "The defensible part is not the summarizing, it is maintaining paid, rate-limited, constantly shifting read access to platforms that would rather you did not have it.",
+  "whyPeopleStillPay": "Because the summarizing was never the hard part. Paying gets you read access to networks whose terms and pricing make personal builds impractical, plus someone on call when an endpoint changes shape overnight. There is also a real cost argument: running an LLM over every post in a busy feed is a nontrivial token bill that a subscription amortizes across users. And most people who want less social media do not want a cron job they have to babysit.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build for the open web, useless for the walled gardens, which is unfortunately where most of the noise lives.",
+  "prompt": "Build a local AI feed digest tool called \"quietfeed\" in an empty folder.\n\nStack, no substitutions: TypeScript on Node 20, better-sqlite3 for storage, Hono for a tiny local web UI on port 8787, node-cron for scheduling, the Anthropic SDK for summarization. No frontend framework, just server-rendered HTML and one CSS file.\n\nSources to support, all read-only and all free or public:\n- Bluesky via the public AT Protocol app view (app password in .env)\n- Mastodon home timeline via an access token in .env\n- Reddit subreddit JSON endpoints (public, honor rate limits, set a real user agent)\n- Hacker News via the Algolia search API\n- Arbitrary RSS and Atom feeds\nExplicitly out of scope: X, LinkedIn, Instagram, TikTok, Threads. Do not scrape them, do not stub fake adapters. Write a short SOURCES.md saying why they are excluded.\n\nData model: sources, posts (id, source, author, url, text, created_at, fetched_at), scores (post_id, relevance 0-100, reason), digests.\n\nPipeline:\n1. Fetcher runs per source, dedupes on source plus native id, stores raw text.\n2. Scorer batches up to 25 unscored posts per LLM call, passes a user interest profile from profile.md, and returns strict JSON with relevance and a one-line reason. Cache scores; never rescore a post.\n3. Digest builder takes posts above a configurable threshold from the last 24 hours, groups them by topic, writes one sentence per item plus a link, and stores the digest as markdown.\n\nOutput: a local page at / listing digests newest first, a /digest/:id detail page, and a `npm run digest` command that prints today's digest to stdout. Optional email delivery via SMTP creds in .env, skipped cleanly if unset.\n\nRules: all secrets in .env with a .env.example, no telemetry, no accounts, no cloud services beyond the APIs listed. Log token spend per run so the cost is visible. Include a README with setup, a seed script with three example sources, and one integration test that runs the whole pipeline against fixture JSON with the LLM call mocked.",
+  "promptCurated": false
+}
