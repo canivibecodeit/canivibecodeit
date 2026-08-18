@@ -1,0 +1,51 @@
+{
+  "slug": "crowd-reply",
+  "name": "Crowd Reply",
+  "domain": "crowdreply.io",
+  "category": "social-media",
+  "subcategory": "reddit mention monitoring and reply drafting",
+  "tagline": "Watches Reddit for conversations relevant to your product and drafts replies that mention it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://crowdreply.io/",
+    "checkedOn": "2026-08-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Strip the marketing layer and this is a keyword watcher plus an LLM call. Reddit's search and listing endpoints are public and free with a script app credential, so the data source is not a moat, it is a rate limit. An agent can build the whole loop in a sitting: poll keywords, dedupe, score relevance, draft a comment in your voice, dump a digest you read over coffee. The part that actually costs you is judgment about which subreddits tolerate self promotion and an account that does not look like a bot, and no tool sells you out of that.",
+  "coreLoopDIY": "Polls Reddit search and subreddit listings for your keywords, scores each hit for relevance with an LLM, and writes a local digest of threads plus draft replies for you to post by hand.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Reddit API credentials from a free script app",
+    "An LLM API key",
+    "Somewhere to run it on a schedule, cron on a laptop is fine",
+    "A Reddit account with real history if you intend to actually comment"
+  ],
+  "whatYouLose": [
+    "Auto posting from managed accounts, if that is part of what they sell, along with someone else carrying the ban risk",
+    "Whatever relevance tuning they have from watching thousands of threads get filtered by real users",
+    "Subreddit specific etiquette rules, which subs allow product mentions and which will nuke you on sight",
+    "A shared dashboard and approval queue, if more than one person on your team is doing this",
+    "Coverage beyond Reddit, if they also watch X, Hacker News, Quora or forums"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The interesting asset is not the crawler, it is a labelled record of which threads converted and which got the comment removed. Nobody hands you that on day one.",
+  "whyPeopleStillPay": "Because the boring parts compound. A weekend script finds threads, but it does not tell you that r/SaaS tolerates a soft mention while r/webdev will bury you, it does not warm an account, and it does not stop you from writing eleven comments that all read like the same template. Paid tools sell a queue someone else keeps tidy, plus the comfortable feeling that a vendor is between you and the moderators. Also, running this yourself means owning the fact that you are doing keyword driven promo on Reddit, which is a thing many people would rather outsource than look at directly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The monitoring half is trivially yours; the etiquette half was never software. Build it, then read your drafts back and ask whether you would upvote them.",
+  "prompt": "Build a local Reddit mention watcher and reply drafter. Python 3.12, managed with uv, no web framework, no database server.\n\nStack, no substitutions:\n- Single CLI package named crowdwatch, entrypoint via a console script.\n- SQLite through the stdlib sqlite3 module, file at ./data/crowdwatch.db.\n- httpx for HTTP, tenacity for retries, rich for terminal tables, jinja2 for the digest.\n- OpenAI compatible chat completions endpoint for scoring and drafting, base URL and model read from .env.\n\nConfig: a config.toml at project root with product_name, product_url, one_paragraph_product_description, voice_notes, keywords (list), subreddits (list, empty means sitewide search), negative_keywords (list), relevance_threshold (int 1 to 10), lookback_hours.\n\nSecrets in .env only, with a committed .env.example: REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL. Never write secrets to the db or logs.\n\nReddit access: OAuth2 client_credentials against www.reddit.com/api/v1/access_token, cache the token to disk until expiry, send a descriptive User-Agent. Poll oauth.reddit.com/search for each keyword sorted by new, plus /r/{sub}/new for each configured subreddit. Cap yourself at 60 requests per minute with a token bucket and back off on 429 with tenacity.\n\nCommands:\n- crowdwatch init: create data dir, db schema, copy config and env templates if missing.\n- crowdwatch poll: fetch, drop anything outside lookback_hours, drop hits containing negative_keywords, upsert posts and comments by fullname id so reruns are free.\n- crowdwatch score: for each unscored item, one LLM call returning strict JSON with relevance 1 to 10, one sentence reason, and intent label of one of question, complaint, recommendation_request, unrelated. Store it. Never rescore.\n- crowdwatch draft: for items at or above relevance_threshold, generate a reply draft using voice_notes. Rules baked into the system prompt: answer the actual question first, mention the product only if genuinely relevant, at most one link, no hype adjectives, no em dashes, under 120 words, plain lowercase-ish forum register.\n- crowdwatch digest: render ./out/digest.html grouped by subreddit with title, permalink, age, score, reason, and the draft in a pre block that is easy to select and copy. Also print a rich table.\n- crowdwatch mark ID --status posted|skipped: record your own action.\n\nExplicitly out of scope: do not post or comment via the API, do not automate account login, no scheduler daemon (print a suggested cron line in the README instead), no auth, no telemetry, no analytics calls, no hosted deployment.\n\nInclude a README covering how to register a Reddit script app, LLM cost expectations per poll, the cron line, and a short honest section on subreddit self promotion rules and how fast this gets you banned if you paste drafts unedited. Add pytest tests for the negative keyword filter, the dedupe upsert, and the JSON parsing of a malformed LLM response.",
+  "promptCurated": false
+}
