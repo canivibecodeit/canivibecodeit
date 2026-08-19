@@ -1,0 +1,52 @@
+{
+  "slug": "echosift",
+  "name": "EchoSift",
+  "domain": "echosift.io",
+  "category": "social-media",
+  "subcategory": "mention monitoring and social listening",
+  "tagline": "Watches the web and social platforms for keyword mentions, then filters and routes what matters.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://echosift.io/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of listening is boring: poll sources, match keywords, dedupe, alert. An agent will hand you a working personal mention monitor over open sources in a weekend, and for tracking your own name, product, or a handful of competitors that is genuinely enough. Where it falls apart is the closed platforms: X, Instagram, TikTok, LinkedIn and most large forums either gate their data behind expensive API tiers or ban scraping outright, and no amount of clever code fixes a contract problem. You also start with an empty archive, so any question that begins with 'how has this trended since last year' is unanswerable until you have run it for a year. Build it if you want alerts, buy it if you want coverage and history.",
+  "coreLoopDIY": "Polls a list of open sources on a schedule, matches your keyword and boolean rules, dedupes near-identical hits, stores everything in SQLite and pushes a digest plus instant alerts for high-priority terms.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that can run a cron job continuously",
+    "API keys for whichever sources you use (Reddit, Bluesky, YouTube, news APIs)",
+    "An SMTP account or a Slack/Discord webhook for alerts",
+    "Patience for feeds that rate limit you or change shape without warning"
+  ],
+  "whatYouLose": [
+    "Coverage of gated platforms: X, Instagram, TikTok, LinkedIn, most private forums",
+    "Historical backfill, your archive starts the day you press start",
+    "Sentiment scoring, entity disambiguation and spam filtering that has actually been tuned against real volume",
+    "Reach and influence estimates, which need cross-account data you do not have",
+    "Someone else keeping the connectors alive when a source changes its API"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The connectors and the licensed firehose access are the product. The keyword matcher is a weekend afternoon.",
+  "whyPeopleStillPay": "Because paid listening tools are really data licensing companies with a dashboard bolted on. They have contracts and API tiers that let them see places your scraper legally cannot, they have years of accumulated history so trend questions have answers, and they absorb the constant maintenance tax of platforms rewriting their APIs. If your job depends on not missing a mention, the failure mode of a homemade poller that quietly died three weeks ago is expensive. If you just want to know when someone posts about you, the homemade poller is fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the listening loop; you cannot build the access. The moat is data licensing plus the archive that only exists because they started collecting before you did.",
+  "prompt": "Build a self-hosted keyword mention monitor called \"sift\" in a single folder. No accounts, no cloud services, no telemetry.\n\nStack, no substitutions: TypeScript on Node 20, better-sqlite3 for storage, Hono for the local web UI, node-cron for scheduling, Zod for config validation. Plain server-rendered HTML with a single CSS file. No React, no ORM, no Docker.\n\nData model in SQLite: sources (id, kind, url_or_query, enabled), rules (id, label, boolean_expression, priority), hits (id, source_id, external_id, title, body, author, url, published_at, fetched_at, fingerprint), matches (hit_id, rule_id, matched_at, notified_at).\n\nSource adapters, each a module exporting fetch(source): Promise of normalized items:\n- rss: any feed URL, use a standard parser\n- hackernews: Algolia search API by query\n- reddit: public JSON search endpoint, honor rate limits and set a real user agent\n- bluesky: app password auth against the public API, searchPosts by query\nAdapters must be pluggable so adding one is a single file plus a row in sources.\n\nMatching: rules use a small boolean expression grammar supporting AND, OR, NOT, quoted phrases and parentheses. Write your own tiny parser, do not pull in a query DSL library. Case insensitive, word boundary aware.\n\nDedupe: fingerprint each hit as a sha256 of normalized title plus url host plus author. Skip inserts on fingerprint collision within 30 days. Also dedupe on source_id plus external_id.\n\nScheduler: poll every source on its own interval, default 15 minutes, with exponential backoff on failure and a sources_health table recording last success, last error and consecutive failures. A source that fails 10 times in a row gets disabled and shows up loudly in the UI, because a silently dead monitor is worse than no monitor.\n\nNotifications: two channels behind one interface, SMTP digest (batched, configurable cadence) and a webhook POST for Slack or Discord. Priority 1 rules fire immediately, everything else batches. Never send the same match twice.\n\nWeb UI on localhost:8787: inbox of recent matches with rule and source filters, full text search over hits via SQLite FTS5, per source health page, CRUD for sources and rules, and a CSV export of matches.\n\nSecrets in .env only: SMTP_URL, WEBHOOK_URL, BLUESKY_HANDLE, BLUESKY_APP_PASSWORD. Ship .env.example, never commit .env.\n\nExplicitly out of scope, do not attempt and do not fake: X, Instagram, TikTok, LinkedIn, sentiment scoring, influence or reach metrics, historical backfill before first run, multi user auth.\n\nInclude a seed script with three example sources and two example rules, a README with a one command start, and vitest tests for the boolean parser and the dedupe fingerprint.",
+  "promptCurated": false
+}
