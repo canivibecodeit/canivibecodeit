@@ -1,0 +1,51 @@
+{
+  "slug": "browser-use",
+  "name": "Browser Use",
+  "domain": "browser-use.com",
+  "category": "automation",
+  "subcategory": "AI browser agents",
+  "tagline": "Lets an LLM drive a real browser to complete web tasks, as an open source library plus a hosted cloud runner.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://browser-use.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea is a loop: take the page, hand a structured version of it to a model, let the model pick a click or a type, repeat. An agent can write that on top of Playwright in one sitting and it will genuinely book a form, scrape a table, or click through a dashboard. The gap is everything that makes it not fall over: good DOM and accessibility tree extraction, element indexing that survives re-renders, retries, timeouts, and the hosted side with residential proxies, stealth fingerprints, captcha handling, and dozens of parallel sessions. Also worth saying out loud: the library itself is open source, so what the paid product actually sells is managed browser infrastructure and reliability, not the concept. Build the loop locally for personal errands, pay if you need a hundred sessions that do not get blocked.",
+  "coreLoopDIY": "A local Python CLI that takes a plain English task, drives a headed Chromium via Playwright, and loops screenshot plus numbered interactive elements into an LLM that returns one action at a time until done.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and Playwright with a Chromium install",
+    "An LLM API key with vision support, in .env",
+    "Willingness to babysit the first dozen runs",
+    "A machine that can stay awake while the browser works"
+  ],
+  "whatYouLose": [
+    "Anti-bot survival: no residential proxies, no fingerprint spoofing, no captcha solving, so you get blocked on the sites you most want to automate",
+    "Hosted parallel sessions and scheduling, your laptop runs one browser at a time",
+    "Years of accumulated DOM extraction heuristics that keep the agent from clicking the wrong div",
+    "Session persistence, secure credential vaults, and shareable run traces",
+    "Someone else fixing it when Chromium or a target site changes next Tuesday"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part was never the agent loop, it was making the page legible to a model and keeping the browser alive in someone else's datacenter.",
+  "whyPeopleStillPay": "Because a browser agent that works 60 percent of the time is a toy and one that works 95 percent of the time is infrastructure, and the last 35 points are all unglamorous: element indexing, retries, proxies, stealth, captchas, and cloud browsers that spin up in a second. People pay for the hosted runner, not the algorithm, which is public. If you are automating your own chores on sites that like you, self-host and keep your money. If you are automating hundreds of runs against sites that actively fight you, you will rebuild their infrastructure badly and then buy it anyway.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The library is free, so the honest question is whether you want to run browsers yourself: mostly you do not.",
+  "prompt": "Build a local CLI browser agent in Python. No web UI, no accounts, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, uv for deps, Playwright (Chromium, headed by default).\n- The Anthropic Python SDK, model configurable via env var, vision enabled.\n- Nothing else. No frameworks, no LangChain, no vector stores.\n\nBehavior:\n- Entry point: `agent.py \"task in plain english\"` with optional `--start-url` and `--max-steps` (default 25).\n- Launch persistent Chromium with a user data dir at ./profile so logins survive runs.\n- Each step: screenshot the viewport, then walk the DOM and collect visible interactive elements (a, button, input, select, textarea, [role=button], [onclick], contenteditable). Assign each a stable integer index for this step and draw nothing on the page; instead output a text list like `[3] button \"Sign in\"` with tag, accessible name, and value.\n- Send the model: the task, the step number, the current URL, the page title, the element list, and the screenshot. Ask for exactly one action as JSON: click(index), type(index, text, enter=bool), scroll(direction), goto(url), wait(seconds), extract(what), done(summary).\n- Validate the JSON, execute with Playwright, wait for network idle or 2 seconds, log the action and result to ./runs/TIMESTAMP.jsonl.\n- Keep the last 6 steps of action history in the prompt. Truncate the element list to 120 items.\n- Stop on done(), on max steps, or on three consecutive failed actions. Print the final summary.\n\nExplicitly out of scope: proxies, stealth patches, captcha solving, parallel sessions, cloud browsers, cookie import from other browsers.\n\nSecrets in .env via python-dotenv: ANTHROPIC_API_KEY, AGENT_MODEL. Include .env.example and a .gitignore that excludes .env, profile/, runs/.\n\nWrite a README with a one command install, one example task, and a blunt Limitations section that says the agent will get blocked by bot detection on major sites and will occasionally click the wrong element.",
+  "promptCurated": false
+}
