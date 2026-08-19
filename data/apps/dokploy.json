@@ -1,0 +1,53 @@
+{
+  "slug": "dokploy",
+  "name": "Dokploy",
+  "domain": "dokploy.com",
+  "category": "hosting",
+  "subcategory": "self-hosted PaaS / deployment",
+  "tagline": "Self-hostable platform for deploying apps and databases to your own servers with Docker, Traefik and a web UI.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://dokploy.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. The core project is open source and free to self-host; paid money goes to the hosted Dokploy Cloud tier.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The thing Dokploy actually does for one person, git push and get a container running behind HTTPS, is a genuinely small build: a webhook listener, docker build, docker run, and a reverse proxy that handles certs. An agent can get that working on a single VPS in a sitting, and for two or three side projects you will barely notice the difference. What you will not get in a sitting is the rest of Dokploy: multi-server management, one-click Postgres with scheduled backups, preview environments per pull request, log and metric views, rollbacks, and the template library. Also worth saying out loud: Dokploy is open source, so the honest alternative to a DIY clone is running Dokploy yourself for free and skipping the cloud tier. You build your own version because you want 200 lines you understand, not because the licence is in your way.",
+  "coreLoopDIY": "A tiny deploy daemon on one VPS that receives a git webhook, builds the repo's Dockerfile, swaps in the new container, and serves it over HTTPS through Caddy.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Linux VPS you control with Docker installed",
+    "A domain with a wildcard DNS record pointing at that VPS",
+    "Each app needs a working Dockerfile",
+    "A webhook secret and any app env vars in .env"
+  ],
+  "whatYouLose": [
+    "Multi-server and Swarm orchestration; your version manages exactly one box",
+    "One-click databases with scheduled backups to S3, plus restore that actually works",
+    "Preview environments per branch or pull request",
+    "A real UI for logs, metrics, env editing and rollbacks",
+    "The template catalogue for deploying known apps without writing compose files",
+    "Someone else maintaining the Traefik and cert edge cases you have not hit yet"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat here is breadth of correctly handled edge cases, not lock-in. It is also an open source project, so the paid product competes with its own free tier.",
+  "whyPeopleStillPay": "People pay for the hosted tier because the last thing they want on the critical path is a deploy system they wrote at midnight. Dokploy is the boring part of infrastructure: certificate renewal, zero-downtime container swaps, database backups you can restore, log tailing when a deploy goes wrong at 2am. Your 200 line daemon will work fine until the day a build fails halfway and leaves the old container stopped and the new one dead, and then you are debugging your own deploy tool instead of your app. The paid tier is a bet that your time is worth more than a few dollars a month.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Building a mini PaaS is a great weekend, right up until it is the thing standing between you and production.",
+  "prompt": "Build a single-server mini PaaS called \"tinyploy\" in an empty folder. Stack: Node 22 + TypeScript, Fastify for the webhook server, the docker CLI shelled out via execa (no dockerode), Caddy in a container for TLS, SQLite via better-sqlite3 for deploy history. No cloud services, no accounts, no telemetry.\n\nIn scope:\n- apps.yaml at the repo root defines apps: name, git URL, branch, domain, internal port, env file path.\n- POST /hooks/:app verifies an HMAC signature against WEBHOOK_SECRET from .env, then queues a deploy. Deploys run one at a time in a simple in-process queue.\n- Deploy steps: shallow clone or fetch the repo into /var/tinyploy/src/:app, build with `docker build` tagging :git-sha, start the new container on an internal docker network with the app's env file, poll an HTTP health check on the container's port for up to 60 seconds, then point Caddy at the new container and stop plus remove the old one. If the health check fails, leave the old container running and record the deploy as failed.\n- Caddy config generated from apps.yaml into a Caddyfile with automatic HTTPS, one reverse_proxy block per app pointing at the current container name. Reload Caddy with `docker exec caddy caddy reload`.\n- Store every deploy in SQLite: app, sha, status, started/finished timestamps, and the last 200 lines of build output.\n- CLI: `tinyploy deploy <app>` to trigger manually, `tinyploy logs <app>` to tail container logs, `tinyploy rollback <app>` to restart the previous successful image tag, `tinyploy ps` to list running apps.\n- A docker-compose.yml that runs tinyploy and Caddy, mounting the docker socket into tinyploy.\n- README with the exact VPS setup steps: install docker, clone this repo, write .env, run compose, add the webhook in GitHub.\n\nOut of scope, do not build: web UI, multi-server support, managed databases, backups, preview environments, user accounts, metrics dashboards, buildpack detection. Apps must ship their own Dockerfile.\n\nSecrets: WEBHOOK_SECRET and ACME_EMAIL in .env, loaded with node's built-in env file support. Commit .env.example only. Keep the whole thing under 600 lines and readable; prefer clear synchronous flow over abstraction.",
+  "promptCurated": false
+}
