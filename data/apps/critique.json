@@ -1,0 +1,51 @@
+{
+  "slug": "critique",
+  "name": "Critique",
+  "domain": "critique.sh",
+  "category": "dev-tools",
+  "subcategory": "AI code review",
+  "tagline": "An AI code reviewer that reads your diffs and leaves the kind of comments a senior engineer would.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://critique.sh/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is small: take a diff, gather enough surrounding code for context, send it to a frontier model with a strict reviewer prompt, print structured findings. An agent can wire that up locally in an afternoon and it will catch real bugs on day one. What it will not match is the boring half: a GitHub App with proper permissions, incremental review on force-push, comment dedupe so you are not spammed on every commit, and a prompt that has been beaten into shape against thousands of real pull requests until it stops flagging style nits. Your version reviews your own branch on your own laptop, which is honestly where most of the value is for a solo dev. Team-wide review that shows up in the PR without anyone remembering to run a command is the part you are buying.",
+  "coreLoopDIY": "A CLI that diffs your branch against main, pulls in the touched files for context, and asks a model for prioritized review comments with file and line references.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An Anthropic or OpenAI API key, and a willingness to pay per review",
+    "git and Node 20+ locally",
+    "gh CLI installed if you want it to post comments on pull requests"
+  ],
+  "whatYouLose": [
+    "Automatic review on every PR without anyone typing a command",
+    "Inline suggested-change comments that a teammate can accept in one click",
+    "Review state across force-pushes, so you get the same findings repeated",
+    "A reviewer prompt tuned against enough real codebases to know what not to comment on",
+    "Repo-wide context retrieval, so your version only sees the files in the diff"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-models"
+  ],
+  "moatNotes": "The differentiator is signal-to-noise in the comments, which is prompt and retrieval work you cannot skip, plus a GitHub App install that nobody wants to maintain themselves.",
+  "whyPeopleStillPay": "Because a code reviewer that requires you to remember to run it is a code reviewer you stop running by week three. The paid version lives in the PR pipeline where review actually happens, handles the auth and webhook plumbing, and has already learned to shut up about variable naming so that when it does speak, people read it. A local script gives you 80 percent of the insight and zero percent of the habit.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Good weekend build for reviewing your own branches; the moment you want it commenting on someone else's PR you are back in GitHub App territory.",
+  "prompt": "Build a local CLI called `crit` that does AI code review on a git branch. Stack: Node 20 + TypeScript, commander for args, simple-git for git access, the Anthropic SDK for the model, zod to validate model output. No server, no database, no telemetry, no accounts.\n\nBehavior:\n1. `crit review [--base main] [--json]` runs in any git repo.\n2. Compute the diff between HEAD and the merge-base with the base branch. Skip lockfiles, minified files, binaries, and anything over 2000 changed lines.\n3. For each changed file, include the full current file contents as context if it is under 800 lines, otherwise include the diff hunks plus 40 lines of surrounding context.\n4. Send one request per file to claude-sonnet, with a system prompt that says: you are a senior engineer reviewing a diff, report only correctness bugs, security issues, data loss risks, broken error handling, and API misuse; do not comment on formatting, naming, or missing tests; return an empty list if the diff is fine.\n5. Require structured JSON output: array of { file, line, severity: \"high\" | \"medium\" | \"low\", title, body, suggestion? }. Validate with zod, retry once on invalid output.\n6. Print findings grouped by severity with colored output and clickable `file:line` paths. Exit code 1 if any high severity finding, so it can be used in a pre-push hook.\n7. `--json` prints the raw findings array instead, for piping.\n8. Cache responses keyed by a hash of (file path + file content + prompt version) in `.crit-cache/` so re-running on an unchanged branch costs nothing.\n\nAlso include:\n- `crit hook install` which writes a pre-push hook that runs `crit review` and blocks on high severity findings.\n- A `.crit.json` config file for base branch, ignore globs, and severity threshold.\n- ANTHROPIC_API_KEY read from .env via dotenv, .env in .gitignore, .env.example committed.\n- A README with install steps and one honest paragraph on cost per review.\n\nOut of scope: GitHub App, webhooks, posting PR comments, multi-repo dashboards, any hosted component. Do not add them.",
+  "promptCurated": false
+}
