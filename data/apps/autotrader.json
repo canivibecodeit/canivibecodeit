@@ -1,0 +1,51 @@
+{
+  "slug": "autotrader",
+  "name": "AutoTrader.ca",
+  "domain": "autotrader.ca",
+  "category": "commerce",
+  "subcategory": "vehicle marketplace",
+  "tagline": "Canada's dominant classifieds site for new and used vehicles, where dealers and private sellers pay to list inventory in front of buyers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.autotrader.ca/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Private seller listing packages are one-time fees, dealer inventory plans are negotiated contracts.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is a search form over a database, and yes, an agent can build that in an afternoon. The problem is that the database is every dealer in Canada plus a large chunk of private sellers, and it exists because sellers go where the buyers are and buyers go where the cars are. A personal clone starts with zero listings and stays there. What you can actually build is a buyer-side tool: a local tracker that watches specific listings you care about, keeps price history, and tells you when something moves. That is genuinely useful and completely different from replacing the marketplace.",
+  "coreLoopDIY": "A local app where you save vehicle listings you are watching, log asking price and mileage over time, and get a ranked deal score against comparables you have entered yourself.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+",
+    "local SQLite file",
+    "listing details entered manually or pasted in, no scraping of any site that forbids it"
+  ],
+  "whatYouLose": [
+    "The actual inventory: tens of thousands of live vehicles you did not have to find yourself",
+    "Dealer feeds and VIN-level data that flow in automatically as stock changes",
+    "Financing, trade-in valuation, and CARFAX-style history hooks bolted onto the listing page",
+    "Sell-side reach: posting your own car somewhere buyers already look",
+    "Mobile apps, saved-search email alerts, and map radius search that just work"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "Classifieds are the textbook two-sided liquidity moat, and in Canada the vehicle side has effectively consolidated. Second place in a classifieds market is worth very little.",
+  "whyPeopleStillPay": "Dealers pay because that is where the buyers are, and private sellers pay for the same reason. Nobody is paying for the search UI, which is mediocre and always has been. They are paying for the fact that a listing there gets seen and a listing on your own site does not. No amount of build quality changes that arithmetic.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the website in a day and it will be an empty parking lot. The moat is liquidity: every dealer in the country lists there because every buyer looks there, and that loop took decades to close.",
+  "prompt": "Build a local, single-user \"car hunt tracker\" web app. This is a buyer-side research tool, not a marketplace clone.\n\nStack, no substitutions:\n- Python 3.11+, FastAPI, Jinja2 templates, SQLite via sqlite3 stdlib, no ORM\n- Plain CSS in one stylesheet, no build step, no npm\n- Runs with: uvicorn app:app --reload on localhost only\n\nData model (SQLite, migrations as plain SQL in schema.sql):\n- vehicle: id, nickname, year, make, model, trim, body_style, drivetrain, transmission, fuel, city, province, seller_type (dealer|private), listing_url, vin (nullable), notes, status (watching|contacted|test_driven|passed|bought), created_at\n- price_point: id, vehicle_id, asking_price_cad, odometer_km, observed_on (date), source_note\n- comparable: id, year, make, model, trim, asking_price_cad, odometer_km, province, observed_on\n\nFeatures, in scope:\n1. Add and edit a watched vehicle via HTML form. Listing URL is stored as a link, nothing is fetched or scraped.\n2. Log a new price point for a vehicle. Show a price history table and a tiny inline SVG sparkline drawn from the data, no chart library.\n3. Comparables table with CSV import (year, make, model, trim, price, km, province, date).\n4. Deal score per vehicle: compare its latest price against a simple linear fit of price vs odometer among comparables matching make and model (fall back to make only if fewer than three matches). Show the fit's predicted price, the delta in dollars, and a label: below market, near market, above market. Show \"not enough comps\" when under three. Do not fake precision, print the comp count everywhere the score appears.\n5. Dashboard: watched vehicles sorted by deal score, with status badges and days since last price check.\n6. Flag any vehicle whose latest price dropped 3 percent or more since the previous price point.\n7. Export everything to JSON at /export.\n\nExplicitly out of scope, do not build:\n- Scraping, crawling, or hitting any classifieds site or API\n- Accounts, login, multi-user, telemetry, analytics, cloud anything\n- Email or push notifications, financing math, VIN decoding\n\nRequirements:\n- Config in .env read via os.environ, with .env.example committed and .env gitignored. Only key needed: DB_PATH.\n- Seed script that inserts 3 sample vehicles and 12 sample comparables so the app is not empty on first run.\n- README with exact run commands and one paragraph stating plainly that this tracks listings you find yourself and does not replace a marketplace.\n- Keep it under roughly 600 lines of Python total. Readable over clever.",
+  "promptCurated": false
+}
