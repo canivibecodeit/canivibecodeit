@@ -1,0 +1,50 @@
+{
+  "slug": "makerbadge",
+  "name": "MakerBadge",
+  "domain": "makerbadge.com",
+  "category": "dev-tools",
+  "subcategory": "embeddable badges",
+  "tagline": "Hosted, embeddable badges makers drop on their sites and READMEs as a bit of social proof.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://makerbadge.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics here are about as one-shottable as software gets: a route that returns an SVG, a tiny editor, a cache, an embed snippet. An agent will hand you a working badge service in an afternoon, and it will render faster than most hosted ones because it is doing almost nothing. The catch is that a badge is only worth anything if someone other than you issued it, and a badge you minted on your own box is a sticker you printed for yourself. So the honest split: if you want badges as design objects, status chips, build indicators, live counters pulled from your own data, build it and never think about it again. If you wanted the implied third party nod, that part does not come out of the compiler.",
+  "coreLoopDIY": "Define badges in a small admin page, serve them as cached SVG at stable URLs, and hand out a one-line embed snippet.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A domain or subdomain you are willing to keep alive for as long as the badges are embedded",
+    "A small always-on host, since dead badge URLs look worse than no badge",
+    "A cache or CDN in front if anything you embed on gets real traffic"
+  ],
+  "whatYouLose": [
+    "Third party credibility: self-issued badges prove nothing to anyone",
+    "Whatever directory, listing, or community sits behind the badge",
+    "Uptime someone else is paid to care about, on URLs living in other people's HTML",
+    "PNG and social-image fallbacks for contexts that refuse SVG, unless you add a renderer",
+    "Click tracking and referral analytics, if the hosted version does that"
+  ],
+  "moatTags": [
+    "brand-trust",
+    "network-effects"
+  ],
+  "moatNotes": "Badges are borrowed credibility. The code is the cheap half; the reason anyone cares is the name on it.",
+  "whyPeopleStillPay": "Because the product being sold is not SVG generation, it is the fact that the badge points somewhere that is not you. People pay a few dollars a month to skip owning a URL forever, to get a badge that looks like it was granted rather than configured, and to avoid the specific embarrassment of a broken image on their landing page because their tiny VPS ran out of disk. That is a real service even though the code is trivial.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you want badges; buy it if you wanted someone else's logo on them.",
+  "prompt": "Build a self-hosted embeddable badge service. Single Node app, no accounts, no telemetry, no cloud services.\n\nStack, non negotiable: Node 20, TypeScript, Express, better-sqlite3, plain server-rendered HTML with a single CSS file. No React, no Tailwind, no ORM.\n\nData model in SQLite: badges(id text pk, slug unique, label, value, left_color, right_color, style, icon_svg nullable, link_url nullable, metric_url nullable, metric_json_path nullable, cache_seconds int default 900, created_at, updated_at). Also a table hits(badge_id, day, count) for simple daily counts.\n\nRoutes:\n- GET /b/:slug.svg returns an SVG badge with correct Content-Type, ETag, and Cache-Control: public, max-age from cache_seconds, stale-while-revalidate=86400. Support styles \"flat\" and \"pill\".\n- GET /b/:slug.png renders the same badge via @resvg/resvg-js. Keep it optional behind a try/catch so a missing native binary does not kill the server.\n- GET /go/:slug 302s to link_url and increments hits.\n- GET /admin lists badges, GET /admin/new and POST /admin/save create and edit them, POST /admin/delete removes them. Guard every /admin route with a bearer check against ADMIN_TOKEN from .env.\n- GET /admin/:slug/embed shows copy paste HTML and Markdown snippets.\n\nBadge rendering: compute text width from a bundled character width table for the default font, do not shell out to a font library. Escape all text. Clamp label and value to 40 chars.\n\nDynamic values: if metric_url is set, fetch it on a cache_seconds interval, read metric_json_path with a tiny dot path helper, and fall back to the last known value on error. Never fetch inside the SVG request path; use a background interval and serve from SQLite.\n\nIn scope: SVG and PNG output, admin CRUD, click redirect counts, caching headers, seed script with three example badges, README with deploy notes for a single VPS behind Caddy.\n\nOut of scope: user signup, multi tenancy, billing, a public badge directory, verification of any kind. Do not pretend the badge means anything.\n\nSecrets in .env: ADMIN_TOKEN, PORT, DB_PATH. Ship a .env.example. Include vitest tests for width calculation, SVG escaping, and the dot path helper.",
+  "promptCurated": false
+}
