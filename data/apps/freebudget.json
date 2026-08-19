@@ -1,0 +1,52 @@
+{
+  "slug": "freebudget",
+  "name": "FreeBudget",
+  "domain": "freebudget.org",
+  "category": "personal-finance",
+  "subcategory": "budgeting and expense tracking",
+  "tagline": "A personal budgeting app for tracking accounts, transactions and spending against category limits.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://freebudget.org/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The budgeting math is not the hard part: categories, monthly limits, rollover, and a running balance are a few hundred lines and a coding agent will nail them in a sitting. What breaks the one-shot is everything touching a bank, aggregation via Plaid or an equivalent means an account, per-connection fees, OAuth flows, and institution quirks you get to debug forever. Feed it CSV or OFX exports instead and you get a genuinely useful personal ledger this weekend, at the cost of doing an import every week. The other gaps are boring but real: no phone app for logging a coffee at the counter, no sync between your laptop and anything else, and no one to blame when a duplicate import quietly double-counts rent. Build it if you like owning your financial data in a file you can read; skip it if the value you actually want is transactions appearing without you doing anything.",
+  "coreLoopDIY": "A local web app where you import bank CSV or OFX files, auto-categorize transactions with editable rules, and see spend against per-category monthly budgets with rollover.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local machine or small VPS you trust with a plaintext ledger",
+    "CSV or OFX exports from each bank account, downloaded manually",
+    "Willingness to write a dozen categorization rules yourself",
+    "A backup plan for the SQLite file, because it is now your only copy"
+  ],
+  "whatYouLose": [
+    "Automatic bank sync, you become the sync job",
+    "Mobile capture, no app to log cash spend on the spot",
+    "Duplicate and transfer detection tuned against millions of real statements",
+    "Any security review beyond your own, on a file full of your transaction history",
+    "Someone else's problem when a bank changes its export format"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "Bank aggregation is the whole wall. Everything above it, the budgeting UI, is commodity.",
+  "whyPeopleStillPay": "People pay so transactions show up without them thinking about it, and so someone else carries the liability for the connection to their bank. Budgeting only works if the ledger is current, and a manual import pipeline decays the first week you are busy. There is also a plain trust question: handing financial history to a product with a company behind it feels different from handing it to a SQLite file you spun up on a Sunday, even when the Sunday version is technically more private.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The envelope math is a weekend; the bank pipe is not. The moat is aggregation plumbing plus the trust to be handed someone's transaction history.",
+  "prompt": "Build a single-user personal budgeting web app that runs entirely on my machine. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Next.js 15 with the App Router and TypeScript\n- SQLite via better-sqlite3, schema managed with Drizzle ORM, database file at ./data/budget.db\n- Tailwind CSS, plain server actions, no external UI kit\n- No auth provider: gate the whole app behind a single password read from APP_PASSWORD in .env.local, stored as a signed httpOnly cookie\n\nData model: accounts, transactions (date, description, amount in integer cents, account, category, notes, import_hash), categories (name, group, monthly_limit_cents, rollover boolean), rules (match pattern, target category, priority), budget_periods (year, month, per-category allocated and actual).\n\nFeatures in scope:\n- Import page accepting CSV and OFX/QFX files, with a column-mapping step for CSV and a saved mapping per account\n- Deduplication on import using a hash of date, amount and normalized description, with a review screen listing suspected duplicates before commit\n- Rule engine that auto-assigns categories on import, plus a bulk recategorize action and a \"create rule from this transaction\" button\n- Monthly budget view: per-category limit, spent, remaining, optional rollover of unspent amounts into next month\n- Transaction list with search, date range, account and category filters, inline editing, and split transactions into multiple categories\n- Transfer detection: opposing amounts within three days across two accounts get flagged and excluded from spend totals\n- Reports: spend by category by month for the last 12 months as a table plus one simple bar chart, and a net worth line from account balances\n- CSV export of all transactions, and a one-click backup that copies the SQLite file into ./backups with a timestamp\n\nExplicitly out of scope, do not add: bank aggregation or Plaid, payment processing, multi-user or roles, mobile app, email or push notifications, AI categorization via any external API, analytics scripts.\n\nCorrectness requirements: store money as integer cents only, never floats. Write Vitest unit tests for the rollover calculation, the dedupe hash, the transfer matcher, and the split-transaction balance check, and make them pass.\n\nDeliver a README with setup steps, a .env.example containing APP_PASSWORD, a seed script that loads 200 fake transactions across three accounts, and npm scripts for dev, test and backup.",
+  "promptCurated": false
+}
