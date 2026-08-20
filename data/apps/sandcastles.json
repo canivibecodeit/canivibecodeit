@@ -1,0 +1,52 @@
+{
+  "slug": "sandcastles",
+  "name": "Sandcastles",
+  "domain": "sandcastles.ai",
+  "category": "dev-tools",
+  "subcategory": "AI agent sandboxes",
+  "tagline": "Hosted disposable sandboxes for AI agents to run code and touch files in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.sandcastles.ai/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The thing an agent sandbox does for you personally is small: spin up an isolated environment, run untrusted code in it, hand back stdout, throw it away. That is a Docker daemon plus a thin HTTP wrapper, and an agent will write it before lunch. What you do not get is the hard part of a hosted sandbox business: microVM-grade isolation for code you did not write, cold starts measured in milliseconds, snapshot and fork so an agent can branch state, and the ability to run a few thousand of these without paging yourself. If you are the only untrusted party in your own sandbox, the threat model collapses and local Docker is genuinely fine. If you are exposing it to anyone else, stop building and pay someone.",
+  "coreLoopDIY": "A local HTTP service that boots a throwaway Docker container per session, runs commands and file writes inside it, streams output back, and reaps it on a timer.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker installed and running locally",
+    "Python 3.11+",
+    "enough RAM to keep a few containers alive at once",
+    "a base image you trust for the sandbox interior"
+  ],
+  "whatYouLose": [
+    "Real isolation: containers share a kernel, and a determined escape from agent-written code is not theoretical",
+    "Fast cold starts, since you are booting containers rather than resuming microVM snapshots",
+    "Snapshot, fork and resume, which is what makes agent branching cheap",
+    "Multi-tenancy, quotas, egress controls and anything resembling an audit trail",
+    "Whatever the hosted product does beyond raw sandboxes, which is where most of its actual roadmap probably lives"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Sandbox providers compete on boot latency and escape-proofing, both of which are kernel and hypervisor work, not application code.",
+  "whyPeopleStillPay": "Because the moment a sandbox holds code you did not write and is reachable by someone other than you, the problem stops being an API design exercise and becomes a security engineering one. Firecracker or gVisor, snapshot restore, network egress policy, per-tenant quotas and the operational discipline to keep all of that patched is not a weekend, and getting it wrong is the kind of wrong that ends up in someone else's incident report. Paying per sandbox-second to make that someone else's problem is a rational trade for anyone shipping an agent product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Scored as a generic agent sandbox service, since public details are thin and the pricing page was not verified. The DIY version is fine for one developer and indefensible for one customer.",
+  "prompt": "Build a local agent sandbox service in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, no substitutions: Python 3.11, FastAPI, uvicorn, the docker SDK for Python, SQLite via stdlib sqlite3. Nothing else unless it is stdlib.\n\nWhat it does:\n1. POST /sandboxes creates a sandbox: pull or reuse a base image from the BASE_IMAGE env var, start a detached container with no network by default, a memory cap, a CPU cap, and a read-only root filesystem except for /work. Return a sandbox id.\n2. POST /sandboxes/{id}/exec runs a shell command inside the container with a timeout, returns exit code, stdout and stderr as JSON. Also support streaming output over a chunked response when ?stream=1.\n3. POST /sandboxes/{id}/files writes a file into /work from a JSON body of path plus base64 content. GET the same route reads one back.\n4. DELETE /sandboxes/{id} kills and removes the container.\n5. A background task reaps any sandbox older than SANDBOX_TTL_SECONDS or idle longer than SANDBOX_IDLE_SECONDS.\n\nPersistence: store sandbox id, container id, created_at, last_used_at and status in SQLite so a restart of the API can reconcile with running containers instead of orphaning them.\n\nSecurity, do these and say so in the README: drop all Linux capabilities, no privileged mode, no docker socket mount inside the container, pids limit, network disabled unless the create request explicitly asks for it, and refuse absolute or dot-dot paths in file routes.\n\nSecrets and config in .env, read with os.environ, with a checked-in .env.example. Bind the API to 127.0.0.1 only.\n\nAlso ship: a small CLI, sandctl, with create, exec, put, get, rm and ls. Pytest tests covering the reaper, the path traversal rejection and the exec timeout. A Makefile with run, test and clean.\n\nOut of scope, do not build: microVMs, snapshot or fork, multi-tenant auth, quotas, a web UI, billing, anything that would let this face the public internet.\n\nEnd with a README that states plainly that this shares the host kernel and is only safe for code you already trust.",
+  "promptCurated": false
+}
