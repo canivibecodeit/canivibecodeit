@@ -1,0 +1,52 @@
+{
+  "slug": "refgrow",
+  "name": "Refgrow",
+  "domain": "refgrow.com",
+  "category": "seo-marketing",
+  "subcategory": "referral and affiliate programs",
+  "tagline": "Drop-in referral and affiliate program for SaaS, with Stripe-based commission tracking and an affiliate dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://refgrow.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics here are not mysterious: a unique link per affiliate, a cookie or query param that survives signup, a Stripe webhook that ties a paid subscription back to the referrer, and a commissions ledger. An agent will get you that plus a basic affiliate login in a weekend, and for a single product with a dozen partners it is genuinely enough. The gaps are the boring parts that eat weeks: actually paying people, handling refunds and chargebacks clawing back commissions, self-serve affiliate signup that is not spam, and the fiddly attribution edge cases where someone clicks on mobile and pays on desktop. Payouts are the real wall, since Stripe Connect or PayPal mass payouts drag you into onboarding, KYC, and tax paperwork that is not a weekend of work. Build it if you want to own the ledger and pay affiliates by hand for now.",
+  "coreLoopDIY": "Generates tracked referral links per affiliate, attributes Stripe subscriptions back to the referrer, and shows each affiliate their clicks, conversions, and owed commission.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account with webhook access",
+    "A place to host a small web app plus Postgres",
+    "Control of your own signup flow so referral codes can be attached to new accounts",
+    "Your own way of actually sending money to affiliates"
+  ],
+  "whatYouLose": [
+    "Automated payouts and the KYC/tax paperwork that comes with them",
+    "Refund, chargeback, and churn clawback logic that is already tested against real edge cases",
+    "Polished affiliate-facing dashboard, assets, and email notifications that make partners trust you",
+    "Fraud and self-referral detection",
+    "Cross-device and multi-touch attribution that mostly just works"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The Stripe plumbing is copyable; payout rails plus tax reporting are where a personal build quietly stalls.",
+  "whyPeopleStillPay": "Because a referral program is revenue infrastructure, and nobody wants their own attribution bug to be the reason a partner stops promoting them. Paying a flat fee to have commissions, refunds, and payouts handled correctly is cheap next to explaining to an affiliate why their dashboard shows the wrong number. There is also the awkward truth that affiliates judge you by the portal you send them into, and a hand-rolled table with no styling makes a small product look smaller.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build if you have five partners and a spreadsheet tolerance; the moment you have fifty, payouts become your whole weekend.",
+  "prompt": "Build a self-hosted referral and affiliate tracking app for a single SaaS product.\n\nStack, no substitutions: Next.js App Router with TypeScript, Postgres via Prisma, Tailwind for styling, Stripe Node SDK. Session auth with signed httpOnly cookies and argon2 password hashes. No third-party auth provider, no analytics, no telemetry.\n\nData model: Affiliate (email, password hash, name, payout details as free text, commission percent, status), ReferralCode (code, affiliateId), Click (codeId, timestamp, ip hash, user agent, landing path), Referral (codeId, external customer id, stripe customer id, status: pending | active | churned), Commission (referralId, amount cents, currency, period, status: pending | approved | paid | clawed_back, stripe invoice id unique).\n\nIn scope:\n1. GET /r/:code records a Click, sets a first-party ref cookie for 60 days, then 302s to a configurable destination URL.\n2. POST /api/attribute, protected by a shared secret in .env, called by my own signup flow with an email or customer id plus the ref cookie value. Creates a Referral.\n3. Stripe webhook at /api/stripe/webhook with signature verification. Handle invoice.paid to create an approved Commission at the affiliate percent, charge.refunded and customer.subscription.deleted to claw back or mark churned. Idempotent on stripe invoice id.\n4. Affiliate portal at /portal: login, own stats only, clicks, referrals, commissions by status, lifetime total, copyable referral link.\n5. Admin at /admin behind a single admin password from .env: create affiliates, set commission percent, list all commissions, bulk mark commissions as paid, CSV export of unpaid commissions.\n\nOut of scope, do not build: automated payouts, Stripe Connect onboarding, tax forms, multi-product support, email sending, fraud scoring.\n\nSecrets in .env only: DATABASE_URL, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ATTRIBUTE_API_SECRET, ADMIN_PASSWORD, SESSION_SECRET, REDIRECT_DESTINATION.\n\nInclude a seed script with two affiliates and fake clicks, a Stripe CLI command in the README for replaying invoice.paid locally, and Vitest tests covering commission math, webhook idempotency, and clawback on refund.\n\nShip a README with setup steps and one paragraph explaining exactly how to call /api/attribute from an existing signup flow.",
+  "promptCurated": false
+}
