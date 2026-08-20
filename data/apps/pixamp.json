@@ -1,0 +1,52 @@
+{
+  "slug": "pixamp",
+  "name": "Pixamp",
+  "domain": "pixamp.io",
+  "category": "photo-editing",
+  "subcategory": "image enhancement and batch processing",
+  "tagline": "A hosted image tool for cleaning up, upscaling and exporting pictures without opening a real editor.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://pixamp.io/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Most of the useful work in a tool like this is a queue, a few well-tuned image operations and an export screen, and an agent can assemble that locally in an afternoon on top of libraries that already exist. The parts that hurt are the ones nobody demos: sane defaults across weird source files, HEIC and CMYK and 16-bit TIFF, and upscaling that does not turn faces into wax. If Pixamp is leaning on a tuned or licensed enhancement model, your open-weights substitute will be visibly worse on the hard 10 percent of images. If it is mostly a friendly wrapper over resize, compress, background removal and format conversion, the DIY version is a fair trade and runs offline on your own machine. Public detail on the product is thin, so treat this verdict as directional rather than settled.",
+  "coreLoopDIY": "A local web app where you drop a folder of images, pick a preset chain (resize, compress, convert, upscale, remove background) and get processed files written to an output directory with before/after previews.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 plus Node for the frontend build",
+    "Pillow and pillow-heif for decoding, plus ffmpeg on PATH for odd formats",
+    "Optional: Real-ESRGAN or a similar open upscaler, and rembg for background removal",
+    "A GPU if you want upscaling to finish this century, otherwise CPU and patience",
+    "Disk space for originals and outputs"
+  ],
+  "whatYouLose": [
+    "Enhancement quality on hard images: skin, hair, text and low-light noise are where tuned models earn their keep",
+    "Anything shareable: no links, no client-facing galleries, no team access",
+    "Mobile use, unless you leave a laptop running and expose it somewhere",
+    "Format edge cases handled for you: color profiles, EXIF orientation, animated formats, progressive JPEG quirks",
+    "Someone else paying the GPU bill and keeping the models current"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "Image tooling lives or dies on defaults. Anyone can call an upscaler; picking the right one per image without asking the user is the actual product.",
+  "whyPeopleStillPay": "Because image work is bursty. You need to fix forty product photos today and then nothing for two months, and during that gap a self-hosted pipeline rots: model weights go stale, the venv breaks, the GPU driver updates. A hosted tool is always warm, always has the newer model, and never asks you to debug pillow-heif at 11pm. If your volume is steady and your requirements are boring, the local build wins outright.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The resize-and-compress half is a solved afternoon; the enhance half is a model you do not have.",
+  "prompt": "Build a local-only batch image processing app called PixShed. No accounts, no cloud, no telemetry, no analytics.\n\nStack, non-negotiable:\n- Backend: Python 3.11, FastAPI, uvicorn, Pillow, pillow-heif, numpy.\n- Job queue: an in-process asyncio worker with a bounded queue. No Redis, no Celery.\n- Frontend: a single Vite plus React plus TypeScript app, plain CSS, no component library.\n- Storage: the local filesystem only. SQLite via sqlite3 for job history.\n\nCore loop:\n1. User drags files or picks an input folder in the UI. Files are copied into ./work/in.\n2. User picks a preset chain from a fixed list: Resize to longest edge, Convert format, Compress to target size, Strip metadata, Remove background, Upscale 2x.\n3. Chains run in order per image. Progress streams to the UI over server-sent events.\n4. Outputs are written to ./work/out with the original basename plus a suffix. Originals are never modified.\n5. A results grid shows before and after thumbnails, file sizes, and dimensions, with a per-image download and a Download all as zip.\n\nCorrectness details, do these properly:\n- Honor EXIF orientation before any transform, then strip EXIF only if the user asked.\n- Support JPEG, PNG, WebP, HEIC, TIFF and BMP input. Convert CMYK and 16-bit sources to 8-bit sRGB and log that you did.\n- Compress to target size by binary searching JPEG or WebP quality between 30 and 95, max 8 attempts.\n- Never write outside ./work. Reject path traversal in filenames.\n\nOptional heavy steps, wired behind feature flags in .env:\n- UPSCALER_CMD: a shell command template for an external upscaler such as Real-ESRGAN. If unset, hide the Upscale preset in the UI instead of failing.\n- REMBG_ENABLED: if true, import rembg for background removal. If import fails, hide the preset.\nSecrets and paths go in .env, never hardcoded. Ship .env.example.\n\nExplicitly out of scope: user auth, sharing links, hosted deploys, mobile app, non-local storage, any paid API, image generation.\n\nDeliverables: README with setup and run commands, a Makefile with make dev, and pytest tests covering orientation handling, target-size compression, and the traversal guard. Print the local URL on start and open nothing automatically.",
+  "promptCurated": false
+}
