@@ -1,0 +1,52 @@
+{
+  "slug": "nexlev",
+  "name": "NexLev",
+  "domain": "nexlev.io",
+  "category": "seo-marketing",
+  "subcategory": "YouTube niche and channel research",
+  "tagline": "YouTube niche finder and channel research tool for faceless channel builders.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.nexlev.io/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product is a search and filter layer over YouTube channel and video statistics, plus some AI scoring and idea generation on top. The YouTube Data API gives you channel stats, video stats, and search for free up to a daily quota, so a personal version that tracks a few hundred channels and computes outlier scores is a real weekend project. Where it gets hard is coverage: their value comes from having already crawled and cached a large slice of YouTube so filters return instantly, and your quota does not let you do that quickly. You can get most of the insight for the niches you actually care about, you just cannot browse all of YouTube on a whim. Call it buildable with a much smaller universe.",
+  "coreLoopDIY": "Pulls YouTube channel and video stats for a watchlist of channels and niches into a local database, then ranks videos and channels by views-to-subscriber outlier scores with filters for age, upload rate, and monetizability.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with YouTube Data API v3 enabled and an API key",
+    "awareness of the 10,000 unit daily quota",
+    "optional LLM API key for niche summaries and title ideas",
+    "a local Postgres or SQLite file"
+  ],
+  "whatYouLose": [
+    "A prebuilt index of millions of channels you can filter instantly without burning quota",
+    "Historical growth curves for channels you only just discovered",
+    "Revenue and RPM estimates by niche, however rough",
+    "Curated niche lists and the community and course material bundled around them",
+    "Anything resembling a mobile-friendly polished UI unless you build it"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The data itself is public via the API. The moat is having already paid the crawl and storage cost so queries feel instant.",
+  "whyPeopleStillPay": "Because the difference between \"I can query YouTube's API\" and \"I can filter every channel on YouTube by subscriber growth in the last 90 days\" is roughly a year of crawling and a database bill. People buying this are not researchers, they are operators who want a shortlist by tonight, and paying for a warm index beats waiting on quota. The AI scoring and niche ideas are a thin layer, but the index underneath is genuinely tedious to reproduce.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The analysis is trivial, the corpus is the product; build it for the ten niches you actually care about and you will barely notice the difference.",
+  "prompt": "Build a local YouTube niche research tool called nichescope. Single Node.js project, TypeScript, SQLite via better-sqlite3, Express for a small JSON API, and a server-rendered UI using EJS plus plain CSS. No React, no build step for the frontend, no accounts, no telemetry, no cloud.\n\nData source: YouTube Data API v3. Read YOUTUBE_API_KEY from .env via dotenv. Optional OPENAI_API_KEY for the idea generator; if it is missing, hide that feature gracefully instead of crashing.\n\nSchema:\n- channels: id, title, handle, country, published_at, subscriber_count, video_count, view_count, fetched_at, niche_tag, notes\n- videos: id, channel_id, title, published_at, view_count, like_count, comment_count, duration_seconds, fetched_at\n- snapshots: channel_id, taken_at, subscriber_count, view_count, video_count\n\nCLI commands via a bin script:\n1. add-channel by channel URL, handle, or id (resolve with channels.list).\n2. discover \"query\" --max 50: uses search.list to find channels for a keyword, then batch-hydrates them with channels.list (50 ids per call) and inserts them with niche_tag set to the query.\n3. sync: for every tracked channel, fetch the uploads playlist, pull the most recent 50 video ids, hydrate with videos.list in batches of 50, and write a snapshot row. Log quota units spent per run and refuse to continue past a QUOTA_BUDGET from .env.\n\nScoring, computed in SQL or plain TS, not by an LLM:\n- outlier score for a video: view_count divided by the median view_count of that channel's last 30 videos\n- velocity: views per day since publish\n- channel momentum: subscriber delta between the two most recent snapshots, normalised per day\n- views-per-subscriber ratio for the channel\n\nWeb UI on localhost:3000:\n- /channels: sortable, filterable table (min/max subscribers, channel age, uploads per month, niche_tag, views-per-subscriber). Server-side sorting, no client framework.\n- /channels/:id: stats, snapshot sparkline as inline SVG, video list sorted by outlier score.\n- /outliers: every tracked video with outlier score above 2.5, newest first.\n- /niches: group by niche_tag with median subscribers, median outlier score, channel count.\n- export button that dumps the current filtered view to CSV.\n\nIf OPENAI_API_KEY exists, add a button on /channels/:id that sends the top 20 video titles and asks for ten adjacent title ideas. Cache the response in a table so it is not re-billed on refresh.\n\nExplicitly out of scope: revenue or RPM estimates, thumbnail downloading or reuploading, scraping outside the official API, multi-user auth, hosted deployment.\n\nDeliver a README with .env.example, the quota math per command, and a warning that discover is quota-expensive at 100 units per search call. Include one seed script that adds five example channels so the UI is not empty on first run.",
+  "promptCurated": false
+}
