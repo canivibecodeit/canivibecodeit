@@ -1,0 +1,52 @@
+{
+  "slug": "moovit",
+  "name": "Moovit",
+  "domain": "moovitapp.com",
+  "category": "travel",
+  "subcategory": "public transit navigation",
+  "tagline": "Public transit trip planner with real-time arrivals and crowd-sourced route data for thousands of cities.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://moovitapp.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Moovit is free to riders with ads, and monetizes through transit agency and enterprise deals.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app you see is a trip planner UI, which is genuinely a weekend build if a city publishes GTFS and GTFS-Realtime feeds. What you cannot build is the part that matters: normalized schedule and live vehicle data for thousands of cities, including places where the agency publishes nothing and the routes were reconstructed from rider reports. Moovit's value is that it works when you land in a city you have never been to, and that coverage came from years of agency partnerships plus a large editor community. A personal version can be excellent for exactly one metro area you already know, and useless one border away. That is a real build, just not a replacement.",
+  "coreLoopDIY": "Ingests your city's GTFS and GTFS-Realtime feeds into SQLite and serves a local A-to-B transit routing page with next departures.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A published GTFS static feed for your city",
+    "A GTFS-Realtime trip updates or vehicle positions endpoint, if the agency offers one",
+    "A geocoder for address search (Nominatim or similar)",
+    "Somewhere to run it that your phone can reach"
+  ],
+  "whatYouLose": [
+    "Coverage outside the one or two agencies you bothered to import",
+    "Data for cities with no open feed, which is exactly where Moovit's crowd-sourced maps earn their keep",
+    "Polished native mobile apps with offline maps, step-off alerts and background notifications",
+    "Multimodal blending of transit with bikeshare, scooters, ride hailing and walking edge cases",
+    "Service alerts, detours and strike-day rerouting curated by humans"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the routing algorithm, which is well documented and open source in several forms. It is having usable transit data for a city whose agency emails PDFs.",
+  "whyPeopleStillPay": "Most riders never pay Moovit anything, which is itself the point: the money comes from transit agencies and mobility operators who want their data and riders in one canonical app, and that funding buys the coverage riders rely on. Someone standing in an unfamiliar city at 11pm is not going to compile GTFS feeds, they are going to open the app that already knows the night bus. The value is availability everywhere, not features, and availability everywhere is bought with years of partnerships and volunteer editors.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can absolutely build a great trip planner for your own commute in a weekend. The moat is normalized transit data for thousands of cities, half of it reconstructed by volunteers because the agency never published anything.",
+  "prompt": "Build a local-first public transit trip planner for a single metro area. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12 with FastAPI for the backend\n- SQLite for storage, accessed with plain SQL, no ORM\n- Server-rendered Jinja2 templates plus a little vanilla JS, Leaflet for the map with OpenStreetMap tiles\n- uv for dependency management, single `uv run` entry point\n\nWhat to build:\n1. An importer command that takes a GTFS static zip (path or URL from .env) and loads agency, stops, routes, trips, stop_times, calendar and calendar_dates into SQLite with sensible indexes. It must handle feeds with tens of thousands of stops without blowing up memory: stream the CSVs.\n2. A RAPTOR or connection-scan journey planner over the imported timetable. Input: origin lat/lon, destination lat/lon, departure time. Output: up to 3 itineraries with walk legs, transit legs, transfers, and total duration. Walking uses straight-line distance at 4.8 km/h with a configurable max walk of 800m to reach a stop. Do not pull in a road router.\n3. Address search via Nominatim, with a 1 request/second rate limit and an on-disk cache in SQLite. Also allow searching stops by name from the local DB.\n4. Optional GTFS-Realtime support: if GTFS_RT_TRIP_UPDATES_URL is set in .env, poll it every 30 seconds with gtfs-realtime-bindings, store delays per trip/stop, and show adjusted departure times in the UI with a small \"live\" marker. If unset, everything still works on scheduled times.\n5. A mobile-friendly single page: two search boxes, a time picker, a results list, and a Leaflet map drawing the selected itinerary. Plus a \"departures near me\" view that takes browser geolocation and lists the next 10 departures from the nearest stops.\n6. A `/healthz` endpoint and a startup check that warns if the loaded feed's service dates have expired.\n\nExplicitly out of scope: user accounts, saved trips synced anywhere, multiple cities, bikeshare or ride hailing, fare calculation, push notifications, native apps, offline tiles.\n\nDeliverables: README with the exact commands to import a feed and run the server, a .env.example listing GTFS_STATIC_URL, GTFS_RT_TRIP_UPDATES_URL and NOMINATIM_USER_AGENT, and a smoke test that imports a small fixture feed and asserts one known itinerary is found.",
+  "promptCurated": false
+}
