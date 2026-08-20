@@ -1,0 +1,51 @@
+{
+  "slug": "rive",
+  "name": "Rive",
+  "domain": "rive.app",
+  "category": "design",
+  "subcategory": "interactive vector animation",
+  "tagline": "Editor and cross-platform runtimes for interactive vector animations with state machines, embedded in real apps and games.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://rive.app/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Rive is two products welded together: a design tool for vector animation with state machines, and a set of hand-maintained runtimes that play the same .riv file identically on web, iOS, Android, Flutter, React Native and Unity. An agent can absolutely build you a keyframe editor that spits out JSON and a canvas player for the web, and that is a fun weekend. What it cannot do in a session is a production vector renderer with correct stroke joins, gradients, clipping and bones, plus a state machine engine, plus five platform ports that stay pixel-identical. The moment your animation has to ship inside a real mobile app, the runtime is the whole product and your JSON player is a demo. Build the toy if you enjoy it, but do not plan to migrate anything.",
+  "coreLoopDIY": "A local browser tool where you draw simple vector shapes, keyframe their transforms and colors on a timeline, export a JSON file, and play it back with a tiny embeddable canvas runtime.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Node 20 and a modern browser",
+    "willingness to hand-author shapes if the drawing tools stay crude",
+    "a web-only target, since mobile runtimes are out of scope"
+  ],
+  "whatYouLose": [
+    "Runtimes for iOS, Android, Flutter, React Native and Unity that render the same file the same way",
+    "The real vector renderer: gradients, clipping, correct strokes, meshes, bones, constraints",
+    "State machines with inputs, listeners and blended transitions that designers can wire without a developer",
+    "Collaborative editing and a shared file format that designers and engineers actually hand back and forth",
+    "Years of edge-case polish in playback timing, scaling and layout fit modes"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "collaboration"
+  ],
+  "moatNotes": "The .riv file is worthless without the runtimes, and the runtimes are worthless without the editor. Owning both ends is the business.",
+  "whyPeopleStillPay": "Because the alternative is paying an engineer to reimplement animation logic by hand in every platform your app ships on, and then maintaining it. Rive sells the handoff: a designer changes a transition, the file drops into the app, every platform agrees on what it looks like. That is not a feature you can clone, it is a maintenance burden someone else already carries. Teams pay to not own a renderer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "A JSON timeline player is a weekend; a renderer that agrees with itself on six platforms is not. The moat is the runtime fleet plus the file format that only those runtimes can read.",
+  "prompt": "Build a local, single-user vector keyframe animation tool and a tiny playback runtime. Web only. No accounts, no backend, no telemetry, no cloud storage.\n\nStack, no substitutions: Vite + React + TypeScript, Zustand for state, plain HTML canvas 2D for rendering, no animation libraries.\n\nStructure the repo as two packages in one folder: /editor (the app) and /runtime (a dependency-free ~300 line TS module that takes a document JSON plus a canvas and plays it).\n\nDocument model, define it as a TS type shared by both packages:\n- document: width, height, fps, duration, shapes[], tracks[]\n- shape: id, type of rect | ellipse | path (path = array of cubic segments), fill color, stroke color, stroke width, transform (x, y, rotation, scaleX, scaleY, opacity), parentId for nesting\n- track: shapeId, property name, keyframes[] of { frame, value, easing of linear | easeIn | easeOut | easeInOut }\n\nEditor requirements:\n- Canvas viewport with pan and zoom, click to select, drag to move, handles to scale and rotate\n- Tool buttons to add rect, ellipse and a 4-point editable path\n- Left panel: shape tree with drag to reparent, rename, delete\n- Right panel: numeric inputs for the selected shape's transform, fill, stroke\n- Bottom timeline: one row per animated property, keyframe diamonds you can drag, a scrubber, play/pause/loop, frame stepping\n- Setting a property value while the playhead is on a frame creates or updates a keyframe on that frame\n- Interpolation: numbers lerp with the chosen easing, colors lerp in sRGB, rotations shortest path\n- File menu: New, Open (File System Access API with an input[type=file] fallback), Save As .json, Export current frame as PNG\n\nRuntime requirements:\n- createPlayer(canvas, doc) returning play, pause, seek(frame), setLoop(bool), destroy\n- Fit modes: contain, cover, fill\n- requestAnimationFrame loop driven by wall clock, not frame counting, so playback speed is correct on any display\n- Zero imports from /editor\n\nAlso ship /demo/index.html that loads a bundled sample .json through the runtime with no editor code, to prove the split works.\n\nExplicitly out of scope, do not attempt: state machines, bones or meshes, gradients, boolean ops, text, image fills, mobile or native runtimes, real time collaboration, plugin systems.\n\nWrite a README with run instructions, the document JSON schema, and a blunt Limitations section listing everything in the out of scope list. Add Vitest unit tests for the interpolation math and for keyframe insert/update/delete.",
+  "promptCurated": false
+}
