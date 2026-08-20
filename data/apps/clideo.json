@@ -1,0 +1,52 @@
+{
+  "slug": "clideo",
+  "name": "Clideo",
+  "domain": "clideo.com",
+  "category": "audio-video",
+  "subcategory": "browser video editing tools",
+  "tagline": "A browser suite of one-task video tools: cut, crop, merge, compress, resize, add subtitles, convert formats.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://clideo.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Almost everything Clideo sells is an ffmpeg flag with a nice upload box in front of it. Trimming, cropping, merging, compressing, resizing for Instagram, converting MP4 to GIF: these are one-line commands that have been free and stable for twenty years, and an agent can wrap them in a local web UI in an afternoon. The genuinely hard part is the part Clideo does not really own either: auto subtitles, which now means calling a Whisper model locally or via API. The real product here is not having to think about codecs, plus doing it on a Chromebook at work, and a local tool gives that up in exchange for no upload wait, no file size cap, and no watermark. If you edit video more than twice a month and have a laptop that can run ffmpeg, the subscription is paying rent on a UI.",
+  "coreLoopDIY": "A local web app that takes a video file, exposes the common operations (trim, crop, resize to preset aspect ratios, merge, compress, convert, extract audio, burn subtitles), and runs them through ffmpeg on your own machine.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+",
+    "ffmpeg and ffprobe installed and on PATH",
+    "enough local disk for temp render files",
+    "optional: whisper.cpp or an OpenAI API key if you want auto subtitles"
+  ],
+  "whatYouLose": [
+    "Works on any device with a browser, including locked-down work laptops and phones, with no install",
+    "Somebody else's CPU does the encoding, so a 2GB file does not heat your lap for ten minutes",
+    "Auto subtitle generation and translation that just works, without you wiring up a speech model",
+    "Sane defaults chosen by people who test them: your DIY compressor will produce mush until you tune the bitrate ladder",
+    "Edge case handling for weird inputs: variable frame rate phone footage, HEVC, rotation metadata, broken containers"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is a friendly wrapper plus SEO on a few hundred 'how to crop a video online' queries. Neither survives you having ffmpeg.",
+  "whyPeopleStillPay": "Because the alternative to Clideo is not a local tool, it is a command line, and most people who need to crop a wedding video once do not want to learn one. The paid tier mostly buys removal of a watermark and a bigger file limit at the exact moment someone is stuck and annoyed, which is excellent timing for a checkout page. There is also a real hardware story: uploading to a server that encodes fast beats waiting on a five year old laptop. But if you are technical enough to run a coding agent, you are the wrong customer, and you were always paying for a UI you can now generate.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The whole category exists because ffmpeg's help text reads like a hostage note.",
+  "prompt": "Build a local video toolkit web app called \"snip\". Stack: Node 20, Express, plain HTML/CSS/vanilla JS front end, no framework, no build step. All processing runs locally by shelling out to ffmpeg and ffprobe via child_process. Do not upload anything anywhere.\n\nLayout: single page. A file picker (or drag and drop) accepts one or more video files. On select, call ffprobe and show duration, resolution, codec, frame rate, and file size. Files are copied into ./workspace/in and never leave the machine.\n\nImplement these operations as tabs, each POSTing to its own endpoint:\n1. Trim: start and end fields, plus a scrubbable HTML5 video preview to set them. Use -ss and -to with stream copy when the cut lands near a keyframe, otherwise re-encode.\n2. Crop and resize: freeform crop box drawn on a canvas over the preview, plus one click presets for 16:9, 1:1, 4:5, 9:16. Pad with blurred background instead of stretching when aspect changes.\n3. Merge: reorder a list of inputs, normalize them to a common resolution and frame rate, then concat.\n4. Compress: target output size in MB. Compute a two pass bitrate from duration, run libx264 two pass, and show before/after size.\n5. Convert: MP4, WebM, GIF (with palettegen and paletteuse so GIFs do not look like garbage), and MP3 or WAV audio extraction.\n6. Subtitles: burn an existing .srt into the video with a styled subtitles filter. If OPENAI_API_KEY is present in .env, add an optional \"transcribe\" button that extracts 16kHz mono audio and generates the .srt first; otherwise hide that button.\n\nJobs run one at a time in a queue. Stream ffmpeg stderr over server sent events and parse it into a real percentage progress bar with an ETA. A cancel button kills the process and cleans up temp files.\n\nOutputs land in ./workspace/out with readable names and appear in a results list with a download link, the exact ffmpeg command used (copyable), and a delete button.\n\nOut of scope: accounts, cloud storage, timeline multitrack editing, transitions, effects, telemetry, Docker. Secrets only in .env, with .env.example committed.\n\nShip a README with install prerequisites, how to check that ffmpeg is present, and one paragraph per operation explaining what flags it runs and why.",
+  "promptCurated": false
+}
