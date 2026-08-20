@@ -1,0 +1,51 @@
+{
+  "slug": "whoop",
+  "name": "Whoop",
+  "domain": "whoop.com",
+  "category": "wellness",
+  "subcategory": "wearable fitness and recovery tracking",
+  "tagline": "Subscription wearable band that tracks sleep, strain and recovery with no screen and a companion app.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly or annual membership, includes the band hardware",
+    "unit": "flat",
+    "source": "https://www.whoop.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app is the thin part. The paid thing is a strap on your wrist that samples PPG and skin temperature continuously for days on a single charge, plus the models that turn those raw signals into a recovery score you half believe. An agent can absolutely build you a dashboard that ingests HealthKit or a Garmin export and computes its own readiness number from HRV, resting heart rate and sleep duration, and honestly that number is not much worse than the branded one. But you cannot one-shot the sensor, the firmware, the battery engineering, or the years of labeled physiological data behind the scoring. If you already own a wearable that exports data, the DIY version is a real win; if you do not, there is nothing to build against.",
+  "coreLoopDIY": "Pulls HRV, resting heart rate and sleep data from an existing wearable export or HealthKit, computes a rolling baseline and a daily readiness score, and charts strain against recovery over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An existing wearable that exports data: Apple Watch via HealthKit, Garmin, Oura, or a Fitbit CSV export",
+    "Node and a local database, or just SQLite",
+    "Patience with health data export formats, which are all bad in different ways"
+  ],
+  "whatYouLose": [
+    "The hardware itself: a screenless band with five-day battery and continuous overnight sampling",
+    "Proprietary recovery and strain models trained on a large labeled physiological dataset",
+    "Automatic sleep staging and sleep detection without you telling it when you went to bed",
+    "Coaching, trends and the social team features that make people actually keep wearing it",
+    "Firmware updates, waterproofing, and someone else worrying about sensor drift"
+  ],
+  "moatTags": [
+    "hardware",
+    "proprietary-data",
+    "proprietary-models"
+  ],
+  "moatNotes": "Every software layer here is replaceable. The wrist-mounted optical sensor and the multi-year physiological corpus behind the scores are not.",
+  "whyPeopleStillPay": "People pay because the value arrives without effort: you put on a band, you forget about it, and a number shows up in the morning. Rebuilding the scoring math is a fun weekend and often produces something you trust more because you can read the formula. But nobody is fabricating a PPG sensor with a week of battery life in a session, and without a device streaming clean continuous data your beautiful dashboard has nothing to display. The subscription is really a hardware lease with analytics attached, and analytics is the cheap half.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The recovery score is a weekend of arithmetic over data you may already own. The moat is the strap: sensor hardware, battery engineering, and the labeled physiological dataset the scores are fit to.",
+  "prompt": "Build a local-first personal recovery and strain dashboard called \"readiness\". Single user, runs on my machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions: TypeScript, Next.js App Router, SQLite via better-sqlite3, Tailwind, Recharts for charts. One repo, npm run dev starts everything.\n\nData in: I do not have a proprietary band, so ingest from files and open APIs.\n1. An importer for Apple Health export.zip that streams the export.xml and extracts HeartRateVariabilitySDNN, RestingHeartRate, HeartRate, SleepAnalysis, ActiveEnergyBurned and BodyMass records. Do not load the whole XML into memory.\n2. A generic CSV importer with a column-mapping screen, so Garmin, Oura or Fitbit exports can be mapped to the same internal schema.\nStore everything in a normalized samples table: (id, metric, value, unit, startedAt, endedAt, source).\n\nDerived metrics, computed nightly on import, all formulas documented in a README section:\n- Rolling 30-day baseline (mean and standard deviation) for HRV and resting heart rate.\n- Daily recovery score 0 to 100: weighted z-scores of last-night HRV (positive weight), resting heart rate (negative weight), and sleep duration versus a configurable sleep need. Clamp and smooth over 3 days. Expose the weights in a settings page so I can tune them.\n- Daily strain: time-weighted sum of minutes spent in heart rate zones derived from a max HR I set manually.\n- Sleep debt: rolling 14-day sum of (sleep need minus actual sleep).\n\nUI, three pages only:\n- Today: recovery number with the inputs that produced it shown as a plain breakdown, no black box.\n- Trends: 90-day charts of recovery, strain, HRV, resting heart rate, sleep duration.\n- Import: file drop, mapping, import history, and a button to recompute all derived metrics.\n\nExplicitly out of scope: sleep staging, live device connections, Bluetooth, notifications, coaching text, any LLM, multi-user, auth.\n\nSecrets, if any importer ever needs one, go in .env with a committed .env.example. Seed the database with 120 days of plausible synthetic data behind a npm run seed script so the charts are not empty on first run. Write tests for the score math using the seeded data.",
+  "promptCurated": false
+}
