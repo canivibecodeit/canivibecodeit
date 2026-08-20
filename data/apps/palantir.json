@@ -1,0 +1,51 @@
+{
+  "slug": "palantir",
+  "name": "Palantir",
+  "domain": "palantir.com",
+  "category": "analytics",
+  "subcategory": "enterprise data integration and ontology platform",
+  "tagline": "Enterprise and government data platform: ingest everything, model it as an ontology, run operational decisions on top.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.palantir.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Palantir sells via enterprise contracts, typically six to eight figures annually, with no meaningful public per-seat list price.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a small ontology-backed data explorer in an afternoon: connectors, a semantic layer, lineage, a query UI. That is not what anyone buys Palantir for. They buy accredited deployments inside classified and regulated environments, a legal and procurement posture that survives audits and congressional attention, and forward-deployed engineers who wire fifty ugly legacy systems into one object model. The software is the smallest part of the invoice. A personal replacement is coherent only if your problem is \"I have a pile of CSVs and want a joined view\", which is a genuinely nice thing to build and a completely different product.",
+  "coreLoopDIY": "Ingest local files and database tables into DuckDB, define objects and links in a YAML ontology, then browse, join, and query entities in a local web UI with lineage shown per column.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12",
+    "local disk space for the DuckDB file",
+    "your own data sources; connectors to anything real are on you"
+  ],
+  "whatYouLose": [
+    "Accredited hosting: FedRAMP High, IL5/6, air-gapped and classified deployments you cannot self-certify",
+    "Granular purpose-based access control and audit trails that hold up in front of a regulator or an inspector general",
+    "Forward-deployed engineers who do the actual hard part: integrating decades of legacy systems nobody documented",
+    "Operational apps on top of the data layer: workflows, writeback, simulation, model deployment, all governed",
+    "Scale: petabyte pipelines, incremental builds, and someone on the hook at 3am when the build breaks"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The accreditations and the government relationships are the product. Once an agency's operational workflows live in the ontology, migration is a multi-year program, not a procurement decision.",
+  "whyPeopleStillPay": "Because the buyer is not choosing between Palantir and a weekend build, they are choosing between Palantir and eighteen months of internal platform work that fails an audit at month fourteen. Defense and intelligence customers need software that is already cleared to run where their data lives, and commercial customers mostly need someone to own the integration mess end to end. The pricing reflects consulting and risk transfer more than code. Nobody signs a Foundry contract because the UI is unmatched.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ontology browser is a weekend; the accreditation is not. The moat is being pre-cleared to run inside environments where your laptop is contraband, plus engineers who will personally untangle a 1990s mainframe.",
+  "prompt": "Build a local, single-user data ontology explorer. Call it \"smallpile\". No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, uv for deps\n- DuckDB as the only storage engine, one file at ./smallpile.duckdb\n- FastAPI + Jinja2 templates + HTMX for the UI, no React, no build step\n- Pydantic for config validation\n- pytest for tests\n\nWhat it does:\n1. Reads ./ontology.yaml defining object types (name, source, primary key, display fields) and links between them (from type, from column, to type, to column, cardinality).\n2. Sources may be: local CSV, local Parquet, or a SQL query against a Postgres URL read from .env. Nothing else.\n3. `smallpile build` ingests every source into a DuckDB table, records row counts, and writes a lineage record per object type: source path or query, ingest timestamp, column list, and a content hash.\n4. `smallpile serve` starts the web UI on localhost:8000 with: a list of object types, a paginated searchable table per type, an object detail page showing all fields plus every linked object one hop away, and a lineage panel per type showing where each column came from.\n5. A read-only SQL console page that runs arbitrary SELECT against DuckDB and renders results. Reject anything that is not a single SELECT or WITH statement.\n\nExplicitly out of scope: writeback, permissions, multi-user, scheduling, incremental builds, charts, model deployment, auth.\n\nDeliverables: pyproject.toml, a working example ontology.yaml plus two generated sample CSVs (customers, orders) so `smallpile build && smallpile serve` works immediately after install, .env.example with POSTGRES_URL, tests covering yaml validation, link resolution, and the SELECT-only guard, and a README that states plainly this is a personal tool with no security model.",
+  "promptCurated": false
+}
