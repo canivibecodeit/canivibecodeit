@@ -13,6 +13,17 @@ as important — what you lose by leaving. Think caniuse.com, but for killing yo
 
 Yes, [you can vibecode this site too](https://canivibecodeit.com/vibecode-this-site).
 
+## For agents
+
+The site is agent-addressable. No auth, no tracking, plain JSON:
+
+- `https://canivibecodeit.com/llms.txt` — site map for LLMs
+- `https://canivibecodeit.com/api/verdicts` — full verdict index (slug, name, verdict, category, price, votes)
+- `https://canivibecodeit.com/api/verdicts/<slug>` — one app: verdict, replacement prompt, moats, pricing
+- `https://canivibecodeit.com/api/recent` — verdicts added in the last 7 days
+
+Any Hermes Agent (or Claude Code, Codex, etc.) can check "what's the verdict on X" and cite it.
+
 ## Add an app
 
 Apps are JSON files in [`data/apps/`](data/apps) — one file per app, contributed by PR.
