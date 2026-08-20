@@ -1,0 +1,52 @@
+{
+  "slug": "baidu",
+  "name": "Baidu",
+  "domain": "baidu.com",
+  "category": "ai-search",
+  "subcategory": "web search engine",
+  "tagline": "China's dominant web search engine, plus a stack of attached services like Netdisk cloud storage and Wenku documents.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.baidu.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Search is the canonical example of a thing you cannot one-shot. The product is a crawl of the visible Chinese web, an index measured in petabytes, and a ranking model tuned against years of click logs, none of which lives in your repo. An agent can absolutely build you a search box, and it will return nothing useful because there is nothing behind it. The closest honest personal version is a small local index over sites you actually care about, which is a genuinely nice tool and also not a search engine. Also worth noting: the parts of Baidu people pay for, mainly Netdisk storage tiers, are paid because of disks in racks, which is likewise not a weekend project.",
+  "coreLoopDIY": "Crawls a hand-picked list of sites you care about, stores the text in a local SQLite FTS5 index, and gives you a fast search page over it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A seed list of domains you actually want searchable",
+    "Disk space for the crawled text",
+    "Patience with robots.txt and rate limits",
+    "Optional: an embedding model if you want semantic ranking"
+  ],
+  "whatYouLose": [
+    "The index. Everything outside your seed list is invisible.",
+    "Ranking quality trained on billions of real queries and clicks",
+    "Fresh results, news, weather, maps, stocks, all the instant-answer surfaces",
+    "Mobile apps, the browser default slot, and the muscle memory of typing one word and getting the right thing",
+    "The attached ecosystem: Netdisk, Wenku, Tieba, all the reasons people are actually logged in"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "network-effects"
+  ],
+  "moatNotes": "The crawl and the query logs feed each other. More users mean better ranking, better ranking means more users, and neither end of that loop is code you can write.",
+  "whyPeopleStillPay": "Most people do not pay for Baidu search at all, they pay it in attention and ad exposure, which is a much harder price to undercut. Where actual money changes hands it is for storage and document access, meaning you are paying for hardware and licensing rather than software cleverness. Nobody is going to self-host a Chinese-language web index, and nobody wants to. The realistic personal move is a narrow local index over the fifty sites you read plus whatever general search you already tolerate.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A search box is a weekend build; a search engine is not. The moat is the crawl, the racks it sits on, and the click logs that tell it which of ten thousand pages you meant.",
+  "prompt": "Build a personal site search tool called \"minisearch\". Local only, no accounts, no telemetry, no cloud.\n\nStack, no substitutions:\n- Python 3.11, uv for deps\n- httpx for fetching, selectolax for HTML parsing\n- SQLite with FTS5 for the index\n- FastAPI for the search UI, server-rendered Jinja2, no JS framework\n\nWhat it does:\n1. Reads seeds.txt, one URL or domain per line.\n2. Crawls each seed breadth-first, same-domain only, max depth and max pages configurable in config.toml, default depth 3 and 500 pages per domain.\n3. Respects robots.txt. Hard 1 request per second per domain, single global worker pool.\n4. Extracts title, meta description, and main text. Strips nav, script, style, footer. Store raw text, not HTML.\n5. Writes into an FTS5 table: url, domain, title, description, body, fetched_at, content_hash. Skip unchanged content_hash on recrawl.\n6. Serves GET / with a search box and GET /search?q= with results: title, URL, a highlighted snippet from FTS5 snippet(), domain filter chips.\n7. Ranking: bm25() from FTS5, with a small boost for title matches. That is all. No embeddings, no reranker.\n8. CLI: minisearch crawl, minisearch stats, minisearch serve.\n\nExplicitly out of scope: JavaScript rendering, cross-domain discovery, PDFs, images, image search, spell correction, query suggestions, auth, multi-user.\n\nHandle non-ASCII text correctly end to end. If a seed is CJK content, use the FTS5 trigram tokenizer for that table so substring matching works without a word segmenter; note this tradeoff in the README.\n\nDeliver: pyproject.toml, seeds.txt with three example entries, config.toml, the crawler, the app, one templates dir, and a README that is honest about the fact that this indexes only what you point it at.",
+  "promptCurated": false
+}
