@@ -1,0 +1,51 @@
+{
+  "slug": "willow",
+  "name": "Willow",
+  "domain": "willowvoice.com",
+  "category": "voice-dictation",
+  "subcategory": "AI dictation for desktop",
+  "tagline": "Push-to-talk dictation that transcribes your speech and cleans it up into finished text in whatever app you are typing in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://willowvoice.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pipeline here is not a secret: capture audio on a hotkey, run speech to text, run a small cleanup pass to strip the ums and fix punctuation, paste into the focused app. An agent can wire that up in a session with Whisper locally or an API, and for long-form writing it will feel about 80 percent as good. The last 20 percent is the part people actually pay for: sub-second latency, correct spelling of your coworkers and your codebase, not mangling the text when you paste into a terminal versus a Slack box, and never eating a recording. You will also be doing your own macOS accessibility permission dance and there is no mobile or keyboard-extension story at all. Buildable, genuinely useful, and you will feel every millisecond of the gap.",
+  "coreLoopDIY": "A menu bar daemon that records while you hold a hotkey, transcribes it, runs an LLM cleanup pass with your custom vocabulary, and pastes the result into whatever window is focused.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS with microphone and accessibility permissions granted to the terminal or app running the daemon",
+    "Either a local Whisper model (a few GB, faster on Apple Silicon) or an API key for hosted speech to text",
+    "An LLM API key for the cleanup pass, or a local model if you want it fully offline",
+    "Willingness to debug global hotkey and simulated-paste behavior per app"
+  ],
+  "whatYouLose": [
+    "Latency tuning: hosted dictation apps stream audio and start transcribing before you stop talking, a naive build waits for the whole clip",
+    "Learned vocabulary that quietly absorbs your names, jargon and acronyms over months of use",
+    "Per-app formatting smarts, plain text for a terminal, formatted prose for a doc, short casual tone for chat",
+    "Reliability engineering: no dropped recordings, no half-pasted text, no dead hotkey after the laptop sleeps",
+    "Mobile and iPad dictation, plus a signed installable app instead of a Python process you babysit"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "Speech to text is a commodity API now. The defensible part is the hundred small decisions between the microphone and the cursor, plus the vocabulary the product learns about you.",
+  "whyPeopleStillPay": "Because dictation is a reflex tool, and reflex tools have to work every single time or you stop reaching for them. A homemade version that hangs for two seconds, or types your colleague's name wrong, or silently fails once a day, gets abandoned in a week even though it technically works. Paying means someone else owns the latency, the model swaps, the OS permission changes and the edge case where you dictate into a password field. That is a small monthly fee against a habit you use fifty times a day.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The transcription is free, the flinch-free feel is not.",
+  "prompt": "Build a local push-to-talk dictation daemon for macOS. No accounts, no telemetry, no cloud storage of audio.\n\nStack, no substitutions:\n- Python 3.12, managed with uv, single package `dictate`\n- sounddevice + numpy for microphone capture at 16kHz mono\n- faster-whisper for local transcription, default model `small.en`, configurable via .env\n- pynput for a global hotkey listener\n- pyobjc (AppKit) for clipboard writes, and a simulated Cmd+V keystroke to paste\n- rumps for a minimal menu bar item (status, toggle cleanup, quit)\n- httpx for the optional LLM cleanup call\n\nBehavior:\n- Hold Right Option to record, release to stop. Show a menu bar state change while recording.\n- On release: transcribe locally, then if CLEANUP=1 send the transcript to an OpenAI-compatible chat endpoint with a strict prompt that only removes filler words, fixes punctuation and capitalization, and applies a user vocabulary list. It must never answer, summarize, or add content.\n- Load vocabulary from `vocab.txt`, one term per line, and inject it into both the Whisper initial_prompt and the cleanup prompt.\n- Write the final text to the clipboard, restore the previous clipboard contents after 5 seconds, and paste into the focused app.\n- If anything fails, paste the raw transcript rather than nothing, and log the error.\n\nAlso include:\n- `.env.example` with OPENAI_API_KEY, OPENAI_BASE_URL, WHISPER_MODEL, CLEANUP, HOTKEY\n- A local SQLite history file storing timestamp, raw transcript and cleaned transcript, with a `dictate history` command and a `dictate purge` command\n- Audio kept in memory only, never written to disk\n- README with the exact macOS Accessibility and Microphone permission steps, and a note that first run downloads the model\n\nOut of scope: streaming partial transcripts, iOS, cross-platform support, multi-language, speaker diarization, any hosted backend.",
+  "promptCurated": false
+}
