@@ -1,0 +1,51 @@
+{
+  "slug": "myphoner",
+  "name": "Myphoner",
+  "domain": "myphoner.com",
+  "category": "sales-outreach",
+  "subcategory": "cold calling / lead queue",
+  "tagline": "Queue-based cold calling software: import lead lists, work them one call at a time, log outcomes and schedule follow-ups.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://myphoner.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The heart of Myphoner is a single-lead-at-a-time queue with dispositions, callbacks and duplicate detection, and that is a database table plus one screen with good keyboard shortcuts. An agent can produce a working version in a weekend: CSV import, next-lead-in-queue, disposition buttons, notes, follow-up scheduling, a basic dashboard. What does not fall out of the build is the telephony layer, the multi-agent lead claiming that stops two people dialing the same person, and the boring compliance furniture around call recording and do-not-call lists. If you are one person working your own list, the DIY version is genuinely fine and probably faster to use. If you are running five callers on shared lists with recordings and a manager watching, you are rebuilding a product, not a weekend script.",
+  "coreLoopDIY": "Imports a CSV of leads into SQLite, serves them one at a time in a keyboard-driven call screen with disposition buttons, notes and callback scheduling, and reports on what happened.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a local machine or cheap VPS",
+    "A CSV export of your leads",
+    "A softphone or desk phone that handles tel: links, or a Twilio account if you want in-browser dialing"
+  ],
+  "whatYouLose": [
+    "Actual click-to-call dialing, call recording and call logging without wiring up a telephony provider yourself",
+    "Lead claiming and locking, so multiple callers on one shared list will collide",
+    "Built-in duplicate detection and list cleaning across imports, which is fiddlier than it looks",
+    "Team dashboards, agent performance reporting and manager oversight",
+    "Integrations out to CRMs, email tools and Zapier, plus the DNC and call-consent handling someone else maintains"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "collaboration"
+  ],
+  "moatNotes": "The queue UI is the cheap part. Telephony plumbing plus shared-list concurrency plus recording consent is where the real hours live.",
+  "whyPeopleStillPay": "Because cold calling teams are not paying for a lead list view, they are paying for the guarantee that two agents never dial the same prospect, that every call is logged and recordable, that the numbers dial from inside the browser, and that a manager can see who did what today. Each of those is individually tractable and collectively a product. A solo caller working their own spreadsheet has almost none of those problems and should probably just build the thing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Solo callers: build it. Teams sharing a list: the concurrency bugs will find you on day two.",
+  "prompt": "Build a local-first cold calling queue app for a single user. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js 15 App Router with TypeScript\n- SQLite via better-sqlite3, file at ./data/leads.db, migrations in plain SQL on boot\n- Tailwind CSS, no component library\n- Runs with `npm run dev` on localhost, no Docker\n\nData model:\n- leads: id, name, company, phone, email, notes, source_list, status (new | called | callback | won | lost | dnc), attempts, last_called_at, callback_at, timezone, custom_fields (JSON)\n- calls: id, lead_id, started_at, outcome, duration_seconds, note\n\nFeatures, in scope:\n1. CSV import page: upload a file, map columns to lead fields onscreen, dedupe against existing leads by normalized phone number, report how many were inserted and how many skipped as duplicates.\n2. The call screen, which is the whole point. Shows exactly one lead, big and readable: name, company, phone as a tel: link, notes, previous call history, attempt count.\n3. Queue logic: serve the next lead by priority, callbacks that are due first, then new leads, then called leads past a configurable cooldown. Never serve a dnc or won lead.\n4. Disposition buttons with keyboard shortcuts: no answer, voicemail, callback (opens a date/time picker), not interested, won, do not call. Every disposition writes a calls row, updates lead status and attempts, and immediately loads the next lead.\n5. Free-text note field that saves on disposition, and a quick skip action.\n6. Lists view: filter and search leads by status, list and text, edit any lead inline.\n7. Dashboard: calls today, calls this week, outcome breakdown, callbacks due today, connect rate.\n8. Export all leads and call history back out to CSV.\n\nExplicitly out of scope, do not build:\n- Any telephony integration, dialer, or call recording. Phone numbers are tel: links and that is it.\n- Multi-user auth, teams, lead claiming or locking\n- Email sending or CRM sync\n\nDetails that matter:\n- Normalize phone numbers to E.164 where possible on import, keep the original string too.\n- Keyboard first: the whole call loop must be workable without touching the mouse. Show the shortcut hints on screen.\n- Store any config in .env (PORT, CALL_COOLDOWN_HOURS, DEFAULT_TIMEZONE). Ship a .env.example.\n- Seed script that inserts 50 fake leads so the app is usable immediately.\n- README with setup in under ten lines.",
+  "promptCurated": false
+}
