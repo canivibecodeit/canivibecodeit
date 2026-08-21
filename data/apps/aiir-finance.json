@@ -1,0 +1,52 @@
+{
+  "slug": "aiir-finance",
+  "name": "AIIR Finance",
+  "domain": "aiir.finance",
+  "category": "personal-finance",
+  "subcategory": "net worth and spending tracking",
+  "tagline": "A personal finance dashboard that pulls accounts together and puts an AI layer over spending, net worth and cash flow.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.aiir.finance/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible half of a personal finance app is a solved problem: a table of transactions, a category mapper, some charts, and an LLM prompt that narrates your spending back to you. An agent will produce that in a session and it will feel surprisingly close. The part that does not survive is data intake: live bank and brokerage connections mean an aggregator contract, per-institution breakage, and someone whose job is fixing it on a Tuesday. Without that you are on CSV exports and manual updates, which is fine for a few weeks and then quietly rots. Also no phone app, so the daily habit loop is weaker than the hosted thing.",
+  "coreLoopDIY": "Imports transaction and holdings CSVs into a local database, categorizes them with rules plus an LLM fallback, and renders net worth, cash flow and spending views with a chat box that queries your own numbers.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "CSV or OFX exports from each bank, brokerage and card you care about",
+    "An LLM API key if you want the narration and auto-categorization",
+    "Somewhere to run it, laptop is fine, plus an actual backup plan for the database",
+    "Willingness to re-import manually, or pay for an aggregator like Plaid or SimpleFIN"
+  ],
+  "whatYouLose": [
+    "Automatic bank and brokerage sync, and the ongoing repair work when a connection breaks",
+    "A mobile app, so no glance-at-it-in-the-checkout-line habit",
+    "Categorization tuned on a lot of other people's messy merchant strings",
+    "Market data, FX rates and instrument metadata arriving without you thinking about it",
+    "Any story about encryption, recovery or support when your only copy of ten years of finances is on one machine"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "Nothing about the UI is defensible. The aggregator plumbing, the institution coverage list and the handling of financial data are the actual product.",
+  "whyPeopleStillPay": "Because personal finance tools only work if they are effortless. The moment you have to remember to export a CSV, the data goes stale, the charts start lying, and you stop opening the app. Paying a few dollars a month buys the connections staying alive, the phone app that makes checking a reflex, and the mild comfort that someone else is responsible for the encryption. A local build is a better teaching tool and a worse habit.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you want to actually understand your money; keep it if you turn out to be the kind of person who imports CSVs on a schedule.",
+  "prompt": "Build a local-first personal finance dashboard. Empty folder, no scaffolding questions, just make these choices and go.\n\nStack: Next.js with the App Router and TypeScript, Tailwind for styling, SQLite via better-sqlite3 with Drizzle ORM, Recharts for charts. Everything runs on localhost with `npm run dev`. No auth, no accounts, no hosted backend, no telemetry, no analytics.\n\nData model: accounts (name, type in cash/credit/investment/loan, currency, optional manual balance), transactions (date, account, description, raw_merchant, amount signed, category, subcategory, notes, hash for dedupe), holdings (account, ticker, quantity, cost_basis, manual_price), balance_snapshots (account, date, value), rules (match pattern, target category).\n\nIntake: a CSV import screen where the user uploads a file, maps columns to fields once per institution, and saves that mapping as a named preset reused on future imports. Dedupe by content hash so re-importing an overlapping export does not double count. Also allow manual entry for accounts with no export.\n\nCategorization: run rules first, exact and regex match on description. Anything unmatched goes into an Uncategorized queue. Add an optional LLM pass that batches uncategorized descriptions and suggests categories from a fixed taxonomy defined in one config file. Read OPENAI_API_KEY from .env and skip the pass gracefully if it is missing. When the user accepts a suggestion, offer to write it back as a rule.\n\nViews: net worth over time from balance snapshots plus holdings valuation; monthly cash flow with income, spend and savings rate; spend by category with a month-over-month comparison; a searchable transaction table with inline category editing.\n\nChat: one text box that answers questions about the user's numbers by translating the question into a parameterized read-only SQL query against the local database, showing the query and the result table. Never let it write.\n\nAlso include: a seed script with fake data so the app is not empty on first run, `npm run export` that dumps every table to CSV, and `npm run backup` that copies the SQLite file to a timestamped path.\n\nExplicitly out of scope: bank aggregation or Plaid, live market data, multi-user support, budgeting envelopes, mobile apps, deployment config.\n\nWrite a README that states plainly that this depends on the user manually exporting CSVs, and lists exactly what breaks if they stop.",
+  "promptCurated": false
+}
