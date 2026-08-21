@@ -1,0 +1,54 @@
+{
+  "slug": "contentstudio",
+  "name": "ContentStudio",
+  "domain": "contentstudio.io",
+  "category": "social-media",
+  "subcategory": "scheduling and content curation",
+  "tagline": "Social media management suite: schedule posts across networks, curate content, track analytics, and run approvals with a team.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://contentstudio.io/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part people imagine when they say \"I could build this\" is a queue with a calendar view and a worker that posts on schedule, and that part is genuinely a weekend. The part that eats the weekend is every network's API: Instagram and TikTok publishing needs a reviewed Meta or TikTok app, LinkedIn gates the useful scopes, X charges for write access, and tokens expire in ways that only reveal themselves at 3am. Open networks like Mastodon and Bluesky work in an afternoon, which tells you exactly which platforms are the moat. If you post to two or three channels for yourself, a local build wins on cost and control. If you need nine networks, first-comment scheduling, and analytics that survive an API deprecation, you are paying someone to babysit that surface.",
+  "coreLoopDIY": "A local post composer plus calendar queue where a cron worker publishes scheduled items to connected accounts and logs successes and failures.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Developer accounts and API credentials for every network you want to publish to",
+    "Meta or TikTok app review if you want Instagram or TikTok publishing at all",
+    "Paid X API tier for write access",
+    "An always-on machine or small VPS so the scheduler actually fires",
+    "Object storage or a local disk for media, plus per-network format rules"
+  ],
+  "whatYouLose": [
+    "Publishing to the gated networks without doing your own app review paperwork",
+    "Automatic adaptation when a network changes its API or deprecates an endpoint",
+    "Analytics history, best-time suggestions, and cross-network reporting in one place",
+    "Content discovery and curation feeds, plus the AI caption tooling",
+    "Team workflow: approvals, comments, per-client workspaces, shared calendars",
+    "Mobile app, push notifications, and failure alerts that reach you when you are not at your desk"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the calendar UI, it is being an approved app on platforms that make approval deliberately annoying, and staying approved.",
+  "whyPeopleStillPay": "Because the value is absorbed maintenance. Social APIs break, rate limits shift, tokens die, and Instagram in particular treats third-party publishing as a privilege it periodically reconsiders. A tool with a review-approved app and a team watching changelogs turns that into someone else's Tuesday. Agencies also pay for the multi-client structure and approval flow, which is real product surface and not something you will bother building for yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for the open networks, keep a browser tab open for the walled ones, and stop pretending the calendar was the hard part.",
+  "prompt": "Build a single-user social media scheduler that runs locally. No accounts, no telemetry, no hosted backend.\n\nStack, non negotiable: Node 20 with TypeScript, Next.js App Router for the UI, SQLite via better-sqlite3 with Drizzle, Tailwind for styling. One repo, npm scripts only, no Docker.\n\nData model: channels (id, platform, handle, credentials_json, enabled), posts (id, body, media paths as JSON, scheduled_at UTC, status: draft | queued | published | failed, attempts), post_targets (post_id, channel_id, remote_id, error), and an append-only log table.\n\nUI, four screens:\n1. Composer: textarea with live per-platform character counts, channel multi-select, drag and drop image upload to ./media, date and time picker, Save draft or Schedule.\n2. Calendar: month and week views, scheduled posts as chips, drag a chip to reschedule, click to edit.\n3. Queue: flat list filtered by status, retry and cancel buttons, error text shown inline and not swallowed.\n4. Channels: connect and disconnect, show token expiry if the platform reports one.\n\nPublishing adapters behind one interface: publish(post, channel) returns remote id or throws a typed error. Implement Mastodon and Bluesky fully, they need no app review. Implement a Webhook adapter that POSTs the payload anywhere, useful for Zapier style escapes. Stub X, LinkedIn, Instagram and Facebook adapters: correct request shapes, clear thrown error saying credentials and app review are required. Do not fake success anywhere.\n\nScheduler: a separate `npm run worker` process polling every 30 seconds for due posts, publishing per target, exponential backoff, max 3 attempts, then status failed. Idempotent, so a restart never double posts.\n\nSecrets in .env only, never in the database in plaintext beyond what SQLite needs locally. Include .env.example.\n\nOut of scope, do not build: content discovery feeds, AI caption generation, analytics dashboards, team approvals, multi-workspace, mobile app.\n\nDeliver a README with setup, how to get Mastodon and Bluesky tokens, and a blunt paragraph on why the other platforms are stubbed.",
+  "promptCurated": false
+}
