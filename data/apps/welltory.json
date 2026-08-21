@@ -1,0 +1,52 @@
+{
+  "slug": "welltory",
+  "name": "Welltory",
+  "domain": "welltory.com",
+  "category": "wellness",
+  "subcategory": "HRV and recovery tracking",
+  "tagline": "Reads heart rate variability from your wearable or phone camera and turns it into daily energy, stress and readiness scores.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://welltory.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math here is not secret: RMSSD, SDNN, a frequency split, a rolling personal baseline, and a z-score against that baseline. If you already own a device that coughs up RR intervals or an HRV number, an agent can build you a local dashboard that charts the same trend and flags bad days in a weekend. What it cannot hand you in one session is the phone camera PPG measurement, the wearable OAuth zoo, and the correlation engine that claims your bad Tuesdays track your Monday beers. You also lose the mobile app, which matters more than it sounds for something you are supposed to check every morning half awake. Build it if you want the numbers unmediated; keep paying if you want the nudges and the plain English interpretation.",
+  "coreLoopDIY": "Ingests HRV and RR interval exports from your wearable, computes RMSSD, SDNN and LF/HF, builds a rolling personal baseline, and shows a daily readiness z-score with tag correlations on a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A device that exports HRV or RR intervals: chest strap, Apple Watch, Oura, Garmin, Polar",
+    "An Apple Health or Health Connect export, or CSV from your device app",
+    "Python 3.11 locally",
+    "Willingness to log your own sleep, alcohol and training tags by hand"
+  ],
+  "whatYouLose": [
+    "Camera based PPG measurement, so no HRV reading without a device",
+    "Native iOS and Android apps with morning reminders",
+    "Live sync from a dozen wearables and health platforms via OAuth",
+    "Plain language interpretation of what the numbers mean instead of raw charts",
+    "Their aggregate population data used to normalize your scores against people like you"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The wearable integration surface is the real work: a long tail of APIs, each with its own auth flow, rate limits and quirks about what HRV even means on that device.",
+  "whyPeopleStillPay": "Because a health app you have to feed by hand is a health app you stop using in nine days. Welltory's actual product is friction removal: it pulls from whatever you already wear, measures off the camera when you wear nothing, and puts a sentence on the screen instead of a chart you have to interpret. The signal processing is commodity, the daily habit is not, and consumer HRV is an area where confident interpretation is most of the perceived value, whether or not that confidence is earned.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build if you already own a chest strap and distrust black box wellness scores; pointless if your plan was to measure yourself with a phone camera.",
+  "prompt": "Build a local, single user HRV and readiness dashboard. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, Plotly served from CDN for charts. Deps: fastapi, uvicorn, numpy, scipy, pandas, jinja2. Nothing else.\n\nData in:\n1. An importer for Apple Health export.zip: parse export.xml, pull HKQuantityTypeIdentifierHeartRateVariabilitySDNN records plus resting heart rate and sleep duration.\n2. A generic CSV importer for RR interval files: one column of inter beat intervals in milliseconds, plus a timestamp in the filename or a --date flag.\n3. A manual daily tag endpoint and form: free text tags like alcohol, hard-workout, travel, sick, plus a 1 to 5 subjective feel score.\n\nProcessing:\n- From RR intervals compute RMSSD, SDNN, pNN50, mean HR, and an LF/HF ratio using Welch on interpolated 4 Hz series. Reject artifacts: drop beats differing more than 20 percent from the running median, and flag any reading with more than 5 percent rejected as low quality.\n- Maintain a rolling 60 day personal baseline (median and MAD) per metric. Compute a daily z-score and map it to a 0 to 100 readiness number. Do not invent a proprietary formula, keep the mapping in one small documented function so it can be tweaked.\n- Compute simple tag effects: for each tag, mean readiness on tagged days versus untagged, with a Mann-Whitney U p value and an explicit sample size. Print the sample size next to every claim.\n\nUI: one page. Readiness sparkline for 90 days, per metric trend charts, a table of the last 30 days with quality flags, and a tag effects table. Dark, dense, no onboarding, no marketing copy.\n\nExplicitly out of scope: phone camera PPG, Bluetooth device pairing, wearable OAuth integrations, mobile apps, push notifications, any health advice text.\n\nDeliver: main.py, importers/, a schema.sql, a README with exact run commands, and a seed script that generates 120 days of plausible fake data so the dashboard is populated on first run. Any config in .env, read with os.environ, and ship a .env.example.\n",
+  "promptCurated": false
+}
