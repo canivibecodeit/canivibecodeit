@@ -1,0 +1,52 @@
+{
+  "slug": "peec",
+  "name": "Peec AI",
+  "domain": "peec.ai",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility tracking",
+  "tagline": "Tracks how often your brand shows up in AI assistant answers, and which sources those answers cite.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://peec.ai/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanic here is not exotic: keep a list of buyer-intent prompts, fire them at a few model APIs on a schedule, count how often you and your competitors get named, log the URLs the answers cite. An agent can put that in front of you in an afternoon with SQLite and a static dashboard, and for a single brand that is most of the signal. The gap is that Peec is measuring consumer surfaces, ChatGPT's web app with browsing, AI Overviews, Perplexity, and those do not answer the same way the raw APIs do, so your numbers drift from what customers actually see. You also start with zero history, and this whole category is worthless until you have months of trend lines. Build it if you want a cheap directional read, buy it if someone is going to make decisions off the chart.",
+  "coreLoopDIY": "Runs your prompt list against a few LLM APIs on a schedule, extracts brand and competitor mentions plus cited domains, and renders a trend dashboard from a local database.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API keys for at least two model providers (OpenAI, Anthropic, Perplexity or similar)",
+    "a token budget, since the cost scales with prompts times models times days",
+    "Node 20 and SQLite",
+    "cron or a scheduled GitHub Action to run it daily"
+  ],
+  "whatYouLose": [
+    "Coverage of the surfaces people actually use: Google AI Overviews and the ChatGPT web app with browsing answer differently than the APIs you can call",
+    "Historical data from before you started, which is the only reason to look at a chart like this",
+    "Sentiment and position scoring that has been tuned against thousands of brands instead of your one prompt",
+    "Competitor and category benchmarks you cannot generate yourself",
+    "A shareable client-facing report that does not look like a weekend project"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible asset is the longitudinal panel plus whatever plumbing they use to reach consumer-facing answer surfaces, not the mention-counting logic.",
+  "whyPeopleStillPay": "Agencies and marketing leads are not buying a mention counter, they are buying a chart with nine months of history on it and a logo they can put in a deck. Running thousands of prompts across five models every day also gets expensive and annoying to babysit, and the moment a provider changes its answer format your scraper quietly starts reporting zeros. If AI visibility is a line item you report on, paying someone to own the data collection is a rational trade. If you just want to know whether your product ever gets named, build it and stop paying.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Counting brand mentions is easy; the awkward truth is that API answers and consumer app answers are different products.",
+  "prompt": "Build a local AI search visibility tracker. No accounts, no cloud, no telemetry.\n\nStack: TypeScript, Node 20, SQLite via better-sqlite3, a single CLI entrypoint. No web server, no framework. Output is a generated static HTML file.\n\nConfig lives in config.yaml at the repo root:\n- brand: our brand name plus aliases\n- competitors: list of names plus aliases\n- prompts: list of buyer-intent questions as plain strings\n- models: list of provider plus model id pairs\n\nSecrets in .env, read with process.env: OPENAI_API_KEY, ANTHROPIC_API_KEY, PERPLEXITY_API_KEY. Skip any provider whose key is missing and log that it was skipped.\n\nCommand: npm run track\n1. For every prompt times model pair, send the prompt and store the full answer text.\n2. Detect mentions of brand and each competitor by case-insensitive alias match on word boundaries. Record whether mentioned, first character offset, and count.\n3. Extract every URL in the answer, reduce to registrable domain, store as citations.\n4. Write everything to runs, answers, mentions, citations tables keyed by run date.\n5. Run each prompt times model pair three times per run and store all three, since these answers are not deterministic.\n\nCommand: npm run report\nGenerates report.html from SQLite with inline CSS and no JS dependencies: share of voice per run (percent of answers naming each brand), a per-prompt table showing which competitors won, a top cited domains table, and a simple SVG line chart of brand share of voice over time.\n\nIn scope: retries with backoff, per-run token cost estimate printed to stdout, a seed script with five example prompts.\nOut of scope: scraping Google AI Overviews or the ChatGPT web app, sentiment scoring, auth, multi-tenant anything, hosted dashboards.\n\nWrite a README that states plainly that API answers differ from what users see in consumer AI apps, and that the data is useless until roughly a month of daily runs has accumulated. Include a sample crontab line for a daily run.",
+  "promptCurated": false
+}
