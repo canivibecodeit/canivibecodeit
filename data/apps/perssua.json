@@ -1,0 +1,53 @@
+{
+  "slug": "perssua",
+  "name": "Perssua",
+  "domain": "perssua.com",
+  "category": "ai-video",
+  "subcategory": "AI UGC ad videos",
+  "tagline": "Generates AI avatar UGC-style video ads for products from a link or a short brief.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://perssua.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The workflow here is not exotic: pull product details, have an LLM write a hook plus a short script, synthesize a voice, drive a talking avatar, burn captions, export vertical. An agent can wire that whole chain in a weekend, and the scripting half is genuinely the easy part. The problem is that every interesting frame comes out of somebody else's model, so your local build is a thin orchestration layer sitting on top of per-render API bills. What you cannot rebuild is a library of avatars with usage rights actually cleared for paid ads, plus the quiet accumulated taste about which hooks stop a thumb in the first two seconds. Build it if you want control over the pipeline and are fine paying render costs; do not expect the output to look as clean out of the box.",
+  "coreLoopDIY": "Takes a product URL or brief, writes several ad scripts with an LLM, sends the winner to a hosted TTS and avatar API, then stitches captions and B-roll into a vertical MP4 with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and ffmpeg locally",
+    "An LLM API key",
+    "A TTS API key",
+    "An avatar or lipsync video API key, which is where the real cost sits",
+    "Willingness to pay per render"
+  ],
+  "whatYouLose": [
+    "An avatar roster with commercial usage rights already sorted, which is the part that gets you in trouble if you improvise",
+    "Lipsync and framing quality that has been tuned rather than whatever the API returns on defaults",
+    "Batch variant generation, so you get one ad instead of twelve angles to test",
+    "A hosted render queue, meaning long jobs die when your laptop sleeps",
+    "Platform-ready export presets and any built in ad account handoff"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "content-rights",
+    "execution-polish"
+  ],
+  "moatNotes": "The models are rented from the same vendors you would rent from, so the durable parts are cleared avatar likenesses and the boring polish around them.",
+  "whyPeopleStillPay": "Because the failure mode of a DIY version is not that it does not work, it is that the output looks obviously synthetic in a way that tanks the ad. Paying gets you avatars whose faces you are allowed to use in commercial creative, defaults that have already been beaten into shape by thousands of renders, and the ability to spin up a dozen variants while you do something else. Marketers buying this are not buying software, they are buying twenty usable assets by Thursday, and a local pipeline that needs babysitting per render does not deliver that.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline is a weekend; the rights-cleared faces and the render bill are not.",
+  "prompt": "Build a local CLI tool that turns a product into short vertical UGC-style ad videos.\n\nStack, no substitutions:\n- Node 20, TypeScript, run with tsx\n- Commander for the CLI\n- SQLite via better-sqlite3 for a local job log\n- ffmpeg invoked as a subprocess, assume it is on PATH\n- No web UI, no server, no accounts, no telemetry\n\nAll API keys live in .env and are read with dotenv: LLM_API_KEY, TTS_API_KEY, AVATAR_API_KEY. Ship a .env.example. Never log key values.\n\nCommands:\n1. `ads brief --url <product-url>` : fetch the page, strip to text, ask the LLM to extract product name, audience, three benefits and two objections. Store as a brief JSON in ./briefs.\n2. `ads scripts --brief <file> --count 5` : generate five 20 to 30 second scripts, each with a distinct hook style (problem, unboxing, comparison, testimonial, hot take). Output one JSON file per script with hook, body, call to action and estimated word count.\n3. `ads render --script <file> --avatar <id>` : send the script to the TTS API for audio, then to the avatar API for a talking clip, poll until ready, download to ./work.\n4. `ads assemble --job <id>` : use ffmpeg to crop or pad to 1080x1920, overlay word-level captions from the TTS timing data using drawtext or an ASS subtitle file, optionally cut in any images found in ./broll, and write the final MP4 to ./out.\n\nRules:\n- Abstract each vendor behind a small provider interface in src/providers so a different avatar or TTS API can be swapped in one file.\n- Print an estimated cost before any paid call and require a confirm flag or prompt.\n- Cache LLM and TTS responses by content hash so reruns are free.\n- Retry polling with backoff, and resume a partially finished job instead of restarting it.\n\nOut of scope, do not build: an avatar library, face cloning, ad account uploads, any hosted queue, multi-user anything.\n\nDeliver a README that states plainly that you must supply your own avatar rights and that render costs are per video.",
+  "promptCurated": false
+}
