@@ -1,0 +1,53 @@
+{
+  "slug": "dispute-bee",
+  "name": "DisputeBee",
+  "domain": "disputebee.com",
+  "category": "legal",
+  "subcategory": "credit report dispute automation",
+  "tagline": "Software for generating, sending and tracking credit report disputes, built for both individuals and credit repair businesses.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://disputebee.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanics here are unglamorous: read a credit report, flag the items you think are wrong, produce a letter per item per bureau, then track the clock on responses. An agent can build that in a weekend, and for disputing your own file the templates are the easy part because the underlying letters are mostly boilerplate wrapped around FCRA sections. What breaks is everything at the edges: there is no clean consumer API for pulling credit reports, so you are parsing whatever PDF or HTML your monitoring service hands you, and layouts change without warning. Physical mail matters more than people expect, and doing that yourself means a Lob account or an actual trip to the post office with certified mail forms. If you are running this as a business for clients, the compliance surface, client intake and audit trail are the real product and the DIY build is not close.",
+  "coreLoopDIY": "Ingest a credit report PDF, extract tradelines and collections into a local database, let you tag disputed items with a reason, then generate per bureau dispute letters and track the 30 day response deadline.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "Your own credit reports as PDFs from annualcreditreport.com or a monitoring service",
+    "A Lob API key if you want letters actually mailed, otherwise print and mail yourself",
+    "Willingness to hand correct the parser when a report layout changes",
+    "Your own reading of FCRA dispute language, since the templates are only as good as what you put in them"
+  ],
+  "whatYouLose": [
+    "Maintained letter templates that get revised as bureau and furnisher behavior changes",
+    "One click certified mail with tracking and proof of delivery",
+    "Multi client management, intake forms and billing if this is a business rather than a personal cleanup",
+    "Reliable report imports across the many formats monitoring services produce",
+    "Any sense that someone else is watching the compliance line for you"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "For personal use the compliance moat mostly evaporates: you are allowed to dispute your own file with a text editor. It reappears the second you are doing it for other people for money.",
+  "whyPeopleStillPay": "Because the letters are the smallest part of the job. People pay for a workflow that keeps twenty items across three bureaus on separate 30 day clocks, mails everything with proof, and produces a paper trail that holds up if the dispute escalates. Credit repair businesses pay because the software is also their client intake, their file storage and their defense against doing something that violates CROA. A personal build handles one file for one person and that is genuinely enough for many people, but it is not the same product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The letters are a template file; the discipline of tracking response deadlines is the actual value, and that part is very buildable.",
+  "prompt": "Build a local single user credit dispute tracker. No accounts, no cloud, no telemetry.\n\nStack, not negotiable:\n- Next.js App Router with TypeScript, Tailwind, run with npm run dev on localhost\n- SQLite via better-sqlite3, single file at ./data/disputes.db, schema created on boot\n- pdf-parse for text extraction, pdfkit for letter output\n- Uploaded reports stored on disk under ./data/reports, never uploaded anywhere\n\nFeatures in scope:\n1. Upload a credit report PDF. Extract raw text, then run a best effort parser that pulls candidate items: creditor name, account number fragment, account type, balance, status, date opened, and which bureau the report came from. Assume the parser will be wrong often, so every parsed field is editable in the UI and there is a manual add item button.\n2. Item list view. Each item can be marked disputed with a reason chosen from: not mine, inaccurate balance, inaccurate payment history, duplicate reporting, obsolete over seven years, identity theft, other with free text.\n3. Letter generation. Markdown templates in ./templates, one per reason, with handlebars style placeholders for consumer name, address, item fields and bureau address. Ship bureau mailing addresses for Equifax, Experian and TransUnion as a seeded table. Generate one PDF per bureau that groups all disputed items for that bureau, plus a cover page listing enclosures.\n4. Deadline tracking. When a letter is marked sent with a send date, compute a 30 day response due date and show a dashboard sorted by soonest due. Statuses: draft, sent, response received, resolved, escalated.\n5. Round history. Items can go through multiple dispute rounds, each with its own letter, send date and outcome note.\n6. Export everything as a zip of PDFs plus a CSV of the audit log.\n\nOut of scope, do not build: multi client management, billing, credit bureau APIs (none exist for this), auto mailing, score prediction, any AI generated legal advice.\n\nOptional and off by default: if LOB_API_KEY is present in .env, add a send via Lob button that mails the generated PDF as certified mail and stores the tracking id. Read all secrets from .env, commit a .env.example, gitignore ./data.\n\nSeed the templates with plain factual dispute language that cites the consumer right to dispute inaccurate information under the FCRA and requests reinvestigation and written results. Put a visible banner in the UI saying this tool drafts letters and tracks dates and is not legal advice.\n\nFinish with a README covering setup, where the data lives, and how to fix the parser when a report layout changes.",
+  "promptCurated": false
+}
