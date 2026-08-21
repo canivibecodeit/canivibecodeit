@@ -1,0 +1,51 @@
+{
+  "slug": "meetup",
+  "name": "Meetup",
+  "domain": "meetup.com",
+  "category": "community",
+  "subcategory": "local event discovery",
+  "tagline": "Platform for finding and organising in-person groups and recurring local events.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.meetup.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Organiser subscriptions are tiered and vary by region and group size.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is an events CRUD app with RSVPs, which any agent can produce before lunch. The product is not the software, it is the fact that strangers in your city already open the app when they are bored on a Tuesday. A self-hosted Meetup clone launches with zero members and no discovery surface, so you are left texting people links, which you could already do. Organisers pay Meetup precisely to avoid the cold-start problem, not for the RSVP form. The only honest DIY win is running a single group you already have, where the roster exists offline and you just need a place to post dates.",
+  "coreLoopDIY": "A self-hosted events page for one group: post an event, share a link, collect RSVPs with a waitlist and email reminders.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A domain or a free host for the public event page",
+    "SMTP credentials for RSVP confirmations and reminders",
+    "An existing group of people who already know you, because nobody will discover this"
+  ],
+  "whatYouLose": [
+    "Discovery: strangers in your city finding the group at all",
+    "The existing member base and the recommendation feed that feeds it",
+    "Mobile apps with push notifications for event reminders",
+    "Payments, ticketing and refund handling for paid events",
+    "Reputation signals: past event history, attendee counts, reviews that make a stranger show up"
+  ],
+  "moatTags": [
+    "network-effects",
+    "marketplace-liquidity",
+    "brand-trust"
+  ],
+  "moatNotes": "Local density is the whole asset, and it is city by city, which is also why Meetup is weak in some cities and unassailable in others.",
+  "whyPeopleStillPay": "Organisers pay because a Meetup listing arrives with an audience attached. The subscription is effectively an advertising fee: you get placed in front of people already browsing for something to do this weekend in your area, plus the credibility of a platform attendees already trust enough to walk into a room full of strangers. Self-hosting gives you a nicer RSVP form and a completely empty room. If you already have a WhatsApp group of forty regulars, the calculus flips and you should absolutely stop paying.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The RSVP form is a one-sitting build; the strangers who show up are not. The moat is local network density, built city by city over two decades, and no amount of code conjures it.",
+  "prompt": "Build a self-hosted event page for a single recurring group. This replaces a Meetup listing for a group whose members already know each other.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, file at ./data/app.db, schema created on boot.\n- Nodemailer for email, SMTP credentials from .env.\n- No auth provider, no analytics, no telemetry, no third party SaaS.\n\nData model:\n- events: id, title, description (markdown), startsAt, endsAt, location text, optional map URL, capacity (nullable), published boolean.\n- rsvps: id, eventId, name, email, guests (0-2), status (going | waitlist | cancelled), token, createdAt.\n- Unique index on (eventId, email).\n\nPublic pages:\n- / lists upcoming published events, newest first, plus a collapsed past events section.\n- /e/[id] shows one event, the going count, and an RSVP form (name, email, guests).\n- RSVP over capacity goes to waitlist automatically. Cancelling promotes the oldest waitlist entry and emails them.\n- /rsvp/[token] lets someone change or cancel their own RSVP without an account.\n- Each event page serves an .ics file and a link to add to calendar.\n\nAdmin:\n- /admin protected by a single ADMIN_PASSWORD from .env, checked against a signed httpOnly cookie. That is the entire auth story, do not build users.\n- Create, edit, publish, unpublish, duplicate an event. Duplicate is the main feature for a recurring group.\n- Attendee list per event with CSV export.\n- Button to send an announcement email to a stored subscriber list, and a manual \"send reminder\" to all going attendees.\n\nJobs:\n- One route /api/cron/reminders that emails anyone going to an event starting in the next 24 hours, idempotent via a sentEmails table. Document calling it from cron or a scheduled worker.\n\nOut of scope, do not build: payments, ticketing, member profiles, discovery or search across groups, comments, photo albums, mobile apps, push notifications.\n\nDeliver a README with .env.example, setup steps, and one seeded example event.",
+  "promptCurated": false
+}
