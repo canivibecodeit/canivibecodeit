@@ -1,0 +1,51 @@
+{
+  "slug": "parakeet",
+  "name": "Parakeet",
+  "domain": "parakeet-ai.com",
+  "category": "meeting-notes",
+  "subcategory": "real-time transcription and AI meeting notes",
+  "tagline": "AI notetaker that transcribes meetings and lectures in real time and hands back summaries.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.parakeet-ai.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engine room here is commodity: capture audio, run Whisper, feed the transcript to a model, get bullets. An agent can build that locally in a weekend and the transcripts never leave your machine, which is arguably better than shipping every meeting to someone else's server. The gaps are all the boring plumbing: a bot that joins Zoom, Meet and Teams on your behalf, calendar OAuth so recordings start themselves, speaker diarization that is actually right, and live captions with latency low enough to read while someone is still talking. A local build handles your own microphone and system audio fine and falls over the moment you want a polite robot participant in a call you were not invited to record. Verdict depends entirely on whether you want notes from meetings you attend or coverage of every meeting on your calendar.",
+  "coreLoopDIY": "Records system audio plus mic, transcribes it locally with Whisper, and writes a timestamped transcript and an LLM summary with action items to a markdown file.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS or Linux machine with a few GB free for models",
+    "a loopback audio device for system audio capture, for example BlackHole on macOS",
+    "faster-whisper or whisper.cpp with a small or medium model",
+    "an LLM API key in .env, or a local model via Ollama for summaries"
+  ],
+  "whatYouLose": [
+    "A meeting bot that joins Zoom, Meet and Teams without you babysitting the recorder",
+    "Calendar integration that auto-starts on scheduled calls",
+    "Reliable speaker labels and named participants",
+    "Low-latency live captions and in-meeting question answering",
+    "Searchable cloud history, sharing links, and anything mobile"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible part is not the transcription, it is the bot infrastructure that survives Zoom, Meet and Teams changing their behavior every quarter.",
+  "whyPeopleStillPay": "Because the annoying parts are the parts you cannot fake locally. Getting a headless participant into a Zoom call, keeping it there when the meeting platform ships an update, syncing with a calendar over OAuth, and having notes appear on your phone before you have left the room: that is ongoing maintenance work someone else does. If your actual need is transcripts of calls you personally sit in, the local build is genuinely competitive and more private. If your need is coverage without attendance, you are paying for the bot fleet, not the AI.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Whisper made the hard part free; the meeting bot is still a maintenance contract nobody wants to sign themselves.",
+  "prompt": "Build a local meeting notetaker CLI. No accounts, no cloud storage, no telemetry.\n\nStack, non-negotiable: Python 3.11, uv for dependency management, faster-whisper for transcription, sounddevice for capture, Typer for the CLI, Rich for terminal output. Summaries go through the OpenAI API by default with an --local flag that calls Ollama instead.\n\nCommands:\n- notetaker devices: list input devices so the user can find their mic and their loopback device.\n- notetaker record --mic NAME --system NAME --title \"Standup\": capture both streams, mix to mono 16kHz WAV, write to ~/notes/recordings/, stop cleanly on Ctrl+C.\n- notetaker transcribe FILE: run faster-whisper (model configurable, default \"small.en\"), emit a markdown transcript with mm:ss timestamps every segment.\n- notetaker summarize FILE: send the transcript to the model and write markdown with these sections: Summary, Decisions, Action Items (owner plus task), Open Questions. Chunk long transcripts and merge the chunk summaries.\n- notetaker run: record, then transcribe, then summarize, in one go.\n\nRules:\n- Everything lands in ~/notes/YYYY-MM-DD-slug/ with transcript.md, summary.md and audio.wav.\n- API keys come from .env via python-dotenv. Ship a .env.example. Never print the key.\n- Show a live elapsed timer and input level meter while recording so the user knows it is working.\n- If the loopback device is missing, say so plainly and continue with mic only.\n\nOut of scope, do not attempt: joining Zoom, Meet or Teams as a bot, calendar OAuth, speaker diarization, real-time streaming captions, any web UI, any hosted component.\n\nWrite a README with the macOS BlackHole aggregate-device setup steps and one worked example. Include a smoke test that transcribes a 10 second sample and asserts non-empty output.",
+  "promptCurated": false
+}
