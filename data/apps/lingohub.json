@@ -1,0 +1,51 @@
+{
+  "slug": "lingohub",
+  "name": "LingoHub",
+  "domain": "lingohub.com",
+  "category": "localization",
+  "subcategory": "translation management for software teams",
+  "tagline": "Translation management and continuous localization for software projects: string files in, translated string files out.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://lingohub.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The heart of a TMS is boring and very buildable: parse a string file, show source next to target, remember what changed, call a machine translation API, write the file back. An agent can hand you that in a weekend and it will genuinely work for one person shipping one app in four languages. What eats the weekend is file formats, because iOS strings, Android XML, ARB, gettext, XLIFF, RESX and nested JSON with plurals and placeholders each have their own quirks, and getting placeholders wrong ships broken UI to users. The rest of LingoHub's value is glue you are not going to rebuild: repo integrations that open pull requests, Figma sync, translator seats with review states, and the ability to hand a project to actual paid humans. Solo dev with a JSON file: build it. Team of eight with a designer and three freelancers: keep paying.",
+  "coreLoopDIY": "Reads localization files from a local repo, shows a source-vs-target editor with placeholder checks, machine translates missing keys via an API, and writes the files back in their original format.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 22 and a local repo containing localization files",
+    "A machine translation API key (DeepL or OpenAI) in .env",
+    "Willingness to support only the two or three file formats you actually use"
+  ],
+  "whatYouLose": [
+    "Repo integrations that auto-detect new keys and open pull requests, plus Figma and CMS connectors",
+    "Broad format coverage with correct plural and placeholder handling across iOS, Android, Flutter, gettext and XLIFF",
+    "Multi-user workflow: translator invites, review and approval states, comments, per-language permissions",
+    "The option to order professional human translation inside the same tool",
+    "Translation memory and glossary quality that improves as a real team keeps working in it"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "execution-polish"
+  ],
+  "moatNotes": "Nobody buys a TMS for the editor. They buy it so the strings arrive in the repo without a human copying cells around.",
+  "whyPeopleStillPay": "Localization only hurts when more than one person touches it. The moment you have a translator who is not a developer, a designer changing copy in Figma, and a release branch that needs strings frozen, the value moves from the editor to the plumbing and the permissions. Teams also pay for the boring guarantee that a plural form or an interpolation token will not be mangled in a language nobody on the team reads, which is exactly the class of bug a DIY parser produces quietly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Solid one-person build if you own the file format; a coin flip that turns into a job if you own five of them.",
+  "prompt": "Build a local translation management tool for a single developer. No accounts, no cloud, no telemetry.\n\nStack: Node 22, TypeScript, Express, server-rendered EJS templates, plain CSS, better-sqlite3 for state. Run with `npm run dev` on localhost:5173. Files on disk are the source of truth; SQLite only stores translation memory, glossary terms and per-key status.\n\nConfiguration: a `lingo.config.json` at the repo root listing a source language, target languages, and glob patterns for localization files. Read the target repo path from `PROJECT_DIR` in .env. Machine translation key from `DEEPL_API_KEY` in .env; if it is missing, disable the translate buttons and say so in the UI instead of crashing.\n\nSupported formats, in and only in: flat and nested JSON, and gettext .po. Write a small adapter interface with `parse(fileText)` and `serialize(entries, originalText)` so a third format can be added later. Serialization must preserve key order, indentation and existing comments. Do not attempt XLIFF, Android XML or iOS strings.\n\nCore screens:\n1. Project overview: each target language with counts of translated, untranslated, and stale keys.\n2. Editor: a two-column table, source string on the left, editable target on the right, filter by status and free-text search, keyboard save with cmd+enter.\n3. Issues: every key where placeholder tokens in the target do not exactly match the source.\n\nRequired behavior:\n- Scan on demand, not on a watcher. A \"Rescan\" button rereads files and diffs against stored hashes; when a source string changes, mark all its translations stale rather than deleting them.\n- Placeholder validation for `{name}`, `%s`, `%1$s` and `{{var}}`. Block saving a target whose placeholder multiset differs from the source, with a clear error.\n- Machine translation: per-key and \"fill all untranslated in this language\" batch. Send the source string plus any matching glossary terms as instructions. Mark machine output with a `machine` flag and show it visually until a human confirms it.\n- Translation memory: exact-match lookup on source string, suggested before calling the API. Glossary is a simple term table per language, editable in the UI.\n- Write back to disk only when the user clicks \"Export to files\", and print a unified diff of what changed before writing.\n\nOut of scope: authentication, invitations, review workflows, git operations, pull requests, Figma, webhooks, hosting, Docker.\n\nDeliver a README with setup steps, a sample `lingo.config.json`, a `.env.example`, and one vitest suite covering the JSON and .po round trip plus the placeholder validator.",
+  "promptCurated": false
+}
