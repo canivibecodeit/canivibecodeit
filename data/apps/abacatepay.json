@@ -1,0 +1,51 @@
+{
+  "slug": "abacatepay",
+  "name": "AbacatePay",
+  "domain": "abacatepay.com",
+  "category": "finance-accounting",
+  "subcategory": "Pix payments API",
+  "tagline": "Brazilian payment gateway aimed at developers: Pix charges, checkout links, and webhooks behind a small API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per transaction",
+    "unit": "usage",
+    "source": "https://abacatepay.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Pricing is transaction based rather than a monthly subscription.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The code surface here is genuinely thin: a charge object, a QR payload, a webhook, a dashboard listing payments. An agent will happily emit all of that in an afternoon, and the BR Code payload format is public and well documented, so you can generate real, scannable Pix QR codes with zero third party help. What you cannot generate is a relationship with a licensed payment institution, the settlement account, the KYC and anti fraud obligations, or the callback that tells you within two seconds that money actually arrived. Without a bank or PSP integration your DIY build is a QR code printer with manual reconciliation, which is fine for a side project and useless for anything with volume. The product is the rails and the license, not the endpoints.",
+  "coreLoopDIY": "Generates valid dynamic Pix BR Code payloads with your own key and a per charge txid, renders QR codes and payment pages, and tracks charge status in a local database that you or a bank feed mark as paid.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own Pix key and a Brazilian bank account",
+    "Optional: a bank or PSP API with mTLS certificates if you want automatic payment confirmation",
+    "Somewhere to host the payment page if you want to send links to other people"
+  ],
+  "whatYouLose": [
+    "Automatic payment confirmation in seconds; without a bank API you are reconciling statements by hand",
+    "Refunds, chargeback handling, and split payments as first class operations",
+    "Card, boleto, and subscription billing, which are a different order of regulatory pain than Pix",
+    "Fraud screening, rate limits, and someone else's on call rotation when the rails wobble",
+    "Any story for compliance, receipts, and audit trails if the money is not just yours"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Payment rails are the classic case where the API is the least interesting part of the company. The interesting part is who is allowed to hold the money.",
+  "whyPeopleStillPay": "Because handling other people's money is a licensing problem wearing an API costume. Even the simplest Pix flow needs a real settlement account, an institution willing to expose it, certificate based auth, webhook delivery you can trust, and a plan for the day a customer says they paid and the ledger disagrees. A gateway sells you a single key and a callback instead of a compliance project, and prices it per transaction so it disappears into cost of goods. Developers pay it for the same reason they do not run their own mail servers.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The QR generator is a weekend, the payment gateway is not. The moat is the license, the bank relationship, and the settlement rails behind them.",
+  "prompt": "Build a self hosted Pix charge generator, not a payment gateway. Consolation prize for AbacatePay.\n\nStack, no substitutions: TypeScript, Node 22, Hono for the HTTP layer, SQLite via better-sqlite3, Drizzle for migrations, server rendered HTML with Pico CSS, the qrcode npm package for image output. No React, no Next, no cloud services.\n\nWhat to build:\n1. A charges table: id, description, amount in cents, payer name optional, txid, brcode string, status (pending, paid, expired, cancelled), created_at, paid_at, notes.\n2. A correct EMVCo BR Code payload builder implemented from scratch in src/pix/brcode.ts: TLV encoding, merchant account info for Pix with the key from the environment, merchant name and city, transaction amount, txid in field 62-05, and a CRC16-CCITT (0x1021) checksum. Write unit tests with vitest against at least three known good payloads you construct by hand and verify byte lengths.\n3. POST /charges creates a charge, generates the brcode, stores it, returns JSON. GET /c/:id renders a public payment page with the QR image, a copy to clipboard button for the brcode string, the amount formatted in BRL, and the status.\n4. An admin list at / behind a single shared password from .env, showing all charges with filters and a manual \"mark as paid\" button. Manual reconciliation is the point, do not pretend otherwise.\n5. A CSV import at /import that accepts a bank statement export, matches rows to pending charges by amount and date window, and shows proposed matches for one click confirmation. Never auto confirm without a click.\n6. Outbound webhooks: on status change, POST the charge JSON to an optional WEBHOOK_URL with an HMAC-SHA256 signature header using WEBHOOK_SECRET.\n\nExplicitly out of scope, do not attempt or stub as if real: card payments, boleto, subscriptions, refunds, split payments, KYC, any bank or PSP API integration, any claim that a payment was confirmed by a financial institution.\n\nSecrets in .env only: PIX_KEY, MERCHANT_NAME, MERCHANT_CITY, ADMIN_PASSWORD, WEBHOOK_URL, WEBHOOK_SECRET. Ship .env.example, a Dockerfile, and a README that states plainly that this generates payment requests and does not move, hold, or confirm money.",
+  "promptCurated": false
+}
