@@ -1,0 +1,51 @@
+{
+  "slug": "propstream",
+  "name": "PropStream",
+  "domain": "propstream.com",
+  "category": "sales-outreach",
+  "subcategory": "real estate lead data and skip tracing",
+  "tagline": "Nationwide property data, owner contact info and filtered lead lists for real estate investors and agents.",
+  "priceMonthly": 99,
+  "pricing": {
+    "plan": "Standard monthly subscription",
+    "basis": "monthly per user, skip tracing and extra exports billed separately",
+    "unit": "per-seat",
+    "source": "https://www.google.com/aclk?sa=L&ai=DChsSEwiX86Ts1LCWAxW9H60GHWl1ArcYACICCAEQAhoCcHY&co=1&ase=2&gclid=CjwKCAjwy5rUBhB5EiwAIoAtCqeqkNdmQ1Jzm7GJZ7ApTTBZiQfTXAdnSy97ft7a4erX6JpfshE_gBoCUmkQAvD_BwE&sph&cid=CAASqALkaO080iLvH_9ATbAHvxQKNIg9NyjUFsRGdXiNoMluKCoAbhteNufczKE_CcRM3AVAg1upJdZyqlPW6HNgtznhaDyeWZ",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software part of PropStream is unremarkable: a map, a filter panel, saved searches, a list export. The product is the data underneath it, which is county assessor and recorder records for roughly 150 million parcels, plus MLS-derived comps, pre-foreclosure and lien filings, estimated equity, and owner phone numbers and emails from consumer data brokers. An agent can build you the filter UI in an afternoon and it will be empty. Assembling even one county's records yourself is a scraping and normalization project per county, and skip tracing data is not something you can obtain at all without a vendor contract and a permissible-use attestation. Build the workflow layer around data you already pay for, do not try to replace the data.",
+  "coreLoopDIY": "A local property lead database that ingests CSV exports from whatever data source you already have, dedupes and normalizes addresses, lets you filter and tag by equity, ownership length and property type, and spits out mailing and calling lists.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own source of property records: county assessor or recorder bulk downloads, a paid data vendor export, or an existing subscription's CSV exports",
+    "Python 3.12 and SQLite locally",
+    "Optional: a paid skip tracing API key if you want owner phone numbers, plus a lawful permissible use for them"
+  ],
+  "whatYouLose": [
+    "Nationwide coverage: you get whatever counties you can source, they get all of them",
+    "Skip tracing: owner phones and emails come from licensed consumer data, not from public records",
+    "Comps and valuation estimates built on MLS feeds you cannot license as an individual",
+    "Foreclosure, lien, divorce and probate event feeds that refresh continuously",
+    "The mobile app, driving-for-dollars route capture, and the built-in mail and dialer campaign plumbing"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "content-rights",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Most of the underlying records are technically public, which is exactly why the moat is real: the work is licensing, ingesting and normalizing thousands of county formats on a refresh schedule, not querying them.",
+  "whyPeopleStillPay": "Because a hundred bucks a month is cheaper than one week of writing scrapers for county recorder sites that break, and because nobody wins a deal by owning a nicer filter UI. Investors pay for the pre-foreclosure list on Monday morning with phone numbers attached, and the alternative is a stack of vendor contracts they would need to sign individually. The interface is disposable; the refresh pipeline and the data licenses are not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The map and the filter panel are a weekend build; the parcels are not. The moat is licensed county and MLS data normalized nationwide, plus skip tracing you legally cannot self-serve.",
+  "prompt": "Build a local-first real estate lead workbench called leadbench. Stack: Python 3.12, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates with HTMX for interactions, pandas for CSV ingest. Single process, run with uvicorn, no Docker, no accounts, no telemetry, no cloud.\n\nThis tool does NOT source property data. It is the workflow layer on top of data the user already has the right to use. Make that explicit in the README.\n\nCore features:\n1. CSV ingest: a POST /import endpoint and an upload page. Let the user map incoming columns to a canonical schema (apn, situs_address, city, state, zip, owner_name, owner_mailing_address, property_type, beds, baths, sqft, year_built, last_sale_date, last_sale_price, est_value, est_equity, mortgage_balance, tags, source_label). Persist the column mapping per source_label so re-imports are one click.\n2. Address normalization: uppercase, strip punctuation, expand common street suffixes, build a normalized_key of street + zip. Dedupe on apn first, then normalized_key. On conflict, keep the row with the newest last_sale_date and log the merge.\n3. Filter UI on the main page: state, city, zip list, property type, beds/baths/sqft ranges, year built range, ownership length in years (computed from last_sale_date), est_equity absolute and as a percent of est_value, and tag include/exclude. Filters compose into one SQL WHERE clause. Show result count live via HTMX.\n4. Saved searches: name a filter set, store the JSON, re-run it, and show a diff of new vs previously seen apns for that search.\n5. Lists and tags: add filtered results to a named list, tag records, add per-record notes and a status field (new, mailed, called, contacted, dead, deal).\n6. Exports: CSV export of any list, plus a mail-merge CSV with owner name and mailing address split into separate fields.\n7. Optional skip tracing hook: a single function skiptrace(record) that reads SKIPTRACE_API_KEY and SKIPTRACE_URL from .env and is a no-op stub if unset. Do not hardcode any vendor. Include a comment noting the user is responsible for permissible use.\n\nExplicitly out of scope: scraping any county website, scraping MLS or Zillow or Redfin, bundling any data, valuation models, dialers, mail printing.\n\nDeliver: app.py, schema.sql, templates/, static/, .env.example, README.md with setup in under five commands and one sample CSV with ten fake rows for testing.",
+  "promptCurated": false
+}
