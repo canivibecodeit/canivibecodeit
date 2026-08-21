@@ -1,0 +1,52 @@
+{
+  "slug": "everlove",
+  "name": "Everlove",
+  "domain": "everloveapp.com",
+  "category": "wellness",
+  "subcategory": "couples / relationship rituals",
+  "tagline": "A subscription app for couples: guided prompts, shared reflections, and nudges to actually do them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://everloveapp.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Mechanically this is a shared journal with a scheduler: a prompt bank, two linked accounts, a rule about when each partner sees the other's answer, a streak, an archive. An agent can build that in a weekend and it will work. What does not come out of the agent is the content: the actual sequence of questions and exercises, written by someone who thought about pacing and about what not to ask in month one. The other missing piece is the nudge, because a self-hosted URL cannot push a notification to your partner's phone, and you become the reminder, which is exactly the job you were outsourcing. Build it if you both like building things together, otherwise the paid version is buying a writer and a push token.",
+  "coreLoopDIY": "Serves the next prompt from a curated bank to two linked accounts, keeps each answer hidden until both have written, then reveals both side by side and archives the pair.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Somewhere to host it that both partners can reach, plus a domain",
+    "A transactional email key for reminders, since web push to iOS is a pain",
+    "Your own prompt bank: a few hundred questions you write or source yourself",
+    "Both people agreeing to bookmark a web app instead of tapping an icon"
+  ],
+  "whatYouLose": [
+    "The written content and its ordering, which is most of what you were paying for",
+    "A real mobile app with push notifications that arrive whether or not you nag",
+    "The framing of a neutral outside party setting the exercise, rather than one partner assigning homework",
+    "Design polish in a context where feeling cheap actively undercuts the product",
+    "Managed backups and someone else's word on how private the most sensitive text you own is"
+  ],
+  "moatTags": [
+    "content-rights",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is editorial, not technical: whoever wrote the prompts decided what the app is.",
+  "whyPeopleStillPay": "Couples do not fail at this because they lack a database. They fail because nobody wants to be the one deciding tonight's question, and a self-hosted app makes that decision visible and attributable. Paying a stranger to schedule the vulnerability is the whole trick, and it stops working the moment your partner knows you wrote the questions. Add the fact that this is a relationship purchase, where a polished icon reads as care and a localhost link reads as a project, and the subscription is cheap for what it does socially.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the awkwardness of grading your own relationship homework is not.",
+  "prompt": "Build a private two-person shared reflection app called \"Ritual\". Local-first dev, deployable to a single small server.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) with Tailwind\n- SQLite via better-sqlite3, single file at ./data/ritual.db\n- Auth: no passwords. One invite flow: the first visitor creates a Space and gets a 6-word join code. The second visitor joins with the code. Session is a signed httpOnly cookie, secret in .env as SESSION_SECRET. Exactly two members per Space, hard cap.\n\nData model: Space, Member, Prompt, Entry (member_id, prompt_id, body, created_at), Cycle (space_id, prompt_id, opened_at, revealed_at).\n\nCore loop, implement exactly this:\n- Seed prompts from ./content/prompts.json, an array of { id, text, theme, order }. Ship 40 placeholder prompts and a README note that the real work is writing this file.\n- A Space has one open Cycle at a time. Each member writes one Entry for it.\n- Neither member can read the other's Entry until both have submitted. Enforce this server side, not in the UI. When both are in, the Cycle is revealed and both entries show side by side.\n- On reveal, the next prompt in order becomes available after a configurable cooldown (default 24h, stored per Space).\n- Archive page: every revealed Cycle, newest first, with full-text search over entries.\n- Streak count of consecutive completed Cycles, broken by a gap of more than 8 days.\n\nReminders: a single /api/cron/nudge route, secured by CRON_SECRET, that emails any member with an unanswered open Cycle. Use Resend, key in .env. If the key is absent, log the email instead of failing. No push notifications, do not fake them.\n\nOut of scope, do not build: native apps, more than two members, therapist dashboards, AI-generated prompts, analytics, telemetry, payments, third-party logins.\n\nInclude: schema migration script, seed script, .env.example, and a README with deploy steps and one paragraph on where the SQLite file lives and how to back it up.",
+  "promptCurated": false
+}
