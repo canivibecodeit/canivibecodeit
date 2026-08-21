@@ -1,0 +1,52 @@
+{
+  "slug": "wp-umbrella",
+  "name": "WP Umbrella",
+  "domain": "wpumbrella.com",
+  "category": "monitoring",
+  "subcategory": "WordPress maintenance and client reporting",
+  "tagline": "Monitoring, plugin updates, backups and white-label client reports for a fleet of WordPress sites.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per site per month",
+    "unit": "usage",
+    "source": "https://wpumbrella.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "WordPress hands you most of this for free: the REST API plus an application password tells you core version, plugin versions, available updates and whether the site answers at all. A cron job, a SQLite table and an email sender covers uptime, an update inventory and a weekly digest in a weekend. Where it falls apart is the scary half: one-click bulk updates with a real rollback path, PHP fatal error capture, visual regression checks before and after an update, and off-server backups you have actually restored from. If you maintain three sites of your own, build it. If you bill clients for uptime and your reputation lives inside a PDF report, you are buying the parts you would cut corners on.",
+  "coreLoopDIY": "A cron worker polls every WordPress site's REST API for uptime, core and plugin versions and pending updates, stores history in SQLite, and emails you a digest plus instant alerts when a site goes dark.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on host or VPS for the cron worker, not a laptop",
+    "An application password per WordPress site (admin level)",
+    "An SMTP or transactional email key for alerts",
+    "Optional SSH plus WP-CLI access on each host if you want real backups and updates"
+  ],
+  "whatYouLose": [
+    "Safe updates: staging clone, visual regression diff, automatic rollback when a plugin update blanks the page",
+    "PHP error and fatal monitoring, which needs a plugin dropped into every site, not a REST poll",
+    "Off-site incremental backups with a tested restore, plus somewhere to actually store them",
+    "White-label client reports that look like something you can invoice against",
+    "Multi-region uptime probes, so your single VPS having a bad network day becomes a false alarm storm"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The integration surface is not the WordPress API, it is the long tail of hosts, cache layers and plugins that break in specific ways during an update.",
+  "whyPeopleStillPay": "Agencies do not pay for the dashboard, they pay so that when a plugin update takes down a client's shop at 2am somebody other than them noticed and there is a backup that restores. That is a promise about the worst case, and a DIY cron job on one VPS makes a weaker version of that promise. Add the client-facing report that justifies a monthly retainer and the per-site price stops looking like the expensive option.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for your own sites, thin for a maintenance retainer. The part you cannot cheaply fake is the rollback path when an update goes wrong.",
+  "prompt": "Build a self-hosted WordPress fleet monitor. Single Node 22 + TypeScript project, no framework churn.\n\nStack, no substitutions:\n- Fastify for the HTTP server, server-rendered HTML via plain template literals, no React\n- better-sqlite3 for storage, single file data/fleet.db, schema created on boot\n- node-cron for scheduling inside the same process\n- nodemailer for alerts, SMTP creds from .env\n- Everything in .env: SMTP_URL, ALERT_TO, DASHBOARD_TOKEN\n\nSites are configured in sites.json: name, baseUrl, wpUser, wpAppPassword. Never store credentials in the database file.\n\nWhat it does:\n1. Every 60 seconds, HEAD/GET each site homepage. Record status code and response time in a checks table. Two consecutive failures sends one alert email; recovery sends one more. No repeat spam.\n2. Every 6 hours, call the WordPress REST API with basic auth from the application password: read core version, plugin list and versions, theme, PHP version if exposed. Store a snapshot row per site per run.\n3. Diff the newest snapshot against the previous one and record update_available and version_changed events.\n4. Weekly cron at Monday 08:00 sends a plain text digest per site: uptime percentage, slowest response, pending updates, plugins that changed.\n\nDashboard at / behind a single bearer token in the query string or a cookie: table of sites with current status, 30 day uptime bar, pending update count, and a per-site page listing snapshot history and recent incidents.\n\nExplicitly out of scope, do not attempt: performing updates, backups, staging clones, visual regression, PHP error capture, multi-user accounts, PDF reports, telemetry of any kind.\n\nDeliver a README with .env.example, a sites.json.example, and a systemd unit file. Include a seed script that inserts fake check history so the dashboard is not empty on first run.",
+  "promptCurated": false
+}
