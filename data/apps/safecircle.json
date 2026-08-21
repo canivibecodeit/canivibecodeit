@@ -1,0 +1,52 @@
+{
+  "slug": "safecircle",
+  "name": "SafeCircle",
+  "domain": "safecircle.com",
+  "category": "security",
+  "subcategory": "personal safety, location sharing and check-ins",
+  "tagline": "Private safety app for sharing location with trusted contacts and raising an alert when something goes wrong.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://safecircle.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The data model here is trivial: contacts, a location stream, a check-in timer, an alert that fans out to a few phone numbers. An agent can hand you a working server and a phone client in a weekend, and for a family of four sharing a dot on a map that is genuinely enough. The gap is everything that makes safety software believable: background location on iOS without murdering the battery, push that arrives when the app has been swiped away, alerts that still fire when the phone is on 2 percent and one bar. You are also now the on-call engineer for a product whose failure mode is nobody comes. Fine as a hobby tracker for people who like knowing where each other are, uncomfortable as the thing you rely on at 2am.",
+  "coreLoopDIY": "A self-hosted server plus a phone app where a small invited circle shares live location, runs timed check-ins, and triggers an alert with last known position to everyone else in the circle.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A cheap VPS with HTTPS for the server",
+    "Apple Developer and Google Play accounts, or Expo dev builds sideloaded to your own devices",
+    "Twilio or similar for SMS fallback alerts, since push alone is not enough",
+    "Everyone in the circle willing to install a build that is not in the app stores"
+  ],
+  "whatYouLose": [
+    "Reliable background location and battery tuning, which is months of platform-specific work, not a weekend",
+    "Push delivery that survives force quits, low power mode, and OS process killing",
+    "Crash-only reliability: no status page, no redundancy, nobody paged when your VPS dies",
+    "Any polish around onboarding non-technical family members",
+    "Whatever escalation, monitoring, or emergency contact handling the paid product layers on top"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the feature list, it is thousands of hours of mobile background behavior tuning across OS versions and the willingness to be accountable when an alert does not land.",
+  "whyPeopleStillPay": "Because safety software is bought on the assumption that it works on the worst day, not the average one. Nobody wants to debug their own push notification pipeline after a family member stops answering, and the paid version is partly an insurance policy on someone else's uptime. A self-hosted version is also socially awkward: convincing a parent or a teenager to trust a sideloaded build is harder than convincing them to install an app with a listing and reviews.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Perfectly buildable as a family dot-on-a-map toy, much less buildable as something you would bet on.",
+  "prompt": "Build a self-hosted personal safety app called Circle, for a small trusted group of people, no more than about ten.\n\nStack, no substitutions:\n- Server: Node 20, Fastify, TypeScript, SQLite via better-sqlite3, Zod for validation.\n- Client: Expo (React Native) with expo-router, react-native-maps, expo-location, expo-notifications.\n- Auth: no accounts and no passwords. The server generates single-use invite codes; a device redeems one and stores a long-lived device token in SecureStore.\n\nServer requirements:\n- Tables: members, devices, locations, checkins, alerts.\n- POST /invite (admin token from .env) returns a code. POST /redeem swaps a code for a device token and member name.\n- POST /ping accepts lat, lon, accuracy, battery, timestamp; keeps only the last 7 days per member.\n- GET /circle returns each member's latest position, staleness, and battery.\n- Check-ins: POST /checkin/start with a duration; if no /checkin/ok arrives before it expires, a background job raises an alert.\n- POST /alert raises an immediate alert with last known position and a free-text note.\n- On any alert, send Expo push to all other devices AND an SMS to every number in ALERT_SMS_NUMBERS via Twilio. Push alone is not trusted.\n- All secrets in .env: ADMIN_TOKEN, TWILIO_*, ALERT_SMS_NUMBERS, EXPO_ACCESS_TOKEN. Ship .env.example.\n\nClient requirements:\n- Map screen with a pin per member, tap for name, last seen, battery.\n- Big SOS button with a 5 second cancel countdown before it fires.\n- Check-in screen: pick a duration, start, then an OK button and a local reminder notification.\n- Background location via expo-location startLocationUpdatesAsync, batched, coarse when stationary, with a visible always-on notification on Android.\n- A settings screen showing sharing on or off, plus the server URL.\n\nExplicitly out of scope: web dashboard, geofences, driving reports, crash detection, calls to real emergency services, analytics, telemetry, multi-circle support.\n\nDeliverables: /server and /app in one repo, a README with VPS deploy steps behind HTTPS, a seed script that creates the first invite, and one honest section in the README titled Why you should not rely on this, listing the platform-level ways background location and push can silently fail.",
+  "promptCurated": false
+}
