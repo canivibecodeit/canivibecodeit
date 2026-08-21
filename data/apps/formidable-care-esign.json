@@ -1,0 +1,52 @@
+{
+  "slug": "formidable-care-esign",
+  "name": "Formidable Care eSign",
+  "domain": "formidable.care",
+  "category": "documents",
+  "subcategory": "e-signature for healthcare",
+  "tagline": "Electronic signature and consent-form collection aimed at healthcare practices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://formidable.care/esign",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of eSign is genuinely easy: render a PDF, let someone draw a squiggle on a canvas, stamp it back into the document, hash it, log an IP and a timestamp. An agent will do that in a sitting and it will look convincing. The problem is that this product exists to touch patient data and produce records that hold up when a regulator or an opposing lawyer asks questions, which means a signed BAA, access logging you did not write yourself, retention policy, and identity checks stronger than an email link. Self-hosting PHI to save a subscription is a trade where the downside is not measured in dollars. If your documents are not patient documents, build it and enjoy; if they are, this is the wrong line item to cut.",
+  "coreLoopDIY": "Upload a PDF, drop signature and date fields on it, email a unique signing link, stamp the drawn signature into the file and store a hash plus an audit log.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A domain and HTTPS host for signing links",
+    "Transactional email (Resend or SMTP) for sending and receipting",
+    "Persistent disk or object storage for original and executed PDFs",
+    "Encrypted backups, because you are now the record keeper"
+  ],
+  "whatYouLose": [
+    "A Business Associate Agreement, which is the whole reason a clinic buys a healthcare-specific vendor",
+    "Audit trails and access logs designed by people who have been through an audit",
+    "Identity verification beyond \"whoever opened the email\"",
+    "EHR and practice-management integrations, plus templated consent libraries",
+    "Someone else's liability insurance when a signature is disputed"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "eSign code is commodity. Signed paperwork attesting that the eSign code is safe for PHI is not.",
+  "whyPeopleStillPay": "Practices pay because the vendor absorbs a category of risk they cannot absorb themselves. A clinic administrator does not want to own a PHI database, a retention policy, an incident response plan, and an argument with a lawyer about whether an emailed link constitutes consent. The subscription is really an indemnity plus a checkbox on a compliance review, and both of those are cheaper than the alternative. The signing widget is the least valuable thing in the box.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The signing flow is a weekend, and it will feel finished. The moat is the BAA, the audit trail somebody may eventually subpoena, and the fact that no compliance reviewer will sign off on a homemade box full of patient records.",
+  "prompt": "Build a self-hosted document signing app for NON-REGULATED documents only. No PHI, no patient records, no HIPAA claims anywhere in the UI or docs.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript, single repo, single process.\n- SQLite via better-sqlite3, file at ./data/app.db.\n- pdf-lib for reading and stamping PDFs, pdfjs-dist to render page previews in the browser.\n- Files on local disk under ./data/files, no S3, no cloud accounts.\n- Email via Resend if RESEND_API_KEY is set in .env, otherwise print the signing link to stdout and to a /dev/outbox page. Never fail because email is unconfigured.\n\nFeatures in scope:\n1. Single-owner auth: one password from OWNER_PASSWORD in .env, cookie session. No signup, no OAuth, no user table.\n2. Upload a PDF, render pages, drag to place fields on any page: signature, initials, date, text. Store field coordinates in points relative to the page box.\n3. Create an envelope: one document, one or more signers, each with name, email, ordered or parallel signing. Each signer gets an unguessable token URL, no login required.\n4. Signer view: scroll the document, draw a signature on a canvas (also allow typed-name rendering), fill assigned fields, click Finish. Reject submission if a required field is empty.\n5. On completion, flatten values into the PDF with pdf-lib, append a final certificate page listing each signer, email, timestamps in UTC, IP address, user agent, and the SHA-256 of both the original and the executed file. Write the executed PDF to disk immutably.\n6. Audit log table: append-only rows for viewed, signed, completed, downloaded, with timestamp and IP. Show it on the envelope detail page and expose it as JSON.\n7. Dashboard listing envelopes with status draft, sent, partially signed, completed, voided. Allow void with a reason, and resend link.\n8. Reusable templates: save a document plus field layout, spawn new envelopes from it.\n\nOut of scope, do not build: identity verification, SMS codes, KBA, org accounts, billing, EHR or CRM integrations, notarization, per-seat roles, telemetry.\n\nDeliver: schema in one migration file, seed script that creates a demo template, README covering setup, backup of ./data, and a blunt LIMITS section stating this is not a compliance product and carries no BAA.\nAll secrets in .env, ship .env.example, never commit ./data.",
+  "promptCurated": false
+}
