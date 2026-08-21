@@ -1,0 +1,50 @@
+{
+  "slug": "storybook-ai",
+  "name": "Storybook AI",
+  "domain": "storybookg.com",
+  "category": "generative-media",
+  "subcategory": "AI children's picture books",
+  "tagline": "Generates personalized illustrated children's storybooks from a name, a theme and a few prompts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://storybookg.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is not a secret: ask a model for a 12 page story arc, ask an image model for one illustration per page, lay it out and export a PDF. An agent can wire that up in an evening and the first book will be genuinely charming. The gap shows up on page four, when the friendly bear has a different face, a different palette and one extra limb, because keeping a character consistent across a dozen generations is the entire craft of these products. You also inherit the boring parts they hide: kid-safe content filtering, page layout that does not clip text, and an API bill you now pay per book. Fine for making books for your own kids, weak if you wanted the polish.",
+  "coreLoopDIY": "Takes a child's name, age and theme, drafts a paged story with an LLM, generates one illustration per page from a locked style and character reference, and exports a print-ready PDF.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for story text",
+    "An image model API key that supports reference images for character consistency",
+    "Node 20+ and a few dollars of credits per book"
+  ],
+  "whatYouLose": [
+    "Character consistency across pages, which is the hard 20 percent that makes a book look finished",
+    "Art styles that were tuned by someone with taste instead of a prompt you guessed",
+    "Printed and bound physical copies shipped to your door, if the paid product offers that",
+    "Content guardrails so a story for a five year old never wanders somewhere strange",
+    "Shareable links, a library of past books and anything that works from a phone"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The prompt chain is trivial. The style presets, the character locking and the print pipeline are where the actual work sits.",
+  "whyPeopleStillPay": "Because most people buying this are buying a gift, not a project, and a gift has a deadline. Paying ten or twenty dollars to get a clean, consistent, printable book in five minutes beats a weekend of debugging why the illustration model keeps redrawing the dog as a horse. There is also a genuine skill gap: getting stable characters and a coherent art style out of an image model is prompt craft plus reference plumbing, and these products have iterated on it far more than your one-shot build will.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build one for your own kid and it is a great weekend. Build one to replace the paid product and you will spend the second weekend on character consistency.",
+  "prompt": "Build a local CLI tool that generates a personalized illustrated children's storybook as a print-ready PDF.\n\nStack, no substitutions: TypeScript on Node 20, run with tsx. Commander for the CLI. OpenAI API for story text and illustrations. Playwright for HTML to PDF. No database, no web server, no accounts, no telemetry. Everything is files on disk.\n\nFlow:\n1. `npm start -- new` asks for: child name, age, a theme, a secondary character, and an art style picked from three hardcoded presets (soft watercolor, flat retro print, cozy crayon). Save answers to books/SLUG/spec.json.\n2. Call the text model once with a strict JSON schema: title, dedication, and exactly 12 pages, each page having 2 to 3 short sentences at the reading level for the given age, plus an `illustrationBrief` describing the scene in visual terms only.\n3. Generate a character sheet image first: the main character alone, plain background, in the chosen style. Save it as books/SLUG/character.png. Treat it as the single source of truth.\n4. For each of the 12 pages, generate an illustration by passing the character sheet as a reference image plus the page's illustrationBrief and a shared style suffix string that never changes. Save pages/01.png through 12.png. Retry once on failure, log and continue on second failure with a placeholder.\n5. Render books/SLUG/book.html from a template: cover page, dedication, then 12 spreads with the image full-bleed on top and the text in a large serif face below. Then print to books/SLUG/book.pdf at 8.5 by 8.5 inches with bleed.\n\nRules:\n- OPENAI_API_KEY from .env via dotenv. Write a .env.example. Never hardcode keys.\n- Cache every API result to disk keyed by a hash of its input, so reruns cost nothing and `--regen-page 7` only redoes page 7.\n- Print running cost estimate per book to stdout.\n- Add a content check step: reject and redraft any page whose text contains violence, death or peril beyond mild suspense.\n- Out of scope: web UI, physical printing, multiple children per book, translations, editing text after generation.\n- README with setup, one example command, and an honest note that character consistency will drift and `--regen-page` exists for exactly that reason.",
+  "promptCurated": false
+}
