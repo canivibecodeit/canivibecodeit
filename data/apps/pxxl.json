@@ -1,0 +1,52 @@
+{
+  "slug": "pxxl",
+  "name": "Pxxl",
+  "domain": "pxxl.app",
+  "category": "hosting",
+  "subcategory": "app and static site deployment",
+  "tagline": "A managed platform for deploying web apps, static sites and files with a URL you can hand to someone.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pxxl.app/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "An agent can absolutely write you a mini PaaS: a CLI that tars a folder, ships it to a box, builds a Docker image and points Caddy at a subdomain. What it cannot write is the box, the bandwidth, the wildcard TLS that never expires, the machine that stays up while you sleep, or the part where a deploy still works six months after you forgot how any of it fits together. Hosting is a product where the code is the cheap half. You will end up renting a server anyway, which means you replaced a bill with a bill plus a pager. Build it if you want to learn Docker plumbing, not if you want your side project to stay online.",
+  "coreLoopDIY": "A one-command deploy script that pushes a folder to your own VPS, builds it in Docker, and serves it on a wildcard subdomain with automatic TLS.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A VPS you pay for and patch yourself",
+    "A domain with a wildcard DNS record pointing at it",
+    "Docker and Caddy on the host",
+    "SSH keys and a willingness to debug builds over SSH at midnight"
+  ],
+  "whatYouLose": [
+    "Someone else being on call when the host reboots or the disk fills",
+    "Automatic TLS renewal that you never have to think about",
+    "Build environments for multiple runtimes that already work",
+    "Bandwidth and CDN that survive a link getting shared widely",
+    "A dashboard, logs and rollbacks that exist without you writing them"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Managed hosting is mostly an uptime promise. Code cannot make that promise on your behalf.",
+  "whyPeopleStillPay": "Because the alternative is being your own sysadmin for the rest of the project's life. A deploy CLI is a fun weekend, but the value of hosting shows up in the boring months after: certificates renewing, the container restarting after an OOM, the build cache not rotting, the URL still resolving when someone clicks it a year later. Paying a platform converts an ongoing operational obligation into a line item, and for anything with real users that trade is almost always correct.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The deploy script is a weekend; the uptime is not. The moat is owned infrastructure plus the fact that nobody wants to be paged for their own hobby project.",
+  "prompt": "Build a minimal self-hosted deploy platform for one person, in an empty folder.\n\nStack, no alternatives:\n- Host target: a single Ubuntu 24.04 VPS I already own, with Docker and Caddy installed by your setup script.\n- CLI: Node 20, plain JavaScript, ESM, no TypeScript, no framework. Entry point bin/deploy.js.\n- Routing and TLS: Caddy with on-demand TLS and a wildcard DNS record for *.apps.example.com.\n- Transport: ssh and rsync over an existing key. No agent, no daemon on the host beyond Docker and Caddy.\n\nWhat it must do:\n1. `deploy init` writes a .deployrc in the current project: app name, port, build type (static or dockerfile).\n2. `deploy up` rsyncs the project to /srv/apps/NAME on the host, ignoring node_modules and .git.\n3. For static builds, run the configured build command locally, ship only the output dir, and serve it with a generated Caddy file_server block.\n4. For dockerfile builds, build the image on the host, run it with a restart policy of unless-stopped, and reverse_proxy NAME.apps.example.com to its container port.\n5. Blue/green: start the new container, health check GET / until 200 with a 30 second timeout, then swap the Caddy upstream and stop the old container. On failure, leave the old one running and exit nonzero.\n6. `deploy logs` tails docker logs. `deploy rollback` swaps back to the previous image tag. `deploy rm` deletes app, container, files and Caddy block.\n7. Keep the last 3 image tags per app, prune the rest.\n8. A single JSON state file at /srv/apps/state.json is the source of truth. Regenerate the Caddy config from it and reload Caddy, never hand-edit.\n\nRules:\n- Secrets: host, user and domain come from .env, with .env.example committed. No secrets in the repo.\n- No accounts, no web dashboard, no telemetry, no database.\n- Idempotent: running `deploy up` twice in a row must be safe.\n- Include scripts/bootstrap.sh that installs Docker and Caddy on a fresh VPS and creates /srv/apps.\n- README with the exact DNS records needed and a one-app worked example.\n\nOut of scope: multi-user auth, build queues, custom domains per app beyond a CNAME note in the README, managed databases, autoscaling.",
+  "promptCurated": false
+}
