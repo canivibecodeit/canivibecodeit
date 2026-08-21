@@ -1,0 +1,51 @@
+{
+  "slug": "wipetok",
+  "name": "WipeTok",
+  "domain": "wipetok.com",
+  "category": "security",
+  "subcategory": "social account cleanup",
+  "tagline": "Bulk deletes your TikTok history: videos, likes, comments and other traces you would rather not leave lying around.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://wipetok.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "There is no public TikTok API for mass deleting your own content, so this whole product category is browser automation wearing a product coat. An agent can write you a Playwright script that logs in with your own session, walks your posts and likes, and clicks delete on a loop, and that script will work the day it is written. What it will not do is keep working, because the value here is somebody else babysitting selectors, rate limits and flow changes every time TikTok ships a redesign. Build it if you have one account to clean once and you can stomach a script that half-breaks mid run. Do not build it if you want a button that works next quarter.",
+  "coreLoopDIY": "Drives a real logged-in browser session through your TikTok profile and likes list, deleting items one by one with rate limiting, dry-run mode and resumable progress.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node.js and Playwright installed locally",
+    "Your own TikTok account, logged in once manually into a persistent browser profile",
+    "Patience for rate limits and captchas",
+    "Willingness to re-fix selectors when the UI changes"
+  ],
+  "whatYouLose": [
+    "Selector maintenance: your script rots the next time TikTok moves a menu item",
+    "Coverage breadth, things like search history, watch history, DMs and follow lists each need their own separate flow",
+    "Any handling for captchas, soft account flags or throttling beyond a sleep() you guessed at",
+    "A progress UI and a receipt of what was actually deleted versus what silently failed",
+    "Someone to complain to when 300 videos are gone and 40 are not"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is unglamorous: continuous maintenance against a hostile, undocumented, frequently redesigned web app.",
+  "whyPeopleStillPay": "Because deleting five thousand videos is a chore nobody wants to supervise, and a script that breaks at item 1,800 is worse than no script. Paying converts an ongoing maintenance problem into a one-time transaction, which is exactly the trade most people want for a task they intend to perform once and never think about again. There is also the mild comfort of a tool that has already discovered which flows trip rate limits, knowledge you would otherwise buy with your own account.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A one-shot build here is real, it just has a shelf life measured in TikTok release cycles. The product you are paying for is the patch cadence, not the click loop.",
+  "prompt": "Build a local CLI tool called tokwipe that bulk deletes my own TikTok content by driving a real browser. No cloud, no accounts, no telemetry.\n\nStack, no substitutions:\n- TypeScript on Node 20\n- Playwright with chromium and a persistent user data dir at ./.session so I log in once by hand\n- commander for the CLI, better-sqlite3 for progress state, pino for logs\n\nCommands:\n- tokwipe login: opens a visible browser, waits for me to log in manually, saves the persistent profile, exits\n- tokwipe scan --target posts|likes: walks my profile or likes page, scrolls until no new items load, records every item id and url into sqlite with status 'pending'\n- tokwipe wipe --target posts|likes [--dry-run] [--limit N]: iterates pending items, opens each, performs the delete flow, marks 'deleted' or 'failed' with the error text\n- tokwipe status: prints counts by status and the last 20 failures\n\nBehaviour requirements:\n- Default to --dry-run true. Deleting requires an explicit --yes flag.\n- Randomized delay between 2 and 6 seconds per action, plus a longer pause every 25 actions. Make these constants at the top of one file so they are trivial to tune.\n- Fully resumable: killing the process mid run must lose at most the current item.\n- Put every CSS selector and text matcher in a single selectors.ts file with a comment saying these WILL break when TikTok redesigns.\n- If a captcha or login wall is detected, stop the run, log clearly, and tell me to run tokwipe login again.\n- Screenshot every failure into ./failures/ with the item id in the filename.\n\nExplicitly out of scope: DMs, watch history, search history, follow lists, other platforms, scheduling, any hosted UI. Do not add them.\n\nDeliver a README with setup, a warning that this is irreversible, and the exact commands in order. Any config goes in .env.example, nothing hardcoded.",
+  "promptCurated": false
+}
