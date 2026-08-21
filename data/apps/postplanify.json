@@ -1,0 +1,53 @@
+{
+  "slug": "postplanify",
+  "name": "PostPlanify",
+  "domain": "postplanify.com",
+  "category": "social-media",
+  "subcategory": "post scheduling and content calendar",
+  "tagline": "Schedules and publishes social posts across accounts from one calendar, with AI help writing them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://postplanify.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a queue, a calendar, and a cron job, which an agent can produce in an afternoon. The part that eats your weekend is the platforms: every network wants its own developer app, its own OAuth dance, its own token refresh, and its own review process before you can publish on behalf of an account. X and LinkedIn are annoying but doable solo; Instagram, TikTok, and Facebook publishing gate you behind business accounts and app review. If you only post to one or two networks you actually control, a self-hosted version is fine and cheaper forever. If you want six networks, threads, first comments, video, and reliable retries, you are now maintaining an integration layer as a hobby.",
+  "coreLoopDIY": "A local web app where you draft posts, attach media, drop them on a calendar, and a worker publishes them to your connected accounts at the scheduled time with retries and a log.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A developer app plus OAuth credentials for each network you want to post to",
+    "An always-on machine or small VPS so the scheduler actually fires when you are asleep",
+    "Token refresh handling, since most social tokens expire",
+    "Object storage or a local disk for images and video",
+    "An LLM API key if you want the AI drafting part"
+  ],
+  "whatYouLose": [
+    "Publishing to networks that require business verification or app review, notably Instagram, TikTok, and Facebook",
+    "Someone else babysitting API changes and deprecations for you",
+    "Polished mobile drafting and approval flows",
+    "Analytics, best-time suggestions, and per-network preview rendering",
+    "Failure alerting that you did not have to build yourself"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the calendar UI, it is being an approved publishing partner on platforms that make solo developers jump through hoops.",
+  "whyPeopleStillPay": "Because the cost of a scheduling tool is trivial next to the cost of re-earning API access every time a platform reshuffles its rules. Paid tools absorb the OAuth reviews, the token churn, the rate limits, and the silent format changes, and they do it across every network at once. If your posting habit spans Instagram and TikTok, you are effectively paying for someone else's approved developer app. If it spans a personal X account and a LinkedIn profile, you are paying for convenience you could self-host.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduler is the easy half; the platform paperwork is the actual product.",
+  "prompt": "Build a self-hosted social media post scheduler that I run on my own VPS.\n\nStack, no substitutions:\n- Next.js with TypeScript and the App Router, Tailwind for UI\n- SQLite via better-sqlite3, schema created by a migration script on first boot\n- A separate long-running Node worker process using node-cron, polling the database every 30 seconds\n- Local disk storage for uploaded media under ./uploads, served through an authenticated route\n- Single-user auth: one password from .env, cookie session, no signup flow, no user table\n\nIn scope:\n- Compose screen: text body, per-network character counters, media attachments, optional thread of multiple posts\n- Month and week calendar views showing scheduled, published, and failed posts, with drag to reschedule\n- Account connections for X and LinkedIn only, via OAuth 2.0 authorization code flow, storing access and refresh tokens in SQLite, refreshing automatically before expiry\n- A publish worker that claims due posts with a status transition so nothing double-posts, calls the network APIs, retries with exponential backoff up to 5 attempts, then marks failed with the raw error stored\n- A log page listing every publish attempt, request outcome, and permalink to the live post\n- Optional AI draft button that calls OpenAI with a key from .env and returns three variants of a post; the app must work fully with no key set\n- A single docker-compose.yml running web and worker, with a volume for the database and uploads\n\nOut of scope, do not build: Instagram, TikTok, Facebook, analytics dashboards, team approvals, billing, telemetry, or any hosted account system.\n\nAll secrets in .env, with .env.example committed. Include a README covering how to register the X and LinkedIn developer apps, which scopes to request, the callback URLs, and how to run the whole thing on a $5 VPS. Seed the database with three example scheduled posts so the calendar is not empty on first run.",
+  "promptCurated": false
+}
