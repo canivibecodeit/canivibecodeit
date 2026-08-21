@@ -1,0 +1,53 @@
+{
+  "slug": "heyotto",
+  "name": "HeyOtto",
+  "domain": "heyotto.app",
+  "category": "security",
+  "subcategory": "family safety monitoring",
+  "tagline": "An AI safety layer that watches activity across a household's connected apps and devices and alerts a parent or guardian when something looks wrong.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://heyotto.app/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interesting part of this category is not the classifier, it is the plumbing that gets the data at all. Reading a teenager's messages, app usage, browser history and screen content requires platform-level permissions, device agents, OAuth scopes that vendors hand out selectively, and a legal posture for handling a minor's data. An agent can absolutely write you an LLM triage loop over logs you already have, and that loop will be decent. It cannot get you the logs, keep them flowing through OS updates, or be trustworthy at 2am when the alert actually matters. Detail on this specific product is thin, so treat the verdict as directional rather than a teardown.",
+  "coreLoopDIY": "Watches a local folder of exported chat, browser and app-usage logs, runs each new item through an LLM safety rubric, correlates repeat signals per person over time, and pushes a phone notification when a threshold trips.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and SQLite",
+    "An LLM API key in .env",
+    "Manual or scripted exports from whatever apps you want covered",
+    "An ntfy topic or SMTP creds for alerts",
+    "A machine that stays on, or a cheap VPS"
+  ],
+  "whatYouLose": [
+    "Real-time collection: you get whatever you can export, on whatever cadence you can automate, not a live device feed",
+    "Coverage of the closed platforms that matter most, since Snapchat, iMessage and in-app DMs do not hand out read access to hobby projects",
+    "Fault tolerance: a home script that dies silently is worse than no monitor, because you will assume silence means safety",
+    "Tuned thresholds built from a large population of real incidents, so expect either alert fatigue or gaps",
+    "Any defensible answer to how a minor's private messages are stored, retained and deleted"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "scale-infra"
+  ],
+  "moatNotes": "Platform access in this space is granted, not scraped. That is the whole game.",
+  "whyPeopleStillPay": "Because the failure mode is not a bad dashboard, it is missing the one message that mattered. People buying this are buying someone else's obligation to keep the pipes open across OS updates, app API changes and network outages, plus the uncomfortable-but-real comfort of a vendor that has seen thousands of these situations and has some idea what a genuine signal looks like versus a kid quoting song lyrics. A weekend script gives you the classifier and none of the confidence.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the triage loop in a weekend; you cannot build the collection layer. The moat is privileged platform and device integrations plus the compliance work that makes monitoring a minor's data survivable.",
+  "prompt": "Build a local safety-signal monitor called ottolite. Python 3.11, SQLite, no web framework, no accounts, no cloud.\n\nStack: uv for deps, typer for the CLI, sqlite3 from stdlib, httpx for the LLM call, apscheduler for the polling loop. Config in .env: LLM_API_KEY, LLM_MODEL, NTFY_TOPIC.\n\nWhat it does:\n1. Watches ./inbox for new files. Support .txt, .csv and .json exports. Each file belongs to a subject folder, e.g. ./inbox/alex/whatsapp-2026-08.txt, and the folder name is the subject id.\n2. Normalizes every file into an events table: id, subject, source, timestamp, actor, text, raw_path, hash. Dedupe on hash so re-importing the same export is a no-op.\n3. For each new event, call the LLM once with a fixed rubric prompt stored in rubric.md. Ask for strict JSON: {categories: [], severity: 0-3, rationale: string, quote: string}. Categories: self_harm, violence, bullying, grooming, substances, disordered_eating, none. Store the result in a signals table keyed to the event.\n4. Correlate: a rolling window job that groups signals per subject per category over 7 days and computes a pressure score (sum of severities, weighted so three severity-1 hits over three days outrank one severity-1 hit). Store in alerts table with state new|acked|dismissed.\n5. Alert: when pressure crosses a threshold in config.toml, POST a short message to ntfy.sh/$NTFY_TOPIC with subject, category, score and the single strongest quote. Never send the full transcript.\n6. Heartbeat: send a daily ntfy ping saying the monitor is alive and how many events it processed. If the pipeline throws, send an error ping. A silent monitor must be treated as a broken monitor.\n\nCLI: ottolite import, ottolite scan, ottolite watch, ottolite alerts, ottolite ack ID, ottolite report --subject alex --days 30.\n\nExplicitly out of scope: device agents, MDM profiles, browser extensions, screen capture, any attempt to read closed platforms, multi-user auth, a hosted UI.\n\nWrite rubric.md with a cautious rubric that prefers false positives on self_harm and grooming and stays quiet on ambiguous slang. Include a README section stating plainly that this reads whatever you feed it, stores it unencrypted in ottolite.db, and that you should tell the person being monitored that it exists. Include seed fixtures and pytest coverage for the normalizer, the dedupe and the pressure scorer, with the LLM call mocked.",
+  "promptCurated": false
+}
