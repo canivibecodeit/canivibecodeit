@@ -1,0 +1,50 @@
+{
+  "slug": "coursorful",
+  "name": "Cursorful",
+  "domain": "cursorful.com",
+  "category": "screen-recording",
+  "subcategory": "cursor-tracking screen recorder",
+  "tagline": "Browser-based screen recorder that auto-zooms and smooths the cursor so demo videos look edited without editing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://cursorful.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core trick is not the recording, it is logging cursor coordinates during capture and then replaying the video through a virtual camera that eases toward wherever the pointer was. An agent can get that working locally in a weekend: Electron for global cursor polling, canvas for the zoom pass, MediaRecorder for the export. What you will not get in one sitting is the part people actually buy, which is motion that never feels seasick, clean text at 4K, and an export that does not take four minutes. Expect a build that proves the concept and then eats a day on easing curves and encoder settings.",
+  "coreLoopDIY": "Records the screen while logging global cursor position, then re-renders the video through an eased zoom-and-pan camera that follows the pointer and exports a padded, rounded-corner clip.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a desktop OS where Electron can capture the screen",
+    "screen recording permission granted to the app",
+    "local disk space for raw plus rendered video",
+    "optional ffmpeg on PATH if you want MP4 instead of WebM"
+  ],
+  "whatYouLose": [
+    "Smoothing that actually looks professional: their easing, deadzones and zoom-level heuristics are tuned, yours will overshoot and jitter",
+    "Fast, high-quality exports, canvas re-encode in Electron is slow and soft at 4K",
+    "Click and keystroke highlights, webcam bubble, background presets, trimming UI",
+    "Cross-browser extension convenience: install, hit record, done, no local app or permissions dance",
+    "Hosted links, thumbnails and any sharing workflow beyond a file on disk"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "All the value is in perceived smoothness, which is a hundred small tuning decisions nobody sees in a demo.",
+  "whyPeopleStillPay": "Because a demo video is usually made under deadline by someone who does not want to think about easing functions. The paid tool turns a raw capture into something that looks like a motion designer touched it, in one click, with no local install and no render babysitting. A DIY version gets you 70 percent of the effect and then asks you to keep tuning it every time the output looks slightly nauseating. That maintenance is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The recorder is easy, the camera motion is the whole job.",
+  "prompt": "Build a local desktop app called ZoomShot that records the screen and auto-zooms toward the mouse cursor, then exports a polished clip.\n\nStack, no substitutions:\n- Electron 30+ with TypeScript, Vite for the renderer, plain HTML and CSS, no UI framework.\n- No accounts, no cloud, no telemetry, no analytics. Everything runs and stays on this machine.\n- Only env var: OUTPUT_DIR in .env, defaults to ./recordings.\n\nCapture:\n- Main process uses desktopCapturer to list screens; renderer records the chosen screen with getUserMedia plus MediaRecorder into a raw WebM file at 30fps.\n- While recording, the main process polls screen.getCursorScreenPoint() every 16ms and appends {t, x, y} to a track array, timestamps relative to record start. Save it as track.json next to the raw video.\n- Also log left mouse down events if available; otherwise skip clicks entirely, do not fake them.\n\nRender pass (the actual point of this app):\n- Load the raw video into a hidden video element, step through it, and draw each frame to a canvas through a virtual camera with position and zoom.\n- Camera logic: target zoom 1.0 when the cursor is roughly still, 1.8 when it moves into a new region; center on the cursor but clamp so the frame never shows outside the source. Smooth position and zoom with a critically damped spring, and add a deadzone in pixels so small jitters do not move the camera at all.\n- Composite output: source frame with rounded corners and a drop shadow on a solid dark background, with configurable padding.\n- Capture the canvas with captureStream plus MediaRecorder and write out.webm to OUTPUT_DIR. If ffmpeg exists on PATH, offer one button to remux to MP4 with H.264.\n\nUI: one window. Pick a screen, Record, Stop, then sliders for zoom level, spring stiffness, deadzone and padding with a live scrubbing preview on the recorded clip, then Export.\n\nOut of scope: webcam overlay, microphone mixing, trimming, GIF export, background image presets, multi-monitor stitching, hosted sharing.\n\nDeliver a README with permission setup steps for macOS and Windows, and make the spring and deadzone constants a single exported config object so they are easy to tune.",
+  "promptCurated": false
+}
