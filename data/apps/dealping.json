@@ -1,0 +1,52 @@
+{
+  "slug": "dealping",
+  "name": "DealPing",
+  "domain": "dealping.io",
+  "category": "monitoring",
+  "subcategory": "price and deal alerts",
+  "tagline": "Watches product pages and pings you when a price drops or a deal appears.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://dealping.io/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is embarrassingly simple: fetch a page, pull out a number, compare it to the last number, send a notification. An agent will give you that in a couple of hours, with SQLite and a cron and a push endpoint, and for a personal watchlist of ten or twenty URLs it will work. The gap is that retailers actively fight scrapers: bot walls, rotating markup, region-specific pricing, and prices that only appear after login or in the cart. A hosted service eats that maintenance across thousands of users and keeps a parser library that survives redesigns, which is the part you cannot one-shot. Build it if your watchlist is small and your patience for broken selectors is large.",
+  "coreLoopDIY": "Polls a list of product URLs on a schedule, extracts the current price, stores history, and pushes a notification when the price crosses your target or drops by a set percent.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that can stay awake for cron runs",
+    "Playwright plus a headless browser install, since plain fetch gets blocked a lot",
+    "A push channel: ntfy topic, Telegram bot token, or SMTP credentials",
+    "Willingness to write and repair a CSS selector per retailer"
+  ],
+  "whatYouLose": [
+    "Maintained parsers for hundreds of retailers, so every site redesign is now your problem",
+    "Bot-wall evasion at scale: proxies, residential IPs, CAPTCHA handling",
+    "Historical price data going back before the day you hit run",
+    "A mobile app and notification reliability you do not have to think about",
+    "Curated deal discovery, if the product surfaces deals you were not already tracking"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The valuable asset is the parser library and the accumulated price history, not the alerting logic.",
+  "whyPeopleStillPay": "Because price tracking is a maintenance business dressed up as a feature. The alert logic is trivial; keeping fifty retailer parsers alive through redesigns, geo pricing, and escalating bot defenses is a continuous chore, and paying someone a few dollars a month to absorb that chore is rational. There is also the history problem: a service has years of price data so it can tell you whether this discount is real, while your fresh install only knows what it saw since Tuesday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build for a short watchlist. It degrades into a selector maintenance hobby the moment the list gets long.",
+  "prompt": "Build a self-hosted personal price watcher. Empty folder, no accounts, no cloud services beyond one notification endpoint.\n\nStack, non negotiable: TypeScript on Node 20, SQLite via better-sqlite3, Playwright for page fetching, node-cron for scheduling, Hono for a tiny local web UI on port 8787. No ORM, no framework beyond that, no Docker unless the install needs it.\n\nData model in SQLite:\n- watches: id, url, label, css_selector, currency, target_price nullable, drop_percent nullable, active, created_at\n- price_points: id, watch_id, price_cents, raw_text, fetched_at, ok, error nullable\n- alerts: id, watch_id, price_cents, reason, sent_at\n\nBehaviour:\n1. A cron job runs every 6 hours, configurable via CHECK_CRON in .env.\n2. For each active watch, open the URL in Playwright Chromium with a realistic user agent and a 20 second timeout, read the text at css_selector, parse the first currency-looking number out of it, store a price_point.\n3. If the selector is missing or the parse fails, store price_point with ok=0 and the error, and do not alert. After three consecutive failures on one watch, send a single \"watch is broken\" notification and skip it until edited.\n4. Fire an alert when the new price is below target_price, or when it is drop_percent below the lowest price seen in the last 30 days. Deduplicate: never alert twice for the same watch at the same price within 72 hours.\n5. Notifications go out through ntfy: POST the message to NTFY_URL from .env. One module, one function, so another channel can be swapped in later.\n\nLocal web UI, server-rendered HTML, no client framework:\n- List of watches with latest price, 30 day low, last check time, broken flag.\n- Add or edit a watch. Include a \"test selector\" button that fetches the page now and shows the extracted raw text so the selector can be fixed before saving.\n- A per-watch price history table and a simple inline SVG sparkline.\n- CSV export of price_points.\n\nExplicitly out of scope: user accounts, multi-user support, telemetry, retailer-specific parsers, proxy rotation, CAPTCHA solving, browser extension, mobile app, deal discovery or any kind of feed.\n\nAll secrets and config in .env, with a committed .env.example. Write a README that says plainly that the selectors will break when sites redesign, and that some retailers will block headless Chromium outright. Include one seed watch against a stable, scraper-tolerant page so the first run proves the pipeline works.",
+  "promptCurated": false
+}
