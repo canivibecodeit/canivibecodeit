@@ -1,0 +1,51 @@
+{
+  "slug": "imageat",
+  "name": "imageat",
+  "domain": "imageat.com",
+  "category": "generative-media",
+  "subcategory": "multi-model image and video gateway",
+  "tagline": "One interface for many hosted AI image and video models, with workflows, an API and MCP access, billed pay-as-you-go.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://imageat.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Structurally this is a router with a gallery attached: prompt in, provider API call out, result stored, credits deducted. An agent can build that in a weekend against fal or Replicate, and for one person the result is genuinely fine, arguably better because you keep the raw files and pay provider rates directly. What you cannot build is the models themselves, so the DIY version is a thin client over the same rented weights, with a hard dependency on whoever hosts them. The real work in a product like this is the boring part: keeping dozens of model endpoints and their mutually incompatible parameter schemas current as providers ship and deprecate weekly. Your build will drift within a month, and you will be the one fixing it.",
+  "coreLoopDIY": "A local web app that sends prompts to hosted image and video models through one or two provider APIs, tracks jobs, and stores every output with its full parameters in a searchable local gallery.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A funded account and API key with at least one model aggregator such as fal.ai or Replicate",
+    "Node 20 and a local disk with room for video files",
+    "Willingness to hand-write a parameter schema per model you actually care about",
+    "Patience for provider webhooks or polling on long video jobs"
+  ],
+  "whatYouLose": [
+    "A curated, actively maintained catalog of current models instead of the four you wired up in February",
+    "Node-based workflows for chaining generations without writing glue code",
+    "A hosted API and MCP endpoint that other tools can call from anywhere",
+    "One balance across providers instead of separate keys, invoices and rate limits",
+    "Any sharing, permalink or team surface: your gallery lives on one laptop"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is maintenance, not technology: model endpoints churn constantly and someone has to keep the adapters and parameter UIs honest.",
+  "whyPeopleStillPay": "Because the alternative to one credit balance is six provider accounts, six sets of docs, six billing pages and a parameter schema you rewrite every time a model bumps its version. Most people generating images and video want to compare outputs, not maintain adapters. A hosted API and MCP endpoint also mean other tools can reach it without you running a server, which is exactly the part a personal build quietly fails at. The moment you need a second device or a teammate, the DIY version stops being a saving.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The gateway is a weekend; the up-to-date model catalog is a subscription to someone else's diligence.",
+  "prompt": "Build a local, single-user AI media studio. No accounts, no telemetry, no cloud database.\n\nStack, non-negotiable: Next.js 15 with the app router and TypeScript, Tailwind for styling, SQLite through better-sqlite3, generated files written to ./storage on local disk. Run it with npm run dev on port 3000.\n\nProviders: fal.ai as the primary model gateway, Replicate as a second adapter. Read FAL_KEY and REPLICATE_API_TOKEN from .env.local. Ship a .env.example and never commit keys. If a key is missing, the UI should say so plainly and disable that provider instead of throwing.\n\nModel registry: a single models.ts file exporting a typed array of model definitions. Each entry has an id, provider, human name, kind (image or video), the provider endpoint string, and a Zod schema for its inputs with defaults. Seed it with three image models and one video model. Every parameter form in the UI is generated from that Zod schema, so adding a model means adding one object and nothing else.\n\nCore loop: a prompt box, a model picker, a generated parameter panel, and a Generate button. Submitting inserts a job row (status queued) and returns immediately. A server-side worker route submits to the provider, polls or handles the webhook, downloads the finished asset to ./storage, and updates the row with the local path, duration and reported cost if the provider returns one.\n\nGallery: reverse-chronological grid of all outputs, images inline and videos as looping muted previews. Clicking one opens a detail view showing the full input JSON, the model, the cost and buttons for Re-run identical and Re-run with edits, which prefill the form. Full-text search over prompts, plus filters by model and kind.\n\nAlso build: a spend page summing recorded cost by day and by model, and a favorite flag.\n\nOut of scope, do not build: user auth, node-based workflow graphs, an outbound public API, MCP server, payments, image editing tools, S3 or any remote storage.\n\nWrite a README covering setup, where the keys go, how to add a model to the registry, and an explicit warning that every generation spends real money on the provider account.",
+  "promptCurated": false
+}
