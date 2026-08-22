@@ -1,0 +1,50 @@
+{
+  "slug": "sqlai",
+  "name": "SQLAI",
+  "domain": "sqlai.ai",
+  "category": "dev-tools",
+  "subcategory": "text-to-SQL",
+  "tagline": "AI that writes, fixes and explains SQL against your own database schema.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.sqlai.ai/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Text to SQL is the single most commoditized thing an LLM does, and the whole product is a schema dump plus a good prompt plus a run button. An agent can wire up a local app that introspects your Postgres or MySQL catalog, feeds the DDL to a model, returns a query, runs it read-only and shows the rows. Dialect awareness, query explanation and fix-my-broken-SQL are all just different prompts over the same schema context. What you skip is the polished multi-database connector library, the saved query workspace and someone else's prompt tuning across a dozen dialects. If you mostly point it at one or two databases you own, the hosted version stops earning its keep fast.",
+  "coreLoopDIY": "Introspects your database schema, sends it plus your plain-English question to an LLM, then runs the returned SQL read-only and renders the result table.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "Read-only credentials for the database you want to query",
+    "Node or Python runtime locally"
+  ],
+  "whatYouLose": [
+    "Prebuilt connectors for the long tail of databases and warehouses",
+    "Prompt tuning that has already been beaten on across dialects",
+    "Shared team workspace with saved queries and history",
+    "A hosted UI you can open on any machine without setup",
+    "Whatever guardrails they have against destructive or runaway queries"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is connector breadth and UI polish, not the SQL generation itself.",
+  "whyPeopleStillPay": "Because they do not want to think about connection strings, dialect quirks or where the schema context comes from, and because the hosted version works the same against Snowflake, BigQuery and some legacy MySQL box a colleague set up in 2014. Teams also like that saved queries live somewhere other than one person's laptop. If your world is a single Postgres instance you already have credentials for, that convenience premium is thin.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The generation is easy, the connector zoo is the actual product.",
+  "prompt": "Build a local text-to-SQL desktop-ish web app in an empty folder. Stack: Python 3.11, FastAPI backend, single server-rendered HTML page with htmx and plain CSS. No build step, no React, no accounts, no telemetry, no cloud deploy.\n\nCore loop:\n1. Read DATABASE_URL and ANTHROPIC_API_KEY from a .env file loaded with python-dotenv. Ship a .env.example, never commit real secrets.\n2. On startup, connect with SQLAlchemy and introspect the schema: tables, columns, types, nullability, primary keys, foreign keys. Cache it in memory with a manual Refresh schema button.\n3. Render the schema as compact DDL-like text. Truncate to a configurable token budget, preferring tables the user has referenced recently.\n4. Text box: user types a question in English. POST it with the schema text to the Anthropic Messages API. System prompt must state the exact dialect (detected from the SQLAlchemy dialect name) and demand a single SELECT statement, no prose, no DDL, no DML.\n5. Show the generated SQL in an editable textarea before running anything. Nothing executes without a click.\n6. Run button executes the SQL in a read-only transaction, with a statement timeout of 10 seconds and LIMIT 500 injected if no limit is present. Render results as an HTML table. Show errors verbatim.\n7. Reject any generated or edited statement that is not a single SELECT or WITH ... SELECT, using a simple sqlparse check plus a keyword denylist. Fail loudly rather than guessing.\n\nAlso include, same schema context, different prompts:\n- Explain this SQL: paste a query, get a plain-English walkthrough.\n- Fix this SQL: paste a broken query plus the error text, get a corrected version.\n\nPersistence: SQLite file history.db storing question, generated SQL, dialect, timestamp, and whether it ran successfully. A History page lists the last 100, click to reload into the editor.\n\nOut of scope: multi-user auth, charting, warehouse-specific auth flows like BigQuery service accounts, schema editing, write queries.\n\nDeliverables: main.py, templates, static css, requirements.txt, .env.example, and a README with a single uv or pip command to run it. Include three pytest tests for the SELECT-only guard.",
+  "promptCurated": false
+}
