@@ -1,0 +1,51 @@
+{
+  "slug": "appyoulearn",
+  "name": "YouLearn",
+  "domain": "youlearn.ai",
+  "category": "education",
+  "subcategory": "AI study assistant over your own course material",
+  "tagline": "Upload lectures, PDFs and YouTube links, get summaries, chapters, chat, flashcards and quizzes over them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://app.youlearn.ai/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core is a well-trodden pipeline: parse a document or transcribe a video, chunk it, embed it, then let a model answer questions and emit summaries, flashcards and quiz items. An agent can stand that up in one sitting for your own material, and for a single learner brute-force cosine search over a SQLite table is more than enough. What does not come for free is everything around it: the mobile app you actually study on, reliable transcription of three-hour lectures, scanned or handwritten PDFs, and spaced repetition that nags you on the right day. Fetching YouTube audio is also a permanently brittle dependency that breaks when someone upstream changes something. So: a working study tool this weekend, a study habit you keep, less certain.",
+  "coreLoopDIY": "Ingest PDFs, text and YouTube or local audio/video, transcribe and chunk them, then run retrieval-backed chat plus one-click summary, flashcard and quiz generation over each item, all stored locally.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "An LLM API key for chat, embeddings and transcription",
+    "ffmpeg and yt-dlp installed locally for audio extraction",
+    "Disk space for audio files and transcripts"
+  ],
+  "whatYouLose": [
+    "Native mobile and tablet apps, which is where most people actually revise",
+    "Robust handling of scanned PDFs, slide decks and handwritten notes without extra OCR work",
+    "Spaced repetition scheduling that reminds you instead of waiting to be opened",
+    "Reliable long-video transcription at scale: your version will be slow, chatty with the API bill, and occasionally break on YouTube",
+    "Any polish around highlights, cross-document search and study streaks that keeps you coming back"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The defensibility is habit and interface, not data. Once a semester of material and flashcard history lives inside it, moving is annoying enough that people just renew.",
+  "whyPeopleStillPay": "Because studying is a chore and the tool has to be frictionless at the exact moment you open it on a phone in a library. Paying removes the yak-shaving: no ffmpeg, no API keys, no wondering why the transcript stopped at minute forty, and the flashcards show up on the right day without you building a scheduler. A self-hosted clone answers questions about your PDFs perfectly well; it just does not follow you around, and a study tool you do not open is worth nothing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The retrieval part is a solved exercise; the part that makes you actually study is not.",
+  "prompt": "Build a local-only AI study tool called \"studybase\" in this empty folder.\n\nStack, no substitutions: Next.js 15 with the App Router and TypeScript, Tailwind for styling, SQLite via better-sqlite3, local filesystem for uploads. No Docker, no auth, no accounts, no telemetry, no hosted database. It runs on localhost for one person.\n\nData model in SQLite: sources (id, title, kind of pdf|text|youtube|audio, origin path or url, created_at, transcript text, status), chunks (id, source_id, ordinal, text, embedding as a JSON array of floats, start_seconds nullable), messages (id, source_id, role, content, created_at), cards (id, source_id, front, back, ease, due_at), quiz_items (id, source_id, question, choices JSON, answer_index, explanation).\n\nIngestion:\n- PDF upload: extract text with pdf-parse, one chunk per ~1200 characters with 150 character overlap.\n- Pasted text: same chunking.\n- YouTube url: shell out to yt-dlp to grab audio only, then ffmpeg to split into 10 minute segments, then transcribe each segment with the Whisper transcription endpoint and keep segment start offsets so citations can link back to a timestamp.\n- Local audio or video upload: same path as YouTube minus yt-dlp.\nRun ingestion in a background route that updates the source status so the UI can poll. Handle failures by writing the error into status, do not crash.\n\nEmbeddings: call the embeddings endpoint per chunk, store the vector as JSON. Retrieval is brute-force cosine similarity in TypeScript over all chunks of the selected source, top 8. This is a personal corpus, do not add a vector database.\n\nUI, three screens only: a library list of sources with status, a source detail view with tabs for Summary, Chat, Flashcards and Quiz, and an add-source form. Summary generates once and caches: a 200 word overview plus a chapter list with timestamps when available. Chat streams answers and shows which chunks were used, with the timestamp or page as a label. Flashcards generate 20 cards and expose a simple review mode with again/good/easy that bumps due_at by 1, 3 or 7 days. Quiz generates 10 multiple-choice items and grades them client-side.\n\nAll model calls go through one lib/llm.ts module reading OPENAI_API_KEY from .env.local. Commit .env.example, never a real key.\n\nOut of scope, do not build: user accounts, sharing, mobile app, OCR for scanned PDFs, payment, cloud storage, multi-document search across sources.\n\nFinish with a README covering install, the yt-dlp and ffmpeg prerequisites, and one honest paragraph on known limits: scanned PDFs, long transcription cost, and YouTube extraction breaking without warning.",
+  "promptCurated": false
+}
