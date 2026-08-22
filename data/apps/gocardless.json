@@ -1,0 +1,51 @@
+{
+  "slug": "gocardless",
+  "name": "GoCardless",
+  "domain": "gocardless.com",
+  "category": "finance-accounting",
+  "subcategory": "bank debit and recurring payments",
+  "tagline": "Recurring bank-to-bank payments: direct debit mandates, collection, retries and payout reconciliation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per transaction, percentage plus fixed fee, with volume plans",
+    "unit": "usage",
+    "source": "https://gocardless.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "GoCardless is not software you can clone, it is regulated access to bank debit schemes: Bacs, SEPA Direct Debit, ACH, BECS and friends. To pull money from someone else's bank account on a schedule you need scheme sponsorship, a payment institution licence or a sponsoring bank, KYC and anti-money-laundering processes, and the operational plumbing for mandate lifecycle, failure codes, retries, indemnity claims and chargebacks. An agent can build you a very tidy mandate and invoice ledger in an afternoon, and it will move exactly zero pounds. The interesting parts, settlement timing, failure taxonomy, dunning logic tuned on millions of collections, are learned from volume you do not have. Build the ledger, keep the payment rails.",
+  "coreLoopDIY": "A local recurring-billing ledger that tracks customers, mandates, schedules and expected collections, then reconciles them against a bank statement CSV and flags misses.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A bank or accounting export you can download as CSV",
+    "Somewhere to run a small Node service, local is fine",
+    "An actual licensed payment provider if you ever want money to move"
+  ],
+  "whatYouLose": [
+    "Actually debiting bank accounts, the entire point",
+    "Scheme membership and compliance cover: Bacs sponsorship, SEPA creditor ID, mandate legal wording per country",
+    "Automatic failure handling: insufficient funds codes, smart retries, dunning that recovers real revenue",
+    "Payout reconciliation across currencies and settlement delays",
+    "Customer-facing mandate signup flows that banks and auditors accept"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "scale-infra",
+    "proprietary-data"
+  ],
+  "moatNotes": "The licence and scheme access are the product; the dashboard is packaging.",
+  "whyPeopleStillPay": "Because the alternative is becoming a regulated payment institution or negotiating Bacs sponsorship with a bank, and neither is a weekend. GoCardless absorbs the licensing, the mandate legalities across a dozen countries, the failure-code handling and the audit trail, and charges a slice of each collection for it. For a business collecting subscriptions by bank debit, the fee is trivially cheaper than the compliance headcount, and the retry logic alone often pays for itself in recovered payments.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the ledger in an afternoon and it will never touch a bank. The moat is scheme access and a payment institution licence, plus a decade of failure-code and retry data nobody else has.",
+  "prompt": "Build a local-first recurring billing ledger called \"DebitBook\". It tracks expected bank-debit collections and reconciles them against bank statement exports. It does NOT move money and must never pretend to.\n\nStack, no substitutions:\n- TypeScript, Node 20, Fastify for the API\n- SQLite via better-sqlite3, schema in migrations/001_init.sql\n- Server-rendered HTML with Eta templates plus a little vanilla JS, no React\n- Vitest for tests\n\nData model:\n- customer: id, name, email, country, created_at\n- mandate: id, customer_id, reference, scheme (bacs|sepa|ach|other), status (pending|active|cancelled), signed_on, notes\n- plan: id, name, amount_minor, currency, interval (weekly|monthly|quarterly|yearly)\n- subscription: id, customer_id, plan_id, mandate_id, start_date, status\n- collection: id, subscription_id, due_date, amount_minor, currency, status (scheduled|matched|missing|written_off), matched_txn_id, note\n- bank_txn: id, posted_on, amount_minor, currency, description, source_file, matched\n\nFeatures, all of them:\n1. CRUD screens for customers, mandates, plans, subscriptions.\n2. A scheduler command `npm run generate -- --through 2026-12-31` that materialises future collection rows from active subscriptions, idempotent, never duplicates a due_date.\n3. CSV import at POST /import that accepts a bank statement export, maps columns via a config file config/csv-map.json, and stores bank_txn rows with a content hash to dedupe re-imports.\n4. A reconciliation pass: match collections to bank_txns by amount plus a configurable date window plus fuzzy description match against mandate reference. Ambiguous matches go to a manual review queue, never auto-guess.\n5. Dashboard: expected cash by month, unmatched collections older than N days, cancelled mandates with live subscriptions, total written off.\n6. Export /export/csv of everything, so this thing is never a data prison.\n\nOut of scope, do not build: any payment API integration, webhooks, hosted signup pages, email sending, auth, multi-tenancy, telemetry.\n\nRules: all config and paths in .env with a checked-in .env.example, money as integer minor units only, no floats, currency stored per row. Seed script with 12 fake customers and a messy sample statement CSV so the reconciler has something to fail on. Tests for the scheduler and the matcher, including the ambiguous case. README that states plainly in the first line that this tracks collections and does not collect them.",
+  "promptCurated": false
+}
