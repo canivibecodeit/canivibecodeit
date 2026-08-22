@@ -1,0 +1,52 @@
+{
+  "slug": "plex",
+  "name": "Plex",
+  "domain": "plex.tv",
+  "category": "audio-video",
+  "subcategory": "personal media server",
+  "tagline": "Self-hosted media server with polished apps on every screen, plus streaming extras.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Plex Pass",
+    "basis": null,
+    "unit": "custom",
+    "source": "https://watch.plex.tv/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The server half of Plex is genuinely a weekend project: scan a folder, read metadata, transcode on demand, serve HLS to a browser. Jellyfin already proved the open source version works, so an agent writing a smaller version of it is not fantasy. What breaks is everything past the browser: the TV app, the Roku app, the phone app that downloads for a flight, remote access that survives your router, and hardware transcoding that turns a 4K HEVC file into something a 2015 smart TV will accept. Metadata matching is also a lot less fun than it sounds once your library has foreign films and multi-season anime. Build it for yourself on a laptop and a Chromecast tab and you will be fine; build it for a household that expects Plex-on-the-living-room-TV and you will be doing support tickets forever.",
+  "coreLoopDIY": "Indexes a local media folder, pulls metadata and artwork from a public movie database, and streams each file to a browser with on-the-fly transcoding and resume playback.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg and ffprobe installed locally",
+    "a folder of media files you already own",
+    "a free TMDB API key for metadata and posters",
+    "a machine that stays on if you want it available all day"
+  ],
+  "whatYouLose": [
+    "Native apps for TVs, streamer sticks, consoles and phones, which is most of why Plex is in people's living rooms",
+    "Hardware accelerated transcoding tuned per device, so awkward codecs will either stutter or melt your CPU",
+    "Painless remote access: Plex handles relay and NAT traversal, you will be handling port forwarding or a tunnel",
+    "Offline downloads, multi-user profiles, watch state sync across devices, and parental controls",
+    "The bundled free ad-supported catalog and live TV, which is content licensing you cannot replicate"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "hardware",
+    "content-rights"
+  ],
+  "moatNotes": "The moat is not the server, it is the twenty client apps and the codec matrix behind them.",
+  "whyPeopleStillPay": "People pay Plex so that other people in the house never have to think about it. The server is the boring part; the value is that the app exists on the TV nobody wants to reconfigure, remote playback works without a networking lecture, and transcoding quietly handles whatever weird file you fed it. A personal build serves one technical user on one browser very well, and serves a household badly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for one nerd and a laptop, painful the moment a family remote control is involved.",
+  "prompt": "Build a self-hosted personal media server and web player in an empty folder.\n\nStack, no substitutions:\n- Node.js with TypeScript, Express, and SQLite via better-sqlite3.\n- Plain server-rendered HTML with a little vanilla JS, no React, no build step beyond tsc.\n- ffmpeg and ffprobe invoked as child processes, assumed on PATH.\n- Config from .env: MEDIA_DIR, PORT, TMDB_API_KEY. Never hardcode secrets. Commit a .env.example.\n\nIn scope:\n1. A scanner that walks MEDIA_DIR recursively for .mp4 .mkv .avi .mov, runs ffprobe on each file, and stores path, duration, container, video codec, audio codec, resolution, and file size in SQLite. Re-running the scan must be idempotent and must remove rows for files that vanished.\n2. Filename parsing for title and year, plus a TMDB lookup to fetch overview, poster, and backdrop. Cache poster images to a local ./cache folder. If TMDB_API_KEY is missing, skip enrichment and fall back to the filename, do not crash.\n3. A library page: poster grid, search box, sort by title or date added.\n4. A detail page per item with metadata, technical info, and a Play button.\n5. Playback with two paths. If the file is H.264 plus AAC in MP4, serve it directly with HTTP Range support. Otherwise transcode on the fly with ffmpeg to HLS at a single 1080p bitrate, writing segments into a temp dir, and play it with hls.js. Kill the ffmpeg process when the client stops requesting segments.\n6. Resume: store playback position per item in SQLite, offer Resume or Start Over, and mark items watched past 90 percent.\n7. A single shared password from .env gated by a signed cookie. One user, no accounts, no registration.\n\nOut of scope, do not build: multi-user profiles, native or TV apps, offline downloads, live TV, subtitle burning beyond passing through existing embedded tracks, remote access setup, telemetry of any kind.\n\nDeliver a README with setup steps, the exact ffmpeg commands used, and an honest Limitations section naming the codecs and devices this will not handle.",
+  "promptCurated": false
+}
