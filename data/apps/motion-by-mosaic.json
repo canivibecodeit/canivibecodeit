@@ -1,0 +1,51 @@
+{
+  "slug": "motion-by-mosaic",
+  "name": "Motion",
+  "domain": "motion.so",
+  "category": "tasks-calendar",
+  "subcategory": "AI auto-scheduling",
+  "tagline": "Task manager that automatically packs your to-do list into open slots on your real calendar.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://motion.so/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The scheduling brain is less magic than the marketing implies: it is a greedy solver that walks your free/busy blocks and drops tasks in by deadline, priority and duration estimate. An agent can write that in a sitting, and a local version that reads your calendar and emits a proposed day plan is genuinely useful. The gaps are all plumbing: Google and Microsoft Calendar OAuth, two-way write-back without duplicating events, rescheduling cleanly when a meeting moves, and a mobile surface you will actually glance at. Motion also bundles meeting booking links, recurring task logic and team workload views, which is a lot of surface to reimplement. Build it if you want to own your scheduling rules, pay if you want it to just quietly happen on your phone.",
+  "coreLoopDIY": "Pulls your calendar's busy blocks, then fits a prioritized task list with duration estimates and deadlines into the remaining hours and writes the resulting time blocks back as calendar events.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Calendar API credentials in .env (OAuth consent screen setup is the tedious part)",
+    "A task store you actually maintain: tasks need duration estimates, deadlines and priorities or the solver has nothing to work with",
+    "Local Node or Python runtime plus a cron job or launchd timer to re-plan each morning"
+  ],
+  "whatYouLose": [
+    "Mobile apps and notifications, so replanning only happens where your script runs",
+    "Continuous reactive rescheduling when a meeting shifts or you blow past a block",
+    "Meeting booking links, availability sharing and the calendar-hygiene features bundled alongside",
+    "Team views: workload balancing, shared project scheduling, assigning tasks to other people",
+    "Years of tuning on what a sane auto-schedule looks like, which is mostly what you are paying for"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is not the solver, it is surviving contact with real calendars: recurring events, timezones, declined invites, all-day blocks, and doing it on a phone.",
+  "whyPeopleStillPay": "Auto-scheduling only works if it is ambient. A script that produces a beautiful plan in a terminal at 7am loses to an app that reshuffles your afternoon the moment a meeting moves and pings your phone about it. Add calendar OAuth being genuinely unpleasant, plus booking links and team workload for anyone using it at work, and the subscription is mostly a maintenance fee on plumbing you do not want to own.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduling algorithm is a weekend; the calendar edge cases are forever.",
+  "prompt": "Build a local auto-scheduling task planner. Stack: Node 20 with TypeScript, SQLite via better-sqlite3, a small Express server, and plain server-rendered HTML with htmx. No React, no cloud, no accounts, no telemetry.\n\nData model in SQLite:\n- tasks: id, title, notes, duration_minutes, deadline (nullable ISO date), priority (1-4), status (todo/done), min_chunk_minutes, created_at\n- blocks: id, task_id, start_utc, end_utc, gcal_event_id (nullable)\n- settings: single row with work_start, work_end, workdays, timezone, buffer_minutes\n\nCore scheduler (put it in src/schedule.ts, pure function, no IO):\n- Input: list of tasks, list of busy intervals, settings, a \"now\" timestamp.\n- Output: proposed blocks.\n- Algorithm: sort tasks by deadline ascending, then priority, then longest duration. Walk forward through working hours, subtract busy intervals and buffers, and fill free gaps. Split tasks into chunks no smaller than min_chunk_minutes. Never schedule before \"now\". Mark any task that cannot fit before its deadline as at-risk and return it in a separate list.\n- Unit test this function with Vitest: at least six cases covering no free time, a task that does not fit, chunk splitting, and deadline ordering.\n\nGoogle Calendar integration:\n- Read-only free/busy pull plus write-back of proposed blocks as events on a dedicated calendar named \"Auto Blocks\".\n- Use OAuth desktop flow, store the refresh token in .env, never commit it. Ship .env.example.\n- Write-back must be idempotent: reconcile by gcal_event_id, update or delete stale blocks instead of creating duplicates.\n- If credentials are absent, fall back to an .ics file import in ./calendars so the app is fully usable offline. Make this path work first.\n\nWeb UI on localhost:3000:\n- Task list with inline add and edit, duration and deadline and priority fields.\n- \"Plan today\" and \"Plan week\" buttons that run the scheduler and show a timeline of blocks next to existing busy events.\n- An at-risk section listing tasks that will miss their deadline, with the reason.\n- A dry-run toggle so planning never touches Google Calendar unless explicitly confirmed.\n\nAlso ship a CLI: `npm run plan -- --week` prints the plan as text and optionally syncs.\n\nOut of scope, do not build: mobile app, booking links, multi-user or team workload, push notifications, natural-language task parsing.\n\nDeliver a README with setup steps, the .ics fallback path explained first, and one command to seed sample tasks so the thing is demoable in under a minute.",
+  "promptCurated": false
+}
