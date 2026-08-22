@@ -1,0 +1,51 @@
+{
+  "slug": "signalfind-bluetooth-finder",
+  "name": "SignalFind: Bluetooth Finder",
+  "domain": "apps.apple.com",
+  "category": "productivity-utilities",
+  "subcategory": "bluetooth device finder",
+  "tagline": "iOS app that scans for nearby Bluetooth LE devices and uses signal strength to help you walk toward a lost one.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://apps.apple.com/in/app/signalfind-bluetooth-finder/id6801486504",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The entire technical core here is CoreBluetooth's central manager plus a smoothed RSSI reading, which is a few hundred lines of SwiftUI on a good day. There is no server, no account, no data moat: your phone is doing all the work already and the app is a thin wrapper on an OS API. The gap is distribution, not code: you need a Mac, Xcode, and either a paid Apple developer account or a willingness to re-sign your build every seven days. The other honest gap is physics and Apple policy, since RSSI is noisy indoors, AirTags rotate their identifiers so you cannot track them, and classic-Bluetooth-only devices that are not advertising simply do not show up for anyone, paid app included.",
+  "coreLoopDIY": "Scans for BLE advertisements continuously, lists what it sees with a smoothed proximity meter and haptic feedback that gets stronger as you close in, and remembers a nickname plus last-seen GPS point for each device you care about.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A Mac with Xcode",
+    "An iPhone (the simulator has no Bluetooth radio)",
+    "Apple ID for free 7-day provisioning, or a paid developer account if you want the build to stick around",
+    "Bluetooth and location permission strings in Info.plist"
+  ],
+  "whatYouLose": [
+    "An install that does not expire and re-sign itself every week",
+    "Background scanning and 'device left range' notifications tuned to not eat your battery",
+    "A vendor-ID lookup table that turns 'Unknown Device' into 'Sony headphones'",
+    "Someone else's tuning work on RSSI smoothing, which is most of what separates a usable proximity meter from a twitchy number",
+    "Any hope of finding AirTags or Tiles, which is what most people actually lost"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is App Store shelf space and a name that shows up when someone panic-searches 'bluetooth finder', not technology.",
+  "whyPeopleStillPay": "Because the person searching for this has already lost the earbud and is not going to install Xcode. The category is bought under mild duress, at three in the morning, by someone who wants a button that says FIND and does not care that the button is calling an OS API they already own. Paid finders also sell the illusion of tracking AirTags and pet tags, which they cannot do either, so the purchase is often disappointment that arrives after the money does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A one-file SwiftUI app can match the useful 90% of this in an afternoon; the remaining 10% is a smoothing filter you will tune by walking around your own apartment.",
+  "prompt": "Build a single-target iOS app called NearFinder using SwiftUI and CoreBluetooth. No backend, no accounts, no analytics, no third-party packages.\n\nStack and structure:\n- Swift 5.9+, SwiftUI, iOS 17 minimum, MVVM with one ObservableObject scanner class.\n- Files: NearFinderApp.swift, BLEScanner.swift, DeviceListView.swift, TrackView.swift, Models.swift, Persistence.swift.\n- Persist saved devices with Codable to a JSON file in Application Support. No Core Data, no CloudKit.\n\nScanner:\n- CBCentralManager scanning with allowDuplicates true so RSSI keeps updating.\n- Keep an in-memory dictionary keyed by peripheral identifier: name (or 'Unknown'), RSSI history ring buffer of 20 samples, first seen, last seen, advertised service UUIDs, manufacturer data hex prefix.\n- Expose a smoothed RSSI: drop the min and max of the buffer, then exponential moving average with alpha 0.3. This smoothing is the whole product, make it a named function I can tune.\n- Drop devices from the list after 15 seconds without an advertisement.\n\nDevice list screen:\n- Rows sorted by smoothed signal, strongest first. Show name, smoothed dBm, a 5-bar strength indicator, and a coarse label: Very Close / Close / Nearby / Far.\n- Search field filters by name. Toggle to hide unnamed devices.\n- Tap a row to open the track screen. Swipe to save a device with a nickname.\n\nTrack screen:\n- Big animated proximity ring driven by smoothed RSSI, plus the raw dBm number in small text so I can tell when the reading is garbage.\n- Rolling 60-second sparkline of smoothed RSSI so I can see whether I am getting warmer while walking.\n- CoreHaptics: fire a light impact whose interval shortens as signal strengthens. Mute toggle.\n- On every advertisement, if location permission is granted, overwrite that device's last-seen coordinate. Show it on a Map with a 'directions' button when the device is out of range.\n\nExplicitly out of scope, and print this in a small About screen so I remember why:\n- AirTags and Find My items: identifiers rotate and the network is closed, they cannot be tracked here.\n- Classic Bluetooth devices that are not advertising BLE are invisible to CoreBluetooth.\n- No pairing, no GATT connection, no writing to devices. Scan and display only.\n- No background modes in v1. Add bluetooth-central background mode only if I ask.\n\nInclude the NSBluetoothAlwaysUsageDescription and NSLocationWhenInUseUsageDescription strings, and a README with the two-line note that the simulator has no Bluetooth radio and free provisioning expires in 7 days.",
+  "promptCurated": false
+}
