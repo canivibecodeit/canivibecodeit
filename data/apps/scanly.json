@@ -1,0 +1,51 @@
+{
+  "slug": "scanly",
+  "name": "Scanly",
+  "domain": "scanly.site",
+  "category": "seo-marketing",
+  "subcategory": "automated site audits",
+  "tagline": "Runs one URL through SEO, performance, accessibility and security checks and returns an AI-written punch list.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://scanly.site/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Almost everything under the hood here is open source and has been for years. Performance and SEO scores come from Lighthouse, accessibility comes from axe-core, and a security audit for a static site is largely a handful of response headers plus a TLS check. The only genuinely new part is the layer that turns four JSON blobs into prose a non-developer can act on, and that is one prompt against an LLM API. A coding agent can wire the whole pipeline into a CLI that spits out an HTML report in a single sitting, and you get to run it on a hundred URLs without a per-scan quota.",
+  "coreLoopDIY": "Takes a URL, runs Lighthouse plus axe-core plus a header and TLS probe, then feeds the combined results to an LLM to produce a prioritised, plain-English fix list as a standalone HTML report.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 or newer with Chrome or Chromium available locally",
+    "An LLM API key for the recommendations layer",
+    "Patience for headless Chrome install quirks on some machines"
+  ],
+  "whatYouLose": [
+    "A hosted URL you can hand to a client, no local Chrome required",
+    "Scheduled re-scans and score history without you setting up cron and a database",
+    "A designed PDF or shareable report that looks like someone was paid to make it",
+    "Crawling a whole site rather than one page at a time, which is real work to add",
+    "Someone else's problem when Lighthouse changes its scoring weights again"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is presentation and trust, not measurement. A client-facing report with a logo on it reads as an audit; a terminal dump of Lighthouse JSON reads as homework.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Agencies and freelancers are not buying the scan, they are buying an artefact they can attach to an invoice. A tidy hosted report that says four things are wrong and here is the order to fix them is worth money to someone billing a client, and nobody wants to explain why their audit tool needs a Chromium binary. There is also the boring reason: running Lighthouse yourself means maintaining Lighthouse yourself, and headless browser tooling rots faster than most dependencies.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Any product whose core is a wrapper around Lighthouse is renting you convenience, which is a fine thing to rent and a cheap thing to build.",
+  "prompt": "Build a local CLI tool called \"sitecheck\" that audits a single web page and produces a self-contained HTML report.\n\nStack, no substitutions: Node 20, TypeScript, tsx for running, commander for the CLI, and a single-file HTML template built with template strings. No web server, no database, no accounts, no telemetry.\n\nBehaviour:\n- Command: `npx tsx src/index.ts audit https://example.com --out ./reports`\n- Step 1: run Lighthouse programmatically (the `lighthouse` npm package driving `chrome-launcher`) for the categories performance, seo, accessibility and best-practices. Capture the category scores and every failing audit with its title, description and score.\n- Step 2: load the page with Puppeteer, inject `axe-core`, run it, and capture violations with impact level, help text and up to five offending selectors each.\n- Step 3: do a plain fetch of the URL and record status, redirect chain, and the presence and value of these headers: strict-transport-security, content-security-policy, x-content-type-options, referrer-policy, permissions-policy, x-frame-options. Also record TLS certificate expiry using Node's tls module. Flag missing or weak values against a hardcoded rule table in `src/rules/headers.ts`.\n- Step 4: fetch and parse robots.txt and any sitemap it references, plus the page's title, meta description, canonical, h1 count and og tags. Report obvious problems only.\n- Step 5: send a compact JSON summary of all findings to an LLM (OpenAI-compatible chat completions endpoint, base URL and key from .env as LLM_BASE_URL and LLM_API_KEY, model from LLM_MODEL). Ask it for a prioritised fix list: each item gets a one-line problem statement, why it matters, and a concrete change. Require JSON output and validate it with zod. If the key is missing, skip this step and say so in the report rather than failing.\n\nOutput: write `reports/<hostname>-<timestamp>.html` with the four scores at the top, the AI fix list next, then collapsible raw sections per audit type. Inline all CSS. Also write the raw combined findings as sibling JSON so results can be diffed later.\n\nInclude a `--json-only` flag that skips the HTML, and a `--concurrency` flag that accepts a file of URLs, one per line, and audits them in sequence.\n\nWrite a README with setup, a .env.example, and one Vitest test that runs the header rule table against fixture responses. Do not add a dashboard, auth, or cloud storage.",
+  "promptCurated": false
+}
