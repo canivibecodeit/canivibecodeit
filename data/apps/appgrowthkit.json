@@ -1,0 +1,53 @@
+{
+  "slug": "appgrowthkit",
+  "name": "AppGrowthKit",
+  "domain": "appgrowthkit.com",
+  "category": "dev-tools",
+  "subcategory": "mobile app growth toolkit",
+  "tagline": "A drop-in toolkit for mobile apps that handles the growth plumbing: remote-configured onboarding and paywall flows, prompts, and experiments you can change without shipping a new build.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://appgrowthkit.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The concept is server-driven UI plus a flag store, and that is not exotic: a JSON schema for screens, a config endpoint, a client renderer, an events table. An agent can get you a working remote config service and a renderer that draws onboarding and paywall screens from JSON in a sitting or two, and for a single app you control that covers most of the actual value. Where it stops being fun is everything around it: a visual editor non-engineers can use, a real experiment assignment and stats layer, offline caching and fallbacks so a bad config does not brick launch, and store purchase plumbing through StoreKit and Play Billing. You are also now the person who keeps the client library working across OS and framework upgrades forever. Buildable, but do not confuse the demo with the maintained thing.",
+  "coreLoopDIY": "Serves versioned JSON flow definitions and feature flags from your own API, renders them natively in your app, and logs step-level events so you can see where users drop.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Node 20 and a Postgres or SQLite database you host",
+    "An Expo or React Native app to embed the renderer in",
+    "Apple and Google developer accounts if you want real paywall purchases",
+    "A purchases layer for entitlements if you sell subscriptions",
+    "Willingness to version your own flow schema forever"
+  ],
+  "whatYouLose": [
+    "A visual flow builder, you will be hand-writing or hand-editing JSON",
+    "A real A/B engine with assignment, exposure logging, and significance math",
+    "Battle-tested offline caching and fallback so a broken config does not blank your first screen",
+    "Maintained SDKs across iOS, Android, and whatever framework you switch to next year",
+    "Prebuilt paywall templates that already survived App Store review"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the config server, it is the boring reliability of the client library plus templates that already passed store review.",
+  "whyPeopleStillPay": "Because the failure mode is expensive and public. A growth toolkit lives on the very first screens a new user sees, so a caching bug or a schema mismatch does not degrade the product, it deletes your funnel. Paying means someone else owns the SDK upgrade treadmill, the paywall templates that already cleared review, and the experiment math you would otherwise fake with eyeballs. For a solo dev shipping one app it is genuinely tempting to self-host; for anyone whose install volume makes a bad launch screen cost real money, the subscription is cheap insurance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Server-driven UI is a solved pattern with a lot of unsolved edges; the edges are the product.",
+  "prompt": "Build a self-hosted growth toolkit for a single mobile app: a remote config and flow service plus a client renderer. TypeScript everywhere.\n\nStack, no substitutions:\n- Monorepo with pnpm workspaces: apps/server, apps/mobile, packages/schema.\n- apps/server: Next.js 15 App Router, Prisma, SQLite by default via DATABASE_URL, deployable to a single box.\n- apps/mobile: Expo React Native app that consumes the service.\n- packages/schema: zod schemas shared by both sides, single source of truth for flow JSON.\n\nServer requirements:\n- Data model: App, Flow (name, version, JSON body, published bool), Flag (key, type, value, rollout percent), Event (installId, flowId, stepId, name, ts, props JSON).\n- GET /api/config?installId=...&appVersion=... returns published flows plus resolved flags in one payload, with an ETag and a max-age header. Deterministic rollout: hash installId + flag key, compare to rollout percent, no random assignment.\n- POST /api/events accepts batched events, validates with zod, writes to SQLite.\n- Admin UI at /admin behind a single ADMIN_TOKEN cookie check from .env. No user accounts, no signup, no email.\n- Admin screens: list flows, edit flow JSON in a textarea with live zod validation and inline errors, publish and unpublish, list flags with rollout sliders, and one funnel page showing per-step counts for a chosen flow.\n\nFlow schema: a flow is an ordered array of steps. Step types: title-body, image-title-body, single-choice question, multi-choice question, paywall placeholder. Each step has id, optional skippable bool, and CTA label. Nothing else. Reject unknown types.\n\nMobile requirements:\n- Fetch config on launch, cache the last good payload with AsyncStorage, and always render the cached copy if the network fails or validation fails. Never blank the screen.\n- A single FlowRenderer component that maps step types to plain React Native views, no design system dependency.\n- Fire step_viewed, step_completed, step_skipped, and flow_completed events, buffer them, flush on batches of ten or on background.\n- Paywall step renders a stub screen with a TODO comment naming StoreKit and Play Billing. Do not fake purchases.\n\nOut of scope, do not build: drag and drop editor, statistical significance testing, push notifications, web SDK, multi-tenant support, telemetry to anywhere but the local database.\n\nDeliver: prisma schema and migration, seed script with one three-step flow and two flags, .env.example with DATABASE_URL and ADMIN_TOKEN, README with run steps for server and Expo app, and vitest coverage for rollout hashing and schema validation.",
+  "promptCurated": false
+}
