@@ -1,0 +1,52 @@
+{
+  "slug": "fullenrich",
+  "name": "FullEnrich",
+  "domain": "fullenrich.com",
+  "category": "sales-outreach",
+  "subcategory": "contact data enrichment",
+  "tagline": "Waterfall enrichment that hits dozens of B2B data vendors in sequence to find a prospect's email and mobile number.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://fullenrich.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is a queue, a fallback chain, and a dedupe step, and yes, an agent writes that before lunch. The product is not the software. The product is contracts and credits with a large pile of data vendors, plus the empirical knowledge of which vendor wins for which geography and seniority, which is what makes the waterfall hit rate better than any single provider. Rebuilding it means signing up for each source yourself, paying each minimum, and eating the per-provider rate limits and terms. You can build a personal orchestrator over the two or three APIs you already pay for, and that is a real and useful thing, but it is not this.",
+  "coreLoopDIY": "A local CLI that takes a CSV of names and companies, calls whatever enrichment APIs you have keys for in a configured order, stops at the first confident hit, and writes an enriched CSV with source and confidence columns.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API keys for at least two enrichment providers, each billed separately",
+    "Node 20+",
+    "Your own tolerance for per-provider rate limits and minimum spends"
+  ],
+  "whatYouLose": [
+    "Access to dozens of vendors behind one bill and one credit pool",
+    "Mobile phone coverage, which is the expensive part and where single-vendor hit rates fall apart",
+    "Vendor-by-vendor accuracy tuning that came from millions of prior lookups",
+    "Email verification and bounce-risk scoring on the same pass",
+    "CRM and sequencer integrations, so enrichment lands where the outreach actually happens"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The vendor contracts are the aggregation layer's whole reason to exist; the waterfall ordering logic is just the thin part on top.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Because the alternative is ten vendor accounts, ten invoices, ten sets of terms, and a spreadsheet where you guess which one to try first. Teams pay to make contact data a line item instead of a project, and they pay again because mobile numbers are genuinely hard to source and no single provider covers enough of them. The cost per enriched contact is trivially justified against one closed deal, so nobody in sales is auditing the build-versus-buy math.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The waterfall logic is a weekend build; the water is not. The moat is dozens of paid data vendors under one contract plus the hit-rate history that tells you which one to ask first.",
+  "prompt": "Build a local contact enrichment waterfall CLI in TypeScript on Node 20. Empty folder, no framework.\n\nWhat it is: I paste in a CSV of prospects and it tries my enrichment providers in a configured order until one returns a confident result, then writes an enriched CSV.\n\nStack, no substitutions:\n- TypeScript, tsx for running, no build step\n- csv-parse and csv-stringify for IO\n- undici for HTTP\n- better-sqlite3 as a local cache so I never pay twice for the same lookup\n- zod for provider response validation\n- dotenv for secrets\n\nInput: ./input.csv with columns firstName,lastName,company,domain,linkedinUrl (any may be blank).\nOutput: ./output.csv with the input columns plus email,emailStatus,phone,source,confidence,costCredits,attemptedProviders.\n\nProvider layer:\n- Define an interface Provider { name, supports(kind: 'email'|'phone'), lookup(input): Promise&lt;Hit|null&gt; }\n- Implement three real adapters behind env keys: Hunter (email finder), Dropcontact (email), and a generic HTTP adapter driven by a JSON config so I can bolt on others later.\n- Every adapter must be a separate file and must degrade to a no-op with a warning if its env key is missing. Do not fake data. Never return a synthetic email.\n\nWaterfall engine:\n- Order comes from waterfall.json, e.g. { \"email\": [\"dropcontact\",\"hunter\"], \"phone\": [] }\n- Stop at the first hit whose confidence clears a threshold in the config; otherwise continue and keep the best.\n- Concurrency 3, per-provider token bucket rate limit read from config, exponential backoff on 429 and 5xx.\n- Cache keyed on normalized name plus domain, with a TTL in days.\n- Resumable: rerunning after a crash skips rows already written.\n\nAlso do: a `--dry-run` that prints which providers would be called and the estimated credit cost, and a `stats` command that prints per-provider hit rate from the cache so I can reorder the waterfall with evidence.\n\nOut of scope: web UI, auth, CRM sync, phone providers I have no key for, email sending, deploying anything.\n\nSecrets in .env only, .env.gitignored, ship .env.example. No telemetry. README with a five-line quickstart and a blunt note that hit rate is capped by the providers I actually pay for.",
+  "promptCurated": false
+}
