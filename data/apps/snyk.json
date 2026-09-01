@@ -1,0 +1,52 @@
+{
+  "slug": "snyk",
+  "name": "Snyk",
+  "domain": "snyk.io",
+  "category": "security",
+  "subcategory": "dependency and code scanning",
+  "tagline": "Developer-facing security platform that scans dependencies, code, containers and IaC for known vulnerabilities and suggests fixes.",
+  "priceMonthly": 25,
+  "pricing": {
+    "plan": "Team",
+    "basis": "monthly per contributing developer",
+    "unit": "per-seat",
+    "source": "https://snyk.io/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The scanning mechanics are not the hard part: an agent can wire up OSV.dev, Trivy and Semgrep into a dashboard in a weekend and get real findings out of it. What you cannot generate is Snyk's curated vulnerability database, the security research team that files advisories before they land upstream, the reachability analysis that stops every transitive CVE from becoming a ticket, and the fix-PR machinery across a dozen package ecosystems. Half of what enterprises actually buy is the report you hand an auditor and someone to call when a scan blocks a release. A personal version is genuinely useful for your own repos and genuinely useless as a compliance artifact. Build the scanner, do not pretend it is the product.",
+  "coreLoopDIY": "Walks your local repos, resolves lockfiles and containers, queries public advisory databases plus open source SAST rules, and shows the findings in one local dashboard with a diffable JSON snapshot.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "Trivy and Semgrep installed locally",
+    "Local clones or read access to the repos you want scanned",
+    "Optional GitHub token in .env for private repo metadata"
+  ],
+  "whatYouLose": [
+    "Snyk's curated advisory database and the research team that populates it, including issues not yet in public feeds",
+    "Reachability and call-path analysis, so you drown in transitive CVEs nobody can exploit",
+    "Automated fix pull requests and upgrade path calculation across ecosystems",
+    "License and policy compliance reporting that auditors and procurement actually accept",
+    "CI gating, IDE plugins, SSO, org rollups and someone to escalate to at 2am"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The database and the advisory pipeline are the asset. The UI is a thin layer over it and always has been.",
+  "whyPeopleStillPay": "Because the buyer is usually not the developer. Security tooling gets purchased to satisfy an auditor, a customer questionnaire or a board slide, and a homemade scanner satisfies none of those no matter how good its findings are. Even for teams buying it honestly, the value is triage quality: fewer false positives, a clear upgrade path, and a fix PR instead of a CVE number. Curating that requires people reading disclosures full time, which is exactly the cost you cannot one-shot away.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scanner is a weekend; the advisory corpus and the audit report are not. The moat is a full-time security research team feeding a proprietary vulnerability database, wrapped in compliance paperwork.",
+  "prompt": "Build a local developer security dashboard called \"pocket-snyk\". Python 3.11, FastAPI, SQLite, Jinja2 templates, no JS framework, no cloud accounts.\n\nScope in:\n- A CLI: `python -m pocketsnyk scan /path/to/repo` and `python -m pocketsnyk serve`.\n- Repo discovery: given one or more root paths from config.toml, find git repos and detect ecosystems by lockfile (package-lock.json, pnpm-lock.yaml, yarn.lock, poetry.lock, requirements.txt, go.sum, Cargo.lock, Gemfile.lock).\n- Dependency parsing: write small per-lockfile parsers that produce a flat list of (ecosystem, name, version, direct-or-transitive). Do not shell out to package managers.\n- Vulnerability lookup: batch POST to the OSV.dev API (https://api.osv.dev/v1/querybatch), then fetch full records for hits. Cache responses in SQLite with a 24h TTL so re-scans are cheap and offline-ish.\n- Optional external scanners: if `trivy` is on PATH, run `trivy fs --format json` and merge findings; if `semgrep` is on PATH, run `semgrep --config auto --json` and merge. Skip silently with a note if missing.\n- Normalize everything into one findings table: id, repo, ecosystem, package, version, severity, source (osv|trivy|semgrep), summary, fixed_version, first_seen, last_seen, status (open|ignored|fixed).\n- Triage: `pocketsnyk ignore FINDING_ID --reason \"...\" --until 2026-12-01` persists suppressions in SQLite and honors them on later scans.\n- Web UI on localhost: one findings list with filters by repo, severity and source; one repo detail page; a diff view showing findings new since the previous scan of that repo.\n- Export: `pocketsnyk report --json` and `--markdown` writing to ./out.\n\nScope out: auth, users, multi-tenancy, telemetry, hosted deployment, fix pull requests, reachability analysis, license compliance, container registry integration.\n\nRules:\n- Secrets in .env, read with python-dotenv. Only optional key is GITHUB_TOKEN.\n- Severity mapping must be explicit and documented in README; when OSV gives no CVSS, mark severity \"unknown\" rather than guessing.\n- Every network call retried twice with backoff, and the whole scan must complete offline from cache if the network is down.\n- Ship a seed fixture repo under tests/fixtures with a known-vulnerable lockfile plus a pytest that asserts at least one finding.\n- README must state plainly that this is not an audit artifact and does not replace a curated advisory feed.",
+  "promptCurated": false
+}
