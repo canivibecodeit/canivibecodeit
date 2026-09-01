@@ -1,0 +1,51 @@
+{
+  "slug": "fundrecs",
+  "name": "Fundrecs",
+  "domain": "fundrecs.com",
+  "category": "finance-accounting",
+  "subcategory": "fund reconciliation",
+  "tagline": "Reconciliation software for fund administrators and asset managers, matching NAVs, holdings, cash and fees across custodians, transfer agents and accounting systems.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://fundrecs.com/",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise sales, no public price list.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The matching engine is the easy part: two files, some keys, a tolerance, a list of breaks. Everything else is why anyone buys this. Fund administrators need audited control frameworks, four-eyes sign-off, immutable evidence trails for auditors and regulators, and connectors that swallow whatever malformed statement a given custodian or transfer agent emits this quarter. An agent can absolutely build you a CSV reconciler in an afternoon; it cannot build you the thing an auditor accepts as the control over a fund's NAV. If you are a person rather than a regulated administrator, build the reconciler and skip the rest.",
+  "coreLoopDIY": "Loads two CSV or Excel extracts, matches rows on configurable keys with amount and date tolerances, and spits out a matched/unmatched break report you can review and annotate.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and a local folder of extract files",
+    "Consistent-ish column headers, or willingness to write a mapping per source",
+    "Nobody depending on the output for a regulated sign-off"
+  ],
+  "whatYouLose": [
+    "Audit-grade evidence trails and maker/checker approval workflow",
+    "Prebuilt, maintained connectors and format handling for custodians, TAs and fund accounting platforms",
+    "Rule libraries and matching heuristics tuned on years of real fund data",
+    "SOC-style controls, access management and the vendor assurance packs auditors ask for",
+    "Someone to call at 6am on a NAV deadline"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "Reconciliation is a control, not a feature. Controls are bought with assurance documents, not with code.",
+  "whyPeopleStillPay": "Because the buyer is not paying for matching logic, they are paying to move operational risk off their own desk. A fund administrator running hundreds of NAVs a day needs every break documented, approved by a second human, and reproducible for an auditor two years later, plus ingestion for dozens of counterparties who each format their files slightly wrong. Rebuilding that is not a coding problem, it is an operations and evidence problem, and a spreadsheet-plus-script setup is exactly the thing regulators and auditors flag. The software is cheap relative to one restated NAV.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The matcher is an afternoon; the control environment is not. The moat is compliance: audit trails, four-eyes sign-off and connector maintenance that an auditor will actually accept.",
+  "prompt": "Build a local, single-user reconciliation tool called \"recon\" for matching two data extracts. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, uv for deps\n- DuckDB for all matching (load files into tables, match with SQL)\n- Typer for the CLI\n- Jinja2 to render a static HTML report\n- pytest for tests\n\nIn scope:\n1. `recon load` reads CSV and XLSX files from ./data using a YAML source config: file glob, sheet name, column mapping to a canonical schema (id, trade_date, settle_date, account, currency, amount, description), plus type coercion and a date format.\n2. `recon match --config rules.yml` runs matching passes in order and stops matching a row once it is paired:\n   - pass A: exact match on a key set (e.g. account + currency + amount + trade_date)\n   - pass B: same key set with an amount tolerance (absolute and percentage) and a date window in days\n   - pass C: many-to-one aggregation, sum of N rows on one side against one row on the other, within tolerance\n3. Unmatched rows on either side become \"breaks\" with a reason code and the closest near-miss candidate plus the delta.\n4. `recon report` renders report.html: summary counts, total absolute break value by account, matched pairs table, breaks table, and a diff of which rule pass caught each pair.\n5. Break annotation: a local SQLite table storing break_id, status (open, investigating, explained, written-off), comment, timestamp. `recon note BREAK_ID --status explained --comment \"FX timing\"`. Notes persist across runs by hashing the break's identifying fields.\n6. Deterministic run IDs and a run log so two runs on the same inputs produce the same output.\n\nOut of scope, do not build: user auth, approval or maker-checker workflow, live connectors or SFTP polling, a web server, any hosted anything.\n\nRequirements:\n- All config in YAML files at the repo root, example configs included.\n- Any credentials or paths go in .env, read via python-dotenv, and .env is gitignored. Ship .env.example.\n- Ship a `make demo` that generates two synthetic extracts with deliberate breaks (amount rounding, one-to-many splits, a duplicate, an FX-timing date shift) and produces a report.\n- Tests cover each matching pass and the note-persistence hashing.\n- README states plainly that this is not an audited control and should not be used as the reconciliation of record for a regulated fund.",
+  "promptCurated": false
+}
