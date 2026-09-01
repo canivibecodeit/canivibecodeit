@@ -1,0 +1,51 @@
+{
+  "slug": "tweetpeek",
+  "name": "TweetPeek",
+  "domain": "tweetpeek.ai",
+  "category": "social-media",
+  "subcategory": "X/Twitter analytics and post research",
+  "tagline": "An AI flavored tool for peeking at X/Twitter accounts and posts: what they published, what performed, what to copy.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.tweetpeek.ai/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The analysis layer here is not hard: engagement ratios, top performing posts, posting time heatmaps, format breakdowns, a little LLM summarizing of what a given account keeps doing. An agent can write that in an afternoon and it will run fine on data you already have, like your own X archive export. The problem is the data pipe. X charges real money for API access and actively fights scrapers, so the one thing that makes a tool like this feel magic, pointing it at any account and getting instant history, is exactly the thing you cannot cheaply replicate. Build it for your own account and it works. Build it as a research tool for other people's accounts and you are paying a tax that makes the subscription look reasonable.",
+  "coreLoopDIY": "A local dashboard that ingests your X archive export or API pulls into SQLite, then ranks posts by engagement, charts timing and format patterns, and lets an LLM summarize what worked.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own X data archive export, or an X API bearer token with a paid tier if you want to pull other accounts",
+    "An LLM API key if you want the summary and pattern write-ups",
+    "Node or Bun locally, plus a browser"
+  ],
+  "whatYouLose": [
+    "Instant lookup of arbitrary accounts without paying X for API access",
+    "Whatever historical tweet corpus the service already cached, which you start with zero of",
+    "Their prompt tuning for the ghostwriting and pattern suggestions, which is the actual product polish",
+    "Hosted uptime and a UI someone iterated on, versus your one page with three charts",
+    "Any resilience when X changes API terms or pricing again, which the vendor absorbs and you do not"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not theirs, it is X's, and they are renting it. That still counts against you as a builder because you would have to rent it too.",
+  "whyPeopleStillPay": "Because the alternative is a monthly API bill larger than the subscription, plus the maintenance of a scraper that breaks. People who do research on other accounts, ghostwriters, growth people, agencies, want to type a handle and see six months of history in two seconds. That is a data access product wearing an analytics UI, and data access does not get cheaper because you self-hosted it. If you only ever analyze your own posting, though, the calculus flips entirely.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Self-analysis is a weekend build, competitor research is a subscription to X's API in disguise.",
+  "prompt": "Build a local X/Twitter post analytics dashboard. Single project, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Bun + TypeScript, Hono for the server, server rendered HTML with a little Alpine.js for interactivity\n- SQLite via bun:sqlite, single file db at ./data/peek.db\n- Chart rendering with a tiny inline SVG helper you write, no charting library\n- Tailwind via CDN, dark UI, dense tables, no marketing page\n\nData ingestion, two paths only:\n1. Import an official X data archive: user points at the unzipped folder, you parse tweets.js / tweet-headers and load into SQLite. This is the primary path and must work offline.\n2. Optional API pull: if X_BEARER_TOKEN exists in .env, allow fetching recent posts for a given handle via the X API v2 user timeline endpoint. Handle rate limits with clear error messages. Never scrape, never fake data, never fall back to made up numbers.\n\nSchema: posts(id, author, created_at, text, likes, retweets, replies, quotes, bookmarks, impressions, is_reply, is_thread_part, has_media, has_link, url).\n\nFeatures, in scope:\n- Overview: post count, medians, engagement rate defined as (likes+retweets+replies)/impressions where impressions exist, otherwise flagged as unavailable\n- Top posts table sortable by each metric, with outlier flagging at 3x median\n- Posting time heatmap, day of week by hour, colored by median engagement not volume\n- Format breakdown: plain text vs media vs link vs thread part, with median engagement per format\n- Full text search over posts\n- Optional \"patterns\" panel: if OPENAI_API_KEY is in .env, send the top 20 and bottom 20 posts to an LLM and render a short summary of what the high performers have in common. If no key, hide the panel entirely.\n\nOut of scope, do not build: posting or scheduling, OAuth login, multi user, competitor scraping, follower graphs, any hosted deploy config.\n\nDeliver: README with the exact archive import command, .env.example listing X_BEARER_TOKEN and OPENAI_API_KEY as optional, seed script that loads a small fixture file so the UI is inspectable before any real import.",
+  "promptCurated": false
+}
