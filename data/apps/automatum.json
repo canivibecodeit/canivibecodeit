@@ -1,0 +1,52 @@
+{
+  "slug": "automatum",
+  "name": "Automatum",
+  "domain": "automatum.io",
+  "category": "automation",
+  "subcategory": "workflow automation",
+  "tagline": "Hosted workflow automation: connect apps, trigger on events or schedules, run multi-step jobs without writing a service.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://automatum.io/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engine underneath any automation product is not the hard part: a queue, a cron scheduler, a step runner, retries, and a run log are a well understood weekend build, and an agent will get you a working one. The hard part is the hundred connectors, each with its own OAuth dance, pagination quirks, rate limits, and webhook signature scheme, plus the fact that they all quietly break and someone else is paid to fix them. If your automations touch three services you already have API keys for, self-hosting wins outright. If they touch twelve SaaS products with OAuth-only access, you are signing up for permanent maintenance instead of a subscription. Score this as buildable for a narrow personal set of flows, not as a replacement for a connector catalog.",
+  "coreLoopDIY": "A local workflow runner that reads YAML flow definitions, fires them on cron or inbound webhook, executes HTTP and script steps in order with retries, and shows every run and its step output in a small web UI.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS that stays awake",
+    "API keys or tokens for whatever services you want to automate",
+    "A public URL or tunnel if you need inbound webhooks",
+    "Willingness to write flows as YAML instead of dragging boxes"
+  ],
+  "whatYouLose": [
+    "Prebuilt connectors: every integration becomes an HTTP call you read the docs for",
+    "OAuth handling and token refresh, which is the actual grind for anything without a static API key",
+    "Managed reliability: no one pages themselves when your box reboots mid-run",
+    "Visual builder, versioning, and shareable flows for non-technical collaborators",
+    "Vendor-maintained fixes when a downstream API changes shape overnight"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "Connector count is the product. Everything else is a job queue with a nice front end.",
+  "whyPeopleStillPay": "Because the value was never the scheduler, it was not having to learn the authentication and pagination habits of every API you touch, and not having to notice when one of them changes. A hosted runner also means your automations keep firing while your laptop is closed and your VPS is being patched. Once a team has fifty flows in one place, the cost of moving them is measured in weeks of quiet breakage, which is the switching cost doing its job.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Self-hosting an automation engine is a trade, not a saving: you swap a monthly bill for being the on-call engineer for every API you depend on.",
+  "prompt": "Build a local workflow automation runner called \"flowbox\". Single Node 20 + TypeScript service, no framework beyond Fastify, SQLite via better-sqlite3, no Docker required.\n\nCore model:\n- Flows are YAML files in ./flows/*.yaml, hot-reloaded on change.\n- Each flow has: name, trigger (either { cron: \"*/5 * * * *\" } or { webhook: \"slug\" } or { manual: true }), and an ordered steps array.\n- Step types: http (method, url, headers, body, jsonPath extraction), transform (a small inline JS expression evaluated in node:vm with the accumulated context), delay (seconds), and log.\n- Steps can reference earlier output with {{ steps.stepId.field }} templating. Implement the templating yourself, keep it dumb and string-based.\n\nExecution:\n- Cron triggers via node-cron. Webhook triggers via POST /hooks/:slug, request body becomes the initial context.\n- Every run is persisted: run id, flow name, status (running, ok, failed), started/finished timestamps, and one row per step with input, output, duration, error.\n- Per-step retry config (attempts, backoffMs), default 3 attempts with exponential backoff. Fail the run on final failure and stop.\n- Runs execute one at a time per flow, sequentially, from an in-process queue. No distributed anything.\n\nUI:\n- Server-rendered HTML, no client framework. Three pages: flow list with last run status, run history, and a run detail page showing each step's output as pretty JSON.\n- A \"Run now\" button that POSTs and redirects to the run detail page.\n\nRules:\n- Secrets live in .env and are exposed to flows as {{ env.NAME }} only. Never log resolved secret values; redact them in stored step input.\n- No accounts, no telemetry, no cloud calls except the HTTP steps the user configures.\n- Ship two example flows: one cron flow that hits a public JSON API and logs a field, one webhook flow that transforms the payload and posts it somewhere.\n- Include a README with setup, how to add a flow, and an honest \"what this does not do\" section (no OAuth, no connector catalog, no visual editor).\n- Vitest tests for the templating engine, retry logic, and cron parsing.",
+  "promptCurated": false
+}
