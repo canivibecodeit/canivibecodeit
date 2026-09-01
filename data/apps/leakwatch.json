@@ -1,0 +1,52 @@
+{
+  "slug": "leakwatch",
+  "name": "Leakwatch",
+  "domain": "leakwatch.net",
+  "category": "security",
+  "subcategory": "data leak and credential exposure monitoring",
+  "tagline": "Continuous monitoring for leaked credentials, secrets and company data exposed on the open internet.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://leakwatch.net/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product you can build is a scanner. The product they sell is a corpus. An agent will happily write you a cron job that scans your own repos for secrets and pings Have I Been Pwned for your domain, and that is genuinely useful, but it only sees the places you already know to look. The half that matters, aggregated breach dumps, paste sites, Telegram channels, misconfigured buckets, stealer logs, forum posts, is a collection and ingestion problem with legal edges, not a coding problem. You cannot one-shot years of hoovering, and you should not try to hoover it yourself.",
+  "coreLoopDIY": "A scheduled job that scans your own repos and build artifacts for committed secrets, queries public breach APIs for your domain and addresses, and alerts you when something new shows up.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that can run a scheduled job",
+    "API key for a breach lookup service such as Have I Been Pwned (paid, cheap)",
+    "GitHub token if you want to scan private repos and run code search",
+    "An alert channel: SMTP creds, ntfy topic, or a Slack webhook"
+  ],
+  "whatYouLose": [
+    "Visibility into anything you do not already own: breach dumps, stealer logs, closed forums, private Telegram channels",
+    "Someone else absorbing the legal and ethical risk of touching leaked data",
+    "Triage and dedup, so you get one alert about a real exposure instead of forty about the same old dump",
+    "Analyst context: is this credential live, reused, or a nine year old artifact",
+    "Reports you can hand to an auditor or a customer's security questionnaire without writing prose yourself"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The collection pipeline is also a liability sink. Part of what you pay for is not having leaked data sitting on your own disk.",
+  "whyPeopleStillPay": "Because leak monitoring is only worth anything if it covers the places you cannot reach, and reaching them requires ongoing crawling, sources, and a tolerance for handling stolen data that most companies correctly do not want in-house. A self-built scanner tells you about the secret you committed last Tuesday, which is real value and worth having. It says nothing about the employee whose password ended up in a stealer log, which is the incident that actually hurts. That gap is the entire product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scanner half is a weekend; the corpus half is not a build at all. The moat is years of ingesting breach dumps and closed sources, plus being the party willing to hold that data instead of you.",
+  "prompt": "Build a self-hosted exposure monitor CLI called \"leakcheck\". Stack: TypeScript on Node 20, SQLite via better-sqlite3, no web UI, no accounts, no telemetry.\n\nScope, in:\n1. Secret scanning of local and remote git repos. Shell out to gitleaks if it is on PATH, otherwise fall back to a built-in regex set for AWS keys, Stripe keys, private key blocks, Slack tokens, generic high-entropy assignments. Scan full history, not just HEAD.\n2. Breach lookups. Given a list of domains and email addresses in config, query the Have I Been Pwned API v3 (key from HIBP_API_KEY in .env) for breached accounts and pastes. Respect the documented rate limit with a simple queue and backoff.\n3. Public code search. Using GITHUB_TOKEN, run GitHub code search for a configurable list of canary strings, internal hostnames, and domains. Store hits.\n4. State and diffing. Every finding gets a stable fingerprint. On each run, write findings to SQLite and emit only what is new or newly re-opened. Support \"leakcheck ack FINGERPRINT\" to silence a finding forever.\n5. Alerts. One notifier interface, two implementations: SMTP and an ntfy topic URL. Config picks one.\n6. Commands: \"leakcheck init\" writes a commented config.yaml and .env.example, \"leakcheck scan\" runs everything, \"leakcheck scan --only repos\", \"leakcheck list\", \"leakcheck ack\". Exit code 1 when new findings exist so cron and CI can gate on it.\n\nScope, out: do not crawl, scrape or fetch breach dumps, paste sites, dark web sources or Telegram. Do not build a dashboard. Do not add a scheduler, print a ready-to-paste crontab line instead.\n\nAll secrets from .env, never committed. Findings redacted by default in output: show first four and last two characters only, with a --unsafe-show-full flag.\n\nDeliver: working code, npm scripts, a README with setup, a real example config, and vitest coverage for fingerprinting and diffing.",
+  "promptCurated": false
+}
