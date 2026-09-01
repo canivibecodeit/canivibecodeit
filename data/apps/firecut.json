@@ -1,0 +1,52 @@
+{
+  "slug": "firecut",
+  "name": "Firecut",
+  "domain": "firecut.ai",
+  "category": "audio-video",
+  "subcategory": "AI editing assistant for NLEs",
+  "tagline": "AI plugin that cuts silences, filler words and bad takes inside Premiere Pro and Resolve.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://firecut.ai/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The underlying trick is not exotic: transcribe with Whisper, find silences and filler words, emit a cut list. An agent can build a CLI that ingests your footage and spits out an EDL or FCP7 XML you drop into Premiere or Resolve, and for a talking head podcast that covers most of the value. What it cannot one-shot is living inside the NLE: a panel that reads your actual sequence, respects your existing edits, handles multicam and multitrack audio, and lets you undo one cut instead of reimporting a timeline. Accuracy on \"bad take\" and filler detection is also a tuning problem, not a coding problem, and you will spend the weekend on thresholds. Good build if your edits are simple, annoying build if your projects are real.",
+  "coreLoopDIY": "Transcribes your footage locally, detects silence, filler words and repeated takes, and writes a timeline file your NLE can import.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg locally",
+    "a Whisper model download (a few GB, GPU strongly preferred)",
+    "an NLE that imports FCP7 XML or EDL",
+    "patience for threshold tuning on your own footage"
+  ],
+  "whatYouLose": [
+    "An in-app panel: no reading your live sequence, no incremental re-cut, no native undo",
+    "Multicam and multitrack audio handling, which is where most real projects live",
+    "Tuned filler word and repeated take detection that does not eat your breaths and beats",
+    "Someone else eating the maintenance when Adobe changes its extension API",
+    "Speed on long footage if you do not have a GPU"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat is the plugin surface, not the model. Talking to Premiere's project state without corrupting it is the part nobody wants to write twice.",
+  "whyPeopleStillPay": "Editors pay to stay in the app. A CLI that hands you an XML means an export, an import, a relink and a lost undo history, and that friction is exactly the friction the product exists to delete. Add multicam, mixed frame rates, and the fact that professional time is billable, and a subscription is cheaper than a weekend of threshold tuning plus a permanent round-trip tax on every project.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The cut list is a weekend; the panel inside Premiere is the product.",
+  "prompt": "Build a local command line tool called roughcut that produces a silence-and-filler-trimmed timeline from raw video, for import into Premiere Pro or DaVinci Resolve.\n\nStack, no substitutions:\n- Python 3.11, single package, uv for deps, Typer for the CLI\n- ffmpeg and ffprobe invoked as subprocesses\n- faster-whisper for transcription with word level timestamps\n- OpenTimelineIO for writing FCP7 XML and EDL output\n- pytest for tests, no web UI, no server, no accounts, no telemetry\n\nCommands:\n- roughcut transcribe INPUT: extract mono 16k wav, run faster-whisper (model name from .env, default large-v3), cache the word level transcript as JSON next to the input keyed by file hash\n- roughcut plan INPUT: from the cached transcript plus ffmpeg silencedetect, build a keep-list of segments and write plan.json with every decision and a reason string per removed span\n- roughcut export INPUT: write roughcut.fcpxml (FCP7 XML flavor via OpenTimelineIO) and roughcut.edl referencing the original media, plus an optional --render flag that concatenates keeps into a preview mp4 via ffmpeg concat demuxer\n- roughcut review INPUT: print a human readable table of removed spans with timecodes and reasons\n\nDetection rules, all tunable via flags with sane defaults:\n- silence: dBFS threshold and minimum duration, with configurable lead-in and tail padding so cuts do not clip consonants\n- filler words: match a configurable word list (um, uh, like, you know, so yeah) using transcript word timestamps, only remove when the word is bounded by pauses\n- repeated takes: detect near-duplicate consecutive sentences by normalized token similarity and keep the last one\n- never produce a cut shorter than a configurable minimum, snap all cut points to frame boundaries using the probed frame rate\n\nExplicitly out of scope: multicam, multitrack audio, speaker diarization, an Adobe or Resolve panel, GUI, cloud anything.\n\nDeliverables: README with a one paragraph quickstart and a real example command, .env.example with WHISPER_MODEL and WHISPER_DEVICE, tests covering frame snapping, padding math and EDL timecode formatting using synthetic fixtures. Fail loudly with a clear message if ffmpeg is missing.",
+  "promptCurated": false
+}
