@@ -1,0 +1,52 @@
+{
+  "slug": "truckerpath",
+  "name": "Trucker Path",
+  "domain": "truckerpath.com",
+  "category": "travel",
+  "subcategory": "trucking navigation and truck stop data",
+  "tagline": "Truck-legal navigation plus crowdsourced truck stop, parking and weigh station data for commercial drivers, with a load board attached.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://truckerpath.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The map is not the product. The product is hundreds of thousands of drivers reporting, right now, whether the lot at exit 214 is full, whether the scale is open, and what diesel actually costs at the pump. You can absolutely build a truck-legal-ish route planner over OpenStreetMap with a personal POI database in a weekend, and it will be genuinely useful as a trip notebook. It will not know that the parking is gone until you arrive and see for yourself, which is the exact moment the app was supposed to help. The load board side is a two-sided marketplace, which is even less one-shottable.",
+  "coreLoopDIY": "A local map app that plots truck stops, rest areas and weigh stations pulled from OpenStreetMap, lets you log your own parking and clearance notes per location, and plans a route between stops with your vehicle's height and weight recorded as a checklist rather than enforced by a routing engine.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "OpenStreetMap Overpass API for POI extraction",
+    "a map tile source (MapLibre with a free tile provider key, or self-hosted tiles)",
+    "a phone browser with geolocation for in-cab use",
+    "local SQLite file for your own notes and logs"
+  ],
+  "whatYouLose": [
+    "Live crowdsourced parking availability, the single reason most drivers open the app",
+    "Verified fuel prices and discount program pricing per truck stop",
+    "Real truck routing that respects bridge heights, weight limits and hazmat restrictions instead of a checklist you read yourself",
+    "The load board and broker side, which only works because both sides are already there",
+    "Offline-first maps and a native app that survives dead zones on I-80"
+  ],
+  "moatTags": [
+    "network-effects",
+    "proprietary-data",
+    "marketplace-liquidity"
+  ],
+  "moatNotes": "The parking data decays in hours, which means the moat is not a database you could scrape once, it is a live reporting habit across a large fleet of users.",
+  "whyPeopleStillPay": "Because a wrong guess costs real money. Arriving at a full lot at 10pm with clock time expiring means either an illegal park or a violation, and drivers will pay a few dollars a month forever to shave that risk. Same logic on fuel: one good price call pays for the year. Nothing you build alone tells you the lot is full, so the personal version competes on trip notes and not on the thing being sold.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The map layer is a weekend; the live parking feed is not. The moat is a large base of drivers reporting perishable ground truth to each other, plus a load board that needs both sides present.",
+  "prompt": "Build a local-first trucking trip notebook and POI map called RigNotes. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript, single repo, runs with `npm run dev`\n- SQLite via better-sqlite3, file at ./data/rignotes.db, schema created on first run\n- MapLibre GL JS for the map, tile URL and any key read from .env.local (MAP_TILE_URL)\n- Tailwind for styling, mobile-first layout, big tap targets, dark by default\n\nWhat it does:\n1. Data import script `npm run import -- --bbox=minLon,minLat,maxLon,maxLat` that queries the OpenStreetMap Overpass API for amenity=fuel with hgv=yes, highway=rest_area, highway=services, and amenity=weighbridge, and upserts them into a `pois` table (osm_id, name, kind, lat, lon, tags_json). Cache raw Overpass responses to ./data/cache so reruns are free. Handle Overpass rate limits with retry and backoff.\n2. Map page: cluster POIs, filter chips by kind, follow-my-location button, click a POI to open a detail sheet.\n3. POI detail: your own notes. Fields: parking spot count you observed, easy or tight to enter, overnight ok yes/no/unsure, gate code or reefer notes free text, last visited date, star rating. Stored in a `notes` table keyed to poi id. This is your data, not anyone else's.\n4. Parking log: quick form to record date, POI, arrival time, whether you got a spot. List view and a simple per-POI stat, \"you got a spot 4 of 6 times, usually before 7pm\". Be explicit in the UI that this is your history only and predicts nothing about tonight.\n5. Trip planner: ordered list of stops picked from POIs, straight-line distances and a rough drive time at 55 mph, printable/exportable as JSON and plain text. Do not pretend to do truck-legal routing.\n6. Vehicle profile in settings: height, length, weight, axles. Show it as a persistent banner and a pre-departure checklist, with a visible disclaimer that clearances are not enforced by the app.\n7. Offline: cache the app shell and the last-viewed tile region with a service worker so the map degrades to last-known instead of blank.\n\nOut of scope, do not build: live crowdsourced availability, fuel prices, load boards, user accounts, any sync server, push notifications.\n\nSecrets in .env.local only, with a committed .env.example. Ship a README that states plainly what this replaces and what it does not.",
+  "promptCurated": false
+}
