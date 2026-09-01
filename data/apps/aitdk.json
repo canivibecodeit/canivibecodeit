@@ -1,0 +1,50 @@
+{
+  "slug": "aitdk",
+  "name": "AITDK",
+  "domain": "aitdk.com",
+  "category": "seo-marketing",
+  "subcategory": "AI meta tag and on-page SEO tooling",
+  "tagline": "AI toolkit that generates page titles, meta descriptions and keywords and reports basic on-page SEO signals.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://aitdk.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Strip away the landing page and this is a page fetcher, an HTML parser and one well written LLM prompt. Pulling the existing title, description, headings and image alt text out of a URL is twenty lines of cheerio, and turning that into three title variants plus a 155 character description is exactly what a language model is good at. There is no proprietary index here, no crawl corpus, nothing you cannot reproduce with your own API key. The parts that are genuinely annoying to rebuild are the browser extension that overlays results on any page you visit and bulk processing across a few hundred URLs, and even those are ordinary work rather than hard work. If you only need meta tags for your own sites, a local tool beats paying per credit.",
+  "coreLoopDIY": "Paste a URL or a list of URLs, the tool fetches each page, extracts current on-page SEO signals, and asks an LLM for improved title, description and keyword suggestions you can copy or export as CSV.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a terminal",
+    "An OpenAI or Anthropic API key in .env",
+    "Outbound network access to fetch the pages you are analysing"
+  ],
+  "whatYouLose": [
+    "The browser extension that shows SEO data inline on any page you are already looking at",
+    "Whatever keyword volume or competitor data the hosted version layers on top of the raw page",
+    "A free tier: your version bills your own API key per run",
+    "Any handling of JavaScript rendered pages unless you bolt on a headless browser",
+    "Polish: rate limiting, retries and pretty reports are on you"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The extension distribution and the free-credits funnel are the real product surface, not the generation logic.",
+  "whyPeopleStillPay": "Because a free web form with no setup will always beat a local script for a one off check, and because most people buying meta tag tools do not want to manage an API key or think about token costs. The extension also lands in a workflow the DIY build cannot reach: you are on a competitor's page, you want the numbers now, and a browser button is the only interface that fits. Paying is buying zero setup and a place to click, not buying technology.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Meta tag generation is the most one-shottable category of SEO tool there is; the extension is the only part worth envying.",
+  "prompt": "Build a local SEO metadata tool. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Node 20, TypeScript, Hono for the HTTP server, better-sqlite3 for storage, cheerio for HTML parsing, plain server rendered HTML with a single stylesheet. No React, no build step beyond tsx.\n\nEnv: read OPENAI_API_KEY from .env via dotenv. Fail loudly with a clear message if it is missing. Ship .env.example and gitignore .env.\n\nCore loop:\n1. A form at / accepts either one URL or a newline separated list of up to 50 URLs.\n2. For each URL, fetch the HTML with a 10 second timeout and a normal browser user agent. Follow redirects. Do not run JavaScript.\n3. Extract: final URL, HTTP status, title and its character length, meta description and length, canonical, robots meta, og:title, og:description, og:image, h1 list, h2 list, word count of visible text, count of images missing alt, count of internal and external links.\n4. Send a compact summary of that extraction to gpt-4o-mini with a prompt asking for: 3 title options each under 60 characters, 2 meta descriptions each 140 to 155 characters, 8 keyword phrases ranked by relevance, and a short list of concrete on-page problems found. Demand strict JSON output and validate it with zod; retry once on parse failure.\n5. Store the raw extraction and the model output in SQLite keyed by URL and timestamp.\n6. Render a results page: one card per URL with current values on the left, suggestions on the right, a copy button per suggestion, and problems listed underneath.\n\nAlso build: a /history page listing past runs, a CSV export endpoint for the current result set, and a CLI entry point so `npm run scan urls.txt` does the same thing and prints a table.\n\nBe polite when crawling: 1 concurrent request per host, 500ms delay between requests, respect robots.txt for the pages you fetch and skip disallowed URLs with a visible note.\n\nOut of scope: browser extension, keyword volume data, SERP scraping, rank tracking, backlinks, auth, multi user anything.\n\nDeliver a README with setup in four commands and a sample urls.txt.",
+  "promptCurated": false
+}
