@@ -1,0 +1,52 @@
+{
+  "slug": "bounti",
+  "name": "Bounti",
+  "domain": "bounti.co",
+  "category": "sales-outreach",
+  "subcategory": "AI account research and outreach drafting",
+  "tagline": "An AI go-to-market teammate that researches target accounts and drafts personalized outreach for sales and marketing teams.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://bounti.co/de/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible core is a research loop: take a company and a person, crawl their public footprint, summarize what matters, then draft an opener that references it. An agent can build that in a sitting with a search API, a scraper, and an LLM, and for one person working a list of fifty accounts it will be fine. The gaps are everything around the loop: enrichment data that is actually current, contact discovery, CRM writeback, sequencing, and inbox deliverability, which is a whole separate discipline you do not want to learn by accident. Quality also drifts fast without someone tuning prompts against reply data you do not have. Call it a weekend build that covers the research half and punts on the send half.",
+  "coreLoopDIY": "Takes a list of company domains and contact names, crawls public pages and search results, and writes a research brief plus a drafted first-touch email per account into files and a local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key",
+    "A web search API key (Tavily, Brave, or similar)",
+    "A list of target companies you already have",
+    "Node 20+ and a terminal"
+  ],
+  "whatYouLose": [
+    "Contact and firmographic enrichment: you get whatever the open web gives you, not a maintained database",
+    "CRM sync, so every brief lives in your folder and nowhere your pipeline can see it",
+    "Sending infrastructure, warmup, and deliverability monitoring",
+    "Sequencing, reply detection, and follow-up logic",
+    "Prompt quality tuned against real reply rates across many customers"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The research prompt is the easy part. Fresh, deduped account and contact data plus CRM plumbing is the part that costs money every month.",
+  "whyPeopleStillPay": "Because a sales team is not paying for a research script, they are paying for briefs that land in the CRM next to the right record, contacts that are still employed, and email that reaches the inbox. A personal build gets you good drafts for accounts you already know about, which is genuinely useful if you are a founder doing your own outbound. It stops being useful the moment two people need to work the same list, or the moment your homemade sender torches your domain reputation.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for founder-led outbound on a short list; do not point it at your main sending domain.",
+  "prompt": "Build a local CLI tool called \"scout\" that researches target accounts and drafts first-touch outreach.\n\nStack, no substitutions: TypeScript on Node 20, commander for the CLI, better-sqlite3 for storage, undici for fetch, cheerio for HTML parsing, zod for config validation. No web UI, no server, no accounts, no telemetry.\n\nInputs: a CSV at ./targets.csv with columns company,domain,contact_name,contact_title,notes. Secrets in .env: LLM_API_KEY, SEARCH_API_KEY. Read them with dotenv and fail loudly with a clear message if missing.\n\nPipeline per row, all steps cached in SQLite so reruns are cheap:\n1. Crawl the domain: fetch homepage plus up to 6 internal pages matching /about, /product, /pricing, /customers, /careers, /blog. Respect robots.txt, 1 request per second per host, 10s timeout, skip on error and record why.\n2. Strip to readable text with cheerio, cap at 4000 tokens per page.\n3. Run 3 web searches via the search API: \"{company} funding\", \"{company} news\", \"{contact_name} {company}\". Store top 5 results with snippets.\n4. Call the LLM once to produce a structured brief: what the company does, who they sell to, 3 recent signals with source URLs, 2 plausible pain hypotheses, and a confidence note where evidence is thin.\n5. Call the LLM again to draft one outreach email: max 90 words, one specific reference to a cited signal, one clear ask, no flattery, no \"I hope this finds you well\". Also produce a 2-line LinkedIn version.\n6. Require every factual claim in the brief to carry a source URL. Drop unsourced claims rather than keeping them.\n\nOutput: ./out/{domain}.md containing brief, sources, email draft, and a token cost line. Also a summary table printed to stdout with per-row status.\n\nCommands: scout run [--limit n] [--force], scout show domain, scout export --csv.\n\nExplicitly out of scope, do not build: sending email, SMTP or Gmail auth, CRM integration, contact discovery or email guessing, follow-up sequencing, any hosted dashboard.\n\nInclude a README with setup in 5 steps, a targets.csv.example, and vitest tests for the CSV parser, the robots check, and the cache layer. Handle rate limits with exponential backoff and make every LLM call retry twice before giving up.",
+  "promptCurated": false
+}
