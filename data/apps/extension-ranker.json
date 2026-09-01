@@ -1,0 +1,51 @@
+{
+  "slug": "extension-ranker",
+  "name": "Extension Ranker",
+  "domain": "extensionranker.com",
+  "category": "seo-marketing",
+  "subcategory": "chrome web store keyword tracking",
+  "tagline": "Keyword and ranking tracker for browser extension listings in the Chrome Web Store.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://extensionranker.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is unglamorous: run a store search for a keyword, find where your extension lands, write the number down, repeat tomorrow. An agent can build that in a weekend with a headless browser, a SQLite table and a chart, and for a single extension you own it will be genuinely useful. What you cannot build is yesterday: the tool's value compounds from months of stored rank history, install counts and review counts across the whole store, and your version starts with an empty table. You also inherit the maintenance tax, because store markup changes and rate limits are the actual product here, not the graph. Good build if you track five keywords for one extension, bad build if you want a competitive corpus.",
+  "coreLoopDIY": "Scrapes Chrome Web Store search results for a list of keywords on a daily schedule, records where your extension IDs appear, and shows rank history plus install and rating deltas in a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a machine or cheap VPS that stays on for the daily job",
+    "Playwright or similar headless browser, since store search is JS-rendered",
+    "a list of keywords and the extension IDs you care about",
+    "patience for selector rot when the store redesigns"
+  ],
+  "whatYouLose": [
+    "Historical rank data from before you started, which is most of why anyone opens this kind of tool",
+    "Keyword discovery and volume estimates, since you only measure keywords you already thought of",
+    "Store-wide competitor tracking, unless you want to crawl and store a large chunk of the catalog",
+    "Someone else absorbing scraper breakage, proxies and rate limiting",
+    "Alerts, exports and a tidy UI that survives you losing interest in it"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The dataset is public, but only if you were already collecting it a year ago. Continuous crawling at store scale is the part that costs money.",
+  "whyPeopleStillPay": "Because rank tracking is a longitudinal product and a fresh install of your own version has no past. Paying gets you a chart that already goes back months, keyword ideas you did not generate yourself, and competitor listings you were never going to crawl. It also gets you out of the business of babysitting a scraper against a store that changes its DOM without warning. For an extension that actually earns money, that trade is usually fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rank trackers are cheap to build and expensive to have been running since last year.",
+  "prompt": "Build a local Chrome Web Store rank tracker in an empty folder.\n\nStack, no substitutions: TypeScript, Node 20, Playwright (chromium), better-sqlite3, Fastify serving server-rendered HTML with a little vanilla JS for charts (uHplot or a tiny inline SVG chart, no React).\n\nData model in SQLite:\n- targets: extension_id, label\n- keywords: term, locale (default en)\n- ranks: keyword_id, extension_id, position (null if not found in top 100), checked_at\n- snapshots: extension_id, install_count, rating, rating_count, checked_at\n\nScraper:\n- For each keyword, open the Chrome Web Store search results page, scroll until at least 100 results are loaded or the list ends, and collect the ordered list of extension IDs.\n- Record the 1-based position of each tracked extension_id, or null if absent.\n- Separately open each tracked extension's detail page and parse install count, rating and rating count into snapshots.\n- One shared browser context, sequential requests, randomized 3 to 8 second delay between page loads, 2 retries with backoff. Never parallelize the scraping.\n- Put every CSS selector and URL template in a single scrape/selectors.ts file with a comment saying these will break when the store redesigns.\n\nScheduling: a single `npm run check` command that does one full pass and exits. Include a commented crontab line for daily 07:00 local. Do not build an in-process scheduler.\n\nWeb UI on localhost:3000:\n- Table of keywords with today's position and change vs 7 days ago, colored up/down.\n- Detail page per keyword with a line chart of position over time (inverted y axis, 1 at the top).\n- Detail page per extension with install count and rating over time.\n- Forms to add and remove targets and keywords. No auth, no accounts.\n\nOut of scope, do not build: keyword volume estimates, keyword suggestions, competitor discovery, email alerts, multi-user support, telemetry, any cloud service.\n\nConfig in .env: PORT, DB_PATH, SCRAPE_LOCALE, HEADLESS. Commit .env.example, gitignore .env and the sqlite file.\n\nWrite a README with setup, the cron line, and a short honest section titled \"this will break\" explaining that the store markup and result counts change and where to fix it.",
+  "promptCurated": false
+}
