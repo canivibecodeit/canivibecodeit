@@ -1,0 +1,51 @@
+{
+  "slug": "answer-the-public",
+  "name": "AnswerThePublic",
+  "domain": "answerthepublic.com",
+  "category": "seo-marketing",
+  "subcategory": "keyword and question research",
+  "tagline": "Turns search autocomplete suggestions into question wheels for content ideas.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://answerthepublic.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The engine here is public autocomplete data. AnswerThePublic takes your seed keyword, appends question words, prepositions, comparisons and every letter of the alphabet, fires those at search suggestion endpoints, and draws the results as a radial diagram. None of that is secret, gated, or hard: the suggest endpoints are open and the expansion grid is about forty lines of string concatenation. What you are actually paying for is a pretty wheel, an export button, and someone else absorbing the rate limits. A local version gets you the same idea list, and the ideas are the point.",
+  "coreLoopDIY": "Expands a seed keyword across question words, prepositions and the alphabet, queries search autocomplete for each variant, and renders the grouped results as a browsable wheel with CSV export.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and a browser",
+    "Outbound internet access, plus patience with autocomplete rate limits",
+    "Optional: a proxy or residential IP if you hammer it"
+  ],
+  "whatYouLose": [
+    "Search volume and cost-per-click numbers layered onto each suggestion",
+    "Genuinely nice visuals and one-click PNG/PDF/CSV exports that look fine in a client deck",
+    "Someone else eating the rate limiting, captchas and IP blocks",
+    "Curated language and country coverage rather than whatever locale params you guess at",
+    "Saved search history, comparisons over time, and sharing with a team"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "proprietary-data"
+  ],
+  "moatNotes": "The volume and CPC overlay is the only part that is not free public data, and it is sourced from vendors, not generated in house.",
+  "whyPeopleStillPay": "Because agencies bill for deliverables, and a clean wheel with volume numbers on it is a deliverable. The tool has been the default answer to \"where do content ideas come from\" for long enough that it gets bought without comparison, and the paid tiers are cheap enough that nobody runs the build-vs-buy math. Also, at scraping volume, the rate limits stop being a nuisance and start being a job.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wheel is a chart library and the data is a public endpoint. The only thing you cannot scrape is the search volume column, and most people never look at it.",
+  "prompt": "Build a local keyword question explorer in an empty folder.\n\nStack, no substitutions: Python 3.11, FastAPI, uvicorn, httpx, SQLite via the stdlib sqlite3 module. Frontend is one static index.html with vanilla JS and D3 v7 loaded from a CDN. No React, no build step, no Docker.\n\nCore behavior:\n1. POST /search takes {seed, lang, country}. Generate query variants from the seed: question words (who, what, when, where, why, how, which, can, will, is, are, do, does), prepositions (for, with, without, to, near, like, versus, vs, and), comparisons, and the seed plus each letter a-z and digit 0-9, in both \"seed X\" and \"X seed\" forms.\n2. For each variant, call the Google suggest endpoint at https://suggestqueries.google.com/complete/search with client=firefox and the hl and gl params from the request. Parse the JSON array response.\n3. Run requests through an asyncio semaphore capped at 4 concurrent, with a random 200-600ms jitter between calls, three retries with exponential backoff, and a hard timeout. If a call fails, record it and keep going. Never crash the whole run because one variant 429s.\n4. Cache every raw response in SQLite keyed by (variant, lang, country) with a timestamp. Reuse cache entries younger than 7 days. This is the difference between a tool and a ban.\n5. Deduplicate suggestions, drop ones that do not contain the seed tokens, and bucket each one by which trigger word produced it: questions, prepositions, comparisons, alphabetical.\n\nFrontend:\n- One input, a language and country dropdown, a Go button, and a live progress counter of variants completed.\n- Render each bucket as a D3 radial spoke diagram: center node is the seed, one ring per trigger word, leaves are the suggestions. Clicking a leaf copies it to the clipboard.\n- A toggle to switch to a plain grouped list view, because the wheel is unreadable past 200 results.\n- Buttons for Export CSV and Export JSON, served from the backend off the cached rows.\n\nExplicitly out of scope: search volume, CPC, difficulty scores, or anything requiring a paid data vendor. Do not fake those columns. No accounts, no auth, no telemetry, no analytics. No cloud anything.\n\nPut any optional proxy URL in .env, read via os.environ, and ship a .env.example. Commit a .gitignore that excludes .env and the SQLite file.\n\nDeliver a README with the two commands to install and run, and one honest paragraph on rate limits and what to do when the suggest endpoint starts returning empty arrays.",
+  "promptCurated": false
+}
