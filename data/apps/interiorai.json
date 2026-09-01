@@ -1,0 +1,50 @@
+{
+  "slug": "interiorai",
+  "name": "InteriorAI",
+  "domain": "interiorai.com",
+  "category": "ai-image",
+  "subcategory": "interior redesign and virtual staging",
+  "tagline": "Upload a photo of a room and get AI redesigns of it in different interior styles.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://interiorai.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Under the hood this is image-to-image diffusion with structure conditioning: keep the room geometry, repaint the furniture and finishes, driven by a style prompt. An agent can wire that up in an afternoon with a hosted model endpoint or a local SDXL plus ControlNet depth setup, and the first outputs will look genuinely impressive. What takes longer is everything that makes the outputs usable: per-style prompt libraries that do not melt windows, masks that keep the floor plan intact, resolution and upscaling, and a queue that does not make you stare at a spinner. You also need a GPU or an API key, so this is not a pure local freebie. Buildable, worth building if you redesign rooms occasionally, not worth building if you need consistent client-ready renders.",
+  "coreLoopDIY": "A local web app where you drop in a room photo, pick a style and room type, and get four depth-conditioned img2img redesigns saved to disk.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An image model: a Replicate API token, or a local GPU with roughly 12GB VRAM for SDXL plus a depth ControlNet",
+    "Disk space for model weights if running locally",
+    "Patience for prompt tuning per style"
+  ],
+  "whatYouLose": [
+    "A tuned prompt and parameter set per style that mostly avoids warped windows, floating chairs and doors to nowhere",
+    "Fast generation because someone else is paying for warm GPUs",
+    "Room type detection, masking and virtual staging modes that empty a room before refurnishing it",
+    "Mobile-friendly capture and sharing, which matters because you are photographing rooms with a phone",
+    "Higher resolution outputs and upscaling without extra plumbing"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The technique is public. The value is knowing which sampler, strength and negative prompt combination stops the model from inventing a fifth wall.",
+  "whyPeopleStillPay": "Because the difference between a demo and a deliverable here is entirely in the tuning, and tuning is boring. Realtors, stagers and people mid-renovation want twenty plausible options in two minutes on a phone, not a Python environment with a broken CUDA install. There is also the honest fact that hosted GPU time at scale is cheaper per image than your own idle hardware, and if you only redesign a room twice a year, a subscription for one month costs less than a weekend of your life.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The clone is easy, the render quality is not. Expect your first fifty outputs to have surrealist window placement.",
+  "prompt": "Build a local web app called RoomRedo that redesigns interior photos using image-to-image diffusion with depth conditioning.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, Uvicorn.\n- Plain server-rendered HTML with Jinja2 templates and a little vanilla JS. No React, no build step.\n- SQLite via sqlite3 for a job history table. No ORM.\n- Model calls go through Replicate's HTTP API using an SDXL or Flux image-to-image model with a depth or canny ControlNet. Read REPLICATE_API_TOKEN from .env via python-dotenv. Put the model slug in a single MODEL constant at the top of one file so it is trivial to swap.\n\nFeatures in scope:\n- Upload form: one room photo (jpg/png), a room type dropdown (living room, bedroom, kitchen, bathroom, home office, dining room), a style dropdown (Scandinavian, mid-century modern, industrial, japandi, maximalist, coastal, brutalist), a strength slider 0.2 to 0.8, and a count of 1 to 4 variations.\n- A styles.py module holding one dict: each style maps to a positive prompt fragment, a negative prompt fragment, and default guidance and strength. This file is the whole product, treat it as such and leave comments explaining what to tweak.\n- Compose the final prompt as: style fragment + room type + \"interior photograph, realistic lighting, architectural photography\". Shared negative prompt covers warped geometry, extra doors, text, watermarks, distorted windows.\n- Submit jobs to a background task, poll status from the browser every 2 seconds, show a spinner then the results grid.\n- Save originals and outputs under ./data/images/, record every job with its full prompt and parameters in SQLite so you can see which settings produced which image.\n- A /history page: side by side original and outputs, with the exact parameters printed underneath. Copy-parameters button.\n\nOut of scope, do not build: user accounts, payments, sharing links, furniture shopping links, upscaling, inpainting masks, telemetry, Docker.\n\nDeliverables: requirements.txt, .env.example with REPLICATE_API_TOKEN, a README with setup in five commands, and a note in the README stating that output quality lives or dies in styles.py and that strength above 0.6 will start rearranging the walls.",
+  "promptCurated": false
+}
