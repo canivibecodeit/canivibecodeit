@@ -1,0 +1,51 @@
+{
+  "slug": "flashscore",
+  "name": "Flashscore",
+  "domain": "flashscore.com",
+  "category": "monitoring",
+  "subcategory": "live sports scores and results",
+  "tagline": "Live scores, fixtures, tables and results across dozens of sports, updated in near real time.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://flashscore.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. The core product is free and ad-supported, so there may be no meaningful subscription to replace.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is trivial: a list of matches, a score, a minute counter, some tables. Everything that makes Flashscore useful sits upstream of the interface, in licensed low-latency data feeds covering thirty-odd sports and thousands of competitions down to regional third divisions. Free sports APIs exist, but they cover a handful of big leagues, rate-limit you hard, and lag the actual match by minutes, which is exactly the gap that matters when the whole point is knowing now. You can absolutely build a personal scoreboard for the four competitions you care about, and it will be fine, and it will also quietly be a worse Flashscore. Since the product is free anyway, the trade is polling limits and coverage holes in exchange for no ads.",
+  "coreLoopDIY": "A local dashboard that polls a free football API for a handful of competitions you follow and shows today's fixtures, live scores and standings on one auto-refreshing page.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A free football-data.org API token in .env",
+    "Node 20+ and a machine that can stay awake to poll",
+    "Acceptance that coverage is football only, and only the leagues the free tier includes"
+  ],
+  "whatYouLose": [
+    "Sub-minute updates. Free tiers are delayed and rate-limited, so your 'live' score is a guess with a timestamp",
+    "Breadth: tennis, basketball, hockey, esports, plus the long tail of lower divisions and cup qualifiers",
+    "Twenty years of archived results, head to head records and per-player stats",
+    "Push notifications on a phone you actually carry",
+    "Lineups, live commentary, cards, substitutions, xG and the rest of the match-detail layer"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The real asset is a network of data collection deals and in-venue scouts feeding a pipeline that has to be fast at global scale, plus the archive nobody else bothered to keep.",
+  "whyPeopleStillPay": "Most people do not pay, they pay in ads, and they keep coming back because the thing is instant, exhaustive and works on a decade-old phone on hotel wifi. Nothing you build reaches the obscure league you actually care about, and nothing you build updates a goal within seconds of it happening. The ad-free rivals in this space compete on the same feeds, not on the frontend, which tells you where the value sits.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scoreboard is an afternoon; the feed behind it is not. The moat is licensed real-time data collection across thousands of competitions, plus the archive of results nobody else kept.",
+  "prompt": "Build a personal live football dashboard called Scoreboard. Single Node 20 + TypeScript project, no framework beyond Fastify, server-rendered HTML, no React, no build step beyond tsc.\n\nStack, non-negotiable:\n- Fastify serving HTML strings, plain CSS in one file, zero client JS except a meta refresh every 60 seconds\n- SQLite via better-sqlite3 for caching API responses\n- Data source: football-data.org v4 REST API, token read from process.env.FOOTBALL_DATA_TOKEN\n- .env with FOOTBALL_DATA_TOKEN and COMPETITIONS (comma separated competition codes, default PL,BL1,SA,PD,CL)\n\nWhat it does:\n- On startup and then every 60 seconds, fetch today's matches for the configured competitions and upsert them into SQLite\n- Fetch standings for each competition at most once per hour and cache them\n- GET / renders three sections: LIVE (matches in play, with score and minute), TODAY (scheduled, kickoff in local time), FINISHED (final scores)\n- GET /table/:code renders the cached standings for one competition\n- Serve stale cache and show a small 'last updated' line if the API call fails; never crash on a 429\n\nHard rules:\n- Respect the free tier rate limit: a single shared request queue, max 10 requests per minute, exponential backoff on 429\n- No accounts, no telemetry, no external CSS or fonts, no Docker\n- README states plainly that free-tier data is delayed by minutes and covers only major competitions\n\nOut of scope: push notifications, other sports, odds, lineups, historical archives, xG, anything resembling a mobile app.\n\nDeliver: npm install, npm run dev, works on http://localhost:3000, plus a seed script that populates the cache once so the page is not empty on first load.",
+  "promptCurated": false
+}
