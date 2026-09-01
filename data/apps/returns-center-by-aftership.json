@@ -1,0 +1,53 @@
+{
+  "slug": "returns-center-by-aftership",
+  "name": "Returns Center by AfterShip",
+  "domain": "aftership.com",
+  "category": "commerce",
+  "subcategory": "returns and RMA",
+  "tagline": "A branded self-serve returns portal for Shopify stores, with RMA approvals, return labels, and refund or exchange handling.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://apps.shopify.com/returns-center-by-aftership#adp-reviews",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. There is a free tier and paid tiers that scale with return volume and features.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of this app is a form: shopper enters order number and email, picks items and a reason, you approve, they ship it back. That part is genuinely a weekend build on top of the Shopify Admin API, and for a store doing a handful of returns a week it is enough. The part that is not a weekend build is prepaid return labels, which means a carrier account or a label aggregator, plus the return tracking that tells you a parcel is actually inbound before you refund. Exchanges are the other trap: doing them properly means draft orders, price deltas, and inventory holds, and that is where homegrown returns tools quietly rot. Build it if you want control of the portal and the emails; expect to rent labels from someone.",
+  "coreLoopDIY": "A self-serve returns portal that looks up a Shopify order, collects item selections and reasons, creates an RMA record with a status workflow, and emails the shopper at each step while you approve or reject from an admin table.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Shopify store with a custom app and Admin API access token (orders read, refunds write, inventory write)",
+    "SMTP or transactional email provider credentials for shopper notifications",
+    "A public HTTPS URL for the portal so shoppers can reach it",
+    "Optional: an EasyPost or Shippo account if you want prepaid return labels",
+    "Somewhere to run a small Node process plus SQLite"
+  ],
+  "whatYouLose": [
+    "Prepaid return labels out of the box, with carrier rate shopping and multi-region coverage",
+    "Inbound return tracking across carriers, so you know a parcel moved before you refund",
+    "Exchange and store-credit flows that touch inventory and draft orders correctly",
+    "Return reason analytics and rules engines (auto-approve under $X, deny final sale, restock by condition)",
+    "Warehouse and 3PL integrations, plus someone else's on-call when the portal breaks during a holiday return wave"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the form, it is the carrier and 3PL plumbing behind it plus the tracking data that makes refunds safe to automate.",
+  "whyPeopleStillPay": "Returns are a place where a small bug costs real money: a double refund, a restocked item that was never received, a label emailed to the wrong address. Paying means the label generation, carrier coverage, and inbound tracking are someone else's problem, and the app already knows how to talk to Shopify's refund and inventory endpoints without inventing edge cases. There is also the boring reason: support agents already live in that dashboard, and moving a returns queue mid-quarter is a worse trade than the subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The portal is a weekend; the label and tracking layer is a vendor relationship you will end up renting anyway.",
+  "prompt": "Build a self-hosted returns portal for a single Shopify store.\n\nStack, no substitutions: Next.js (App Router) with TypeScript, SQLite via Prisma, Tailwind for styling, Nodemailer for email. Run it locally with `npm run dev`. No external accounts beyond Shopify and SMTP.\n\nSecrets in .env only: SHOPIFY_STORE_DOMAIN, SHOPIFY_ADMIN_TOKEN, SMTP_URL, ADMIN_PASSWORD, PUBLIC_BASE_URL. Commit a .env.example, never real values.\n\nShopper-facing flow at /returns:\n1. Form asking for order number and email. Look the order up via the Shopify Admin GraphQL API and verify the email matches. Rate limit lookups per IP.\n2. Show eligible line items: fulfilled, not already returned, and within a RETURN_WINDOW_DAYS constant (default 30).\n3. Shopper selects items, quantities, a reason from a fixed list, an optional comment, and one photo upload per item stored on local disk.\n4. Create an RMA row with a short human code, status `requested`, and email the shopper a confirmation plus a status page link at /returns/status/[code].\n\nAdmin at /admin behind a single password in an httpOnly cookie:\n- Table of RMAs with filters by status, sorted newest first.\n- Actions: approve (email shopper the mailing address and RMA code to include in the box), reject with a reason, mark received, and refund.\n- Refund calls the Shopify refund mutation for the selected line items, optionally restocking, and records the Shopify refund id on the RMA. Make the refund idempotent: never allow two refunds against the same RMA.\n- An event log per RMA: who did what, when.\n\nExplicitly out of scope, and say so in the README: prepaid carrier labels, carrier tracking, exchanges, store credit, multi-store support, analytics dashboards, and any telemetry.\n\nSeed the database with three fake RMAs so the admin table is not empty. Write a README covering how to create the Shopify custom app, which scopes to grant, and how to expose the portal publicly.",
+  "promptCurated": false
+}
