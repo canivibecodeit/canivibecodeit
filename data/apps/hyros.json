@@ -1,0 +1,53 @@
+{
+  "slug": "hyros",
+  "name": "Hyros",
+  "domain": "hyros.com",
+  "category": "analytics",
+  "subcategory": "ad attribution and conversion tracking",
+  "tagline": "Server-side ad tracking that ties clicks, calls and emails to revenue, then feeds those conversions back into the ad platforms.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://hyros.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Hyros prices on tracked traffic volume and quotes through sales, so a single monthly number is misleading.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is not exotic: capture gclid, fbclid, ttclid and friends on landing, drop a first-party cookie, store the click ID on the order, and report revenue by campaign. An agent can build that ledger in a weekend and it will beat guessing from platform-reported ROAS for a single funnel. What it will not build in one sitting is the part people actually buy: cross-device and cross-session identity stitching by hashed email and phone, call tracking with dynamic number insertion, and prebuilt conversion upload into a dozen ad accounts. Meta's Conversions API is a same-day integration; Google Ads offline conversion import needs a developer token and an approval process that has nothing to do with coding skill. Build it if you run one offer through one or two channels, buy it if your spend is large enough that a five percent attribution error costs more than the subscription.",
+  "coreLoopDIY": "Captures ad click IDs into a first-party cookie, attaches them to orders via a webhook, and shows revenue and ROAS by campaign, plus optional server-side conversion events to Meta.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A domain you control so the tracking script and cookie are first-party",
+    "Access to your checkout or cart webhooks (Stripe, Shopify, or your own backend)",
+    "Meta pixel dataset ID and a Conversions API access token if you want to send conversions back",
+    "Ad spend data pulled or pasted in manually for ROAS math",
+    "Somewhere to run a small always-on Node process"
+  ],
+  "whatYouLose": [
+    "Cross-device and cross-session identity stitching, which is most of what the accuracy claims rest on",
+    "Call tracking and dynamic number insertion, so phone-driven sales stay invisible",
+    "Prebuilt conversion pushes to Google, TikTok, YouTube and the rest, each with its own approval hoops",
+    "Spend ingestion from every ad account, so ROAS is only as fresh as your manual paste",
+    "Cohort and LTV attribution over months, and someone else's problem when a platform changes its API"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "switching-costs"
+  ],
+  "moatNotes": "The hard part is not the database, it is holding open two dozen ad platform and cart integrations while every one of them keeps changing consent rules and API versions.",
+  "whyPeopleStillPay": "People running six or seven figures of ad spend are not paying for a dashboard, they are paying for the conversion data that goes back out to the platforms, because a better-fed bidding algorithm is worth more than the report. Add the fact that historical attribution data does not port anywhere, that call tracking involves buying and rotating real phone numbers, and that Google's offline conversion pipeline gatekeeps API access, and the switch cost stops looking like a coding problem. A homegrown ledger is genuinely useful for one funnel and one channel. It gets fragile fast at five channels.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine weekend project if you have one offer and one traffic source; the wheels come off the moment you need call tracking or Google offline conversions.",
+  "prompt": "Build a self-hosted first-party ad attribution tracker. Stack: TypeScript, Fastify, SQLite via better-sqlite3, server-rendered HTML with a little vanilla JS. No React, no cloud services, no telemetry, no user accounts. Single process, single sqlite file, runs with `npm run dev`.\n\nParts to build:\n1. A public tracker script served at /t.js. On page load it reads gclid, fbclid, ttclid, msclkid, utm_source, utm_medium, utm_campaign, utm_content, utm_term from the query string, plus document.referrer. It POSTs them to /collect along with a visitor ID it generates and stores in a first-party cookie (365 days, SameSite=Lax). It fires on every pageview so we keep a session trail, not just the first hit.\n2. POST /collect stores a visit row: visitor_id, timestamp, url, referrer, all click IDs, all utm params, user agent, IP. Nothing more. No fingerprinting.\n3. POST /identify takes visitor_id plus an email, stores a sha256 of the lowercased email in an identities table linked to the visitor. Called from thank-you pages and lead forms.\n4. POST /order is a webhook receiver for orders. Accepts order_id, value, currency, email, and optional visitor_id. Verifies a shared secret from a header against ORDER_WEBHOOK_SECRET in .env. Attribution logic, in this order: match on visitor_id if present, else match on sha256 of email against identities, else record as unattributed. Then walk that visitor's visits and store both first-touch and last-touch campaign for the order.\n5. A spend table plus a form at /spend to enter daily spend per platform and campaign by hand. No ad platform API integrations.\n6. Dashboard at /. Date range picker. Table by campaign showing visits, orders, revenue, spend, ROAS, and first-touch versus last-touch revenue side by side. A second table listing unattributed orders so the gap is visible rather than hidden.\n7. Optional outbound: POST server-side Purchase events to Meta Conversions API using META_PIXEL_ID and META_CAPI_TOKEN from .env, sending hashed email and the stored fbclid as fbc. Skip entirely if the env vars are missing. Log every request and response to a table so failures are debuggable.\n\nExplicitly out of scope: call tracking, dynamic number insertion, Google Ads offline conversion import, TikTok events API, multi-user auth, consent management. Put a README section listing these as known gaps.\n\nInclude a seed script that generates fake visits and orders so the dashboard has something in it, and one integration test that proves email-based matching attributes an order when the visitor cookie is missing.",
+  "promptCurated": false
+}
