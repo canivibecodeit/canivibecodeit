@@ -1,0 +1,53 @@
+{
+  "slug": "alfred-camera",
+  "name": "AlfredCamera",
+  "domain": "alfred.camera",
+  "category": "home",
+  "subcategory": "phone-as-security-camera",
+  "tagline": "Turns spare phones into live security cameras with motion alerts and cloud clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Premium",
+    "basis": null,
+    "unit": "flat",
+    "source": "https://alfred.camera/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core trick, an old phone streaming video to a viewer somewhere else, is WebRTC plus a signaling server, and an agent can wire that up in a session. Motion detection by frame differencing and saving clips to local disk is also fine, if slightly dumb compared to a trained person detector. The pain starts where mobile reality starts: browsers suspend background tabs, screens sleep, cameras get released, phones overheat, and getting a stream out of a home network to a phone on cellular usually means a TURN relay you now operate. So you end up with something good on your own LAN or over Tailscale, and something flaky the moment you want reliable push alerts on the go. Real, useful, not the same product.",
+  "coreLoopDIY": "An old phone opens a browser page and publishes its camera over WebRTC to a small self-hosted server, which does frame-diff motion detection, saves clips locally, and lets you watch live from any other device on your network or VPN.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A spare phone or two with a browser and a charger",
+    "A machine on the LAN to run the server, plus disk for clips",
+    "Tailscale or a VPN if you want access from outside the house",
+    "HTTPS or localhost, since browsers refuse camera access otherwise"
+  ],
+  "whatYouLose": [
+    "Native background apps that keep capturing when the screen is off",
+    "Reliable push notifications with thumbnails on iOS and Android",
+    "NAT traversal that just works over cellular, no TURN server for you to babysit",
+    "Person, pet and vehicle detection instead of any-pixel-moved detection",
+    "Cloud clip retention that survives the house being robbed along with your server",
+    "Two-way talk, siren, low-light mode and all the other polish they shipped years ago"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The unglamorous half of this product is relay bandwidth, battery-aware background capture and push delivery on two hostile mobile platforms. None of that is clever, all of it is grinding.",
+  "whyPeopleStillPay": "Because a security camera is only worth anything when it works unattended for months, and that is exactly the part that is not a coding problem. Paying gets background capture that survives OS power management, alerts that actually reach your pocket, video that lives somewhere other than the building being watched, and detection good enough that you do not get 40 notifications a day from a tree. A weekend build gives you the demo, not the dependability.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a LAN baby monitor or garage watcher; do not bet your insurance claim on it.",
+  "prompt": "Build a self-hosted phone-as-security-camera system in an empty folder.\n\nStack: Node 20 with Express and the ws library for signaling, plain HTML/CSS/vanilla JS on the client, no framework, no build step. SQLite via better-sqlite3 for the events table. Store clips as files on disk.\n\nThree pages served by the same server:\n1. /camera : opened on the old phone. Requests getUserMedia (rear camera, 720p), keeps the video element playing, publishes over WebRTC to any connected viewer. Draws frames to a small offscreen canvas at 2 fps and does frame-difference motion detection with a configurable threshold and a minimum-changed-pixels ratio. On motion, starts a MediaRecorder clip, keeps recording while motion continues, stops 8 seconds after motion ends, uploads the webm to POST /clips with a timestamp. Show a big on-screen status: idle, motion, recording, plus a wake-lock request via the Screen Wake Lock API and a clear warning that the phone must stay plugged in and awake.\n2. /viewer : lists connected cameras, lets you watch one live over WebRTC, shows the event timeline from SQLite with thumbnails, and plays back saved clips.\n3. /settings : per-camera name, motion threshold, cooldown seconds, retention days.\n\nServer duties: WebSocket signaling rooms keyed by camera id, clip upload endpoint that also extracts a JPEG thumbnail from the first frame using ffmpeg if it is on PATH (skip the thumbnail gracefully if not), a nightly cleanup job that deletes clips older than retention days, and a GET /events JSON API.\n\nAuth: a single shared password from .env (APP_PASSWORD), checked once and kept in a signed cookie. Nothing else. Include .env.example.\n\nIn scope: LAN and VPN use, STUN only using a public Google STUN server, one to four cameras, local disk storage.\n\nOut of scope, and say so in the README rather than half-building it: TURN relay, mobile push notifications, native apps, person or pet detection, cloud storage, multi-user accounts, telemetry of any kind.\n\nREADME must include: how to run over HTTPS on the LAN with a self-signed cert or via Tailscale, the fact that iOS Safari will drop the camera when the tab backgrounds, and a one-paragraph honest note that this is a monitoring toy, not a security system.",
+  "promptCurated": false
+}
