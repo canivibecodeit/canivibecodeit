@@ -1,0 +1,54 @@
+{
+  "slug": "fresha",
+  "name": "Fresha",
+  "domain": "fresha.com",
+  "category": "scheduling",
+  "subcategory": "salon and spa booking",
+  "tagline": "Booking, calendar, payments and client records for salons, barbers and spas, plus a consumer marketplace that sends new clients your way.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://fresha.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Fresha's core booking software is free to salons, with revenue coming from card processing, commission on new clients booked through the marketplace, and paid add-ons.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The booking calendar part of Fresha is genuinely easy to clone: services, durations, staff, slots, a public page, a confirmation email. That is also the part Fresha gives away for free. What you cannot build is the consumer side, a marketplace of people already searching for a nail tech near them, plus the card-on-file deposits and no-show fees that make those bookings actually show up. A solo practitioner with a full book and word-of-mouth clients could self-host a replacement and lose little; anyone who depends on marketplace discovery or takes card payments through Fresha is not replacing this with a weekend project. Add PCI scope, chargebacks and payouts and the honest answer is no.",
+  "coreLoopDIY": "A self-hosted booking page for your own services and hours that takes appointments, blocks the slot, emails both sides, and optionally charges a Stripe deposit.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A server or small VPS to host it",
+    "A domain for the booking page",
+    "SMTP credentials for confirmation emails",
+    "A Stripe account if you want deposits or no-show fees",
+    "Someone willing to maintain the calendar logic around timezones and daylight saving"
+  ],
+  "whatYouLose": [
+    "The marketplace: strangers finding you and booking without you spending on ads",
+    "Integrated card processing, card-on-file, tips and payout reporting",
+    "No-show protection that actually works because Fresha holds the card",
+    "The staff mobile app, rota view and multi-location management",
+    "Automated SMS reminders at a price you would not get buying SMS retail",
+    "Client records, marketing blasts and rebooking prompts that exist without you building them"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Two-sided: salons stay because clients are there, clients stay because salons are there. The payments layer quietly turns booking software into a processor, which is not a thing you clone on a Sunday.",
+  "whyPeopleStillPay": "Most salons pay Fresha nothing for the software and everything in commission and card fees, which is exactly why it is sticky. The calendar is table stakes; what a shop owner is really buying is a stream of new clients who found them on a marketplace, a card held against no-shows, and a payments stack that reconciles tips and payouts without a spreadsheet. A self-hosted booking page solves the calendar and none of that. The moment you handle deposits yourself you inherit disputes, refunds and PCI scope, and the free tool starts looking cheap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The booking page is a weekend build and Fresha hands it out for free anyway. The moat is the consumer marketplace plus the card on file, both of which are demand and payments, not software.",
+  "prompt": "Build a self-hosted appointment booking site for a single independent service provider (think barber, nail tech, massage therapist). Do not build a marketplace.\n\nStack, no substitutions: Next.js App Router with TypeScript, SQLite via better-sqlite3, Tailwind for styling, Zod for validation, Nodemailer for email. Single process, runs with npm run dev and npm run build. No auth provider, no cloud services beyond SMTP and optional Stripe.\n\nData model in SQLite: services (name, duration_minutes, price_cents, deposit_cents, active), availability_rules (weekday, start_time, end_time), blackouts (start_at, end_at, reason), bookings (service_id, client_name, client_email, client_phone, start_at UTC, end_at UTC, status, stripe_payment_intent, notes), clients derived by email.\n\nPublic side, one page per service plus a booking flow:\n- Pick a service, see real open slots for the next 60 days computed from availability_rules minus existing bookings minus blackouts, with a configurable buffer between appointments.\n- Store everything in UTC, render in a single configured business timezone using date-fns-tz. Handle daylight saving correctly and write tests for that specifically.\n- Confirm with name, email, phone. Write the booking inside a transaction that re-checks slot availability so double booking is impossible.\n- Send a confirmation email to the client and a notification to the owner. Include an .ics attachment.\n- Cancel and reschedule via a signed token link, no login.\n\nOwner side at /admin, protected by a single password from .env with an httpOnly session cookie:\n- Day, week and list views of upcoming bookings.\n- Mark as completed or no-show. Add blackouts. Edit services and weekly hours.\n- Client list with visit count and notes.\n\nOptional deposits: if STRIPE_SECRET_KEY is set, require a Stripe Checkout deposit before the booking is confirmed, and hold the slot as pending for 10 minutes. If the key is absent, skip payments entirely and hide all payment UI.\n\nAll secrets in .env: BUSINESS_NAME, BUSINESS_TIMEZONE, ADMIN_PASSWORD, SMTP_URL, OWNER_EMAIL, optional STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET. Ship a .env.example.\n\nExplicitly out of scope: SMS reminders, staff rotas, multiple locations, point of sale, inventory, marketing campaigns, any public directory of providers.\n\nSeed the database with three sample services and Tuesday to Saturday hours. Write a README with setup, a note that this replaces the calendar and not the client acquisition, and a warning that taking deposits means handling refunds and disputes yourself.",
+  "promptCurated": false
+}
