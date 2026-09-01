@@ -1,0 +1,51 @@
+{
+  "slug": "ekstrakt",
+  "name": "ekstrakt",
+  "domain": "ekstrakt.app",
+  "category": "documents",
+  "subcategory": "document data extraction",
+  "tagline": "An extraction tool: turns messy documents and files into structured, exportable data.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://ekstrakt.app/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Document extraction is one of those categories where the demo is easy and the last mile is brutal. An agent can absolutely give you a local pipeline: drop in PDFs, pull text, hand it to a model with a schema, get JSON or CSV back out. That covers a surprising share of real use, especially if your documents all look roughly the same. What it will not give you is calibrated accuracy on scanned junk, tables that span pages, handwriting, or a review queue that catches the 4 percent of rows that are quietly wrong. Public details on this particular product are thin, so treat the verdict as category-level rather than a head to head.",
+  "coreLoopDIY": "Watch a folder or accept uploads, extract text and tables from each file, run a schema-guided model pass, and write validated rows to SQLite with CSV and JSON export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An OpenAI-compatible API key for the extraction pass",
+    "Tesseract installed locally if you need OCR on scanned files",
+    "Python 3.12 and a willingness to hand-fix schemas per document type"
+  ],
+  "whatYouLose": [
+    "Accuracy tuning on ugly inputs: skewed scans, multi-page tables, stamps, handwriting",
+    "A human review UI that flags low-confidence fields instead of silently guessing",
+    "Prebuilt templates for common document types like invoices and bank statements",
+    "Throughput and retry handling when you dump a few thousand files at once",
+    "Someone else's problem when a model update changes your output shape"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The real asset in extraction products is the accumulated pile of weird real-world documents used to tune prompts and validators. You start that pile from zero.",
+  "whyPeopleStillPay": "Because extraction failures are expensive and invisible. A DIY pipeline that is 92 percent right feels great in testing and then costs you an afternoon of reconciliation every week, which is the exact cost the product exists to remove. Paid tools also absorb the boring parts: format sniffing, page splitting, confidence scoring, retries, exports that downstream tools actually accept. If you are extracting from ten documents a month, build it. If you are extracting from ten thousand and someone downstream trusts the numbers, pay.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A weekend gets you a working pipeline; the fight is everything that comes after the happy path.",
+  "prompt": "Build a local document extraction tool in an empty folder. No accounts, no cloud storage, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12, FastAPI backend, SQLite via sqlite3 (no ORM)\n- Plain server-rendered HTML with Jinja2 templates plus a little vanilla JS, no React, no build step\n- pdfplumber for PDF text and tables, python-docx for .docx, pandas for CSV/XLSX\n- pytesseract + pdf2image as an OCR fallback when a PDF page yields under 100 characters of text\n- One LLM call per document via an OpenAI-compatible endpoint; read OPENAI_API_KEY and OPENAI_BASE_URL from .env with python-dotenv\n\nWhat it does:\n1. Upload page accepts one or more files, stores them under ./data/uploads with a hashed filename\n2. User picks or creates a \"schema\": a name plus a list of fields, each with a field name, type (string | number | date | bool), and an optional hint\n3. For each file: extract raw text and any detected tables, chunk to fit the context window, then send text plus the schema as a JSON Schema and request strict JSON output\n4. Store one extraction row per document in SQLite: file hash, schema id, raw text, model output JSON, per-field confidence if the model returns one, created_at\n5. Validate each field against its declared type. Anything that fails validation or comes back null gets marked needs_review\n6. A review page lists extractions in a table, highlights needs_review cells in amber, and lets the user edit any cell inline and save the correction back to SQLite\n7. Export the current schema's rows as CSV or JSON with one click\n\nExplicitly out of scope: multi-user auth, background job queues, handwriting, signature detection, deduplication across documents, any hosted deployment.\n\nDeliverables: main.py, extract.py, schemas.py, templates/, requirements.txt, .env.example, and a README with exact run commands. Include a make-believe sample invoice PDF generator script so the thing can be tested immediately. Print a clear per-file summary to stdout during processing, including which files fell back to OCR.",
+  "promptCurated": false
+}
