@@ -1,0 +1,52 @@
+{
+  "slug": "audjust-ai-audio-music",
+  "name": "Audjust",
+  "domain": "audjust.ai",
+  "category": "ai-audio",
+  "subcategory": "AI audio editing and stem separation",
+  "tagline": "Browser based AI audio editor for separating stems, remixing, and trimming music without a DAW.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://audjust.ai/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part here, source separation, is already solved by open weights: Demucs and its descendants will split a track into vocals, drums, bass, and other on a local GPU or a patient CPU. An agent can wrap that in a Python API plus a waveform UI in a weekend, and for personal use that covers most of what you actually do: pull a vocal, mute a stem, trim, export. What you will not get in one sitting is the polished timeline, the instant browser playback, the loudness matched exports, and the bits that go beyond separation like tempo and key detection or AI generated fill. The output quality of open models is close enough that the gap is interface, not intelligence. So: buildable, but you are building an editor, and editors are where the hours go.",
+  "coreLoopDIY": "Upload an audio file, run local Demucs to split it into stems, then mute, solo, trim, and export a mixdown from a waveform UI in the browser.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with torch and demucs installed",
+    "ffmpeg on PATH",
+    "A GPU if you want separation to finish before you lose interest",
+    "Local disk for large intermediate WAV files"
+  ],
+  "whatYouLose": [
+    "A real timeline editor with snapping, fades, and undo history that you trust",
+    "Fast separation: no local GPU means minutes per track instead of seconds",
+    "Extras beyond stems: key and BPM detection, AI fill, style transforms, whatever they ship next",
+    "Sharing a project link with someone who does not have your repo",
+    "Browser accuracy on phones and tablets"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models",
+    "scale-infra"
+  ],
+  "moatNotes": "The separation models are largely commodity now. The moat is the editor around them plus GPU capacity you do not have to think about.",
+  "whyPeopleStillPay": "Because separation is the boring part and the editor is the product. Paying gets you a fast timeline, instant playback, exports that do not clip, and no CUDA install at 11pm. If you touch audio a few times a year, a subscription is cheaper than the weekend plus the GPU. If you touch it weekly and already own a machine that can do the math, the local build starts to look reasonable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Stem separation went open source years ago; the UI did not.",
+  "prompt": "Build a local, single user web app for AI audio stem separation and simple remixing. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Backend: Python 3.11, FastAPI, uvicorn.\n- Separation: the demucs package (htdemucs model) called in process, torch with CUDA if available else CPU.\n- Audio IO: ffmpeg via subprocess, soundfile for WAV.\n- Frontend: a single index.html with vanilla JS and wavesurfer.js from a CDN. No React, no build step.\n- Jobs: a simple in process queue with a background worker thread and a jobs.json state file. No Redis, no Celery.\n\nBehavior:\n1. Drag and drop or file picker upload of mp3, wav, m4a, flac. Store under ./data/uploads/{job_id}/.\n2. POST /api/jobs starts separation. Return job id. GET /api/jobs/{id} returns status: queued, running, done, error, plus a rough percent.\n3. On completion write four stems (vocals, drums, bass, other) as WAV to ./data/jobs/{id}/stems/ and expose them at /api/jobs/{id}/stems/{name}.wav.\n4. UI shows one wavesurfer track per stem, vertically stacked, sharing one transport. Play, pause, seek, and a global time cursor that stays in sync.\n5. Per stem controls: mute, solo, gain slider from -24 to +6 dB.\n6. A trim region: drag to select start and end, applied to all stems.\n7. Export: POST /api/jobs/{id}/export with the mute, gain, and trim state. Mix down with ffmpeg filter_complex, apply the trim, write mp3 320k and wav, return download links.\n8. Delete a job and its files from the UI.\n\nIn scope: separation, per stem mixing, trim, mixdown export, job persistence across restarts via jobs.json.\nOut of scope: multi track timeline arrangement, fades, EQ, pitch or tempo shifting, key or BPM detection, AI generation, sharing links, auth, mobile layout.\n\nDetails:\n- Read PORT, MAX_UPLOAD_MB, and DEMUCS_MODEL from .env. Ship a .env.example. Never hardcode paths.\n- Reject uploads over MAX_UPLOAD_MB with a clear error.\n- Log separation progress lines from demucs to stderr so long runs are not a black box.\n- README with install steps, an ffmpeg check, a note that CPU separation takes several minutes per track, and one curl example per endpoint.\n- Add a small pytest suite covering the export mixdown math and job state transitions using a 5 second generated sine file.",
+  "promptCurated": false
+}
