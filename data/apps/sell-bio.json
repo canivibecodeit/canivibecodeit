@@ -1,0 +1,52 @@
+{
+  "slug": "sell-bio",
+  "name": "Sell Bio",
+  "domain": "sellb.io",
+  "category": "link-in-bio",
+  "subcategory": "digital product storefront",
+  "tagline": "A hosted bio link page that doubles as a checkout for digital products and paid links.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sellb.io/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The page itself is a weekend of work at most: a profile, some links, a product grid, done. The part that actually matters is money moving, and that is where a one-shot build stops being cute: Stripe keys, webhook handling, secure file delivery that does not leak a public URL, refunds, and receipts. None of that is hard in isolation, all of it is fiddly to get right, and any mistake costs real money or real trust. If you already have a Stripe account and sell a handful of files, a self-hosted version is genuinely fine. If you were relying on the host to be merchant of record and handle EU VAT and sales tax, you are now the tax department.",
+  "coreLoopDIY": "A single-page public profile with links and digital products, Stripe Checkout for each product, and expiring signed download links delivered by webhook after payment.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Stripe account with API keys and a webhook secret",
+    "A domain or subdomain plus somewhere to host a small Node process",
+    "SMTP credentials if you want emailed receipts and download links",
+    "Your product files stored on disk or in object storage"
+  ],
+  "whatYouLose": [
+    "Merchant of record status, so digital goods tax and VAT become your problem",
+    "A polished mobile editor for reordering links and swapping images from your phone",
+    "Built in conversion analytics, click tracking, and per link stats",
+    "Storefront themes and the fact that buyers already trust a hosted checkout page",
+    "Someone else patching your payment webhook when Stripe changes something"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Nothing here is technically deep. The value is that payments, delivery, and a page that looks good on a phone all work without you thinking about them.",
+  "whyPeopleStillPay": "Because the failure modes are expensive and boring. A bio page that renders badly costs you nothing; a checkout that double charges, a download link that leaks, or a tax obligation you did not know you had costs you money and reputation. A few dollars a month to have someone else own the payment plumbing and the payout paperwork is a rational trade for anyone whose actual job is making the thing they sell. The DIY route makes sense when your catalog is small, your buyers are patient, and you enjoy webhooks.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The link page is a fifteen minute build; the checkout and delivery path is the whole weekend.",
+  "prompt": "Build a self-hosted link-in-bio page with digital product checkout. Empty folder, no scaffolding questions, just build it.\n\nStack: Next.js with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3, Stripe for payments. No auth provider, no analytics SDK, no telemetry.\n\nData model in SQLite, seeded from a single config file at content/profile.json:\n- profile: display name, handle, bio text, avatar path, theme accent color\n- links: label, url, sort order, visible flag\n- products: title, description, price in cents, currency, file path relative to ./private-files, cover image path, visible flag\n- orders: stripe session id, product id, buyer email, status, download token, token expiry, created at\n\nPublic routes:\n- GET / renders the profile: avatar, bio, link list, then a product grid with prices. Mobile first, single column, tap targets at least 44px. No JS beyond what Next ships.\n- POST /api/checkout takes a product id, creates a Stripe Checkout Session in payment mode with the product name and price, returns the session url.\n- POST /api/stripe/webhook verifies the signature with STRIPE_WEBHOOK_SECRET, handles checkout.session.completed, writes an order row, generates a random 32 byte download token with a 72 hour expiry, and emails the buyer a download link using nodemailer and SMTP env vars. Log to stdout if SMTP vars are absent instead of crashing.\n- GET /d/[token] looks up the order, rejects expired or unknown tokens with a plain 404 page, otherwise streams the file from ./private-files with a Content-Disposition attachment header. Files in ./private-files must never be served statically.\n- GET /thanks shows a confirmation and tells the buyer to check their email.\n\nAdmin: a single page at /admin behind a shared secret read from ADMIN_TOKEN, passed as a query param and stored in an httpOnly cookie. It lists orders and lets you toggle link and product visibility. That is the whole admin.\n\nOut of scope, do not build: subscriptions, coupons, multi user accounts, tax calculation, refund UI, themes, analytics dashboards, a drag and drop editor.\n\nSecrets in .env.local, with a committed .env.example listing STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_TOKEN, SMTP_URL, PUBLIC_BASE_URL. Include a README with local setup, the stripe listen command for testing webhooks locally, and a one paragraph warning that as the seller you are now responsible for digital goods tax in your buyers' jurisdictions.\n\nWrite tests for exactly two things: download token expiry and webhook signature rejection.",
+  "promptCurated": false
+}
