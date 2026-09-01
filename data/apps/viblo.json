@@ -1,0 +1,52 @@
+{
+  "slug": "viblo",
+  "name": "Viblo",
+  "domain": "viblo.ai",
+  "category": "ai-video",
+  "subcategory": "short-form video generation",
+  "tagline": "AI tool for producing short-form vertical videos from templates and existing clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://viblo.ai/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Strip away the dashboard and this is a pipeline: pull a source video, cut it, burn captions, drop it into a layout preset, render vertical. Every stage of that has a mature open source part, yt-dlp for ingest, Whisper for transcription, ffmpeg or Remotion for the render, so a competent agent gets a working local version in a weekend. The gaps are the boring kind that never fully close: social platform downloaders break constantly and need babysitting, and a hand-rolled caption template looks like a hand-rolled caption template next to a designer-tuned preset. You also inherit the licensing question yourself, which the hosted product quietly absorbs. Good build if you make videos weekly, pointless if you make them twice a year.",
+  "coreLoopDIY": "A local CLI that takes a video URL or file, transcribes it, cuts it to the interesting parts, and renders a captioned vertical clip from a template you control.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and ffmpeg installed locally",
+    "yt-dlp on PATH for URL ingest",
+    "A local Whisper model (whisper.cpp or faster-whisper) or an API key in .env for transcription",
+    "Willingness to fix ingest when platforms change"
+  ],
+  "whatYouLose": [
+    "A curated template library that someone iterates on weekly, versus the two layouts you built",
+    "Hosted rendering, so long clips tie up your own machine",
+    "Licensed music and stock assets",
+    "Someone else keeping the social ingest working when platforms tighten up",
+    "Anything resembling a mobile or browser workflow, unless you build a UI on top"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "content-rights"
+  ],
+  "moatNotes": "The templates are the product. Anyone can burn captions; the taste in the presets is what people are actually renting.",
+  "whyPeopleStillPay": "Because the DIY version is a pipeline and the paid version is a result. Template based tools sell the fact that someone already decided the font, the caption timing, the crop, the pacing, and tested it against what actually performs on a feed. Rebuilding the plumbing takes a weekend; developing that taste and keeping it current takes months of posting. Add hosted rendering, licensed audio, and not personally owning the ingest breakage, and the subscription is rational for anyone shipping clips on a schedule.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline is a weekend; the presets are the thing you will actually miss.",
+  "prompt": "Build a local command line tool called \"clipkit\" that turns a long video into captioned vertical short clips. Single user, runs on my machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Node 20 with TypeScript, run via tsx\n- commander for the CLI\n- yt-dlp shelled out for URL ingest\n- ffmpeg and ffprobe shelled out for all media work\n- faster-whisper via a small Python subprocess, or the OpenAI transcription API if OPENAI_API_KEY is set in .env\n- Remotion for the captioned render, with two hardcoded templates: \"bold-center\" and \"lower-third\"\n\nCommands:\n1. clipkit ingest [url-or-path] : downloads with yt-dlp or copies a local file into ./work/[id]/source.mp4, writes metadata.json with duration, dimensions, title\n2. clipkit transcribe [id] : produces transcript.json with word level timestamps\n3. clipkit suggest [id] : picks 3 to 5 candidate clip ranges of 20 to 60 seconds. Default heuristic is local and offline: score sentence windows by speech density and pause boundaries so cuts land between sentences. If OPENAI_API_KEY exists, optionally send the transcript text and ask for ranges instead. Write clips.json.\n4. clipkit render [id] [clipIndex] --template bold-center : crops to 1080x1920 with center crop, trims to the range, renders burned in word-by-word captions with Remotion, writes ./out/[id]-[clipIndex].mp4\n5. clipkit render-all [id]\n\nRules:\n- Every stage is resumable and caches to disk; never redo transcription if transcript.json exists\n- Templates are plain Remotion components in src/templates, easy for me to edit, with font size, color, stroke, and safe area as props read from templates.json\n- Fail loudly with a clear message if ffmpeg or yt-dlp is missing\n- Secrets only in .env, with a .env.example checked in\n- README with install steps, one worked example, and a short section on where ingest tends to break\n\nOut of scope, do not build: web UI, auth, job queue, stock music, background video generation, scheduling or posting to social platforms, multi-user anything.",
+  "promptCurated": false
+}
