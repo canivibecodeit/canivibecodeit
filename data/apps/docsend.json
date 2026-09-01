@@ -1,0 +1,52 @@
+{
+  "slug": "docsend",
+  "name": "DocSend",
+  "domain": "docsend.com",
+  "category": "documents",
+  "subcategory": "document sharing with view analytics",
+  "tagline": "Share pitch decks and documents as tracked links instead of attachments, with page-by-page view analytics and access controls.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.docsend.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanics here are not exotic: convert a PDF to page images, serve them behind a token URL, log which page was on screen and for how long. An agent can get that working end to end, including an email gate, link expiry, passcode and a per-visit timeline, in a weekend. What it cannot manufacture is the social fact that a docsend.com link reads as normal to an investor while a link on your own domain reads as a curiosity, or worse, as something a spam filter should eat. You also inherit every ugly edge: fonts that render wrong, huge decks, mobile pinch-zoom, someone screenshotting anyway. Fine for tracking who actually read your deck, weaker as the thing you paste into a cold intro.",
+  "coreLoopDIY": "Upload a PDF, get a tokenized viewer link with optional email gate and expiry, and see per-visitor per-page dwell time in a dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a small always-on host with a domain and TLS",
+    "Object storage or plain disk for uploaded PDFs and rendered page images",
+    "Poppler (pdftoppm) or pdfjs-dist available for server-side page rendering",
+    "Optional SMTP credentials if you want the email gate to actually verify addresses"
+  ],
+  "whatYouLose": [
+    "The brand signal: recipients recognize a DocSend link and open it without thinking",
+    "Data rooms, folder-level permissions and multi-document deal spaces",
+    "Click-through NDA and e-signature flows that hold up in a real diligence process",
+    "Serious deterrents against download and copying, plus the audit trail that goes with them",
+    "CRM and email integrations, mobile-tuned viewer, and someone else fixing the PDF that renders wrong"
+  ],
+  "moatTags": [
+    "brand-trust",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The product is a tracked PDF viewer. The pricing power comes from being the tracked PDF viewer that fundraising culture already agreed on.",
+  "whyPeopleStillPay": "Because the link goes to someone whose time you are asking for, and any friction is your fault. A DocSend link is invisible infrastructure to a VC: they click, it renders, they move on. Your self-hosted viewer on deck.yourname.dev invites a half-second of suspicion, and in fundraising or sales that half-second is real. Add the diligence-grade stuff, per-document permissions, NDA gates, an audit log a lawyer will accept, and the DIY version stops being a weekend project.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The tracking is easy, the trust is not. Build it for internal docs and client proposals, keep paying when the reader is a stranger with money.",
+  "prompt": "Build a self-hosted document sharing app with per-page view analytics, like a personal DocSend.\n\nStack, no substitutions: Next.js 15 (App Router, TypeScript), Tailwind, SQLite via better-sqlite3, files on local disk under ./storage. No auth provider, no analytics SDK, no telemetry, no cloud services.\n\nOwner side (single user, gated by ADMIN_PASSWORD from .env, cookie session):\n- Upload a PDF. On upload, render every page to a PNG at ~1400px wide using pdftoppm (shell out) and store page count in SQLite.\n- Create one or more share links per document. Each link is a random 22-char token and has settings: require email before viewing (yes/no), optional passcode, optional expiry timestamp, allow download (yes/no), active (yes/no).\n- Dashboard listing documents, then per-link visits: timestamp, email if captured, IP-derived country if trivially available (else blank), total seconds, pages reached, and a small bar chart of seconds per page.\n- Ability to deactivate a link instantly.\n\nViewer side (public, no account):\n- GET /v/[token] validates active/expiry, then shows passcode form or email form if configured, then the viewer.\n- Viewer renders page images in a vertical scroll container, lazy loaded, plus prev/next and a page counter. No pdf.js on the client, images only.\n- Client tracks which page occupies the most of the viewport and accumulates dwell time per page, flushing batched events to POST /api/track every 5 seconds and on visibilitychange/pagehide via sendBeacon.\n- If allow download is off, do not expose the original PDF at any route; only serve page images. Add a light watermark of the viewer email on each served image if an email was captured (server-side composite is fine, or CSS overlay if you prefer, say which you chose in the README).\n\nExplicitly out of scope: data rooms, folders, NDA or e-signature, multi-user teams, CRM integrations, email sending (store the submitted email unverified and note this in the README), screenshot prevention.\n\nDeliverables: working app, schema created on first run, seed script that ingests a sample PDF, .env.example with ADMIN_PASSWORD, and a README covering pdftoppm install, backup of ./storage plus the SQLite file, and one honest paragraph on what this does not stop a determined viewer from doing.",
+  "promptCurated": false
+}
