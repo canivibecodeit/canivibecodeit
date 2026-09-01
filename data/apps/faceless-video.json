@@ -1,0 +1,53 @@
+{
+  "slug": "faceless-video",
+  "name": "Faceless Video",
+  "domain": "faceless.video",
+  "category": "ai-video",
+  "subcategory": "faceless short-form video generation and auto-posting",
+  "tagline": "Generates faceless vertical videos from a topic or script, adds AI voiceover and captions, and posts them to TikTok, Reels and Shorts on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://faceless.video/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The render pipeline is not the hard part: script from an LLM, voiceover from a TTS model, b-roll from a stock API, word-level captions from whisper, stitched by ffmpeg into a 1080x1920 mp4. An agent can get that working end to end in a sitting, and the output is usually within spitting distance of what these tools produce, because they are all running roughly the same ffmpeg recipe. What you will not get in one shot is the second half of the product: authenticated posting to TikTok, Instagram and YouTube on a schedule, which means app review, OAuth, token refresh and a server that stays awake. Also missing: a licensed music and footage library you can safely publish against. Build it if you want a local video factory and are fine uploading by hand.",
+  "coreLoopDIY": "A CLI that turns a topic into a scripted, voiced, captioned vertical mp4 with stock b-roll, ready to upload manually.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "ffmpeg and ffprobe installed locally",
+    "an LLM API key for script generation",
+    "a TTS provider key, or a local voice model such as Piper",
+    "a stock footage API key, or your own clip folder",
+    "disk space and patience: renders are slow"
+  ],
+  "whatYouLose": [
+    "Direct publishing to TikTok, Instagram and YouTube, which is most of why people buy this",
+    "Scheduling and a queue that runs while your laptop is shut",
+    "A vetted, license-clear library of footage, music and voices",
+    "Templated caption styles and transitions that someone already A/B tested against the algorithm",
+    "Analytics on which of your fifty daily slop videos actually landed"
+  ],
+  "moatTags": [
+    "integrations",
+    "content-rights",
+    "execution-polish"
+  ],
+  "moatNotes": "Platform posting APIs are gated and fussy, and the music and footage licensing is a paperwork moat, not a code moat.",
+  "whyPeopleStillPay": "Because the value proposition is volume without touching it. Rendering one video locally is a fun afternoon; keeping three accounts fed with daily posts, from a server, with tokens that do not silently expire, and footage that will not get you claimed, is an ongoing chore that a subscription makes disappear. If you are posting once a week for fun, the DIY build is genuinely fine. If you are running a content farm, you are paying for the upload button and the uptime, not the ffmpeg.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The render is a solved problem; the posting queue is where the money is.",
+  "prompt": "Build a local CLI tool called \"slopfactory\" that turns a topic into a faceless vertical video. No web UI, no accounts, no telemetry, no cloud storage.\n\nStack, non-negotiable:\n- TypeScript on Node 20, run with tsx, commands via commander\n- ffmpeg and ffprobe as child processes, no wrapper libraries\n- SQLite via better-sqlite3 to track generated videos\n- All keys in .env, loaded with dotenv, and a .env.example checked in\n\nPipeline for `slopfactory make \"topic\"`:\n1. Script: call the OpenAI API for a 120 to 150 word narration in 6 to 9 short beats. Return JSON: an array of beats, each with narration text and a 3-word b-roll search query. Save the JSON to out/SLUG/script.json so it can be edited and re-rendered.\n2. Voiceover: synthesize the full narration to WAV. Support two backends chosen by env var TTS_BACKEND: \"openai\" (tts-1) or \"piper\" (local binary, path in env). Default to piper if the binary exists.\n3. Captions: run whisper.cpp on the WAV for word-level timestamps. Group words into caption chunks of at most 4 words.\n4. B-roll: for each beat, query the Pexels video API with its search query, download the best portrait-oriented clip, cache downloads in .cache/ keyed by query so re-renders are free. If PEXELS_KEY is missing, instead pull random clips from a local ./footage folder.\n5. Assemble with ffmpeg: crop and scale every clip to 1080x1920, trim each to its beat duration derived from the caption timestamps, concat, overlay the voiceover, and burn in captions using the drawtext filter with a bold font, white fill, black border, positioned at 60 percent height. Optional background music from ./music at -18dB if present.\n6. Output out/SLUG/final.mp4 plus a thumbnail.jpg grabbed at 1 second.\n\nOther commands:\n- `slopfactory list` shows generated videos with duration and file size\n- `slopfactory rerender SLUG` reuses cached assets and edited script.json\n\nExplicitly out of scope: posting to TikTok, Instagram or YouTube, OAuth of any kind, scheduling, and any claim about music or footage licensing.\n\nWrite a README with install steps, the ffmpeg version assumed, and a one-paragraph note that Pexels and whisper.cpp must be installed separately. Fail loudly with a readable message when ffmpeg, whisper or a required key is missing. No silent fallbacks except the documented footage folder path.",
+  "promptCurated": false
+}
