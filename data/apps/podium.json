@@ -1,0 +1,54 @@
+{
+  "slug": "podium",
+  "name": "Podium",
+  "domain": "podium.com",
+  "category": "crm",
+  "subcategory": "local business messaging and review requests",
+  "tagline": "Texting-first customer platform for local businesses: unified SMS and webchat inbox, review requests, payment links, AI reply agent.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per location plus messaging overages",
+    "unit": "custom",
+    "source": "https://podium.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted, price unverified. Podium quotes per location and tiers upward fast, so treat any single number as fiction until checked.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is genuinely small: send a customer a text with a link to your Google review page, and keep the replies in a threaded inbox. An agent can build that on Twilio in a weekend, and for a one-person shop it will cover most of what you actually use. The gaps are not code gaps, they are telecom gaps: A2P 10DLC brand and campaign registration, carrier filtering, opt-out handling, and the fact that a dead webhook means a customer text vanishes with nobody noticing. You also lose the mobile app that lets staff reply from the counter, and the deep hooks into industry software like dealership DMS or dental practice management that make Podium sticky in those verticals. Build it if you are the only one answering the phone, buy it if a team of six needs a shared inbox that never goes down.",
+  "coreLoopDIY": "A local web app that sends templated review-request and follow-up texts through Twilio, receives replies via webhook, and shows every customer as a threaded conversation with opt-out tracking.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Twilio account, a provisioned 10DLC number, and completed brand plus campaign registration",
+    "A publicly reachable HTTPS webhook for inbound messages (a small VPS or a tunnel that stays up)",
+    "Your Google Business Profile review link",
+    "Node 20 and a machine that is actually online when customers text back",
+    "A real per-message budget, since carrier fees do not care that this is a hobby build"
+  ],
+  "whatYouLose": [
+    "The mobile app, so nobody replies to a customer from the shop floor",
+    "Managed 10DLC registration, deliverability monitoring, and someone to call when carriers start silently filtering your texts",
+    "Integrations into vertical software (DMS, practice management, field service) that auto-trigger review requests after a closed job",
+    "Shared team inbox behavior: assignment, read receipts, who-is-typing, and an audit trail",
+    "Payments, webchat capture, and the AI responder that answers leads at 11pm",
+    "Uptime you did not have to think about: a missed inbound webhook is a lost customer, not a log line"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part of SMS was never the API, it was being a registered, unfiltered sender that carriers trust and that a dealership's software can fire events into.",
+  "whyPeopleStillPay": "Because the buyer is a business owner whose alternative to Podium is not a weekend project, it is nothing. They pay so that six employees can answer texts from one number on their phones, so that review requests fire automatically when a job closes in software they already use, and so that when messages stop arriving there is a support line instead of a debugging session. A solo operator with a technical streak really can replace the useful 20 percent of this. A five-chair salon cannot, and would not want to.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The review-request text is a one-evening build; being a sender the carriers trust is the part you cannot code.",
+  "prompt": "Build a single-tenant local business messaging app called \"Rostrum\". This is a personal replacement for Podium's texting and review-request loop. No multi-tenancy, no signup flow, no telemetry.\n\nStack, no substitutions:\n- Next.js 15 (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, one file at ./data/rostrum.db, schema created on boot\n- Twilio Node SDK for outbound SMS and inbound webhooks\n- Single-user auth: one bcrypt-hashed password in .env, cookie session, that is all\n\nEnvironment (.env.example, never commit real values): TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, TWILIO_WEBHOOK_SECRET, APP_PASSWORD_HASH, GOOGLE_REVIEW_URL, BUSINESS_NAME.\n\nFeatures in scope:\n1. Contacts: name, phone in E.164, tags, notes, consent status (unknown, opted-in, opted-out), created_at. CSV import with phone normalization and dedupe.\n2. Conversations: threaded message list per contact, outbound and inbound, with delivery status from Twilio status callbacks.\n3. POST /api/sms/inbound: validate the Twilio signature using the auth token, store the inbound message, auto-set consent to opted-out on STOP/UNSUBSCRIBE/QUIT and opted-in on START, and always reply-suppress opted-out numbers at send time.\n4. Templates with {{name}} and {{business}} and {{review_link}} substitution. Ship one seeded template: a review request pointing at GOOGLE_REVIEW_URL.\n5. Review request flow: pick contacts, preview the rendered message per contact, send with a rate limit of 1 message per second, log every attempt with the Twilio SID or the error.\n6. Simple dashboard: messages sent this month, reply rate, opt-out count, review-request clicks (use a local /r/[token] redirect that logs the hit then 302s to the review URL).\n7. A /health route that reports the last inbound webhook timestamp, so silent breakage is visible.\n\nExplicitly out of scope: payments, webchat widget, AI auto-replies, team seats, mobile app, MMS, email.\n\nHard requirements: every send path checks consent and appends \"Reply STOP to opt out\" on the first message to a contact. Never send to opted-out or unknown-consent numbers without an explicit override checkbox in the UI.\n\nDeliverables: working app on npm run dev, seed script with 3 fake contacts, and a README that states plainly that A2P 10DLC brand and campaign registration must be completed in the Twilio console before anything reaches a US phone, and that the inbound webhook needs a stable public HTTPS URL.",
+  "promptCurated": false
+}
