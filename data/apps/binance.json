@@ -1,0 +1,51 @@
+{
+  "slug": "binance",
+  "name": "Binance",
+  "domain": "binance.com",
+  "category": "finance-accounting",
+  "subcategory": "crypto exchange",
+  "tagline": "Global crypto exchange for spot and derivatives trading, with custody of the coins you park there.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://binance.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "medium",
+    "notes": "No subscription to price. Binance monetizes trading fees and spreads, spot fees historically around 0.1 percent per side with discounts for volume and BNB holders. Exact tiers unverified here."
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can absolutely one-shot something that looks like Binance: a dark-themed terminal with a live order book, a candlestick chart, and buy and sell buttons. What you cannot one-shot is the part that matters, which is other people's money arriving, sitting somewhere safe, and leaving again. An exchange is liquidity plus custody plus licenses, and none of those three are code you write. A matching engine for one user with no counterparties is a data structure exercise, and the interesting failure modes in this domain are legal and operational, not architectural. Build the terminal, keep the funds where they are.",
+  "coreLoopDIY": "A local paper-trading terminal that streams real public market data from Binance, simulates market and limit fills against the live book, and tracks a fake portfolio with realized and unrealized PnL.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine you leave running if you want continuous fills",
+    "Internet access to Binance's public market data endpoints, no API key needed",
+    "A read-only API key or a CSV trade export if you want to import real history",
+    "Acceptance that this simulates trading and custodies nothing"
+  ],
+  "whatYouLose": [
+    "Counterparties. Your order book has depth because thousands of strangers are quoting, not because your code is clever.",
+    "Custody. Holding someone else's Bitcoin safely is a hardware, staffing, and insurance problem, not a repo.",
+    "Fiat rails. Card processors and banking partners do not integrate with a weekend project, and the KYC and AML obligations attached to them are not optional.",
+    "Actual settlement. A simulated fill is a row in SQLite; a real fill moves money and creates legal obligations in whatever jurisdiction you happen to live in.",
+    "Uptime under stress. The one time the price moves 20 percent in a minute is the one time your WebSocket reconnect logic matters, and theirs has been beaten on for years."
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "compliance-regulatory",
+    "scale-infra"
+  ],
+  "moatNotes": "Liquidity is the reflexive one: traders go where the spreads are tight, and spreads are tight because traders are there. A new exchange with identical code and zero volume is worthless.",
+  "whyPeopleStillPay": "Nobody pays Binance for software. They pay a fee per trade because that is where the other side of the trade is, because withdrawals usually clear, and because the thing holding their coins has a legal entity, an auditor, and a lot to lose. That trust is expensive to build and easy to destroy, which is exactly why it is a moat. A personal build can replicate the screen and the strategy backtest; it cannot replicate a stranger willing to sell you two Bitcoin at the quoted price right now.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fun to build the terminal, pointless to build the exchange. The moat is liquidity: the deepest books in the market, wrapped in the licenses and custody apparatus that make strangers comfortable wiring money in.",
+  "prompt": "Build a local paper-trading terminal for crypto spot markets. No real money, no custody, no exchange account, no order placement.\n\nStack, not negotiable: TypeScript on Node 20, Fastify for the HTTP layer, better-sqlite3 for storage, plain HTML with vanilla JS and Chart.js for the UI. No React, no bundler, no Docker.\n\nIn scope:\n- Subscribe to Binance's public market data WebSocket streams (no API key required) for trade ticks and partial depth on a configurable symbol list, default BTCUSDT and ETHUSDT.\n- Seed a candlestick chart from the public klines REST endpoint, then keep it live from the tick stream.\n- UI: live order book showing top 20 levels per side, last price, 24h change, and the chart.\n- SQLite ledger: cash balance in simulated USDT, positions, orders, fills.\n- Simulated market and limit orders. Limit orders rest locally and fill when the live book trades through them. Fees configurable, default 10 bps per side.\n- Portfolio view: holdings, realized and unrealized PnL, full trade history, CSV export.\n- Optional import of a real trade history CSV export to compute past PnL. Read-only API keys only, and refuse to store anything that looks like a withdrawal-enabled key.\n\nOut of scope, do not build: real order routing, wallets, deposits, withdrawals, KYC flows, margin, futures, user accounts, telemetry.\n\nDetails:\n- One command, npm run dev, serving on localhost:8787, binding 127.0.0.1 only. Creates ./data.db on first run.\n- Config in .env: SYMBOLS, START_BALANCE, FEE_BPS. Ship a .env.example. No secrets in code.\n- Reconnect the WebSocket with exponential backoff and show a stale-data banner if no tick arrives for 10 seconds.\n- Timestamp every order and fill so PnL is reproducible from the ledger alone.\n- README must state in the first line that this is a simulator that never touches real funds.",
+  "promptCurated": false
+}
