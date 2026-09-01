@@ -1,0 +1,53 @@
+{
+  "slug": "tebex",
+  "name": "Tebex",
+  "domain": "tebex.io",
+  "category": "commerce",
+  "subcategory": "game server monetization",
+  "tagline": "Hosted webstores and payment processing for game servers and communities, with Tebex acting as merchant of record.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "percentage of transaction volume",
+    "unit": "usage",
+    "source": "https://tebex.io/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Tebex is commission-based rather than a fixed monthly fee.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of Tebex is a shop page and a webhook that gives a player a rank, and yes, an agent can produce that before dinner. The invisible part is that Tebex is the merchant of record: it takes on card processing, dozens of local payment methods, global VAT and sales tax registration and remittance, chargeback disputes, fraud scoring on a population that is largely teenagers using their parents' cards, and payouts to you. Rebuild it yourself and you are personally the merchant, which means a Stripe account in a real legal entity, your own tax filings, and your own inbox when a payment gets reversed. That is not a coding problem an agent can one-shot away. Build the store if you want to keep the commission, but understand you are buying a compliance job, not saving a weekend.",
+  "coreLoopDIY": "A self-hosted store page that sells a fixed list of packages via Stripe Checkout and, on a verified webhook, queues RCON commands against your game server to grant the purchase.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A Stripe account attached to a real legal entity you control",
+    "A game server with RCON enabled and reachable from your app",
+    "A public HTTPS endpoint for Stripe webhooks",
+    "Willingness to handle your own VAT / sales tax registration and filings",
+    "Someone to answer refund and chargeback emails"
+  ],
+  "whatYouLose": [
+    "Merchant of record status: Tebex owns the tax registrations and remittance, you would own them instead",
+    "Local payment methods beyond cards, PayPal, iDEAL, Paysafecard, carrier billing and the rest",
+    "Fraud scoring and chargeback defence tuned for a young, high-dispute buyer base",
+    "Maintained plugins and integrations for Minecraft, FiveM, Rust, Unturned and the usual CMSes",
+    "The boring commerce furniture: coupons, gift cards, subscriptions, currency conversion, sales reporting"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Being the merchant of record is the product. Everything on the surface is a shopping cart.",
+  "whyPeopleStillPay": "Server owners pay the commission because the alternative is becoming a small international retailer. Tebex absorbs the tax registrations, the disputed payments, the payment method sprawl and the payout mechanics, and it does it under a name players already recognise at checkout, which measurably matters when the buyer is deciding whether your Discord-linked store is a scam. The commission looks steep until you price an accountant, a Stripe Radar tuning session and the hours spent arguing with a card network about a 9 dollar rank.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is an evening; the merchant-of-record role is a career. The moat is tax registration in dozens of jurisdictions plus eating every chargeback from a player base with borrowed credit cards.",
+  "prompt": "Build a self-hosted game server store: a single page that sells packages and grants them in-game after payment.\n\nStack, no substitutions:\n- Node 20, TypeScript, Fastify\n- SQLite via better-sqlite3, migrations as plain SQL files run at boot\n- Stripe Checkout (hosted) for payment, Stripe webhooks for fulfilment\n- Server-rendered HTML with a small handwritten CSS file, no React, no Tailwind\n- rcon-client for talking to the game server\n\nWhat to build:\n1. packages.json at the repo root defines the catalogue: id, name, description, priceCents, currency, and commands (array of strings with a {username} placeholder).\n2. GET / renders the catalogue plus a username field. Validate the username against a configurable regex before allowing checkout.\n3. POST /checkout creates a Stripe Checkout Session with the package as a line item, the username and package id in metadata, and success/cancel URLs back to this app. Store a pending order row.\n4. POST /webhooks/stripe verifies the Stripe signature from the raw body, handles checkout.session.completed, marks the order paid, and inserts each resolved command into a deliveries table with status pending. Idempotent on the Stripe event id.\n5. A worker loop every 10 seconds pulls pending deliveries, opens an RCON connection, runs the command, records the server response, and marks it delivered or failed with an attempt count and exponential backoff, giving up after 6 attempts.\n6. GET /orders/:token shows a buyer their order status and whether commands were delivered. Token is a random 32-char string, no login.\n7. GET /admin, protected by a single ADMIN_TOKEN in a header or query param, lists orders and deliveries and offers a retry button per failed delivery.\n\nRules:\n- Secrets in .env only: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RCON_HOST, RCON_PORT, RCON_PASSWORD, ADMIN_TOKEN, PUBLIC_URL. Commit .env.example, never .env.\n- No user accounts, no analytics, no telemetry, no email sending.\n- Never trust client-supplied prices; prices come only from packages.json.\n- Log RCON command text and responses to a file so failed grants can be reconstructed by hand.\n\nOut of scope: subscriptions, coupons, refunds UI, multi-currency, tax calculation, PayPal, any non-Stripe payment method.\n\nDeliver: README with Stripe CLI webhook testing instructions, a seeded packages.json with two example ranks, and a fake RCON mode (RCON_HOST=mock) that logs commands instead of sending them so the whole flow can be tested locally.",
+  "promptCurated": false
+}
