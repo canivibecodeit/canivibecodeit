@@ -1,0 +1,52 @@
+{
+  "slug": "transcriptout",
+  "name": "TranscriptOut",
+  "domain": "transcriptout.com",
+  "category": "dev-tools",
+  "subcategory": "YouTube transcript API",
+  "tagline": "An API for pulling YouTube transcripts in bulk, with search across videos, channels and playlists plus an MCP endpoint.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://transcriptout.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Fetching one YouTube transcript is a solved problem: yt-dlp or a caption-track request gets you text in a few lines, and wrapping that in a local MCP server is an afternoon. The gap is everything that happens after volume: YouTube throttles and blocks datacenter IPs aggressively, so batching thousands of videos from a single box means proxy pools, retries, and caching, which is exactly the part you are actually paying for. Channel and playlist enumeration is easy if you hold a YouTube Data API key, but quota becomes the ceiling instead of your code. A personal build is genuinely fine for tens or low hundreds of videos on a residential connection. It stops being fine the moment you want 4,000 in one go on a schedule.",
+  "coreLoopDIY": "A local CLI plus MCP server that takes video, channel or playlist IDs, pulls captions concurrently with retry and on-disk caching, and returns clean text or timestamped segments.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+ and yt-dlp installed",
+    "A YouTube Data API key for channel and playlist enumeration (free tier has daily quota)",
+    "A residential or otherwise unblocked IP, or your own proxy list, for anything past small batches",
+    "An MCP-capable client if you want the agent integration"
+  ],
+  "whatYouLose": [
+    "Proxy rotation and IP reputation, the thing that makes large batches work at all",
+    "Somebody else fixing it the week YouTube changes how caption tracks are served",
+    "A hosted HTTPS endpoint and MCP server your teammates and agents can hit without running your laptop",
+    "Search across channels and playlists without babysitting YouTube Data API quota",
+    "Whisper-style fallback for videos with no captions at all, if the service offers it"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the parser, it is the pile of IPs and the maintenance treadmill behind it.",
+  "whyPeopleStillPay": "Because the difficulty of this problem is not linear. The first transcript costs you ten minutes of coding, the ten-thousandth costs you a proxy budget, a retry queue, and a standing appointment with whatever YouTube changed overnight. If you are feeding a research pipeline or an agent that needs transcripts on demand and reliably, paying per credit is cheaper than becoming a part-time scraping operations person. If you just want the text of forty videos, do not pay anyone.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The one-shot build works great right up until YouTube notices you.",
+  "prompt": "Build a local YouTube transcript tool in Python 3.11. No web UI, no accounts, no telemetry, no hosted anything.\n\nStack, non-negotiable: Python 3.11, uv for deps, yt-dlp as a library for caption extraction, httpx for the YouTube Data API, typer for the CLI, and the official mcp Python SDK for the MCP server. SQLite via stdlib sqlite3 for the cache. No ORM.\n\nDeliverables:\n1. A CLI called tout with these commands:\n   - tout video VIDEO_ID_OR_URL\n   - tout channel CHANNEL_URL_OR_HANDLE --limit N\n   - tout playlist PLAYLIST_URL --limit N\n   - tout batch input.txt (one video id or url per line)\n   Flags on all of them: --lang (default en, fall back to any auto-generated track), --format text|segments|srt, --out DIR, --concurrency (default 4).\n2. An MCP server, tout-mcp, exposing tools: get_transcript(video_id, lang), get_channel_transcripts(channel, limit), search_transcripts(query, limit). stdio transport only.\n\nBehavior requirements:\n- Caption fetching goes through yt-dlp with writesubtitles and skip_download, preferring manual captions over auto-generated. Parse the VTT into segments with start, duration, text. Strip the VTT dedup artifacts so text output has no repeated lines.\n- Cache every fetched transcript in ./cache.db keyed by video_id plus lang. Never refetch a cached video unless --refresh.\n- Concurrency via asyncio with a semaphore. On HTTP 429 or any block signal, exponential backoff with jitter, max 5 attempts, then record the video as failed and keep going. Print a summary at the end: succeeded, cached, failed, no-captions.\n- Optional proxy support: read a newline-delimited proxy list from the path in PROXY_LIST_FILE and rotate per request. If unset, direct connections.\n- Channel and playlist enumeration uses the YouTube Data API v3 with YOUTUBE_API_KEY from .env. Surface remaining-quota errors as a clear message, not a stack trace.\n- search_transcripts does a SQLite FTS5 search over cached transcript text and returns video_id, title, and matching snippets.\n\nOut of scope, do not build: audio download, Whisper fallback, any web server, Docker, auth, a React dashboard.\n\nInclude a .env.example with YOUTUBE_API_KEY and PROXY_LIST_FILE, a README with three real example invocations, and pytest tests for the VTT parser and the backoff logic using recorded fixtures, no network calls in tests.",
+  "promptCurated": false
+}
