@@ -1,0 +1,51 @@
+{
+  "slug": "heyreach-io",
+  "name": "HeyReach",
+  "domain": "heyreach.io",
+  "category": "sales-outreach",
+  "subcategory": "LinkedIn outreach automation",
+  "tagline": "Multi-account LinkedIn outreach: campaigns, sender rotation, unified inbox, mostly aimed at agencies.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly, scales with connected LinkedIn sender accounts",
+    "unit": "per-seat",
+    "source": "https://heyreach.io/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software part of HeyReach is not the hard part: a queue, some templates, a merge field, a follow-up timer. The hard part is doing all of that against LinkedIn, which does not want you doing it at all and spends real money detecting people who do. HeyReach is essentially a fleet of residential proxies, browser sessions pinned per account, rate limits tuned by watching thousands of accounts get restricted, and a support team that knows what a 'temporary restriction' email means. A one-shot Puppeteer script will work for about four days and then your actual LinkedIn account, the one with your career in it, gets flagged. You can absolutely build a local outreach tracker that makes manual sending fast; you cannot build the ban-avoidance layer, which is the entire product.",
+  "coreLoopDIY": "A local prospect queue that renders your personalised message from a template, shows one contact at a time, and logs what you sent so follow-ups fire on schedule, while you do the actual clicking.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and SQLite",
+    "Prospect list exported to CSV by hand",
+    "Willingness to send every message yourself in a normal browser tab"
+  ],
+  "whatYouLose": [
+    "Managed proxy and session infrastructure per sender account, which is what keeps accounts alive",
+    "Sender rotation across many LinkedIn seats, the actual reason agencies buy this",
+    "A unified inbox that pulls replies from every connected account into one thread view",
+    "Native pushes to CRMs, Clay, and webhook workflows",
+    "Someone else's aggregate data on what daily volume currently gets you restricted"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is adversarial: it exists because LinkedIn actively fights it, and staying ahead of that fight is an ongoing operational cost, not a feature.",
+  "whyPeopleStillPay": "Because the downside is asymmetric. If your homemade script trips detection you lose a LinkedIn account you have spent years building, plus the pipeline attached to it, and there is no support ticket that gets it back. Agencies pay HeyReach to absorb that risk across dozens of client sender accounts and to keep working the week after LinkedIn ships a new detection change. Nobody is paying for the campaign builder.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can one-shot the campaign UI in an afternoon and the ban in about four days. The moat is a fleet of residential proxies and pinned browser sessions plus constantly retuned rate limits, all maintained against a platform that is actively hunting for it.",
+  "prompt": "Build a local, single-user LinkedIn outreach assistant. It does NOT automate LinkedIn. It makes manual sending fast and keeps follow-ups honest.\n\nStack, no substitutions: Node 20, Express, better-sqlite3, server-rendered EJS templates, plain CSS. No React, no build step, no auth, no cloud, no telemetry. Runs on localhost:4000 with `npm start`.\n\nData model in SQLite (file ./data/outreach.db, auto-created):\n- prospects: id, first_name, last_name, company, role, profile_url, notes, custom1, custom2, status (new | queued | sent | replied | booked | dead), sequence_id, current_step, next_action_at, created_at\n- sequences: id, name\n- steps: id, sequence_id, step_number, delay_days, template_body\n- events: id, prospect_id, type (sent | reply | note | skip), body, created_at\n\nFeatures:\n1. CSV import at /import: upload a file, map columns to prospect fields, preview first 3 rows, then insert. Skip duplicates by profile_url.\n2. Sequence editor: create a sequence, add steps with delay_days and a template body supporting {{first_name}}, {{company}}, {{role}}, {{custom1}}, {{custom2}}. Show a live preview against a real prospect.\n3. The Today view, the main screen: every prospect whose next_action_at is today or earlier, one card at a time. Card shows the rendered message in a textarea (editable before sending), a \"Copy and open profile\" button that copies to clipboard and opens profile_url in a new tab, plus buttons: Mark sent, Mark replied, Skip 1 day, Mark dead.\n4. Mark sent writes an event, increments current_step, sets next_action_at using the next step's delay_days, or sets status sent if the sequence is finished. Mark replied stops the sequence.\n5. A daily cap setting (default 20) that hides remaining cards for the day and shows a plain \"cap reached\" message. Do not make it configurable per account, there is only one operator.\n6. /prospects list with status filter and free-text search, and a per-prospect timeline of events.\n7. Export all prospects and events to CSV.\n\nExplicitly out of scope, do not add: Puppeteer, Playwright, any headless browser, any LinkedIn API or scraping, proxies, multiple sender accounts, email sending, reply detection.\n\nInclude a README that says in one line: this tool queues and renders, you send. Add a .env.example with PORT and DAILY_CAP. Seed the DB with one 3-step example sequence and two fake prospects so the Today view is not empty on first run.",
+  "promptCurated": false
+}
