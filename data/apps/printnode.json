@@ -1,0 +1,51 @@
+{
+  "slug": "printnode",
+  "name": "PrintNode",
+  "domain": "printnode.com",
+  "category": "dev-tools",
+  "subcategory": "remote printing API",
+  "tagline": "A hosted API plus a local client that lets web apps send jobs to physical printers sitting behind someone's home or office firewall.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://printnode.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core trick is unglamorous: a small daemon on the machine next to the printer holds an outbound connection to a server, and the server exposes an HTTP endpoint that queues jobs for it. An agent can absolutely produce that in one session for your own printers on macOS or Linux, where CUPS does the actual work and lp is a one-line shell call. Where it falls apart is breadth: Windows raw printing, thermal receipt printers speaking ESC/POS, label printers with weird drivers, printer capability discovery, tray and duplex options, and the client libraries every ecommerce plugin already expects. If you have one printer and one app, DIY wins easily. If you are printing shipping labels for a warehouse full of mixed hardware, you are rebuilding a driver compatibility matrix, not a web service.",
+  "coreLoopDIY": "A local agent polls your own tiny server for queued PDFs and prints them to a named system printer via CUPS, with an API-key protected submit endpoint.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A machine that stays on near the printer, macOS or Linux with CUPS",
+    "A small VPS or a tunnel service if the submitting app is not on the same network",
+    "Printers already installed and working locally"
+  ],
+  "whatYouLose": [
+    "Windows support and raw byte printing, which is where most of the real driver pain lives",
+    "Thermal and label printer handling, ESC/POS, ZPL, cut commands, paper width quirks",
+    "Printer capability reporting: trays, duplex, media sizes, live online/offline state",
+    "Official client libraries and the ecommerce plugins that already speak PrintNode",
+    "Someone else's uptime, retries, and job history when a shift printer jams at 2am"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The API is trivial. The compatibility surface across thousands of printer models and three operating systems is the product.",
+  "whyPeopleStillPay": "Because printing is a support cost, not a feature. The moment printing is part of someone's revenue loop, shipping labels, receipts, kitchen tickets, they want a vendor to blame and a client that has already met their exact Zebra model. A homegrown agent is fine until it silently stops reconnecting and nobody notices for six hours, and the failure mode of a print queue is always discovered by an angry customer rather than a monitor.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine DIY for one printer you control; a bad idea the moment the hardware list gets long.",
+  "prompt": "Build a self-hosted remote printing bridge in TypeScript. Two pieces, one repo, pnpm workspaces.\n\nStack, no substitutions: Node 20, Fastify for the server, better-sqlite3 for storage, zod for validation, tsx for dev. No frontend framework, one server-rendered HTML page using plain template strings.\n\nPackage 1, `server`: a Fastify app that stores print jobs in SQLite.\n- POST /jobs accepts JSON: { printer: string, title: string, contentBase64: string, copies?: number }. Content is a PDF only. Requires header `x-api-key` matching API_KEY from .env. Stores the PDF to ./storage/{jobId}.pdf and a row in the jobs table with status queued.\n- GET /agent/next?printer=NAME returns the oldest queued job for that printer and marks it claimed. Requires AGENT_KEY.\n- POST /agent/complete with { jobId, status: \"done\" | \"failed\", error?: string }.\n- GET / renders a plain HTML table of the last 100 jobs: id, printer, title, status, created, error. No auth on the dashboard, bind it to localhost and say so in the README.\n- Jobs claimed for more than 5 minutes without completion get reset to queued by a 30 second interval sweeper. Max 3 attempts, then status failed.\n\nPackage 2, `agent`: a long-running Node process meant to sit on the machine attached to the printer.\n- Reads SERVER_URL, AGENT_KEY, PRINTER_NAME from .env.\n- Polls /agent/next every 3 seconds, writes the PDF to a temp file, prints it by spawning `lp -d PRINTER_NAME -n COPIES file`, then reports completion.\n- Exponential backoff up to 60 seconds when the server is unreachable. Log every state change to stdout with timestamps.\n- On boot, run `lpstat -p` and log available printers so misconfiguration is obvious immediately.\n\nIn scope: PDF printing on macOS and Linux via CUPS, one printer per agent, API key auth, retries, job history.\nOut of scope and do not attempt: Windows, raw or ESC/POS or ZPL printing, printer capability discovery, tray and duplex options, websockets, multi-tenant accounts, user signup, telemetry, Docker orchestration.\n\nDeliver: .env.example for both packages, a README with exact run commands, curl examples for submitting a job, and a note that exposing the server to the internet means putting it behind a tunnel or reverse proxy with TLS. Secrets only in .env. No cloud services.",
+  "promptCurated": false
+}
