@@ -1,0 +1,51 @@
+{
+  "slug": "ferndesk",
+  "name": "Ferndesk",
+  "domain": "ferndesk.com",
+  "category": "customer-support",
+  "subcategory": "shared inbox / help desk",
+  "tagline": "Hosted help desk for small teams: shared support inbox, tickets, and canned replies.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://ferndesk.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core of a help desk is unglamorous and very buildable: pull mail over IMAP, thread it by Message-ID and References, attach a status and an assignee, send replies over SMTP. An agent can get that working end to end in a weekend, and for a solo founder answering thirty emails a week it is genuinely enough. What breaks is everything around the inbox: deliverability, attachment handling, spam, the ten years of past conversations you want searchable, and the fact that your teammate will not use a tool with no mobile view. Also, self-hosting the channel your customers use to reach you means every outage is now your outage at 2am. Buildable, real gaps, and the gaps are the boring operational kind rather than the clever kind.",
+  "coreLoopDIY": "Ingests a support mailbox over IMAP, threads messages into tickets with status and assignee, and sends replies from the same address with canned snippets.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A mailbox with IMAP and SMTP access, or a transactional mail provider with an inbound webhook",
+    "A domain with SPF, DKIM and DMARC configured, or your replies land in spam",
+    "Somewhere always-on to host it, since polling a mailbox on your laptop is not a support system"
+  ],
+  "whatYouLose": [
+    "Deliverability engineering: bounce handling, reply-to hygiene, not getting your domain flagged",
+    "Migration of existing conversation history, which is the thing support teams actually search",
+    "Anything past email: chat widget, social channels, phone, whatever else customers use",
+    "Mobile access and a UI a non-technical teammate will tolerate",
+    "SLA timers, reporting, satisfaction surveys, and the audit trail someone eventually asks for"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The lock-in is the archive. Nobody migrates five years of threaded customer email for fun, and nobody wants to own inbound mail reliability.",
+  "whyPeopleStillPay": "Support tooling is bought for the same reason people pay for managed Postgres: the software is not the hard part, the uptime is. A help desk sits directly on the channel your customers use to complain, so a silent IMAP failure or a DKIM misconfiguration turns into lost revenue rather than a fun debugging evening. Add teammates who need a phone app, an archive that only gets more valuable, and the mild professional embarrassment of a support system you built yourself going down, and the monthly fee looks cheap. The DIY build makes sense at one person and low volume, and stops making sense the moment someone else depends on it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth building if you are one person with a support@ address and a strong opinion about owning your data.",
+  "prompt": "Build a single-tenant, self-hosted help desk for one shared support mailbox. Local first, no accounts, no cloud services beyond mail.\n\nStack, no substitutions: TypeScript, Node 20, Fastify for the HTTP server, SQLite via better-sqlite3, Drizzle for schema and migrations, imapflow for mail ingestion, mailparser for parsing, nodemailer for sending, and server-rendered HTML with Eta templates plus a little htmx. No React, no build step beyond tsc.\n\nCore behaviour:\n- A background worker polls the IMAP INBOX every 60 seconds using IDLE when available, falling back to polling.\n- Parse each message: from, to, cc, subject, date, text body, html body, Message-ID, In-Reply-To, References, attachments.\n- Thread messages into tickets: match In-Reply-To or References against stored Message-IDs first, then fall back to normalized subject plus sender email within 30 days, otherwise open a new ticket.\n- Ticket fields: subject, requester email, status (open, pending, closed), assignee (free text), tags (comma list), created_at, last_activity_at.\n- Store attachments on disk under ./data/attachments keyed by hash, never in the database.\n- Store raw RFC822 source for every message so nothing is lost to a parsing bug.\n\nUI, four pages only:\n1. Inbox list, filterable by status, assignee and tag, sorted by last activity.\n2. Ticket view showing the thread in order, quoted text collapsed by default, attachments linked.\n3. Reply box on the ticket view: sends via SMTP from the support address, sets correct In-Reply-To and References headers, appends the sent message to the thread, and optionally sets status.\n4. Snippets page: named canned replies, insertable into the reply box.\n\nAlso include: full text search over subject and body using SQLite FTS5, and a keyboard shortcut to close a ticket.\n\nExplicitly out of scope: multi-tenant accounts, chat widget, SLA timers, reporting dashboards, satisfaction surveys, and any telemetry.\n\nConfig in .env only: IMAP_HOST, IMAP_USER, IMAP_PASS, SMTP_HOST, SMTP_USER, SMTP_PASS, SUPPORT_FROM, PORT. Commit a .env.example, never real values.\n\nDeliver a README covering setup, the SPF, DKIM and DMARC records needed for replies to actually arrive, how to run the worker under systemd, and how to back up ./data. Include integration tests for threading using fixture .eml files, including a reply with a rewritten subject and a message with no References header.",
+  "promptCurated": false
+}
