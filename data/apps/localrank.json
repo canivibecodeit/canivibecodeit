@@ -1,0 +1,53 @@
+{
+  "slug": "localrank",
+  "name": "LocalRank",
+  "domain": "localrank.fyi",
+  "category": "seo-marketing",
+  "subcategory": "app store keyword rank tracking",
+  "tagline": "Tracks where your iOS and Android app lands for the keywords people actually search, country by country.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.localrank.fyi/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The measurement itself is not magic: the App Store has a public search endpoint, and Google Play can be scraped, so an agent can build you a nightly job that logs your position for a keyword list and draws the lines. Two things bite. First, rank history is a cold start, whatever you build knows nothing about last quarter, and the whole point of rank tracking is the trend. Second, rankings are geo-specific, so honest multi-country coverage means proxies or a VPS per region, and Play scraping breaks on someone else's schedule, not yours. Build it if you have one app and care about five keywords in two countries. Pay if you are doing ASO as a job.",
+  "coreLoopDIY": "A nightly cron job queries App Store and Play search results for your keyword list per country, records your app's position in SQLite, and serves a local dashboard with trend charts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and npm",
+    "A list of keywords and your app IDs (iOS numeric ID, Android package name)",
+    "A machine or cheap VPS that stays awake for the nightly cron",
+    "Optional: residential or datacenter proxies if you want real per-country results"
+  ],
+  "whatYouLose": [
+    "Historical data. Your chart starts the day you run it, theirs did not.",
+    "Reliable Google Play coverage, scraping breaks and you become the maintainer.",
+    "Keyword volume and difficulty estimates, which come from data you do not have.",
+    "Competitor and category tracking without writing a second, larger scraper.",
+    "Alerts, sharing, and anything you could put in front of a client.",
+    "Real geo diversity unless you pay for proxies anyway."
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible asset is years of daily rank snapshots across countries plus the boring infrastructure that keeps collecting them when the stores change their markup.",
+  "whyPeopleStillPay": "Rank tracking is a product where the value accrues over time and none of it is in the code. The first night your homemade tracker runs, it tells you a number you could have looked up by hand; the paid tool tells you that the number is down eleven places since the last release. Add per-country proxies, a scraper that survives Play's layout changes, and the fact that agencies need a chart they can send to a client, and the subscription starts looking like the cheap option for anyone whose income depends on the data.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scraper is a weekend, the archive is not. Start collecting now if you plan to cancel later.",
+  "prompt": "Build a local app store keyword rank tracker. Empty folder, no accounts, no cloud, no telemetry.\n\nStack, not negotiable:\n- Node 20 with TypeScript, run via tsx\n- SQLite via better-sqlite3, single file data/ranks.db\n- Fastify serving server-rendered HTML, Chart.js from a CDN for charts\n- node-cron for scheduling, plus an npm script to run a collection pass manually\n\nData sources:\n- iOS: the public iTunes Search API (https://itunes.apple.com/search) with term, country, entity=software, limit=200. Find the index of the target app ID in the results, that index plus one is the rank. Null if absent.\n- Android: the google-play-scraper npm package, search by term with the country and lang options, same index logic against the target package name.\n\nConfig in config.json at the repo root: an array of targets, each with platform, appId, label, and an array of keyword strings, plus an array of country codes to check. Ship a working example with two keywords and country codes us and gb.\n\nBehaviour:\n- One collection pass loops platform x keyword x country, writes rows of (date, platform, app_id, keyword, country, rank_or_null) into a snapshots table with a unique constraint on the tuple so reruns that same day upsert instead of duplicating.\n- Throttle requests: 1 to 2 seconds between calls, retry twice with backoff, log failures to a runs table instead of crashing the pass.\n- Optional HTTPS_PROXY read from .env and used for outbound requests. No secrets committed, ship .env.example.\n- Cron runs one pass daily at 04:00 local time.\n\nUI at localhost:3000:\n- One page per target: a table of current rank per keyword per country with the delta versus seven days ago, and a line chart of rank over time (y axis inverted so rank 1 is on top).\n- A runs page showing the last ten passes and any errors.\n\nOut of scope, do not build: keyword volume or difficulty estimates, competitor discovery, auth, email alerts, CSV export, Docker, tests beyond one smoke test of the rank-index parser.\n\nFinish with a README covering install, config.json shape, how to run a manual pass, and a blunt note that Play scraping will break eventually and where to fix it.",
+  "promptCurated": false
+}
