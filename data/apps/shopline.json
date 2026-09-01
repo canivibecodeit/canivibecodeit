@@ -1,0 +1,52 @@
+{
+  "slug": "shopline",
+  "name": "SHOPLINE",
+  "domain": "shopline.com",
+  "category": "commerce",
+  "subcategory": "hosted online store platform",
+  "tagline": "Hosted e-commerce platform for online stores, with POS, payments, logistics and social selling channels bolted on, popular across Asia.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://shopline.com/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Plans vary by region and are often quoted per store with transaction fees on top.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely one-shot a storefront: product list, cart, Stripe Checkout, order table. What you cannot one-shot is the part people actually buy, which is being a merchant of record adjacent platform that already speaks to local payment methods, courier APIs, tax rules, POS hardware and Facebook / Instagram / LINE selling in half a dozen markets. Add PCI scope, chargebacks, fraud screening, refunds, inventory sync across channels, and a support line for when checkout breaks at 2am during a flash sale. A personal replacement makes sense only if you are one seller with a handful of SKUs and one payment provider. If you have real order volume, the DIY build is a liability, not a saving.",
+  "coreLoopDIY": "A self-hosted single-vendor storefront with products, cart, Stripe Checkout, and an admin page listing paid orders.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account and API keys in .env",
+    "A host with a public HTTPS URL for webhooks",
+    "Somewhere to store product images",
+    "Your own answer for tax, invoicing and shipping labels"
+  ],
+  "whatYouLose": [
+    "Local payment methods beyond cards: bank transfer, e-wallets, convenience store pickup, installments",
+    "Courier and fulfilment integrations, shipping labels, tracking updates to buyers",
+    "POS, barcode scanning and offline / online inventory as one number",
+    "Social channel selling and catalog sync to Instagram, Facebook, LINE",
+    "Fraud screening, chargeback handling, PCI scope handled by someone else, and a support team when checkout dies mid-sale"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "Regional payments and logistics plumbing is boring, unglamorous, and takes years of contracts to assemble. That is exactly why it holds.",
+  "whyPeopleStillPay": "Because a storefront is the cheap part. Merchants pay for the fact that a customer in Taipei can pay by convenience store code, the parcel gets a label with a real tracking number, the inventory count matches the physical shop's POS, and none of that is the merchant's engineering problem. Uptime during a promotion is worth more than any feature, and a self-hosted Next.js store with one Stripe key does not offer that. The subscription is really rented operations.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is a weekend; the store is not. The moat is regional payment rails, courier integrations and POS sync that took years of contracts to assemble.",
+  "prompt": "Build a single-vendor self-hosted storefront I can run for a tiny product catalog.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) with Tailwind\n- SQLite via better-sqlite3, file at ./data/store.db\n- Stripe Checkout for payment, Stripe webhook for order confirmation\n- No user accounts, no CMS, no analytics, no telemetry\n\nData model:\n- products: id, slug, title, description (markdown), price_cents, currency, stock, image_path, active\n- orders: id, stripe_session_id, email, total_cents, currency, status, created_at\n- order_items: id, order_id, product_id, title_snapshot, unit_price_cents, qty\n\nStorefront:\n- / lists active products with image, title, price\n- /p/[slug] product page with quantity picker and add to cart\n- Cart in a cookie, server-side price lookup only, never trust client prices\n- /cart shows lines and a Checkout button that creates a Stripe Checkout Session server-side and redirects\n- /success reads the session id and shows the order summary\n\nWebhook:\n- POST /api/stripe/webhook verifies the signature, handles checkout.session.completed, writes the order and items, decrements stock in one SQLite transaction, idempotent on stripe_session_id\n\nAdmin:\n- /admin behind a single password from ADMIN_PASSWORD, HTTP basic is fine\n- Table of orders with items and status, plus a form to create and edit products and upload one image each to ./public/uploads\n\nSecrets in .env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_PASSWORD, NEXT_PUBLIC_BASE_URL. Include a .env.example.\n\nExplicitly out of scope, do not build: discounts, multi-currency, tax calculation, shipping rates, courier labels, refunds, POS, multi-channel sync, email receipts beyond Stripe's own.\n\nShip a README with setup, `stripe listen` instructions for local webhook testing, and a seed script with three fake products.",
+  "promptCurated": false
+}
