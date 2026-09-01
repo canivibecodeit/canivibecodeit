@@ -1,0 +1,52 @@
+{
+  "slug": "smartnews",
+  "name": "SmartNews",
+  "domain": "smartnews.com",
+  "category": "rss-research",
+  "subcategory": "news aggregator",
+  "tagline": "Mobile news aggregator that ranks stories from thousands of publishers into a swipeable feed.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://smartnews.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of SmartNews is a feed reader with a ranking function, and an agent will write that in an afternoon: pull RSS from the outlets you actually read, dedupe near-identical stories, score by recency and your click history, render a clean list. What you cannot conjure is the publisher side, the licensing deals, the reformatted article views, the breadth of local and regional sources that do not publish usable feeds. Ranking quality also comes from watching millions of people tap things, and your personal version is ranking on a sample size of one. If your news diet is ten known outlets with working feeds, the DIY build is genuinely fine and arguably better because nothing is optimizing for engagement. If you want a discovery machine that surfaces things you did not know to look for, it is not that.",
+  "coreLoopDIY": "Polls a list of RSS and Atom feeds on a schedule, clusters duplicate coverage of the same story, scores by freshness plus your reading history, and serves a clean local reading feed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A list of outlets you want, with working RSS or Atom feeds",
+    "Python 3.11 and SQLite locally, or a cheap always-on box",
+    "A cron entry or systemd timer for polling",
+    "Optional: an LLM API key for summaries and topic clustering"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps with push alerts for breaking news",
+    "Licensed and reformatted article views for outlets that only give you a headline in RSS",
+    "Ranking tuned on the behavior of millions of readers instead of just yours",
+    "Wide local news, weather, and alert coverage from sources with no public feed",
+    "Someone else fixing it when a publisher silently kills their feed"
+  ],
+  "moatTags": [
+    "content-rights",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The interesting asset is not the ranking code, it is the pile of publisher agreements and the click data that trains the ranker.",
+  "whyPeopleStillPay": "Because it is a phone app that already works, with notifications, offline reading, and a hundred sources you never had to configure. A personal aggregator asks you to curate the input list yourself, which is exactly the work most people are paying to avoid. The paid tier is mostly about removing ads and unlocking partner content, and neither of those is something you can build your way out of.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The honest test: write down the outlets you read this week, and if they all have feeds, build it.",
+  "prompt": "Build a local news aggregator called \"deskfeed\". Stack: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), feedparser, httpx, Jinja2 templates, htmx for interactions. No React, no build step, no Docker.\n\nData model in SQLite:\n- feeds(id, url, title, section, active)\n- items(id, feed_id, guid unique, title, link, summary, published_at, image_url, cluster_id, fetched_at)\n- events(id, item_id, kind, created_at) where kind is one of opened, hidden, saved\n\nBuild these pieces:\n1. feeds.yaml at the repo root: a list of feed URLs each with a section label. Ship it seeded with about 12 well-known public RSS feeds across world, tech, business, and science.\n2. A poll command (python -m deskfeed.poll) that fetches every active feed concurrently with httpx, parses with feedparser, upserts items by guid, and never refetches an existing guid.\n3. Deduping: after each poll, cluster items from the last 36 hours by title similarity. Use rapidfuzz token_set_ratio with a threshold near 85, assign a shared cluster_id, and pick the earliest published item as the cluster head.\n4. Ranking: score = recency decay (half life 8 hours) + small bonus per extra outlet covering the same cluster + per-feed weight learned from the events table (opened raises the feed weight, hidden lowers it). Write the scoring as one readable pure function with a unit test.\n5. Web UI at /: one column of cluster heads, newest and highest scoring first, showing title, source, relative time, and \"also covered by N outlets\" that expands inline via htmx. Buttons for open (logs an event and goes to the article), hide, and save. A /saved page. Section filters in the header. Dark by default, readable at phone width, no infinite scroll.\n6. Optional summaries: if OPENAI_API_KEY is present in .env, add a command that writes a two-sentence summary per cluster and caches it in the database. If the key is absent the app works normally with no summary UI.\n\nExplicitly out of scope: user accounts, push notifications, native apps, full-text article scraping, paywall bypass, telemetry, any hosted service.\n\nSecrets go in .env, loaded with python-dotenv, and .env is gitignored. Include a Makefile with targets: install, poll, serve, test. Include a README with a one-line cron example for polling every 20 minutes. Make it run end to end with two commands on a fresh clone.",
+  "promptCurated": false
+}
