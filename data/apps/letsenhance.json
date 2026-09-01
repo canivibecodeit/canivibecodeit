@@ -1,0 +1,51 @@
+{
+  "slug": "letsenhance",
+  "name": "Let's Enhance",
+  "domain": "letsenhance.io",
+  "category": "ai-image",
+  "subcategory": "image upscaling and enhancement",
+  "tagline": "Browser-based AI image upscaler that enlarges photos, sharpens detail, and cleans up compression artifacts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://letsenhance.io/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit-based tiers, so effective cost depends on volume.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Image upscaling is one of the few AI categories where the open weights are genuinely good and genuinely free. Real-ESRGAN, SwinIR and friends run locally, take a folder of images, and give you 2x/4x output with artifact cleanup and optional face restoration. An agent can wrap that in a local queue and a drag-and-drop page in one sitting, and the marginal cost per image drops to electricity. What you are actually paying Let's Enhance for is not having to install PyTorch, plus their tuned model chain that tends to handle faces, skin and text more gracefully than a stock checkpoint. If you upscale in batches and own a GPU, the local build wins on both cost and privacy.",
+  "coreLoopDIY": "A local web page where you drop images, pick a scale factor and model, and get upscaled files back into an output folder via Real-ESRGAN.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and about 5 GB of disk for weights and deps",
+    "An NVIDIA GPU or Apple Silicon; CPU works but is slow enough to be annoying",
+    "Willingness to download model checkpoints from GitHub releases on first run"
+  ],
+  "whatYouLose": [
+    "Model tuning: stock checkpoints can over-sharpen skin, invent texture, and mangle small text where a tuned pipeline behaves",
+    "Zero-install access from any device, including a phone or a borrowed laptop",
+    "Their extras: background removal, color and light correction, batch presets, format juggling in one flow",
+    "Someone else's GPUs, so a 500-image batch is now your afternoon and your fan noise",
+    "Any pretense of predictable output quality across weird inputs without you babysitting model choice"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is a tuned pipeline and a frictionless browser, not the underlying capability. Super-resolution research is public and moves fast.",
+  "whyPeopleStillPay": "Most people who need an image upscaled need it once, right now, on a machine that has never seen a Python virtualenv. Let's Enhance sells the absence of setup, plus a chain of models that has been tuned to fail gracefully on the messy inputs real users bring: low-light phone photos, screenshotted logos, old scans with faces in them. The local build matches it on clean photographic content and undercuts it enormously on volume, but you become the one who decides which checkpoint to use when the output looks plastic.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare paid AI tools where the open model is roughly the product; you are buying the installer you did not have to run.",
+  "prompt": "Build a local AI image upscaler with a browser UI. Single machine, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn.\n- PyTorch with automatic device selection: cuda if available, else mps, else cpu.\n- Real-ESRGAN inference. Download weights on first run into ./models: RealESRGAN_x4plus.pth (photos), realesr-general-x4v3.pth (mixed/compressed images), RealESRGAN_x4plus_anime_6B.pth (illustration). Cache them, never re-download.\n- Optional face restoration pass with GFPGAN v1.4, toggleable per job, downloaded the same way.\n- Pillow for load/save, SQLite for the job queue, plain HTML plus HTMX for the frontend. No React, no build step.\n\nBehavior:\n- One page at /: drag and drop or file-pick multiple images, choose model, choose output scale (2x or 4x, do 2x by downsampling the 4x result with Lanczos), toggle face restoration, choose output format (png, jpeg quality 92, webp).\n- Submitting enqueues one job per file into SQLite. A single background worker processes jobs serially so the GPU never gets double-booked.\n- The page polls job status every 2 seconds and shows a table: filename, status, elapsed seconds, and a download link plus a small before/after thumbnail pair when done.\n- Tile the inference (tile size 512, configurable) so large inputs do not blow up VRAM. Catch out-of-memory, retry once at tile 256, then mark the job failed with the real error text.\n- Inputs land in ./input, results in ./output, preserving the original filename with a _upscaled_4x suffix. Never overwrite silently.\n- Also ship a CLI: python -m upscaler.cli ./photos --model general --scale 4 --faces, for batch work without the browser.\n\nOut of scope, do not build: background removal, color correction, user accounts, hosted deployment, Docker, payment anything.\n\nDeliver: requirements.txt with pinned versions, .env.example with PORT and MODEL_DIR and TILE_SIZE, a README with the exact install commands for CUDA and for Apple Silicon, and a first-run check that prints which device was selected and warns loudly if it is cpu.",
+  "promptCurated": false
+}
