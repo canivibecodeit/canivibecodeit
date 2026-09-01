@@ -1,0 +1,52 @@
+{
+  "slug": "crowdreply",
+  "name": "CrowdReply",
+  "domain": "crowdreply.io",
+  "category": "social-media",
+  "subcategory": "community reply monitoring",
+  "tagline": "Watches Reddit-style community threads for keywords about your product and drafts replies with an LLM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://crowdreply.io/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics here are not exotic: search a platform API for keywords, score the results for relevance, ask a model to draft something that sounds like a human who happened to know the answer. An agent can wire that up in a sitting and hand you a queue of candidate threads with draft replies. What it cannot hand you is a posting account with real history, and that is the part that decides whether your reply is upvoted or removed in ninety seconds. The paid tool also amortizes the boring stuff: API quotas, multiple platforms, dedupe across runs, keeping up when a subreddit changes its rules. So: buildable, useful, and still likely to get you shadowbanned faster than the hosted version would.",
+  "coreLoopDIY": "Polls community search APIs for your keyword list on a schedule, scores each hit for relevance, drafts a reply with an LLM, and queues it in a local review UI where you approve, edit, and copy it out to post yourself.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Reddit API credentials (script app, OAuth client id and secret)",
+    "An LLM API key",
+    "Somewhere to run a cron job or a laptop that is usually awake",
+    "Your own accounts on whatever platform you plan to reply on"
+  ],
+  "whatYouLose": [
+    "Any account reputation or posting infrastructure; you are replying as you, from scratch",
+    "Multi-platform coverage beyond whatever APIs you bothered to wire up",
+    "Someone else absorbing API pricing changes and rate limit surprises",
+    "Team review workflows, seat management, shared keyword lists",
+    "Relevance tuning that has already seen thousands of threads fail"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The durable part is platform plumbing plus accumulated intuition about which threads are worth answering. Neither is a network effect, both are annoying to rebuild.",
+  "whyPeopleStillPay": "Because keyword monitoring is only half the job and the boring half. The paid product keeps working when Reddit changes its API terms, covers platforms you have not thought about yet, and has already learned that most keyword matches are worthless. If replying in communities is an actual channel for your business rather than a hobby, paying someone to keep the pipes clean is cheap. If you are watching three keywords for one side project, it is very much not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The monitoring is trivial, the judgment about which threads deserve a reply is not, and neither is having an account people trust.",
+  "prompt": "Build a local community reply monitor. Stack: Python 3.12, FastAPI, SQLite via sqlite3 (no ORM), praw for Reddit, Jinja2 templates, plain CSS. No Docker, no accounts, no telemetry.\n\nWhat it does:\n1. Reads config.yaml: a list of keyword queries, a list of subreddits (or \"all\"), a product description, and a reply style guide in plain prose.\n2. A `poll` command searches Reddit for each query using praw, over the last 48 hours, and upserts results into a `threads` table keyed by submission/comment id so re-runs never duplicate.\n3. For each new hit, call an LLM (OpenAI-compatible, base URL and key from .env) twice: once to score relevance 0-10 with a one-sentence reason given the product description, once to draft a reply under 120 words in the configured style. Skip drafting if score is below a configurable threshold.\n4. Store score, reason, draft, permalink, subreddit, author, created time, and status (new / approved / skipped / posted).\n5. A FastAPI app on localhost:8000 lists queued threads sorted by score, shows the original text next to the draft, and gives buttons for Approve, Skip, Regenerate, and Copy. Approving just marks it and copies to clipboard via the browser: the app never posts anything.\n\nExplicitly out of scope: auto-posting, multiple accounts, non-Reddit platforms, user auth, hosting, any background scheduler (document a cron line instead).\n\nRequirements: secrets only in .env (REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT, LLM_API_KEY, LLM_BASE_URL), .env.example committed, .env gitignored. Respect Reddit rate limits with backoff and log every API call count. Ship a seeded SQLite fixture so the UI renders before any credentials exist. README: setup in under ten lines, plus a blunt note that automated replying violates most community rules and that this tool deliberately keeps a human in the loop.",
+  "promptCurated": false
+}
