@@ -1,0 +1,51 @@
+{
+  "slug": "habitica",
+  "name": "Habitica",
+  "domain": "habitica.com",
+  "category": "tasks",
+  "subcategory": "gamified habit tracking",
+  "tagline": "A to-do list and habit tracker dressed as a pixel-art RPG, where skipping your dailies costs you hit points.",
+  "priceMonthly": 4.99,
+  "pricing": {
+    "plan": "Subscription",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://habitica.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanical core is embarrassingly simple: habits, dailies, and to-dos that pay out XP and gold, plus HP damage when you miss. An agent can build that loop, a streak counter, and a leveling curve in one session, and the free tier of the real thing already covers most solo use anyway. What breaks is everything social and everything cosmetic: parties, boss fights where your friend's missed dailies hurt you, guilds, challenges, and the decade of sprite art and quest writing that makes the numbers feel like a game. There is also no phone app, and a habit tracker you cannot open in a queue is a habit tracker you stop opening. Buildable, genuinely useful, but you are shipping the spreadsheet and skipping the game.",
+  "coreLoopDIY": "A local web app where you check off habits, dailies, and to-dos, and a character gains XP, gold, and levels or takes damage when you miss.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "A place to run it (laptop, home server, or a small VPS)",
+    "Willingness to open a browser tab instead of an app icon"
+  ],
+  "whatYouLose": [
+    "Parties and boss battles, the only part that adds actual social accountability",
+    "Guilds, challenges, and other people's habit lists to copy",
+    "The pixel art, pets, mounts, and gear that make the reward loop feel like a reward",
+    "Real iOS and Android apps with reminders and widgets",
+    "Years of accumulated avatar, streak, and gear history if you are already deep in"
+  ],
+  "moatTags": [
+    "network-effects",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "Habitica is open source, so the honest ceiling on the DIY build is not the code, it is that nobody else is standing in your dungeon.",
+  "whyPeopleStillPay": "Most people do not pay, which is the point: the free tier is the product and the subscription buys gems, cosmetic pets, and the warm feeling of funding a nonprofit-ish open source project. The ones who do pay are usually deep in a party that expects them to check in, and that expectation is the actual product. A solo tracker you wrote yourself has no one to disappoint.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The RPG math is trivial; the reason you keep doing your dailies is usually a person in your party, not the number.",
+  "prompt": "Build a single-user, self-hosted gamified habit tracker. Local first, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Next.js 15 (App Router, TypeScript) with Tailwind CSS\n- SQLite via better-sqlite3, schema managed with Drizzle ORM, db file at ./data/app.db\n- Server Actions for all mutations, no separate API layer\n- Zero auth: assume one user on a trusted network. Read an optional APP_PIN from .env and if set, gate the app behind a single PIN cookie. Nothing else in .env.\n\nData model:\n- tasks: id, type ('habit' | 'daily' | 'todo'), title, notes, difficulty ('trivial'|'easy'|'medium'|'hard'), dueDays (bitmask of weekdays, dailies only), dueDate (todos only), createdAt, archivedAt\n- completions: id, taskId, completedOn (date), delta (xp/gold awarded)\n- character: single row with level, xp, hp, maxHp, gold, streakBest\n\nGame rules, implement exactly:\n- Completing a task awards XP and gold scaled by difficulty (trivial 1, easy 2, medium 4, hard 8 as the multiplier base).\n- Level up when xp crosses a curve of round(25 * level^1.6); carry the remainder, restore HP to max on level up.\n- Habits can be checked multiple times a day and pay diminishing returns after the third check that day.\n- Dailies reset at a configurable day-start hour (default 4am local). A cron-free approach: on each page load, run a catch-up routine that scores every missed daily since last visit and subtracts HP per miss, scaled by difficulty.\n- HP hitting 0 means one lost level, xp reset to 0, HP back to max. Log it in a deaths table.\n- Track current and best streak per daily.\n\nUI:\n- One main page: character bar (level, XP bar, HP bar, gold) on top, then three columns for Habits, Dailies, To-Dos. Click to complete, long-press or a kebab menu to edit or archive.\n- A /history page with a 12 week heatmap per daily and a plain list of level ups and deaths.\n- Ship a web app manifest and icons so it installs as a PWA on a phone. Do not attempt push notifications.\n\nExplicitly out of scope: parties, guilds, challenges, chat, quests, pets, mounts, gear, avatars, a shop, or any multiplayer. No third party services.\n\nInclude a seed script with 3 habits, 4 dailies, and 2 todos, a README with setup in under ten lines, and a `npm run backup` script that copies data/app.db to ./backups with a timestamp.",
+  "promptCurated": false
+}
