@@ -1,0 +1,52 @@
+{
+  "slug": "eventdash",
+  "name": "EventDash",
+  "domain": "eventda.sh",
+  "category": "analytics",
+  "subcategory": "cookieless product analytics",
+  "tagline": "Lightweight event and product analytics that skips cookies and the tracking stack.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.eventda.sh/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Event collection is genuinely simple: a tiny script posts a JSON payload, a server appends a row, a dashboard groups by day. An agent will get you that plus top pages, top events, referrers and a unique-visitor estimate in one sitting, and for a personal project that is often the whole job. The gap is everything after the raw counts: sessionization, bot and prefetch filtering, funnels, retention cohorts, property breakdowns that stay fast past a few million rows, and a collector that does not drop events while you are asleep. Cookieless identity is also more fiddly than it looks, since the usual trick is a rotating salted hash of IP plus user agent and getting that wrong means either double-counted visitors or a privacy claim you cannot defend. Buildable, useful, but you are signing up to operate an ingest endpoint forever.",
+  "coreLoopDIY": "Serves a sub-1KB tracker script, ingests events to SQLite behind a rate limiter, and renders a password-protected dashboard with pageviews, top events, referrers and daily unique estimates.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on VPS or container host with a real domain for the ingest endpoint",
+    "Ability to add a script tag to the sites you want to measure",
+    "Comfort writing SQL when you want a metric the dashboard does not have",
+    "A backup plan for the SQLite file"
+  ],
+  "whatYouLose": [
+    "Funnels, retention cohorts and segment comparisons unless you build each one by hand",
+    "Query speed past a few million events, where SQLite and naive GROUP BY start hurting",
+    "Serious bot, crawler and prefetch filtering, which is a maintained list, not a regex",
+    "Someone else keeping the ingest endpoint alive during your traffic spike",
+    "A defensible privacy story you can hand to a client or a DPO"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Analytics moats are mostly operational: ingest that never drops, queries that stay fast, and bot lists that stay current.",
+  "whyPeopleStillPay": "Because analytics is one of those tools where the hosted version costs less than the attention it saves. The DIY build is fun for a weekend and then becomes a thing you maintain: disk fills, the bot traffic makes your numbers lie, the dashboard gets slow, and you start distrusting your own charts, which is worse than having none. Paying also buys the privacy posture, which matters if anyone other than you ever asks how the data is collected.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Self-hosted analytics is the classic one-shot build and the classic thing people quietly abandon after six months of babysitting the ingest box.",
+  "prompt": "Build a self-hosted, cookieless web and product analytics service in an empty folder.\n\nStack, no substitutions:\n- Node 22 with TypeScript, Hono as the HTTP framework\n- SQLite via better-sqlite3, WAL mode, single file at ./data/analytics.db\n- Server-rendered dashboard using Hono JSX, plain CSS, no build step for the frontend\n- Charts as hand-rolled inline SVG bar charts, no chart library\n- Vitest for tests\n\nWhat to build:\n1. GET /t.js serves a tracker under 1KB that auto-sends a pageview on load and on history changes, and exposes window.ed(name, props) for custom events. Use navigator.sendBeacon with a fetch fallback.\n2. POST /e accepts {site, name, path, referrer, props} as JSON. Server side, derive visitorId = sha256(dailySalt + ip + userAgent) truncated to 16 hex chars, where dailySalt rotates at UTC midnight and is never persisted beyond the current and previous day. Never store raw IP or full user agent.\n3. Store events in one table: id, site, name, path, referrer_host, visitor_id, country (from a CF-IPCountry style header if present, else null), device (mobile/desktop from UA parse, then discard the UA), props_json, created_at.\n4. Drop obvious bots using a bundled list in src/bots.ts, and ignore requests with Sec-Purpose: prefetch. Rate limit per IP hash in memory.\n5. Sessionize at query time: a session is events from one visitor_id with gaps under 30 minutes.\n6. Dashboard at / behind a single ADMIN_PASSWORD cookie session: date range picker (24h, 7d, 30d), pageviews, unique visitors, sessions, bounce rate, top pages, top referrer hosts, top custom events, and a per-event property breakdown.\n7. GET /api/stats returns the same numbers as JSON. Add an indexed schema and one migration file.\n8. Nightly job that deletes events older than RETENTION_DAYS.\n\nExplicitly out of scope: multi-user accounts, billing, email reports, funnels, retention cohorts, A/B testing, mobile SDKs, any third-party service.\n\nSecrets in .env: ADMIN_PASSWORD, SALT_SEED, RETENTION_DAYS, ALLOWED_SITES. Include .env.example, a Dockerfile, a docker-compose.yml with a volume for ./data, and a README with the exact script tag to paste. Write tests for the visitor hashing rotation, bot filtering and session gap logic.",
+  "promptCurated": false
+}
