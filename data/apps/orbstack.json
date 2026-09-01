@@ -1,0 +1,52 @@
+{
+  "slug": "orbstack",
+  "name": "OrbStack",
+  "domain": "orbstack.dev",
+  "category": "dev-tools",
+  "subcategory": "containers and Linux VMs on macOS",
+  "tagline": "Fast, low-overhead Docker and Linux VM runtime for macOS, pitched as a Docker Desktop replacement.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://orbstack.dev/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "OrbStack is not an app with a database behind it, it is a hand-tuned virtualization stack: a custom lightweight VM on Apple's Virtualization.framework, tuned file sharing, fast networking with per-container domain names, Rosetta-backed x86 emulation, and a Kubernetes toggle. An agent cannot one-shot that, because the product is the milliseconds and the battery drain, not the feature list. What an agent can do in a weekend is wrap Lima or Colima in a nicer CLI and a menu bar shim, which gets you Docker on macOS without Docker Desktop, at Lima's performance rather than OrbStack's. If you only need containers occasionally, that wrapper is genuinely enough. If you rebuild large images all day on a laptop, the paid thing pays for itself in fan noise avoided.",
+  "coreLoopDIY": "A Go CLI that provisions and manages Lima VMs, wires up a Docker context and a wildcard .test DNS domain, and gives you start/stop/status/shell in one command.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS 13+ (Apple Silicon or Intel)",
+    "Homebrew",
+    "Lima and the Docker CLI installed",
+    "dnsmasq for the wildcard domain trick",
+    "tolerance for slower bind-mount file I/O"
+  ],
+  "whatYouLose": [
+    "The performance work: fast VirtioFS-style file sharing, quick cold starts, low idle CPU and battery use",
+    "Rosetta-accelerated x86 containers that mostly just work on Apple Silicon",
+    "Automatic per-container and per-VM hostnames plus transparent host networking",
+    "One-click Kubernetes, plus a real GUI for containers, images, volumes and logs",
+    "Someone else debugging kernel, filesystem and networking edge cases when a mount silently corrupts your node_modules"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Low-level systems performance is the least clonable category on this site: there is no API to wrap and no dataset to scrape, just years of profiling against Apple's hypervisor.",
+  "whyPeopleStillPay": "Because the alternative is free and slower, and developer time is not. Lima, Colima and Docker Desktop all work; OrbStack's argument is that it starts in a couple of seconds, does not melt the battery, shares files without making your build tools crawl, and runs x86 images without ceremony. That is a quality-of-life purchase, and quality-of-life purchases are exactly the ones an AI-built wrapper cannot deliver, since your wrapper still runs on whatever VM stack you wrapped.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A CLI wrapper is a weekend; a faster hypervisor path is not. The moat is years of low-level performance work against Apple's Virtualization.framework, which has no API surface to clone.",
+  "prompt": "Build a macOS CLI called \"vmctl\" that makes Lima pleasant to use as a Docker Desktop replacement. Go 1.22, no framework, Cobra for commands. Single static binary, no server, no accounts, no telemetry.\n\nScope, in:\n- \"vmctl init\" checks for Homebrew, limactl, docker CLI and dnsmasq, and prints exact install commands for anything missing. Do not silently install things.\n- Embed two Lima YAML templates in the binary: one \"docker\" VM (Ubuntu, docker engine, rootful off, 4 CPU / 6GB / 60GB defaults, virtiofs mounts for $HOME read-write) and one plain \"linux\" VM for shell work.\n- \"vmctl up [name]\" creates the VM from the template if missing, starts it, waits for the docker socket, then creates and selects a docker context pointing at the VM socket.\n- \"vmctl down [name]\", \"vmctl status\" (table: name, state, CPU, mem, disk, docker context active yes/no), \"vmctl shell [name]\", \"vmctl rm [name]\" with a confirm prompt.\n- \"vmctl dns\" writes a dnsmasq conf mapping *.test to the docker VM IP, plus a /etc/resolver/test file, and prints the sudo commands it wants to run instead of running them itself.\n- Config in ~/.config/vmctl/config.yaml for CPU, memory, disk, mounts. Flags override config.\n- Friendly errors: if limactl fails, surface its stderr verbatim, do not swallow it.\n\nScope, out: writing a hypervisor, custom filesystem or network stack, any GUI, Kubernetes, Rosetta plumbing beyond passing Lima's existing rosetta flag through, Windows or Linux hosts, image or container management UI (people have the docker CLI).\n\nDeliver: main.go plus a small internal/ package split (lima wrapper, dockercontext, dnsmasq, config), embedded templates, a Makefile with build and install targets, and a README that states plainly that performance equals Lima's performance and that bind-mount heavy workloads will be slower than commercial alternatives. No secrets needed; if you add any, use .env and a .env.example.",
+  "promptCurated": false
+}
