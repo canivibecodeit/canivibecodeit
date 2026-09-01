@@ -1,0 +1,51 @@
+{
+  "slug": "vayovideo-ai-manga-image-video-generator-and-comic-creator",
+  "name": "VayoVideo",
+  "domain": "vayovideo.com",
+  "category": "generative-media",
+  "subcategory": "manga and comic panel generation",
+  "tagline": "Web app that turns text prompts into manga-style images, short clips, and multi-panel comic pages.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://vayovideo.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a prompt box, a style preset, and a panel layout engine sitting on top of image and video models it did not train. An agent can rebuild that shell in a weekend: prompt form, style presets, panel grid, speech bubble overlay, PNG or PDF export. What you cannot rebuild is the model, so you swap a subscription for a Replicate or Fal API key and pay per generation, which is fine for occasional use and worse if you generate hundreds of frames a month. Character consistency across panels is the real hard part, and off the shelf you will get drifting faces where a tuned pipeline with reference conditioning would hold the line. Video is the weakest link: generic text-to-video models are expensive per second and rarely look like anime unless the service has done work you have not.",
+  "coreLoopDIY": "A local web app that generates manga-style panels from prompts via a hosted image model, lays them out on a page with speech bubbles, and exports PNG or PDF.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Replicate or Fal API key with billing enabled",
+    "Node 20+ and a browser",
+    "Willingness to pay per generation instead of per month",
+    "A GPU if you want to run an anime checkpoint locally instead"
+  ],
+  "whatYouLose": [
+    "Character consistency tooling across panels, which is the entire difference between a comic and a pile of unrelated drawings",
+    "Style presets someone else tuned, so your first fifty prompts are spent rediscovering what 'manga' means to the model",
+    "Anime-looking video generation; generic video models give you smeary motion at real cost per second",
+    "A mobile-friendly, no-API-key experience you can use from the couch",
+    "Any moderation or rights cover; the outputs and the prompts are entirely your problem"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is upstream. Whoever tuned the style pipeline and the consistency trick owns the value; the site around it is a form and a grid.",
+  "whyPeopleStillPay": "Because generating a readable comic page is not one API call, it is a pipeline: style conditioning, character reference locking, panel composition, text placement, and enough retries that the good frame exists. Paying a flat fee to skip that tuning is rational when you want a page today and not a weekend of prompt archaeology. It also removes the API key, the billing dashboard, and the per-generation flinch that makes people stop experimenting. The DIY build wins for anyone who generates rarely, likes owning their files, and does not need the video half.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The shell is a weekend; the style tuning is the product.",
+  "prompt": "Build a local-only manga comic generator called PanelSmith. No accounts, no telemetry, no cloud database.\n\nStack, non-negotiable:\n- Next.js 15 App Router with TypeScript and Tailwind.\n- SQLite via better-sqlite3 for generation history, file at ./data/panelsmith.db.\n- Generated images written to ./data/images as PNG, served through a local route handler.\n- Image generation through the Replicate HTTP API. Read REPLICATE_API_TOKEN from .env.local. Never hardcode it. Put the model slug in a single MODEL constant so it can be swapped.\n\nFeatures in scope:\n1. Panel composer page: a grid layout picker with four presets (1 panel, 2x2, 3-row strip, 6 panel page). Clicking a cell opens a prompt drawer.\n2. Prompt drawer: freeform prompt, negative prompt, and a style select with four hardcoded preset suffixes (shonen ink, shojo screentone, seinen realism, chibi). The preset appends fixed text to the prompt; show the final string before generating.\n3. Character sheet: user defines named characters with a description and an optional reference image upload. Inserting @name into a prompt splices the character description in. Be honest in the UI that this is text conditioning, not identity locking, and faces will drift.\n4. Generate: POST to a route handler that calls Replicate, polls until done, saves the PNG, records prompt plus model plus timestamp in SQLite, returns the local path. Show cost-unknown warnings, not fake price estimates.\n5. Panel editor: drag to reposition and scale the image inside its cell, add speech bubbles as draggable divs with editable text, tail direction, and font size.\n6. Export: render the page to PNG and to a single-page PDF client side. Bubbles must be crisp vector-ish text in the PDF, not baked pixels, if feasible; if not, document the tradeoff in the README.\n7. History page: every generation with thumbnail, prompt, and a reuse-prompt button.\n\nOut of scope, do not build: video generation, user auth, payments, multi-page books, cloud sync, sharing links.\n\nDeliver a README with setup steps, the .env.local key name, where files land, and a blunt paragraph on what this build does worse than a hosted service (character consistency and style tuning).",
+  "promptCurated": false
+}
