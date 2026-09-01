@@ -1,0 +1,52 @@
+{
+  "slug": "appthetics",
+  "name": "Appthetics",
+  "domain": "appthetics.com",
+  "category": "seo-marketing",
+  "subcategory": "app store optimization",
+  "tagline": "Watches App Store and Play Store listings so you can see what you and your competitors changed, and when.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://appthetics.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics here are not exotic: public store listings are fetchable, so a scraper plus a snapshot table plus a diff view gets you most of the observable surface. An agent can wire that up over a weekend and you will genuinely see when a competitor swaps their first screenshot or rewrites their subtitle. The gaps are the boring kind that matter: Play Store pages fight scrapers, localized storefronts multiply your request count, and your archive starts the day you press run while theirs already has years in it. Keyword ranking and review sentiment data, if the product offers them, are a separate and much larger scraping problem you probably do not want to own. Build it if you track a handful of apps in one or two locales; buy it if you need history you did not collect.",
+  "coreLoopDIY": "Polls store listings for a watchlist of app IDs on a schedule, stores metadata and screenshot images as versioned snapshots, and shows a timeline of diffs with before and after images.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 22 and a machine or small VPS that can run a scheduler",
+    "Playwright with a headless Chromium for Play Store pages",
+    "Disk space for screenshot history, it adds up fast per app per locale",
+    "Optional SMTP credentials in .env if you want change alerts"
+  ],
+  "whatYouLose": [
+    "Historical data from before you started; your diff log begins at zero",
+    "Broad locale and storefront coverage without getting rate limited or IP blocked",
+    "Keyword rankings, category ranks and review analytics, if the paid product surfaces those",
+    "Someone else fixing the scraper the week Google reshuffles its markup",
+    "A shareable dashboard your team or clients can actually look at"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The archive is the asset. Anyone can fetch today's listing; only a service that has been polling for years can show you the A/B test a competitor ran last spring.",
+  "whyPeopleStillPay": "Because store monitoring is a chore that only pays off retroactively. You want the screenshot history for a competitor you did not think to track six months ago, and no personal build can give you that. Paying also outsources the ongoing scraping arms race, which is the entire maintenance cost of this category, and gets you multi locale coverage without renting proxies. If you are a solo dev watching three competitors in the US store, none of that applies and your own cron job is fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the backfill is impossible. Start collecting before you decide you needed the data.",
+  "prompt": "Build a local app store listing monitor. Node 22 plus TypeScript, no framework beyond what I list.\n\nStack, non negotiable:\n- better-sqlite3 for storage, single file data/appthetics.db\n- Express with EJS server rendered pages, no client framework, no build step beyond tsx\n- Playwright Chromium for Google Play pages\n- node-cron for scheduling, sharp plus pixelmatch for image diffs\n- .env for config, nothing hardcoded, no accounts, no telemetry, no cloud services\n\nWhat it does:\n1. A watchlist table: platform (ios or android), store id, locale, friendly label. Seed it from watchlist.json in the repo root.\n2. For iOS, fetch https://itunes.apple.com/lookup?id=ID&country=LOCALE. For Android, load the Play listing with Playwright and parse title, short description, long description, version, developer, screenshot URLs from the DOM.\n3. Normalize each fetch into a snapshot row: title, subtitle or short description, description, version, price, icon URL, ordered screenshot URLs, plus fetched_at and a content hash.\n4. Download icon and screenshots to data/media/{platform}/{storeId}/{locale}/{snapshotId}/ and store local paths. Skip re-downloading images whose URL and byte size already exist, dedupe by sha256.\n5. On each run, compare to the previous snapshot for that app and locale. Write a changes table with field level text diffs and, for screenshots, slot index plus a pixelmatch diff PNG when dimensions match.\n6. Schedule the crawl daily at 06:00 local, jittered per app, with a 2 to 5 second gap between requests and 3 retries with exponential backoff. Log failures, never crash the scheduler.\n\nUI at localhost:3000:\n- / lists watched apps with last checked time and change count in the last 30 days\n- /app/:id shows a reverse chronological timeline of changes, text diffs inline, screenshot changes as before, after and diff thumbnails side by side\n- /app/:id/snapshot/:snapshotId shows the full stored listing\n- One button to trigger an immediate crawl for a single app\n\nOptional alerts: if SMTP_* vars are present in .env, email a plain text digest of changes after each crawl run. If absent, skip silently.\n\nOut of scope, do not build: keyword rankings, category ranks, review scraping or sentiment, multi user auth, hosted deployment, any paid API.\n\nDeliver: README with setup and a note that Play Store parsing will break when Google changes markup and where to fix the selectors, plus `npm run crawl` for a one off run and `npm run dev` for the server. Write the selectors for Play in one clearly named module so there is exactly one place to patch.",
+  "promptCurated": false
+}
