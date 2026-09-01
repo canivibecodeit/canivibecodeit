@@ -1,0 +1,52 @@
+{
+  "slug": "migaku",
+  "name": "Migaku",
+  "domain": "migaku.com",
+  "category": "education",
+  "subcategory": "immersion language learning · sentence mining · SRS",
+  "tagline": "Browser-based immersion toolkit that turns shows, videos and web pages into clickable dictionary lookups and spaced-repetition flashcards.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://migaku.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop is genuinely mechanical: tokenize a subtitle line, look the word up, cut the audio, make a card, schedule the review. An agent can build that against local video files and open dictionaries in a weekend, and for one language it will feel surprisingly close. What it cannot casually reproduce is the part that makes Migaku convenient: subtitle capture inside streaming sites that keep changing, deinflection and parsing tuned per language, pitch accent and frequency data, grammar explanations, and phone review that syncs. So you end up with a good desk workflow and nothing on the couch or the commute. Also worth admitting that free tooling already covers a chunk of this, which changes the calculus more than any code you write.",
+  "coreLoopDIY": "A local web app that plays your video files with a clickable subtitle track, looks each word up in an offline dictionary, and mines the sentence plus audio plus screenshot into an FSRS review queue you can export to Anki.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and ffmpeg installed locally",
+    "Local video files with matching .srt or .vtt subtitles",
+    "An open dictionary dump, e.g. JMdict-simplified for Japanese or CC-CEDICT for Mandarin",
+    "Optional TTS or existing audio for word-level pronunciation"
+  ],
+  "whatYouLose": [
+    "Subtitle capture on Netflix, YouTube and other streaming sites, plus the constant maintenance when those break",
+    "Multi-language parsing and deinflection that actually handles conjugated forms and compounds",
+    "Curated extras: pitch accent, frequency lists, grammar explanations, example sentence banks",
+    "A phone app with synced reviews, so all study happens at your desk",
+    "Anything resembling onboarding, so a language you do not already know how to study will stay unstudied"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The dictionaries are mostly open, the packaging is not: aligned audio, pitch accent, frequency tiers and per-language parsing rules are years of unglamorous curation.",
+  "whyPeopleStillPay": "Because the friction budget in language learning is tiny. People pay to click a word inside the show they were already watching and have a card exist ten seconds later, on desktop and on their phone, in a language whose morphology they have not thought about. A local build gives you the mining loop but hands back all the plumbing: subtitle sourcing, deinflection edge cases, audio alignment, sync. If you are already an Anki person with a settled workflow, that trade is fine. If you are not, the subscription is buying you the ninety percent of the pipeline that is boring.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The mining loop is a weekend; the per-language data and the streaming-site whack-a-mole are the actual product.",
+  "prompt": "Build a local immersion study app called \"minecart\". Stack: Vite + React + TypeScript frontend, small Express server in the same repo, SQLite via better-sqlite3, ffmpeg shelled out for audio clips. No accounts, no cloud, no telemetry. Everything runs on localhost and stores data in ./data.\n\nCore flow:\n1. A library page where I point the app at a local folder of video files. For each video, auto-detect a sibling .srt or .vtt subtitle file.\n2. A player page: HTML5 video on top, the current subtitle line rendered below as clickable tokens, plus a scrollable transcript I can click to seek.\n3. Tokenization: implement a pluggable tokenizer interface. Ship two implementations: kuromoji for Japanese (handle basic deinflection by looking up the dictionary form kuromoji returns), and a whitespace-and-punctuation splitter as the fallback for space-delimited languages. Do not fake support for languages you cannot tokenize.\n4. Dictionary: import a JMdict-simplified JSON dump into SQLite with an FTS index at setup time via a `npm run import-dict` script. Clicking a token shows a popover with readings and glosses.\n5. Mining: a \"make card\" button on the popover creates a card with the target word, its gloss, the full subtitle sentence with the word bolded, a screenshot of the current frame, and an audio clip cut from the video with ffmpeg using the subtitle timestamps plus 250ms padding. Store media in ./data/media.\n6. Review: implement FSRS scheduling (use the ts-fsrs package). A review page shows sentence audio and screenshot on the front, gloss on the back, four grade buttons, keyboard shortcuts.\n7. Export: a button that writes an Anki-importable .apkg (use an existing js apkg writer) or, if that is fragile, a CSV plus a media folder and a README explaining the import steps.\n\nExplicitly out of scope: browser extension, streaming site subtitle capture, mobile app, sync, cloud storage, pitch accent, grammar explanations, user auth.\n\nConfig via .env: MEDIA_ROOT, DICT_PATH, PORT. Include a README with exact setup steps, where to download JMdict-simplified, and a one-command dev script. Seed the app with a tiny sample subtitle file so the UI is testable without any media.",
+  "promptCurated": false
+}
