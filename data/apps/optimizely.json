@@ -1,0 +1,51 @@
+{
+  "slug": "optimizely",
+  "name": "Optimizely",
+  "domain": "optimizely.com",
+  "category": "analytics",
+  "subcategory": "A/B testing and experimentation",
+  "tagline": "Enterprise experimentation and feature flagging platform, now bundled with a digital experience suite.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.optimizely.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Optimizely sells through sales contracts with no public list price, and real deals land in the enterprise annual-contract range.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanical core of an A/B test is embarrassingly simple: hash a visitor id into a bucket, serve a variant, count conversions, run a two-proportion test. An agent will produce that plus a flag API and a results page in one sitting, and for a single site with one or two experiments that is genuinely enough. What you do not get is the part enterprises actually buy: a stats engine people trust in a meeting, sub-50ms edge delivery with no flicker on first paint, a visual editor for non-developers, and the surrounding CMS and personalization suite. There is also a brutal non-software problem: most personal sites do not have the traffic to reach significance on anything, so the tool is honest and the answer is still 'inconclusive'. Build it if you want flags and simple splits, not if you want to win an argument with numbers.",
+  "coreLoopDIY": "A tiny self-hosted service that assigns visitors to experiment variants by hashed id, records exposures and conversions in SQLite, and shows a results table with a significance test.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A server or small VPS you control, or any Node host",
+    "A site you can add a script tag or server-side call to",
+    "Enough traffic that the numbers mean anything, which is the real requirement"
+  ],
+  "whatYouLose": [
+    "The sequential/Bayesian stats engine that lets you peek at results without lying to yourself",
+    "Edge delivery via CDN, so your snippet becomes a render-blocking round trip or you accept flicker",
+    "A visual editor, meaning every variant is a code change and marketing cannot touch it",
+    "Feature flag governance: audit logs, environments, targeting rules, kill switches with approvals",
+    "The rest of the suite, CMS, content marketing platform, personalization, which is what the contract is often really for"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The technical moat is edge delivery and a defensible stats engine. The commercial moat is that Optimizely is now sold as a suite, so churning means replacing four products.",
+  "whyPeopleStillPay": "Companies pay because experimentation is a political tool as much as a technical one. When a launch decision hinges on a 2% lift, nobody wants the analysis to come from a homegrown script with a p-value someone computed themselves; they want a vendor whose methodology has been argued about in public and whose dashboard the VP already trusts. Add non-developers needing a visual editor, a security review that wants SOC 2 and audit trails, and a CMS that shares the same login, and the contract renews on inertia alone.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a personal flags-and-splits tool, but check your traffic before you build a significance calculator you will never satisfy.",
+  "prompt": "Build a self-hosted A/B testing and feature flag service for my own websites. Empty folder, no cloud accounts.\n\nStack, no alternatives: TypeScript, Node with Fastify, SQLite via better-sqlite3, server-rendered admin pages with plain HTML templates and a little vanilla JS. No React, no ORM, no Docker required for local dev.\n\nData model:\n- experiments: key, name, status (draft/running/stopped), variants as JSON with weights, created_at\n- assignments: experiment_key, visitor_id, variant, assigned_at, unique on (experiment_key, visitor_id)\n- events: experiment_key, visitor_id, name, value, created_at\n\nAPI:\n- GET /v1/assign?experiment=KEY&visitor=ID returns the variant, deterministic via sha256(experiment_key + visitor_id + salt) bucketed against variant weights, so the same visitor always gets the same variant with no write needed on the hot path. Persist the assignment async.\n- POST /v1/event with experiment, visitor, name, optional value.\n- GET /v1/flags?visitor=ID returns all running experiments and this visitor's variants in one call.\n- All write endpoints require a bearer token from .env (API_TOKEN). Read assign endpoint is public but rate limited by IP.\n\nClient: ship a 2KB snippet in /public/ab.js that reads or sets a first-party visitor id cookie, calls /v1/flags once, exposes window.ab.variant(key) and window.ab.track(name), and applies data-ab-variant attributes on the html element so CSS can branch. Document the flicker tradeoff in the README and show the server-side usage as the recommended path.\n\nAdmin at /admin, protected by basic auth from .env: create and stop experiments, and a results table per experiment showing exposures, conversions, conversion rate, and a two-proportion z-test p-value plus a 95% confidence interval on the difference. Label anything under 100 conversions per arm as 'not enough data' instead of showing a p-value, and print a warning that repeated peeking inflates false positives.\n\nExplicitly out of scope: visual editor, multivariate and multi-armed bandits, audience targeting beyond a simple percentage rollout, CMS anything, telemetry back to me.\n\nInclude a seed script that fakes 5000 visitors across two variants, a README with a curl walkthrough, and vitest tests for bucketing determinism, weight distribution within 1% over 100k hashes, and the z-test math against a known worked example.",
+  "promptCurated": false
+}
