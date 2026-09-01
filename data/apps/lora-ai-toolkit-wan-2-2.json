@@ -1,0 +1,51 @@
+{
+  "slug": "lora-ai-toolkit-wan-2-2",
+  "name": "LoRA AI Toolkit WAN 2.2",
+  "domain": "loraai.me",
+  "category": "ai-video",
+  "subcategory": "LoRA training and inference for video models",
+  "tagline": "A hosted toolkit for training LoRAs on the Wan 2.2 video model and generating clips with them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://loraai.me/lora-ai-toolkit-wan-2-2",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Every load bearing piece here is open: Wan 2.2 weights are public, and the training scripts people actually use for video LoRAs are community projects. So an agent can absolutely build you a local job queue, a dataset prep step, a training runner and a generate page in one long session. What it cannot build you is a GPU. This category lives and dies on VRAM and hours, and a hosted toolkit is mostly selling you working defaults plus somebody else's hardware, which is a real thing to sell. Build it if you already own a fat card or are happy renting one by the hour, otherwise the DIY version is a very nice UI in front of an out of memory error.",
+  "coreLoopDIY": "Upload a folder of clips or stills, auto caption and bucket them, kick off a Wan 2.2 LoRA training run in a local queue, then generate test videos with the resulting LoRA at chosen strength.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with 24GB VRAM or more, or a rented cloud GPU",
+    "Wan 2.2 base weights pulled from Hugging Face, plus roughly 100GB of free disk",
+    "CUDA and Python toolchain patience: version pinning is most of the pain",
+    "A dataset you actually have the rights to train on"
+  ],
+  "whatYouLose": [
+    "Somebody else's tuned hyperparameters, which is most of what you are paying for",
+    "Instant capacity: no queue jumping, no second run while the first one is training",
+    "Preset pipelines and model version upgrades handled for you when Wan ships a new checkpoint",
+    "A gallery, sharing, and any way to hand a LoRA to a collaborator",
+    "Recovery when a 6 hour run dies at hour 5 and you have no idea why"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The weights are open and the trainers are open. The scarce things are GPU hours and a config that does not diverge.",
+  "whyPeopleStillPay": "Because renting the hardware and getting the training config right are both annoying in ways that do not make you better at anything. A hosted toolkit turns a weekend of dependency archaeology into a form upload, and when a new Wan checkpoint lands it keeps working without you rebuilding your environment. If you train LoRAs occasionally rather than constantly, paying per run is genuinely cheaper than owning a card that idles.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The software is a weekend; the GPU bill is forever.",
+  "prompt": "Build a local, single user web app for training and using LoRAs on the Wan 2.2 video model. Empty folder, no cloud services, no accounts, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Jinja2 templates plus htmx for the UI. No React.\n- SQLite via sqlite3 for jobs and metadata. No ORM.\n- Background work runs in a single worker process that polls the jobs table. One job at a time, because there is one GPU.\n- Training delegates to an existing Wan 2.2 LoRA trainer CLI (musubi-tuner style) invoked as a subprocess. Do not write a trainer from scratch. Put the command template in config.toml so I can swap it.\n- Inference delegates to a Wan 2.2 text-to-video / image-to-video script, also a subprocess with a template in config.toml.\n\nFeatures in scope:\n1. Datasets page: create a dataset, drag in images or short clips, they land in data/datasets/NAME/. Show thumbnails and a caption box per item. A \"auto caption\" button that runs a local captioner if available and otherwise leaves captions blank.\n2. Training page: pick a dataset, set rank, learning rate, steps, resolution bucket, and output name. Submit creates a queued job row. Show live tail of the trainer stdout via a polling htmx endpoint reading the job log file.\n3. LoRAs page: list finished .safetensors in data/loras/ with the config used, step count, and wall clock time.\n4. Generate page: prompt, optional init image, LoRA picker with strength slider, frame count, steps, seed. Queues an inference job, shows the resulting mp4 inline when done.\n5. Jobs page: queued / running / failed / done, cancel button that kills the subprocess group, and the last 200 log lines on failure.\n\nOut of scope, do not build: user accounts, billing, multi tenancy, GPU autoscaling, remote workers, a mobile app, any hosted storage.\n\nRules: model weights path, HF token and output dirs come from .env, and ship .env.example. Write a README with exact install steps, the VRAM floor, and a note that dependency versions are pinned in requirements.txt for a reason. If the GPU is missing, the app must still start and say so plainly instead of crashing.",
+  "promptCurated": false
+}
