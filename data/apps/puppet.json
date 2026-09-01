@@ -1,0 +1,52 @@
+{
+  "slug": "puppet",
+  "name": "Puppet",
+  "domain": "puppet.com",
+  "category": "dev-tools",
+  "subcategory": "configuration management",
+  "tagline": "Agent-based configuration management that declares desired state for fleets of servers and continuously enforces it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Puppet Enterprise",
+    "basis": "per managed node, annual, quoted",
+    "unit": "custom",
+    "source": "https://www.puppet.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Puppet Enterprise is quote-based under Perforce, and there is a free open source Puppet lineage underneath it.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea of Puppet is small: describe the state you want, compare it to reality, converge, report what changed. An agent can absolutely write you a YAML-driven, idempotent, plan-then-apply tool over SSH in a session, and for five to twenty boxes you own that is genuinely enough. What it cannot hand you is the long tail: thousands of Forge modules, a decade of hardening around package managers and init systems on six operating systems, certificate-based agent enrollment, and audit trails a compliance officer will accept. Also worth saying out loud: if you just want Puppet's mechanics without the price, open source Puppet and Ansible already exist, so the honest DIY case is learning and control, not cost. Build it if your fleet is small and homogeneous, buy it if a auditor is going to read the output.",
+  "coreLoopDIY": "A CLI that reads YAML manifests of desired resources, connects to your hosts over SSH, shows a diff, applies only what drifted, and writes a per-run report.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "SSH key access to the target machines",
+    "a Linux distro family you actually care about, pick one",
+    "Python 3 on the control machine",
+    "root or sudo on the targets"
+  ],
+  "whatYouLose": [
+    "The Forge module ecosystem, so every nginx, postgres and firewall recipe is now yours to write and maintain",
+    "Pull-based agents with certificate enrollment, meaning no enforcement on machines that are offline when you run the tool",
+    "Years of edge case handling across package managers, service managers and distro quirks",
+    "Role-based access, change approval and audit logs that survive a compliance review",
+    "Reporting dashboards, drift alerting and anything resembling vendor support at 3am"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The real lock-in is the manifest estate. Once a few thousand lines of Puppet code describe your infrastructure, the cost of leaving is a rewrite, not a migration.",
+  "whyPeopleStillPay": "Nobody buys Puppet Enterprise for the resource abstraction, they buy it because a regulated org needs provable, continuous enforcement across thousands of heterogeneous nodes, with named humans accountable for changes and a report they can hand to an auditor. That is a support contract and a paper trail wearing a config management tool as a costume. At personal scale none of that applies, which is exactly why the DIY version feels so easy and exactly why the enterprise version is not going anywhere.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal fleet config tool is a fun weekend and a real thing you will use. Just know you are rebuilding Ansible with fewer features, and that the actual product being sold is auditability.",
+  "prompt": "Build a small declarative configuration management CLI called \"marionette\" in an empty folder.\n\nStack: Python 3.11, standard library plus PyYAML and paramiko only. No web UI, no database, no telemetry, no accounts, no cloud.\n\nWhat it does:\n1. Reads an inventory file inventory.yml: named hosts with address, ssh user, optional port, optional group membership.\n2. Reads manifest files in manifests/*.yml. A manifest targets a group or host and lists resources.\n3. Supports exactly these resource types, each idempotent: package (apt only), file (content or source path, owner, group, mode), directory, service (systemd enable/disable, start/stop/restart), user, cron entry, and exec with a required \"unless\" guard command.\n4. Commands: marionette plan, marionette apply, marionette report.\n   - plan connects over SSH, inspects current state, prints a colored diff of what would change, changes nothing, exits 0.\n   - apply does the same then converges only drifted resources, in manifest order, stopping that host on first failure while continuing other hosts.\n   - report prints the last run summary per host: unchanged, changed, failed.\n5. Every resource supports notify, so a changed file can trigger a service restart once at the end of the run.\n6. Runs hosts concurrently with a thread pool, max 8, with clearly prefixed per-host output.\n7. Writes JSON run logs to runs/TIMESTAMP.json.\n\nRules: Debian/Ubuntu targets only, say so in the README instead of faking cross-platform support. Use sudo via a configurable command. SSH keys from the agent or a path in .env, never a password prompt in code, never secrets in YAML. Anything unimplemented must fail loudly rather than silently no-op.\n\nDeliver: marionette/ package, example inventory.yml, two example manifests (a base hardening one and an nginx one), pytest tests for the diff logic using a fake SSH transport, and a README with a five minute quickstart.",
+  "promptCurated": false
+}
