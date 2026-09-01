@@ -1,0 +1,51 @@
+{
+  "slug": "aisafe-labs",
+  "name": "AISafe Labs",
+  "domain": "aisafe.io",
+  "category": "security",
+  "subcategory": "AI guardrails and evaluation",
+  "tagline": "Guardrail and safety layer that screens prompts and model output before they reach users.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://aisafe.io/pricing",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of a guardrail product is not mysterious: a proxy in front of your model calls, a policy file, some regex and PII patterns, and a smaller model acting as a classifier on input and output. An agent can stand that up in a session and it will genuinely catch the obvious stuff for a personal or side project. What it will not give you is a tested detection rate, a red team corpus, or a paper trail anyone else will accept. If your reason for buying is an internal review, an enterprise customer questionnaire, or a regulator, the DIY version is worthless no matter how good the code is. If your reason is that you do not want your hobby chatbot leaking API keys or going feral in public, build it.",
+  "coreLoopDIY": "Runs a local OpenAI-compatible proxy that checks every prompt and completion against a policy file using pattern rules plus a cheap LLM classifier, blocks or redacts, and logs every decision to SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for whatever model you are proxying, plus a cheaper model for the classifier pass",
+    "Your app pointed at the local proxy URL instead of the provider directly",
+    "Willingness to write your own policy rules and accept that you have no idea what your false negative rate is"
+  ],
+  "whatYouLose": [
+    "Any measured detection rate: you get vibes, not numbers",
+    "A maintained attack corpus that tracks new jailbreak and injection patterns as they appear",
+    "Audit artifacts and compliance mapping that satisfy a security review or an enterprise buyer",
+    "Latency work: a naive classifier pass on every call is slow and you will be tempted to disable it",
+    "Someone else's problem when the classifier misfires on a legitimate request at 2am"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "In this category the deliverable is often the report, not the runtime. A blocked prompt is easy; proving to a third party that you block reliably is the product.",
+  "whyPeopleStillPay": "Almost nobody buys a guardrail layer because filtering is hard. They buy it because someone is asking them to demonstrate that they filter: a customer's security questionnaire, an insurer, a board, a regulator drafting rules for the model they just shipped. That demand is satisfied by an external name, a threat corpus that gets updated without you, and evaluation numbers you did not produce yourself. A homegrown proxy answers the engineering question and none of the political ones.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a personal seatbelt, useless as evidence.",
+  "prompt": "Build a local AI guardrail proxy. Python 3.11, FastAPI, SQLite via sqlite3, httpx. No Docker, no cloud, no telemetry, no auth beyond a single shared token read from .env.\n\nWhat it is: an OpenAI-compatible HTTP proxy I point my own apps at. It inspects the request before forwarding and the response before returning, applies a policy, and logs every decision.\n\nEndpoints:\n- POST /v1/chat/completions : accepts the standard OpenAI chat completions body, streaming disabled for v1 (reject stream=true with a clear error).\n- GET /log : simple HTML table of the last 200 decisions, newest first, no JS framework, server-rendered Jinja2.\n- GET /healthz : returns ok.\n\nPolicy: a policy.yaml at the repo root loaded at startup and reloadable via POST /reload. Each rule has a name, a stage (input or output), a type (regex or classifier), a pattern or a classifier label, and an action (block, redact, flag). Ship a starter policy.yaml with rules for: API key and token shapes, email addresses, credit card and national ID patterns, obvious prompt injection phrasing, and a classifier rule for self harm, violence, and sexual content involving minors.\n\nClassifier: a single extra call to a cheap model defined by CLASSIFIER_MODEL in .env, given the text and the list of labels, forced to reply with a strict JSON object of label to boolean. Cache classifier results by sha256 of the text in a SQLite table so repeated prompts are free. If the classifier call fails, fail open but mark the row as classifier_error.\n\nBlocking returns HTTP 422 with a JSON body naming the rule that fired. Redaction replaces matched spans with the rule name in brackets and forwards the redacted text. Flag forwards untouched and only logs.\n\nLogging: one SQLite row per request with timestamp, latency, model, rules fired, action taken, and sha256 hashes of the prompt and completion. Store raw text only when LOG_RAW=true in .env, off by default.\n\nAlso build scripts/eval.py : reads a JSONL file of test cases (text, stage, expected action), runs them through the policy engine directly without hitting the upstream model, and prints a confusion matrix plus per rule counts. Include a seed file of about 40 cases, half of them benign, so I can see false positives.\n\nSecrets in .env: UPSTREAM_BASE_URL, UPSTREAM_API_KEY, CLASSIFIER_MODEL, PROXY_TOKEN, LOG_RAW. Provide .env.example and a .gitignore.\n\nOut of scope, do not build: multi-tenancy, user accounts, a dashboard beyond /log, streaming, fine-tuned detection models, any compliance report generator, any claim about detection rates.\n\nREADME: how to run with uvicorn, how to point an app at it, one honest paragraph saying this catches obvious cases only and the eval numbers are self-reported.",
+  "promptCurated": false
+}
