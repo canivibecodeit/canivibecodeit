@@ -1,0 +1,52 @@
+{
+  "slug": "qlane",
+  "name": "Qlane",
+  "domain": "qlane.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI workflow tooling",
+  "tagline": "An AI product at qlane.ai whose exact job we could not pin down from public material, apparently agent-style workflow automation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://qlane.ai/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "We are not going to pretend we know this one cold: the public surface is thin, so treat this entry as a shape rather than a teardown. If Qlane is what it looks like, an LLM wrapped in a workflow builder with connectors, then the core loop is genuinely one-shot territory: prompt chains, a run history, a queue, some output formatting. What an agent will not hand you in a session is the boring half, the OAuth dance for every SaaS it touches, retries that survive a rate limit, and a UI that a non-you person can operate. So a weekend gets you a private version that does your two or three real workflows, and nothing that generalizes. Revisit this page once someone verifies what the product actually does and what it costs.",
+  "coreLoopDIY": "Define reusable prompt pipelines, run them over inputs on demand or on a schedule, and keep every run with its inputs and outputs in a local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local machine or a cheap VPS",
+    "An LLM API key in .env, OpenAI or Anthropic",
+    "SQLite, no external database service",
+    "Any third-party connectors you want wired by hand, one at a time"
+  ],
+  "whatYouLose": [
+    "Prebuilt connectors and the OAuth plumbing behind them",
+    "Hosted scheduling and retries that keep running while your laptop is shut",
+    "A UI other people can use without you standing behind them",
+    "Error handling for the ugly cases: rate limits, truncated outputs, partial runs",
+    "Whatever model routing or prompt tuning the vendor did that you now have to redo by feel"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "For tools in this shape the moat is almost never the model, it is the hundred connectors and the retry logic nobody enjoys writing.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "People pay for AI workflow tools because the value is not the prompt, it is that someone else already handled auth for a dozen SaaS apps, keeps the jobs running when your machine is asleep, and eats the support burden when a model changes behavior overnight. A personal build skips all of that by only ever needing to work for one user with one set of habits. That trade is fine until you want a teammate to touch it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Listed with low confidence: the pricing and feature set here need a human pass before anyone quotes this page.",
+  "prompt": "Build a local-first AI workflow runner. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js 15 with the App Router and TypeScript\n- SQLite via better-sqlite3, file at ./data/app.db\n- Tailwind for styling, no component library\n- LLM calls through the OpenAI Node SDK, key read from process.env.OPENAI_API_KEY\n- Everything runs with: npm install, npm run dev\n\nData model:\n- pipeline: id, name, description, created_at\n- step: id, pipeline_id, order_index, name, prompt_template, model, temperature\n- run: id, pipeline_id, input_text, status (queued, running, done, failed), started_at, finished_at\n- step_result: id, run_id, step_id, rendered_prompt, output_text, tokens_in, tokens_out, error\n\nBehavior:\n- A pipeline is an ordered list of steps. Each step's prompt_template may reference {{input}} and {{previous}}. Render, call the model, store the output, feed it to the next step.\n- Runs execute in an in-process queue, one at a time, with three retries on 429 or 5xx using exponential backoff. Persist status transitions so a crash leaves a readable record.\n- Optional cron-style schedule per pipeline, stored as a cron string, executed by a single node-cron instance in a server-only module. Skip a scheduled run if the previous one is still running.\n\nUI, four pages:\n- /pipelines: list, create, delete\n- /pipelines/[id]: edit steps, drag to reorder, run now with a text input box\n- /runs: reverse-chronological list with status badges\n- /runs/[id]: every step with its rendered prompt and raw output, plus a copy button and a JSON export\n\nIn scope: local auth-free single user, streaming the current step's output to the run page, markdown rendering of outputs.\nOut of scope, do not build: user accounts, third-party SaaS connectors, OAuth, billing, multi-tenancy, a public API.\n\nDeliver a README with setup, an .env.example containing OPENAI_API_KEY, and two seeded example pipelines so the first run works immediately after install.",
+  "promptCurated": false
+}
