@@ -1,0 +1,52 @@
+{
+  "slug": "sequenzy",
+  "name": "Sequenzy",
+  "domain": "sequenzy.com",
+  "category": "sales-outreach",
+  "subcategory": "email sequences",
+  "tagline": "Automated email sequence and follow-up sending for outreach campaigns.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://sequenzy.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product is a scheduler: a list of contacts, a series of templated emails, delays between steps, and a rule that stops the sequence when someone replies. An agent can build that in a weekend against your own mailbox with SQLite and a cron loop, and for one person sending modest volume it works fine. What does not come for free is everything around the sending: OAuth token refresh that does not silently die, bounce and reply parsing that is not naive string matching, unsubscribe handling, and the deliverability hygiene that keeps your personal domain out of a spam folder. Email is also the one category where a bug is not a blank screen, it is forty people receiving step three twice. Build it if you send to dozens, pay if you send to thousands or if your domain reputation is load bearing.",
+  "coreLoopDIY": "Imports a contact CSV, sends a multi-step templated email sequence from your own mailbox on a schedule, and halts a contact's sequence the moment they reply or unsubscribe.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Google or Microsoft account with API access and OAuth credentials",
+    "A machine or small VM that stays awake to run the send loop",
+    "A sending domain with SPF, DKIM and DMARC already configured",
+    "Node 20 plus SQLite"
+  ],
+  "whatYouLose": [
+    "Deliverability tooling: mailbox warmup, send throttling presets, spam-word linting, inbox rotation",
+    "Robust reply and bounce detection, including auto-responders and out-of-office that should not count as replies",
+    "A safety net for double sends: idempotency, send locks, and a dry-run mode you did not think to write",
+    "Hosted uptime, so a laptop that sleeps means a follow-up that never goes out",
+    "CRM and lead-source integrations, plus reporting anyone else would trust"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The moat is not the sequence builder, it is mailbox OAuth that survives token expiry plus the accumulated knowledge of not getting flagged.",
+  "whyPeopleStillPay": "Because the failure mode is public. A self-hosted sender that double-fires, keeps emailing someone who already replied, or ignores an unsubscribe request costs you the relationship and possibly a compliance headache, and you find out from the recipient. Paid tools absorb the boring, unglamorous parts: throttling, retries, suppression lists, bounce classification, and a dashboard that tells you when sending quietly stopped. If outreach is how you make money, renting that is cheap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduler is a weekend; the restraint is the hard part. Write the dry-run mode first, then the send loop.",
+  "prompt": "Build a local, single-user cold email sequence runner. No cloud service, no accounts, no telemetry.\n\nStack, non negotiable: TypeScript on Node 20, SQLite via better-sqlite3, Hono for a tiny local web UI served on localhost, server-rendered HTML with a bit of vanilla JS. No React, no ORM, no Docker.\n\nWhat it does:\n1. Imports contacts from a CSV (email, first_name, company, plus arbitrary extra columns kept as JSON).\n2. Lets me define a sequence: an ordered list of steps, each with a subject template, a body template (Handlebars-style {{first_name}} substitution), and a delay in days from the previous step.\n3. Enrolls contacts in a sequence and computes the next scheduled send per contact.\n4. Runs a send loop every 5 minutes that picks due sends, respects a configurable daily cap and a random 30-180 second gap between sends, and only sends inside a configurable local-time window on weekdays.\n5. Sends through the Gmail API using OAuth (refresh token in .env), threading follow-ups into the same thread via References and In-Reply-To.\n6. Polls the mailbox for replies and bounces. If a contact replies, mark them replied and cancel all remaining steps. Detect and ignore out-of-office and auto-reply headers so they do not count as replies. Detect hard bounces and mark the contact dead.\n7. Appends a plain-text unsubscribe line with a local link; clicking it adds the address to a permanent suppression table checked before every single send.\n\nSafety requirements, treat these as the point of the project:\n- DRY_RUN=true in .env is the default. In dry run, write the exact outbound message to a log table and never call Gmail.\n- Every send is idempotent: a unique index on (contact_id, step_id) in a sends table, inserted before the API call, so a crash or restart can never double send.\n- One send loop only, guarded by a lockfile.\n- Suppression list and replied/bounced status are checked at send time, not at schedule time.\n\nUI: pages for contacts, sequences, an enrollment view showing what is scheduled next, and a \"pending sends\" page with a manual approve toggle. Show the rendered preview of every queued email before it goes.\n\nDeliverables: README with Gmail OAuth setup steps, .env.example, seed script with fake contacts, and a test that proves the double-send guard works.\n\nOut of scope: multiple users, mailbox warmup, inbox rotation, link tracking pixels, CRM sync, analytics dashboards.",
+  "promptCurated": false
+}
