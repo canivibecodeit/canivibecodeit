@@ -1,0 +1,52 @@
+{
+  "slug": "harmonic",
+  "name": "Harmonic",
+  "domain": "harmonic.ai",
+  "category": "databases",
+  "subcategory": "startup and founder intelligence for deal sourcing",
+  "tagline": "A private-company and founder database that investors use to find startups before anyone announces them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://harmonic.ai/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is not the interface, it is the corpus: millions of private companies, resolved to real entities, with founder histories and headcount and web-traffic signals refreshed constantly. An agent can absolutely build you a watchlist tracker that polls careers pages and news feeds for a few hundred companies you already know about. It cannot build the part that matters, which is surfacing the company you have never heard of on week three of its existence. Coverage, entity resolution and freshness are all continuous ingestion problems with legal and infrastructure costs attached, not weekend problems. Build the tracker if you have a thesis and a list; do not expect it to replace discovery.",
+  "coreLoopDIY": "Polls a watchlist of company domains for job-posting counts, careers-page changes, GitHub activity and news mentions, then emails you a weekly digest of what moved.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A list of company domains you actually care about",
+    "Python 3.12 and a machine or small VPS that can run a daily cron",
+    "An SMTP account or Resend key for the digest",
+    "Optional news API or RSS feeds for funding coverage"
+  ],
+  "whatYouLose": [
+    "Universe coverage: you can only track companies you already know exist, which defeats the entire point of deal sourcing",
+    "Entity resolution across domains, rebrands, stealth shells and duplicate founder profiles",
+    "Founder-level history: who worked where, who just quit a senior role, who is quietly registering a domain",
+    "Refresh cadence and reliability, since your scrapers will silently rot the first time a careers page moves to a JS widget",
+    "CRM and workflow integrations, shared lists, and anything a second person on your team can use"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The signal graph is built from years of continuous crawling plus licensed and permissioned sources. Rebuilding it politely is slow, and rebuilding it impolitely gets your IPs blocked in a week.",
+  "whyPeopleStillPay": "Investors pay for coverage they did not ask for. The value of a sourcing platform is the company that appears in your feed before it has a Series A, a press release, or a website worth scraping, and that only happens if someone is ingesting and resolving the entire long tail of private companies every day. A personal tracker inverts the problem: it tells you more about companies you already found. That is useful for diligence and monitoring, and worthless for discovery, which is the line item the subscription is actually covering.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A watchlist monitor is a weekend; a universe is not. The moat is years of continuous crawling plus entity resolution across millions of private companies nobody has heard of yet.",
+  "prompt": "Build a local company watchlist monitor called \"Signal\". Python 3.12, uv for deps, SQLite for storage, httpx + selectolax for fetching and parsing, Typer for the CLI, Jinja2 for the digest email. No web UI, no accounts, no telemetry, no cloud services beyond one outbound SMTP call.\n\nInput: a companies.csv in the project root with columns name,domain,careers_url,notes. Read it on every run, upsert into SQLite by domain.\n\nFor each company on each run, collect a snapshot:\n- fetch the homepage and store a normalized text hash plus the meta description\n- fetch careers_url if present, count anchor tags that look like job postings (heuristic: links whose text or href contains job, career, position, opening, or matches a greenhouse/lever/ashby URL pattern) and store the count plus the list of titles\n- if the domain has a public GitHub org (guess org name from domain label, verify via api.github.com), store public repo count and the most recent push timestamp\n- fetch any RSS or news feed URLs listed in a feeds.txt file, store entries whose title or summary mentions any watchlist company name\n\nStore every snapshot as a row with a timestamp. Never overwrite history.\n\nThen implement `signal diff` which compares the two most recent snapshots per company and emits change events: job count moved by more than 20 percent, new job titles containing Head of, VP, Founding, or Sales, homepage copy hash changed, GitHub push after a quiet period of 30+ days, any news mention. Rank events with a simple hardcoded weight table.\n\nImplement `signal digest` which renders the last 7 days of ranked events into an HTML email and sends it via SMTP using SMTP_HOST, SMTP_USER, SMTP_PASS, DIGEST_TO from .env. Print to stdout if SMTP vars are missing.\n\nBe a polite crawler: one request per host at a time, 2 second delay, honor robots.txt via urllib.robotparser, a real User-Agent with a contact string from .env, and skip any host that returns 403 or 429 twice in a row (record the skip in the DB so it shows up in the digest).\n\nOut of scope, do not attempt: LinkedIn or any login-walled source, headcount estimation, funding round data, company discovery of any kind, or a UI. This tool monitors a list you supply, it does not find companies.\n\nInclude a README with setup, a sample companies.csv with 5 rows, a sample feeds.txt, a .env.example, and a suggested cron line for a daily run plus a Monday digest. Add pytest tests for the job-count parser and the diff logic using saved HTML fixtures.",
+  "promptCurated": false
+}
