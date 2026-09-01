@@ -1,0 +1,52 @@
+{
+  "slug": "priceradar",
+  "name": "PriceRadar",
+  "domain": "priceradar.store",
+  "category": "monitoring",
+  "subcategory": "price tracking and drop alerts",
+  "tagline": "Watches product pages and pings you when a price drops.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://priceradar.store/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Price tracking is one of the purest cron-plus-scraper problems there is: fetch a page, pull a number, store it, compare it to yesterday, send a message. For a personal watchlist of ten or thirty products, an agent gets you there in a session, and you own the history file. The pain is not the logic, it is that big retailers fight scrapers with bot detection, geo pricing, and markup that changes the week after you ship your selector. Commercial trackers absorb that maintenance across thousands of users and have years of price history to tell you whether the current 'deal' is actually a deal. If you are watching a handful of items you already care about, the DIY version is fine and probably more honest.",
+  "coreLoopDIY": "Runs a scheduled scrape of your saved product URLs, extracts the current price, logs a history row, and notifies you when a price crosses your target or drops by more than a set percent.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Somewhere that stays awake: a cheap VPS, a Raspberry Pi, or a laptop that runs the cron",
+    "A headless browser install for pages that need JavaScript",
+    "An SMTP account or an ntfy/Telegram token for alerts",
+    "Patience to fix selectors when a retailer redesigns"
+  ],
+  "whatYouLose": [
+    "Years of historical price data, so you cannot tell a real low from a fake sale",
+    "Retailer coverage that survives bot detection, captchas, and Cloudflare without your intervention",
+    "A phone app with push notifications instead of an email you read six hours late",
+    "Variant and stock awareness: size, color, and marketplace seller handling get messy fast",
+    "Someone else noticing and fixing the scraper the day a site changes its markup"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The genuinely hard asset is longitudinal price history across many retailers. Scraping one page is trivial; scraping ten thousand pages reliably for three years is a business.",
+  "whyPeopleStillPay": "Because the value of a price tracker is knowing whether $89 is cheap, and that requires a history you have not collected yet. People also pay to not be the on-call engineer for their own shopping list: when a retailer ships a redesign or turns up the bot detection, a paid service quietly fixes it while your homemade version silently reports the same price forever. Add mobile push, browser extensions, and coverage of the twenty stores you did not think to configure, and the subscription buys attention you would rather spend elsewhere.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it, then check the alerts actually fire after a month; silent scrapers are the default failure mode.",
+  "prompt": "Build a self-hosted personal price tracker. No accounts, no cloud services, no telemetry.\n\nStack, not negotiable:\n- Node 20 with TypeScript, run with tsx\n- SQLite via better-sqlite3, file at ./data/prices.db\n- Fastify serving server-rendered HTML, no frontend framework, plain CSS in one file\n- Playwright (chromium) for fetching pages\n- node-cron for scheduling inside the same process\n\nData model:\n- watches: id, label, url, css_selector nullable, target_price nullable, drop_percent nullable, currency, active, created_at\n- readings: id, watch_id, price_cents, raw_text, ok, error nullable, fetched_at\n\nBehavior:\n- Scrape logic: load the URL in Playwright with a normal desktop user agent, wait for network idle. If css_selector is set, read that element's text. If not, try in order: JSON-LD offers.price, meta[property=\"product:price:amount\"], og:price:amount, then the first element matching a price-looking regex. Parse to integer cents, tolerate thousands separators and both comma and dot decimals.\n- Store every attempt as a reading, including failures with the error message. Never overwrite history.\n- Alert when the newest successful price is at or below target_price, or is at least drop_percent below the median of the previous 7 successful readings. One alert per watch per price change, dedupe on price_cents.\n- Notifier: read NOTIFY_MODE from .env, either \"smtp\" or \"ntfy\". SMTP via nodemailer with host/user/pass from .env; ntfy posts to NTFY_URL. Log to stdout if unset.\n- Cron default \"0 */6 * * *\", overridable with CRON from .env. Jitter each watch by 0 to 90 seconds.\n\nWeb UI on localhost:3000:\n- Watchlist table: label, current price, 30 day low, last checked, status badge for stale or failing watches\n- Form to add a watch, buttons to check now, pause, delete\n- Detail page per watch with a plain inline SVG sparkline of price history and a table of the last 50 readings\n\nAlso ship: a \"check-all\" CLI entry point so it can run from an external cron instead, a README with setup and a .env.example, and a seed script that inserts two example watches. Handle failures gracefully: a broken selector should mark the watch as failing in the UI, not crash the process.\n\nOut of scope: user accounts, multi-user support, mobile app, proxy rotation, captcha solving, affiliate links, browser extension.",
+  "promptCurated": false
+}
