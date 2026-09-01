@@ -1,0 +1,51 @@
+{
+  "slug": "promptsmart",
+  "name": "PromptSmart",
+  "domain": "promptsmart.com",
+  "category": "audio-video",
+  "subcategory": "voice-tracking teleprompter",
+  "tagline": "A teleprompter that follows your voice instead of scrolling at a fixed speed, on phone, tablet and desktop.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://promptsmart.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A scrolling script with a mirror toggle and a big font is a twenty minute build, and everyone knows it. The actual product here is VoiceTrack: live speech recognition aligned against your script so the text keeps pace when you slow down, ad lib, or jump a paragraph. You can approximate that in one sitting in a browser with fuzzy matching over a rolling transcript window, and it works surprisingly well on clean audio in a quiet room. What you cannot one-shot is the part that matters on set: offline on-device recognition, a native iOS and Android app, tolerance for noise and accents, and behaving sanely when you go badly off script. Fine for recording talking heads at your desk, not fine for a live stage.",
+  "coreLoopDIY": "A local browser teleprompter that mirrors, scrolls, and uses live speech recognition with fuzzy text matching to keep the current line under your eyeline as you speak.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Chrome or Edge on desktop for the Web Speech API, which streams audio to a vendor speech service",
+    "a decent mic, since alignment quality is entirely a function of transcript quality",
+    "optional: local whisper.cpp streaming build if you want it fully offline, which is its own afternoon"
+  ],
+  "whatYouLose": [
+    "Native mobile and tablet apps, which is where teleprompters are actually used",
+    "On-device offline recognition, so no reliable prompting without a network",
+    "Robustness: noise, accents, heavy ad libbing and long pauses all degrade a naive aligner fast",
+    "Bluetooth remote and foot pedal support, plus tested beamsplitter hardware mirroring",
+    "Script sync across devices, cloud storage and shared scripts for a crew"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "hardware"
+  ],
+  "moatNotes": "Years of tuning an aligner against real speakers reading badly is worth more than the algorithm sketch, and the hardware ecosystem around rigs and remotes is not something you replicate in a tab.",
+  "whyPeopleStillPay": "Because a teleprompter fails in public. If your homemade aligner loses its place during a client shoot or a keynote, you eat the retake, and the twenty dollars you saved looks stupid. People pay for the app that already survived noisy rooms, mumbled openings and the moment the speaker skips two paragraphs, plus the phone-shaped form factor that sits under the camera instead of on your laptop screen.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scrolling is trivial, the not-losing-your-place is not. Build it for desk recordings, buy it for anything with an audience.",
+  "prompt": "Build a local voice-tracking teleprompter as a single-page web app. No accounts, no backend, no telemetry, no cloud storage.\n\nStack, no substitutions:\n- Vite + TypeScript + vanilla DOM, no framework\n- Zero runtime dependencies except a tiny fuzzy string matcher you write yourself in src/align.ts\n- All state in localStorage under one key\n\nFeatures in scope:\n1. Script library: create, rename, edit, delete scripts in a left panel. Plain text, paragraph breaks preserved. Persist to localStorage.\n2. Prompter view: fullscreen, black background, huge adjustable font (24px to 140px), adjustable line height and max text width, a fixed reading line marker at 40% viewport height.\n3. Manual mode: constant-speed auto scroll with speed control, space to play/pause, arrow keys to nudge, R to reset to top.\n4. Voice mode: use webkitSpeechRecognition with continuous and interimResults true. Keep a rolling buffer of the last ~12 recognized words.\n5. Alignment in src/align.ts: pre-tokenize the script into normalized words with character offsets. On each recognition update, score candidate positions inside a sliding window of +/- 60 words around the current index using word-level fuzzy matching, require a minimum confidence to move, allow forward jumps up to 200 words when confidence is high, never move backward more than 20 words. If no match beats the threshold for 4 seconds, fall back to slow auto scroll and show a small \"lost\" indicator.\n6. Smooth scroll the matched word to the reading line with easing, and dim all text before the current position.\n7. Mirror mode toggles horizontal flip, vertical flip, and both, for beamsplitter rigs.\n8. Optional camera preview: getUserMedia video shown as a small draggable picture-in-picture. No recording.\n9. Settings persist: font size, speed, thresholds, mirror state.\n\nExplicitly out of scope: mobile apps, offline speech recognition, Bluetooth remotes, multi-device sync, PDF or DOCX import, recording and export.\n\nIn the README, state plainly that the Web Speech API sends audio to the browser vendor's speech service, that Chrome or Edge is required, and where to swap in a local whisper.cpp websocket later. If any key is ever needed, read it from .env via import.meta.env and commit only .env.example.\n\nShip a working npm run dev with two sample scripts preloaded so voice mode can be tested immediately.",
+  "promptCurated": false
+}
