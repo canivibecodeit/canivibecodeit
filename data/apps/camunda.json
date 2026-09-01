@@ -1,0 +1,52 @@
+{
+  "slug": "camunda",
+  "name": "Camunda",
+  "domain": "camunda.com",
+  "category": "automation",
+  "subcategory": "BPMN process orchestration",
+  "tagline": "Process orchestration platform that runs BPMN and DMN models as executable, auditable workflows across services and humans.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://camunda.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Camunda 8 has a free trial tier and quote-based enterprise contracts, so no honest single number exists.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a workflow runner in a day: JSON graph, worker queue, retries, a little dashboard. What you cannot one-shot is a durable execution engine that survives crashes without double-firing side effects, versions long-running instances so a three-month-old order can finish on the old model while new ones use the new one, and produces an audit trail an auditor will accept. Camunda's actual product is that engine plus the modeler, the human task layer, incident handling, and the BPMN/DMN standard that non-engineers in regulated industries already know how to read. Also worth saying out loud: the interesting parts are already open source or freely available, so writing your own from scratch is the expensive option. If you want a personal automation runner, build the toy; if you want Camunda, run Camunda or Temporal.",
+  "coreLoopDIY": "Parses a subset of BPMN XML into a graph and walks tokens through it against a SQLite-backed job queue with retries, timers, and a viewer that shows where each instance is stuck.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Node 20+ and SQLite on the machine",
+    "Comfort with BPMN XML structure, or willingness to hand-write your own JSON graph format instead",
+    "Somewhere to run a long-lived process, since a workflow engine that sleeps is not a workflow engine"
+  ],
+  "whatYouLose": [
+    "Real durable execution: exactly-once job handling, crash recovery mid-transaction, and idempotency guarantees you did not have to think about",
+    "Instance versioning and migration, so changing a model does not orphan or corrupt everything already running",
+    "Operate/Tasklist equivalents: incident triage, retry-from-here, variable inspection, human task assignment and forms",
+    "DMN decision tables, which is the part business users actually edit without asking you",
+    "Audit logs, RBAC, multi-tenancy, and the compliance paperwork that comes with them",
+    "Connectors to the hundred systems the process has to touch"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Once a bank models its onboarding in BPMN and has ten thousand instances in flight, the engine is load-bearing infrastructure. Nobody rewrites that for fun.",
+  "whyPeopleStillPay": "People pay Camunda because a process engine is the kind of software where the boring guarantees are the entire product. Losing one job execution, or firing one twice, means a duplicate payment or a customer stuck in limbo forever, and finding that bug in your own homegrown runner at 2am is a career event. On top of that, BPMN gives compliance and ops staff a diagram they can argue about without reading code, and the enterprise tier bundles the support contract that lets someone sign off on the risk. It is much less a feature purchase than an insurance purchase.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A token walker over a BPMN graph is a fun multi-day build and genuinely useful for personal automation. The moat is durable execution guarantees, live instance versioning, and an audit trail that regulated buyers will actually accept.",
+  "prompt": "Build a minimal, self-hosted BPMN-lite process engine called \"tinyflow\". Single repo, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable: TypeScript, Node 20, Fastify for HTTP, better-sqlite3 for storage, bpmn-moddle to parse BPMN 2.0 XML, bpmn-js (viewer only) in a single static HTML page for the UI. No React, no build step beyond tsc and a CDN script tag for bpmn-js.\n\nIn scope, BPMN subset only:\n- startEvent, endEvent, serviceTask, userTask, exclusiveGateway with FEEL-ish JS condition expressions, parallelGateway, timerEvent (duration only), sequenceFlow.\n- Deploy a .bpmn file via POST /deploy. Store XML plus a parsed graph, keyed by processId and an incrementing version. Old versions stay resolvable forever.\n- POST /process/:processId/start with a JSON variables payload creates an instance pinned to the latest deployed version at start time. Never migrate a running instance.\n- Token-based execution: a tokens table (instanceId, elementId, state, dueAt). A single-threaded scheduler loop ticks every 500ms inside a SQLite transaction, advances tokens, and writes an append-only history row for every state change.\n- serviceTask work is externalised as jobs: worker polls GET /jobs?type=x, completes with POST /jobs/:id/complete, fails with POST /jobs/:id/fail. Exponential backoff, maxRetries 3, then mark the token as an incident rather than losing it.\n- userTask creates a row visible at GET /tasks, completed by POST /tasks/:id/complete with variables.\n- Idempotency: every job has a token, completing the same job twice is a no-op and must be tested.\n- UI at /: list instances, click one to see the BPMN diagram with the current token positions highlighted, plus the variables JSON and the history log. Read only, no modeler.\n\nExplicitly out of scope, do not attempt: DMN, message correlation, subprocesses, compensation, multi-instance, instance migration, RBAC, multi-tenancy, connectors.\n\nDeliverables: src/, one example order-approval.bpmn, one example worker in examples/, a seed script, and vitest tests covering crash recovery (kill mid-tick, restart, assert no duplicate job execution) and retry/incident behaviour. Config via .env (PORT, DB_PATH), .env.example committed, .env gitignored. README with a 60 second quickstart and a blunt \"what this is not\" section listing the out-of-scope items above.",
+  "promptCurated": false
+}
