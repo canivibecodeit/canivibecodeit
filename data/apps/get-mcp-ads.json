@@ -1,0 +1,51 @@
+{
+  "slug": "get-mcp-ads",
+  "name": "Get MCP Ads",
+  "domain": "getmcpads.com",
+  "category": "dev-tools",
+  "subcategory": "MCP monetization / ad network",
+  "tagline": "Ad network for MCP servers: operators inject sponsored lines into tool responses and get paid for impressions and clicks.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getmcpads.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Networks like this usually take a revenue share from publishers rather than charging a monthly fee, so there may be no subscription price at all.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The technical part of this is embarrassingly small: pick a sponsor line, staple it to a tool result, log an impression, redirect a click. An agent will write that for you before your coffee cools. What you cannot write is a room full of advertisers who want to pay to appear inside somebody else's MCP tool output, which is the entire product. Ad networks are demand aggregation with a thin software wrapper, and the wrapper is the part you get for free. If you already have your own sponsor, self-host and keep 100 percent; if you do not, a self-hosted ad server is an empty billboard in your own basement.",
+  "coreLoopDIY": "A local MCP server that appends one weighted, capped sponsor line from your own sponsors.json to tool responses and tracks impressions and clicks in SQLite.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and an MCP client to test against, such as Claude Desktop",
+    "Your own sponsors: this build has no demand side",
+    "A publicly reachable URL if you want click tracking to work outside localhost"
+  ],
+  "whatYouLose": [
+    "Advertisers. Fill rate on your own network is zero until you go sell something.",
+    "Payouts, invoicing and the tax paperwork that comes with getting paid by strangers.",
+    "Brand safety and creative review, so anything embarrassing that lands in a user's tool output is yours.",
+    "Fraud and bot filtering, which is what advertisers actually audit you on.",
+    "Cross-server benchmarks: you cannot tell whether your CTR is good or terrible."
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "Two-sided and lopsided: publishers are easy to recruit, advertisers are not. Whether this particular network has cleared that bar is unclear, and an ad network with no advertisers is just a logging library.",
+  "whyPeopleStillPay": "Nobody pays for the injection code, they join for the checks. An MCP server operator with traffic and no sales team gets a monetization path they were never going to build, plus the accounting and fraud story that makes an advertiser willing to wire money. There is also a real question of whether users tolerate ads inside agent tool output at all, and if that experiment fails it fails for the network, not for you. Until it resolves, the only version of this worth self-hosting is the one where you already know the sponsor's name.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The injection layer is an afternoon; the advertisers are not. The moat is demand aggregation: a roster of buyers who will pay to appear in tool output, plus enough measurement credibility that they keep paying.",
+  "prompt": "Build a self-hosted MCP server that can attach my own sponsor messages to tool responses, plus a local dashboard for impressions and clicks.\n\nStack, no substitutions: TypeScript on Node 20, @modelcontextprotocol/sdk over stdio, better-sqlite3 for storage, a small Express app on localhost:8787 for the dashboard, plain HTML and vanilla JS, tsc only, no bundler.\n\nIn scope:\n- sponsors.json at the repo root: array of objects with id, sponsor, text, url, weight, dailyCap\n- One demo MCP tool named lookup_docs that returns canned text, so injection is visible immediately\n- A wrapTool(handler) helper that appends at most one sponsor line to the tool result, formatted exactly as: \"Sponsored: {text} {trackingUrl}\"\n- Weighted random selection, respect dailyCap, never serve the same sponsor twice in a row within a session\n- Record every impression in SQLite: impression id, sponsor id, tool name, session id, timestamp\n- Click tracking: GET /c/:impressionId records a click then 302s to the sponsor url\n- Dashboard at /: one table of sponsors with impressions, clicks and CTR for today and all time, plus a global kill switch that disables injection at runtime\n- Config from .env: PORT, BASE_URL, ADS_ENABLED. Commit .env.example, gitignore .env\n- README covering how to register this server in a Claude Desktop config file\n\nOut of scope, do not build: advertiser signup, bidding or auctions, payouts, fraud detection, hosted multi-tenant anything, telemetry phoning home.\n\nRules: no outbound network calls at ad-serve time, everything local and synchronous. Include a seed script with three fake sponsors and two tests proving that wrapTool honors dailyCap and returns the untouched result when ADS_ENABLED=false.\n\nFinish with a one-paragraph note in the README stating plainly that this ships with zero advertisers and is only useful if I have already sold the slot myself.",
+  "promptCurated": false
+}
