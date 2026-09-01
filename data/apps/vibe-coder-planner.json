@@ -1,0 +1,50 @@
+{
+  "slug": "vibe-coder-planner",
+  "name": "Vibe Coder Planner",
+  "domain": "vibecoderplanner.com",
+  "category": "dev-tools",
+  "subcategory": "AI project planning",
+  "tagline": "Turns a rough app idea into a structured spec and task plan you can feed to a coding agent.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://vibecoderplanner.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a prompt chain with a project sidebar attached. The actual work is: take a fuzzy idea, ask clarifying questions, emit a spec, decompose it into ordered tasks with acceptance criteria, and keep the whole thing in a file you can hand to an agent. None of that needs a hosted service, and an agent writing its own planning tool is about as short a feedback loop as software gets. The one thing you inherit by paying is somebody else's tuned prompts, which are genuinely worth something but are also the part you will rewrite within a week to match how you actually work. Build it local, keep the plans as markdown in the repo, and you own the whole loop.",
+  "coreLoopDIY": "A local web app that interviews you about an idea, generates a spec plus a dependency-ordered task list with acceptance criteria, and writes it all to markdown files in your project repo.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (Anthropic or OpenAI) in .env",
+    "Node 20+ and a browser",
+    "Somewhere to put the generated markdown, ideally a git repo"
+  ],
+  "whatYouLose": [
+    "Someone else's iterated planning prompts, which are the actual product and are better than your first draft",
+    "A hosted UI you can open from any machine without running a dev server",
+    "Any templates or example projects bundled with the paid version",
+    "Sharing a plan with a collaborator via link",
+    "Whatever guardrails stop the model from producing a 40-task plan for a to-do app"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is prompt craft plus taste in how much structure a plan needs. Real, but not defensible against a user who plans the same three kinds of project over and over.",
+  "whyPeopleStillPay": "Because planning is the part of vibe coding people avoid, and paying for a tool is a way of forcing yourself to do it. A tuned prompt set that reliably produces a sane task order saves real hours of agent thrash, and most people would rather rent that judgment than discover it by writing eleven bad specs. There is also the small dignity of a product that nags you, which a script in your home directory does not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The generated plan is only as good as the questions asked before it, so spend your build time on the interview step, not the UI.",
+  "prompt": "Build a local-only project planning tool for AI coding agents. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js 15 (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/plans.db\n- Anthropic SDK, model from env, key in .env.local as ANTHROPIC_API_KEY\n- Runs with: npm install && npm run dev on port 3000\n\nCore loop:\n1. Home page lists saved projects and has a \"New project\" box: one textarea for a rough idea, plus dropdowns for target stack and scope (weekend / week / bigger).\n2. On submit, call the model to generate 5 to 8 clarifying questions about the idea: users, must-have surfaces, data model unknowns, explicit non-goals. Show them as a form with text inputs and a \"skip\" option per question.\n3. From the idea plus the answers, generate a spec in markdown with fixed sections: Problem, Users, Core loop, Data model, Screens, Out of scope, Open questions.\n4. From the spec, generate a task list. Each task is JSON with: id, title, one-paragraph description, dependsOn (array of ids), acceptanceCriteria (2 to 4 bullets), estimate in hours. Validate the JSON with zod, retry once on parse failure.\n5. Topologically sort tasks and render them in dependency order. Detect and surface cycles instead of crashing.\n6. Export button writes ./exports/SLUG/spec.md, ./exports/SLUG/tasks.md and ./exports/SLUG/agent-prompt.md, where the last one is a ready-to-paste prompt for a coding agent containing the spec plus the next unblocked task.\n\nAlso required:\n- Checkboxes to mark tasks done; a done task unblocks its dependents visually.\n- A \"regenerate this task\" action that rewrites a single task without touching the others.\n- Every model call and its raw response logged to ./data/calls.jsonl for debugging.\n- Keep all prompts in src/prompts/*.ts as plain exported template strings so they are easy to edit.\n\nExplicitly out of scope: auth, multi-user, sharing links, git integration, running the agent for me, mobile layout beyond \"does not break\".\n\nWrite a README with setup, the env vars, and one worked example run.",
+  "promptCurated": false
+}
