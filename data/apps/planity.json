@@ -1,0 +1,52 @@
+{
+  "slug": "planity",
+  "name": "Planity",
+  "domain": "planity.com",
+  "category": "scheduling",
+  "subcategory": "salon booking and management",
+  "tagline": "Online booking, calendar and client management for hair and beauty salons, plus a consumer marketplace that sends them bookings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.planity.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The calendar is the easy part: services, staff, opening hours, slot math, a public booking page. What a salon actually buys is the demand side, a consumer app and search presence where people already look for a nearby colorist at 6pm on Thursday, plus SMS reminders that measurably kill no-shows and deposit handling to punish the ones that survive. None of that is code you can write in an afternoon, it is a two-sided install base and a telecom billing relationship. A solo practitioner with a loyal client list can genuinely self-host a booking page and be fine, which is why this is worth building for yourself, but it is not a replacement for the product. Also worth noting: staff on a shop floor need a phone app that works, and your one-shot build will be a browser tab.",
+  "coreLoopDIY": "A self-hosted booking site: you define services, staff and opening hours, clients pick an open slot, and both sides get an email confirmation.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "A cheap VPS or any Node host with a persistent disk for SQLite",
+    "An SMTP account for confirmation emails",
+    "A domain, since clients will not bookmark an IP address"
+  ],
+  "whatYouLose": [
+    "Marketplace demand: strangers finding your salon in an app they already have",
+    "SMS reminders and no-show reduction, including the deliverability and carrier billing headache",
+    "Deposits, prepayment and card-on-file to make cancellations cost something",
+    "Native apps for you and your staff, offline tolerant, usable with wet hands between clients",
+    "Somebody to call when the calendar breaks on a Saturday morning"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "integrations"
+  ],
+  "moatNotes": "Two-sided: salons stay because clients are there, clients stay because salons are there. The switching cost is your entire appointment history and every regular who rebooks from the app.",
+  "whyPeopleStillPay": "A salon owner is not paying for a calendar, they are paying for filled chairs and fewer no-shows. Planity sits between a booking-hungry consumer audience and a business that cannot afford an empty Tuesday, and it takes the operational pain: reminders that actually arrive, deposits, a receptionist-proof interface, and the assurance that the system does not go down during the busiest hours of the week. A self-hosted page covers the loyal regulars who would have phoned anyway. It does not cover the new client who searched at 9pm and booked with the next salon on the list.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The booking calendar is a weekend; the queue of strangers looking for a haircut is not. The moat is marketplace liquidity on both sides plus SMS infrastructure that turns no-shows into revenue.",
+  "prompt": "Build a self-hosted appointment booking site for a single small salon or independent practitioner. One person owns it, no multi-tenancy.\n\nStack, no substitutions: Next.js (App Router) with TypeScript, Tailwind for styling, SQLite via better-sqlite3 with Drizzle ORM, Nodemailer for email. Everything runs locally with `npm run dev` and deploys as a single Node process with a SQLite file on disk.\n\nData model:\n- services: name, duration in minutes, price, description, active flag\n- staff: name, color, active flag, which services they perform (join table)\n- opening_hours: per staff member, weekday, start time, end time\n- time_off: per staff member, start datetime, end datetime, reason\n- bookings: service, staff, client name, email, phone, start datetime, end datetime, status (confirmed, cancelled), a random cancel_token\n\nPublic side (no login):\n- Pick a service, then optionally a staff member or \"anyone\"\n- Show real available slots for the next 60 days, computed from opening hours minus existing bookings minus time off, stepped by a configurable slot interval, respecting a minimum lead time\n- Booking form: name, email, phone, notes. On submit, write the booking inside a transaction that re-checks the slot is still free and returns a clear error if it was just taken\n- Confirmation page plus a confirmation email containing an .ics attachment and a cancel link using the token\n\nAdmin side:\n- A single password from ADMIN_PASSWORD in .env, session in a signed httpOnly cookie. No user accounts, no OAuth\n- Week view calendar per staff member, click a slot to block it or create a walk-in booking, click a booking to cancel or edit\n- CRUD screens for services, staff, opening hours and time off\n- A client list derived from bookings: email, visit count, last visit\n\nExplicitly out of scope: payments, deposits, SMS, a public marketplace or directory, mobile apps, push notifications, loyalty programs, inventory, staff payroll, analytics dashboards, telemetry of any kind.\n\nRequirements: all timestamps stored UTC, display in a TZ value from .env. Secrets (SMTP creds, ADMIN_PASSWORD, session secret) only in .env, with a committed .env.example. Seed script that creates two staff, four services and a week of opening hours so the app is usable on first run. A short README covering install, seed, run and deploy. Include tests for the slot availability function specifically, including the overlapping-booking and time-off cases.",
+  "promptCurated": false
+}
