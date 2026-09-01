@@ -1,0 +1,53 @@
+{
+  "slug": "samply",
+  "name": "Samply",
+  "domain": "samply.app",
+  "category": "audio",
+  "subcategory": "music feedback and client review",
+  "tagline": "Private links for sharing works-in-progress audio, with timestamped comments from collaborators and clients.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://samply.app/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not hard: store an audio file, draw a waveform, let anyone with the link drop a comment pinned to a timestamp. An agent can produce that in a sitting, and it will feel surprisingly close to the real thing on your own laptop. The gap opens the moment other people are involved: you need a deployed URL that stays up, transcoded streaming audio so a client on a phone is not downloading a 90MB WAV, email notifications so you know feedback arrived, and enough polish that a paying client does not think you are phishing them. Version stacking, folder organisation, download permissions and expiring links are all extra days of work each. Fine for sharing mixes with three friends, weak as a client-facing front door.",
+  "coreLoopDIY": "A self-hosted page where you upload a track, get a private share link, and anyone with the link leaves comments pinned to a waveform timestamp.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Somewhere to deploy it with a real domain, since the whole point is sending links to other people",
+    "Object storage or a disk with room for audio files",
+    "ffmpeg on the server if you want streamable mp3 versions of big WAV files",
+    "An SMTP key if you want to be notified when someone comments"
+  ],
+  "whatYouLose": [
+    "Mobile apps and a player that behaves on every phone browser",
+    "Automatic transcoding so clients stream instead of downloading huge masters",
+    "Version stacking and A/B comparison between takes of the same track",
+    "Notifications, read receipts and the general sense that a client will actually find the comment box",
+    "The credibility of a link on a domain that is not your side project"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "collaboration",
+    "integrations"
+  ],
+  "moatNotes": "Nothing proprietary underneath, but this is a tool you hand to clients, so the last ten percent of polish is doing most of the paid work.",
+  "whyPeoplestillPay": null,
+  "whyPeopleStillPay": "Because it is a client-facing surface, not an internal tool. When you send a mix to a label or a paying customer, you are buying the fact that the page loads instantly on their cracked iPhone, that the comment box is obvious, that the audio streams instead of stalling, and that nobody has to make an account to say 'kick is too loud at 1:12'. A self-hosted clone that works fine for you and breaks for one important listener costs more than the subscription. Also the storage bill is real once you have a few hundred WAVs.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Genuinely easy to build and genuinely awkward to hand to a client, which is the whole story.",
+  "prompt": "Build a self-hosted audio review tool in an empty folder.\n\nStack, no substitutions: Next.js with the App Router and TypeScript, SQLite via Prisma, Tailwind for styling, wavesurfer.js for the waveform player. Files stored on local disk under ./uploads, served through a route handler. Run with npm run dev on localhost.\n\nSingle-owner model. No user accounts, no signup, no OAuth. The owner authenticates with one password from OWNER_PASSWORD in .env, stored in an httpOnly session cookie. Everything else is link-based access.\n\nData model: Project (title, createdAt), Track (belongs to Project, original filename, duration, mime, storage path, version number), ShareLink (belongs to Project, random 22-char slug, optional allowDownload boolean), Comment (belongs to Track, timestampSeconds, authorName, body, createdAt, resolved boolean).\n\nOwner pages:\n- /admin: list projects, create a project, delete a project.\n- /admin/p/[id]: drag-and-drop upload of mp3, wav, m4a and flac up to 200MB, list tracks with version numbers, generate and revoke share links, copy link button, see all comments grouped by track and mark them resolved.\n\nPublic page:\n- /s/[slug]: no login. Shows project title, a track list, and a wavesurfer player for the selected track. Clicking the waveform seeks. A comment form asks for a display name (kept in localStorage) and a body, and pins the comment to the current playhead position. Comments render as markers on the waveform and as a time-sorted list below, clicking a comment seeks to it. Download button only if allowDownload is true.\n\nOn upload, if ffmpeg is available on PATH, generate a 192kbps mp3 preview next to the original and stream that to the public page; otherwise stream the original and log a warning. Do not fail the upload if ffmpeg is missing.\n\nExplicitly out of scope: email or push notifications, mobile apps, waveform peak precomputation, real-time presence, DAW plugins, payments, analytics, telemetry, any third-party API.\n\nSecrets in .env only, with a .env.example checked in. Write a README covering setup, where uploads live, how to back up the SQLite file and the uploads directory, and a blunt note that this is meant to run behind a real domain with HTTPS if you plan to send links to anyone who is paying you.",
+  "promptCurated": false
+}
