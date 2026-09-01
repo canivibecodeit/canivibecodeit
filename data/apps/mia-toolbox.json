@@ -1,0 +1,52 @@
+{
+  "slug": "mia-toolbox",
+  "name": "MIA_Toolbox",
+  "domain": "eigenvector.com",
+  "category": "dev-tools",
+  "subcategory": "chemometrics / hyperspectral image analysis",
+  "tagline": "MATLAB add-on for multivariate analysis of spectroscopic image cubes: PCA, MCR unmixing, classification, and image-to-spectrum brushing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://eigenvector.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Sold as annual license tiers alongside PLS_Toolbox, with academic and commercial rates.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math here is not secret: PCA on an unfolded image cube, MCR-ALS unmixing, SNV and Savitzky-Golay preprocessing, PLS-DA on labeled pixels. An agent with numpy, scikit-learn and a plotting layer will get you score images and pull-spectra-from-a-pixel in a weekend, and for one instrument and one workflow that is genuinely enough. What it will not get you is the long tail: readers for a zoo of vendor file formats, PARAFAC and multiway tools, cross-validation plumbing that chemometricians actually trust, and the fact that your existing analysis scripts are MATLAB. If you are publishing or shipping product decisions off these numbers, a hand-rolled unmixing routine is a liability you now own. If you are exploring a few dozen cubes on your own machine, build it.",
+  "coreLoopDIY": "Load a hyperspectral cube, preprocess spectra, run PCA and MCR-ALS, and click any pixel in a score image to see its spectrum and any spectrum to see where it lives in the image.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with numpy, scipy, scikit-learn, tifffile, streamlit",
+    "At least one image cube in ENVI (.hdr/.img) or TIFF stack form",
+    "Enough RAM to hold the cube unfolded as float32",
+    "Someone who already knows what a score image means"
+  ],
+  "whatYouLose": [
+    "Readers for vendor formats: Perkin Elmer, Bruker, Agilent, Thermo, Renishaw and friends, which is where most of the actual pain lives",
+    "Breadth of methods: PARAFAC, Tucker, multiway curve resolution, purity-based unmixing, batch tools",
+    "Algorithm implementations that have been beaten on for two decades and cited in papers, versus yours, written on Sunday",
+    "Deep MATLAB integration, so every script and colleague already in that ecosystem stays there",
+    "Documentation, training courses, and a support line staffed by people who know chemometrics"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is file format entropy plus the credibility of results in a field where reviewers ask which software you used.",
+  "whyPeopleStillPay": "Because in a lab the software is part of the method section. A validated toolbox with a citation history and a support contract is cheaper than defending your own PCA implementation to a reviewer or an auditor, and it reads instrument files that would otherwise cost you a week of reverse engineering per vendor. It also lives inside MATLAB, where the rest of the group's code already lives, so leaving means rewriting more than the analysis. The DIY version competes on exploration, not on defensibility.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A weekend build gets you score images and a pixel picker, which honestly covers a lot of exploratory work. The part you cannot clone is being the software everyone's methods section already names.",
+  "prompt": "Build a local hyperspectral image analysis tool. Stack: Python 3.11, numpy, scipy, scikit-learn, tifffile, matplotlib, streamlit. No accounts, no cloud, no telemetry, no database. Everything runs on localhost and reads files from disk.\n\nData model: an image cube of shape (rows, cols, wavelengths), stored in memory as float32, plus a wavelength axis and an unfolded 2D matrix view of shape (rows*cols, wavelengths). Write this as a small Cube class with fold/unfold helpers and a mask for excluded pixels.\n\nLoaders (in this order of effort): TIFF stack via tifffile, ENVI via a hand-written parser for the ASCII .hdr file (samples, lines, bands, data type, interleave bsq/bil/bip, byte order, wavelength list) plus numpy memmap on the .img, and plain .npy. If a format is not recognized, fail loudly with the header keys you did parse. Do not attempt vendor binary formats.\n\nPreprocessing pipeline, composable and reorderable in the UI: mean centering, autoscaling, SNV, first and second derivative via Savitzky-Golay, baseline offset removal, wavelength range trimming, spatial 2x2 binning. Show the spectra before and after.\n\nModels: PCA (scikit-learn, on the unfolded matrix), MCR-ALS with non-negativity on both spectra and contributions, initialized either by SIMPLISMA-style purity pixel selection or by k-means centroids, with a configurable component count and iteration cap and a printed convergence trace. Add PLS-DA for pixel classification when the user paints class labels.\n\nUI in Streamlit, three panes: left is the score or contribution image with a component selector and colormap, right is the spectra plot, bottom is the model summary (explained variance per component, MCR residuals, iteration count). Click a pixel in the image to plot its raw and preprocessed spectrum. Drag a box to average a region. Paint class labels with a simple brush size control and store them as an integer mask.\n\nExports: score images as TIFF, resolved MCR spectra and contributions as CSV, the full model config as JSON so a run is reproducible.\n\nOut of scope, do not build: vendor file readers, PARAFAC or any multiway model, multi-user anything, image registration, an installer, cloud storage.\n\nSecrets: none needed. If you add any config, put it in .env and ship .env.example.\n\nDeliver a README with exact run commands, a synthetic cube generator script so the app can be demoed with no real data, and pytest tests covering the ENVI header parser, fold/unfold round-tripping, and MCR-ALS recovering known spectra from the synthetic cube.",
+  "promptCurated": false
+}
