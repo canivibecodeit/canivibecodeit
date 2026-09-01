@@ -1,0 +1,51 @@
+{
+  "slug": "soleagent",
+  "name": "soleagent",
+  "domain": "soleagent.app",
+  "category": "ai-assistant",
+  "subcategory": "single-agent personal assistant",
+  "tagline": "One AI agent with tool access that works through tasks on your behalf, instead of you babysitting a chat window.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://soleagent.app/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core of a single-agent assistant is a while loop: send messages to a model, let it call tools, feed the results back, stop when it says it is done. A coding agent will hand you that in one session, plus SQLite memory, a task table, a cron runner and a local web transcript. What it will not hand you is the boring half that actually makes agents useful: OAuth into your mail, calendar and docs, retries that survive a timeout, and the months of tool-description tuning that keeps the model from flailing on step four. So you get a working toy agent fast and a slow grind toward something you would trust with your inbox. Budget a weekend, and expect the integrations to be the whole project.",
+  "coreLoopDIY": "A local agent loop with tool calling, approval gates, SQLite memory and a cron scheduler, driven from a one-page transcript UI.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "An LLM API key and a per-token budget",
+    "Comfort giving a local process scoped shell and file access",
+    "Patience for writing your own integrations if you want mail or calendar"
+  ],
+  "whatYouLose": [
+    "Pre-built OAuth integrations; wiring Google, Slack or Notion yourself is the actual work",
+    "Mobile and anywhere access, unless you self-host and secure it",
+    "Tool prompts and guardrails tuned against thousands of real runs, so your version will loop and hallucinate more",
+    "Error recovery, retries and run history that survive a crash mid-task",
+    "Someone else noticing when a model update breaks your tool schemas"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The agent loop is commodity. The connector list and the reliability work around it are not.",
+  "whyPeopleStillPay": "People pay for agent products because they do not want to maintain the plumbing. A hosted agent already holds tokens for your accounts, already knows how to page through a mailbox without blowing the context window, and already has defaults that stop it from doing something dumb with write access. Rebuilding that is not conceptually hard, it is just a long tail of small annoyances, and every model release reshuffles some of them. If your use case is narrow and local, the DIY version wins outright; if you want it touching six SaaS accounts on your behalf, paying is the cheaper option.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The loop is a weekend; the connectors are a second job.",
+  "prompt": "Build a single-agent personal assistant that runs entirely on my machine. No accounts, no hosted backend, no telemetry.\nStack, not a menu: TypeScript on Node 20, better-sqlite3 for storage, Hono serving a tiny local web UI on port 8787, Anthropic Messages API for the model. Nothing else.\nCore loop: I send a message, the agent plans, calls tools in a loop until it declares itself done, and the transcript streams back to the page.\nTools, all local: read_file and write_file scoped to ./workspace, run_shell against a command allowlist, http_fetch against a domain allowlist, sqlite_query over the local notes table, and add_task, list_tasks, complete_task.\nMemory: a facts table the agent can write to, injected into the system prompt on every turn, plus full per-thread message history in SQLite.\nScheduling: a jobs table holding a cron expression and a stored instruction, run by node-cron, appending each run's result to a runs table.\nUI: one page. Thread list on the left, transcript on the right, tool calls rendered as collapsible blocks showing arguments, raw result and duration.\nSafety: write_file, run_shell, and any http_fetch outside the allowlist require an approve or deny click in the UI before executing. Log every tool call.\nContext hygiene: truncate any tool result over 4000 characters and say so inline. Cap the loop at 20 tool calls per turn and stop cleanly.\nConfig: ANTHROPIC_API_KEY in .env, model name and allowlists in config.json. If the key is missing, exit with a readable one-line error.\nOut of scope, do not add: Gmail, Calendar or Slack OAuth, multi-user auth, vector search, a mobile app, Docker, cloud deploy.\nDeliverables: package.json with an npm run dev script, schema.sql applied on boot, one seeded example job so the scheduler is visibly working, and a README with setup in under ten lines.\nWrite complete code with no TODO stubs. Handle API errors with one retry and then a visible failure in the transcript.\nFinish by printing exactly how to run it and one example instruction that exercises a tool call end to end.",
+  "promptCurated": false
+}
