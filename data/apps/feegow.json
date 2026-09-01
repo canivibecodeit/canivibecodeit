@@ -1,0 +1,52 @@
+{
+  "slug": "feegow",
+  "name": "Feegow",
+  "domain": "feegowclinic.com.br",
+  "category": "crm",
+  "subcategory": "clinic and medical practice management",
+  "tagline": "Brazilian clinic management suite: scheduling, electronic patient records, billing and health insurer claims in one system.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://feegowclinic.com.br/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "An agent can absolutely build you a calendar with patients attached to it, and for a solo practitioner keeping private notes that might even be pleasant. What it cannot build is the part clinics actually pay for: electronic medical records that satisfy CFM and SBIS expectations, digital signing with ICP-Brasil certificates, TISS-format claim submission to Brazilian health insurers, LGPD-grade audit trails, and NF-e issuance. Those are not features, they are specifications maintained by other people who change them without asking you. Add the fact that a clinic has receptionists, dentists, doctors and a finance person all touching the same records with different permissions, and the DIY version stops being a personal replacement. The honest consolation is a local scheduler plus patient notes for one practitioner who bills cash.",
+  "coreLoopDIY": "A local single-practitioner app that books appointments on a calendar and keeps a running per-patient record of visits, notes and payments in SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "a machine that stays on if anyone else needs to see the calendar",
+    "a backup habit, because this is health data with no safety net",
+    "a real system if you ever bill insurers"
+  ],
+  "whatYouLose": [
+    "TISS claim generation and submission to Brazilian health insurers, which is the whole billing pipeline for most clinics",
+    "Digital signature of records with ICP-Brasil certificates, and any credible claim of CFM/SBIS compliance",
+    "Multi-role access control and audit logging that survives an LGPD question",
+    "Fiscal invoicing, payment integrations and financial reporting the accountant expects",
+    "Patient-facing confirmations by WhatsApp and SMS, plus a support line when the receptionist is stuck at 8am"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Brazilian healthcare software lives inside TISS, CFM, SBIS and LGPD. None of those are things you implement once and forget.",
+  "whyPeopleStillPay": "Because a clinic is not one person with a calendar. It is a front desk, several practitioners, a finance seat, insurer claims that must be formatted exactly right or they get rejected, and medical records that a regulator or a lawyer may one day read closely. Paying a vendor moves the burden of tracking specification changes and staying compliant off your desk, and gives you someone to call when the receptionist cannot check in a patient. Self-hosting patient health data on your own box for a real practice is a liability decision, not a technical one.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A scheduler with patient notes is a weekend; a clinic system is not. The moat is TISS, CFM and LGPD, three specifications you do not control and cannot ignore.",
+  "prompt": "Build a local, single-practitioner clinic scheduler and patient log. Not a clinic management system, no insurer billing, no compliance claims.\n\nStack, no substitutions:\n- Next.js 14 App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/clinic.db\n- Zod for validation, date-fns for dates\n- Runs with `npm run dev` on localhost only, no auth, no cloud, no telemetry, no analytics\n\nData model:\n- patient: id, full name, birth date, phone, email, notes, created_at\n- appointment: id, patient_id, starts_at, duration_min, service label, status (scheduled | done | no_show | cancelled), price_cents, paid (bool)\n- record_entry: id, patient_id, appointment_id nullable, written_at, body text (append only, entries are never edited or deleted, only superseded by a new entry that references the old id)\n\nScreens:\n1. Week view calendar, Mon to Sat, 07:00 to 20:00 in 30 minute slots. Click an empty slot to book: search existing patient by name or create one inline. Drag is not required, an edit dialog is fine.\n2. Day list for the front desk: today's appointments in order, one click to mark done, no_show or cancelled, one click to mark paid.\n3. Patient page: contact details, appointment history, and the append only record entries newest first, with a box to add a new entry.\n4. Money page: sum of paid and unpaid appointments per month, plus a CSV export of all appointments.\n\nRules:\n- Prevent double booking the same time range, show a clear inline error.\n- Store all money as integer cents, format in BRL.\n- Store timestamps as ISO strings in UTC, render in local time.\n- Add `npm run backup` that copies clinic.db to ./backups/clinic-YYYY-MM-DD-HHmm.db.\n- Seed script with 8 fake patients and 20 appointments across the current week.\n\nExplicitly out of scope, do not build or stub: TISS claim files, insurer integrations, ICP-Brasil digital signatures, NF-e issuance, WhatsApp or SMS reminders, multi-user roles, payment gateways, telehealth.\n\nEnd with a README that lists the commands and states in plain language that this stores health data unencrypted on the local disk, has no access control, and is not suitable for a multi-practitioner clinic or for insurer billing.",
+  "promptCurated": false
+}
