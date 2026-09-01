@@ -1,0 +1,52 @@
+{
+  "slug": "vectorshift",
+  "name": "VectorShift",
+  "domain": "vectorshift.ai",
+  "category": "automation",
+  "subcategory": "AI workflow and agent builder",
+  "tagline": "Visual no-code builder for AI pipelines, chatbots and document search, plus hosting for the things you build.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://vectorshift.ai/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engine underneath is not mysterious: chunk documents, embed them, retrieve, stuff a prompt, call a model, pass the output to the next step. An agent can give you a working pipeline runner with retrieval and tool calls in a weekend, and for one person running a handful of workflows that is genuinely enough. What you will not get in one shot is the drag-and-drop canvas, the dozens of prebuilt connectors, hosted endpoints with auth and rate limits, or the embeddable chat widget. So the answer depends on whether you wanted an AI workflow engine or an AI workflow product. Solo builders usually only wanted the engine.",
+  "coreLoopDIY": "Runs YAML-defined AI pipelines locally: ingest files into a vector store, retrieve, chain LLM calls and simple tools, and expose each pipeline as a local HTTP endpoint.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) or a local model via Ollama",
+    "An embeddings model, API or local",
+    "Python 3.11 and comfort editing YAML instead of dragging boxes",
+    "Somewhere to run it if you want the endpoints reachable from outside your machine"
+  ],
+  "whatYouLose": [
+    "The visual canvas, which matters a lot if you are not the one writing the YAML",
+    "Prebuilt connectors for Google Drive, Notion, Slack, Salesforce and friends, including the OAuth plumbing",
+    "Hosted, authenticated, rate-limited endpoints and the embeddable chatbot widget",
+    "Run history, logs, evals and versioning that you get for free in a managed console",
+    "Anyone else on your team being able to touch it"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The connector library and the OAuth work behind it are the real product surface; the LLM orchestration is commodity and getting more commodity every quarter.",
+  "whyPeopleStillPay": "Because teams buy a place for non-engineers to build and a place for the result to live. A local Python runner is fine when you are the only user and the only operator, but the moment a colleague needs to edit a prompt, or a customer-facing chatbot needs uptime and auth, or the workflow has to read from a Google Drive folder someone else owns, you are rebuilding the boring 80 percent of a managed platform. Paying for that is usually cheaper than maintaining it, right up until the bill grows faster than the usage does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The orchestration is a weekend; the connector zoo is the product.",
+  "prompt": "Build a local AI pipeline runner called \"shiftless\" in this empty folder. Stack: Python 3.11, FastAPI, Uvicorn, SQLite with sqlite-vec for vectors, Jinja2 templates for a minimal UI. No React, no node editor, no accounts, no telemetry, no cloud services beyond the model API.\n\nCore model: a pipeline is a YAML file in ./pipelines/. Each pipeline has an id, a list of inputs, and an ordered list of steps. Step types to implement, and only these:\n- llm: prompt template with {{variable}} interpolation, model name, temperature, output variable name\n- retrieve: query a named collection, top_k, returns chunks into a variable\n- http: GET or POST a URL with a JSON body template, result parsed as JSON into a variable\n- python: run a named function from ./tools/*.py with mapped kwargs\n- output: pick which variables are returned\nSteps read and write a single flat context dict. Fail loudly on missing variables.\n\nIngestion: a CLI command `python -m shiftless ingest PATH --collection NAME` that walks a file or folder, extracts text from .txt, .md and .pdf (pypdf), chunks at roughly 800 tokens with 100 overlap, embeds, and stores chunks with source path and offset in SQLite.\n\nModels: use one provider abstraction with two implementations, OpenAI and Ollama, chosen by env var PROVIDER. Keys in .env, loaded with python-dotenv. Ship .env.example, never a real key.\n\nAPI: POST /run/{pipeline_id} with a JSON body of inputs, returns the output plus a run_id. GET /runs and GET /runs/{run_id} return stored runs with every step's inputs, outputs, token counts, latency and errors, persisted in SQLite.\n\nUI at /: list pipelines, a form generated from each pipeline's declared inputs, a run button, the result rendered, and a run history table with expandable per-step traces. Server-rendered HTML, no build step.\n\nInclude two working example pipelines: a document Q&A over an ingested collection, and a two-step summarize-then-critique chain. Include a pytest suite that runs both against a stub provider so tests need no API key. Write a README with setup in under ten commands.\n\nOut of scope, do not build: drag-and-drop editor, multi-user auth, third-party OAuth connectors, scheduling, streaming responses, agent loops with tool retries. Keep the whole thing under roughly 1500 lines and readable.",
+  "promptCurated": false
+}
