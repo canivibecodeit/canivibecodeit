@@ -1,0 +1,51 @@
+{
+  "slug": "trustmrr",
+  "name": "TrustMRR",
+  "domain": "trustmrr.com",
+  "category": "testimonials",
+  "subcategory": "verified revenue badges",
+  "tagline": "Connects your payment provider and issues a third-party verified MRR badge you can put on a landing page or listing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://trustmrr.com/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engineering here is trivial: read Stripe, sum active subscriptions, render an SVG. The product is not the SVG, it is the fact that someone other than you did the arithmetic. A badge you generated yourself, hosted on your own domain, reading from your own API key, is a number you typed in a nicer font. Buyers, acquirers and directory readers discount self-attested revenue to roughly zero, and rightly so. You can absolutely build the dashboard for yourself, you just cannot build the credibility.",
+  "coreLoopDIY": "Pulls active subscriptions from your Stripe account, computes normalized MRR, and serves a cached SVG badge plus a small public stats page.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Stripe account with a restricted read-only API key",
+    "Somewhere to host a tiny always-on Node service",
+    "A domain or subdomain if you want the badge to look like it belongs to you"
+  ],
+  "whatYouLose": [
+    "Third-party attestation, which is the entire point",
+    "Tamper resistance: nothing stops you from hardcoding the number, and everyone knows it",
+    "Any discovery or directory effect from being listed alongside other verified products",
+    "Support for providers you have not written adapters for: Paddle, Lemon Squeezy, RevenueCat, App Store",
+    "Someone else's uptime, so a dead badge on your landing page is now your problem"
+  ],
+  "moatTags": [
+    "brand-trust",
+    "network-effects",
+    "proprietary-data"
+  ],
+  "moatNotes": "Verification products live or die on whether the reader recognizes the verifier. That recognition is bought with years and other people's listings, not code.",
+  "whyPeopleStillPay": "Because the buyer of a verified MRR badge is not buying software, they are renting someone else's reputation for one line on a sales page. Indie makers listing on acquisition marketplaces, pitching investors, or running a \"we hit 10k MRR\" launch need a number a stranger will believe, and the only way to get that is to hand read-only access to a neutral party who has already convinced everyone else to trust it. The self-hosted version is genuinely useful as a private revenue dashboard, and completely useless for the job the product is hired to do.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you want a free MRR dashboard, not if you want anyone to believe it. The moat is that the verifier is not you, plus enough listings that readers already know the badge.",
+  "prompt": "Build a self-hosted Stripe MRR dashboard with an embeddable SVG badge. Local, single service, no accounts, no telemetry.\n\nStack, no substitutions:\n- Node 20 with TypeScript, Hono as the HTTP server, run with tsx in dev\n- better-sqlite3 for a local snapshots.db file\n- stripe official Node SDK\n- No frontend framework. One server-rendered HTML page with inline CSS.\n\nEnv, read from .env via dotenv, and write a .env.example:\n- STRIPE_SECRET_KEY (restricted, read-only on subscriptions, invoices, customers)\n- BADGE_LABEL, default \"MRR\"\n- PORT, default 8787\n\nCore logic:\n- Fetch all subscriptions with status active or trialing, auto-paginate.\n- Normalize each subscription item to a monthly amount: divide yearly by 12, multiply weekly by 52/12, handle quantity and per-unit prices, skip tiered prices and log them as unsupported.\n- Sum per currency. Do not convert currencies, report each separately and treat the largest as primary.\n- Also compute active subscriber count, MRR added and churned in the last 30 days from subscription created and canceled_at timestamps.\n- Cache the result in SQLite as a timestamped snapshot. Refresh at most once per hour; serve cache otherwise.\n\nRoutes:\n- GET / : HTML page showing primary MRR, subscriber count, 30 day net change, a sparkline built from stored snapshots as inline SVG, and the last refresh time.\n- GET /badge.svg : shields-style SVG badge, label from BADGE_LABEL, value like \"$4,210/mo\", fixed width text measurement is fine, Cache-Control max-age 3600.\n- GET /api/mrr : JSON of the latest snapshot.\n- POST /refresh : force a refresh, ignore the hourly limit.\n\nExplicitly out of scope: auth, multi-user, other payment providers, cryptographic proof, and any claim of independent verification. Put a comment at the top of badge.ts stating plainly that a self-hosted badge is self-attested and proves nothing to third parties.\n\nDeliver: README with setup, the restricted key scopes needed, a curl example, and a note on deploying behind a reverse proxy. Include one vitest file covering the yearly and weekly interval normalization math.",
+  "promptCurated": false
+}
