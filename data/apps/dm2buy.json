@@ -1,0 +1,52 @@
+{
+  "slug": "dm2buy",
+  "name": "DM2BUY",
+  "domain": "dm2buy.com",
+  "category": "creator-commerce",
+  "subcategory": "social DM selling and checkout links",
+  "tagline": "Turns Instagram comments and DMs into product links and orders so creators can sell without a storefront.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://dm2buy.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The logic here is genuinely small: match a keyword, reply with a link, take a payment, log the order. An agent can write that in an afternoon and it will work fine as a personal seller bot. The pain is not the code, it is Meta: the Instagram Messaging API needs a business account, a linked Facebook page, a reviewed app, and advanced access before it will DM anyone who is not you, and Meta changes the rules on its own schedule. Payments are the other half, and a hosted checkout link plus a webhook covers a solo seller but not refunds, COD, or tax handling. Build it if you sell your own stuff and can tolerate a permissions afternoon; do not build it if you need it to keep working untouched for a year.",
+  "coreLoopDIY": "Watch Instagram comment and DM webhooks, match keyword rules to products, auto-reply with a hosted payment link, and record paid orders in a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Instagram professional account linked to a Facebook page",
+    "Meta developer app with Instagram messaging permissions, plus app review for anything beyond your own test users",
+    "Stripe or Razorpay account for hosted checkout links",
+    "A public HTTPS endpoint for webhooks (tunnel in dev, small VPS in prod)"
+  ],
+  "whatYouLose": [
+    "Advanced access out of the box: your DIY app will only message accounts you have added as testers until Meta reviews it",
+    "Story reply, mention, and quick-reply handling that the hosted product has already debugged against API changes",
+    "Any recovery path when Meta deprecates a webhook field or rotates permission requirements, which is on you now",
+    "Order management niceties: abandoned-link nudges, refunds, COD flows, analytics on which keyword converts",
+    "Multi-account, team access, and someone to email at 2am during a launch"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is entirely Meta's app review process and the maintenance treadmill behind it, not the reply logic.",
+  "whyPeopleStillPay": "Because the hard part is being an approved Meta app, not writing a keyword matcher. A seller doing a launch does not want to discover that their homemade bot silently stopped delivering links because a permission scope changed, and they definitely do not want to submit a screencast to Meta review during a drop. Paying for it turns an API relationship into someone else's problem, and the price is usually less than one lost order.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The bot is a weekend; the Meta app review is the actual product boundary.",
+  "prompt": "Build a self-hosted Instagram DM selling bot for a single seller. Call it dmbot.\n\nStack, no substitutions: TypeScript, Node 20, Fastify, SQLite via better-sqlite3, Drizzle for schema and migrations, server-rendered pages with Eta templates and plain CSS. No React, no Next, no Docker.\n\nWhat it does:\n1. Exposes GET and POST /webhooks/instagram implementing Meta's webhook verification (hub.challenge with a verify token) and signature check using X-Hub-Signature-256.\n2. Handles two event types: new comments on my media, and incoming direct messages.\n3. Matches the incoming text against keyword rules stored in SQLite (rule: keyword, match mode exact or contains, product id, reply template).\n4. On a comment match: post a public reply (\"check your DMs\") and send a private reply DM containing the product name, price, and a checkout link.\n5. On a DM match: send the checkout link directly. If nothing matches, send one configurable fallback message, at most once per user per 24 hours.\n6. Creates checkout links with Stripe Payment Links via the API, one per order, with metadata for the Instagram user id, rule id, and product id.\n7. Listens on POST /webhooks/stripe for checkout.session.completed, marks the order paid, and sends a DM with the confirmation and any digital delivery URL on the product.\n\nAdmin at /admin behind HTTP basic auth from .env: CRUD for products (name, price, currency, optional delivery URL), CRUD for keyword rules, and an orders table with status, amount, Instagram username, and timestamps. Add a \"send test message\" button that DMs a given user id.\n\nRules: all secrets in .env (META_APP_SECRET, IG_ACCESS_TOKEN, IG_ACCOUNT_ID, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_USER, ADMIN_PASS, VERIFY_TOKEN). Log every inbound webhook payload to a raw_events table so nothing is lost when Meta's shape changes. Rate limit outbound sends and retry 4xx once, then park the message in a dead-letter table. No telemetry, no analytics, no third-party services beyond Meta and Stripe.\n\nOut of scope: multi-tenant accounts, subscription billing, WhatsApp, TikTok, cart with multiple items, tax calculation, mobile app.\n\nDeliverables: working server, migrations, seed script with one demo product and one rule, and a README that spells out the exact Meta app setup steps (professional account, linked page, permissions needed, and the fact that only tester accounts can be messaged before app review) plus how to run a tunnel for local webhooks.",
+  "promptCurated": false
+}
