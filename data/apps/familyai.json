@@ -1,0 +1,52 @@
+{
+  "slug": "familyai",
+  "name": "FamilyAI",
+  "domain": "familyai.com",
+  "category": "ai-assistant",
+  "subcategory": "family organizer",
+  "tagline": "An AI assistant aimed at household logistics: shared schedules, plans, reminders and the endless who-is-picking-up-who.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://familyai.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The underlying machine here is not exotic: a shared database of events, tasks and people, plus an LLM that reads it and writes to it in plain language. An agent can build that in a weekend and it will genuinely work for one household. What it will not build in one sitting is the part that decides whether a family app lives or dies: a phone app everyone actually opens, reliable push notifications, and two-way sync with the Google and Apple calendars the family already lives in. Household software fails on adoption, not on features, and adoption is downstream of polish. Build it if you are the household member who will maintain it forever; otherwise you are shipping a chore to yourself.",
+  "coreLoopDIY": "A local web app with a shared family calendar, task list and grocery/meal notes, plus a chat box where an LLM reads and edits all of it in natural language.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "Somewhere always-on to host it: a small VPS, a Pi, or a home server",
+    "A reverse proxy with HTTPS if anyone will use it off the home network",
+    "Optional: Google Calendar API credentials for read-only import"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps, which is how the rest of the family would actually use it",
+    "Reliable push notifications and reminders that survive phone sleep and OS battery saver",
+    "Two-way calendar sync with Google and Apple, including invites and recurring event edge cases",
+    "Any polish that makes a non-technical spouse or teenager tolerate it for more than a week",
+    "Someone else on call when the reminder about the dentist silently does not fire"
+  ],
+  "moatTags": [
+    "collaboration",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not technical, it is social: every extra tap you inflict on a family member is a chance the whole thing gets abandoned.",
+  "whyPeopleStillPay": "Because the value is the household using it, not the code running it. A paid app arrives as an icon on everyone's phone with working notifications and a calendar that already has the school events in it, and nobody has to be the family sysadmin. A self-hosted version puts one person permanently in charge of uptime, sync bugs and support requests from people they share a kitchen with, which is a worse deal than a subscription for most people.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the adoption is not; your family is the real integration test.",
+  "prompt": "Build a self-hosted family assistant web app. Empty folder, no scaffolding questions, pick these choices and go.\n\nStack: Next.js (App Router, TypeScript), Tailwind, SQLite via better-sqlite3, Drizzle for schema and migrations. Server actions for mutations, no separate API layer. No auth provider: a single shared household, protected by one password in .env, plus a simple profile picker (Mom, Dad, kid names) stored in a cookie so entries get attributed.\n\nData model: members, events (title, start, end, allDay, ownerId, location, notes), tasks (title, dueDate, assigneeId, done, recurrence as a simple RRULE-ish string), lists (name) and listItems (text, checked) for groceries and packing, and meals (date, slot, description).\n\nUI: three screens only. 1) Week view showing events and tasks per day, color coded per member. 2) Lists screen with fast add and check off. 3) Chat screen.\n\nChat is the point. Use the OpenAI API with tool calling. Tools: listEvents, createEvent, updateEvent, deleteEvent, createTask, completeTask, addListItem, setMeal, whoIsFree. The model gets the current date, the member names and the active profile in the system prompt. It must confirm destructive actions in text before calling delete tools. Show tool calls inline in the chat as small gray lines so the user can see what it did.\n\nReminders: one node-cron job that runs every 15 minutes and sends a plain email digest via SMTP (creds in .env) for anything due in the next 24 hours. No push notifications, no mobile app, do not pretend otherwise.\n\nIn scope: seed script with a fake family, a /health route, Dockerfile plus docker-compose with a mounted volume for the SQLite file, and a README with setup in under ten lines.\n\nOut of scope: Google or Apple Calendar sync, multi-household support, billing, analytics, telemetry, user registration, mobile apps. Do not add them and do not leave TODO stubs for them.\n\nAll secrets in .env with a committed .env.example. Everything runs offline except the LLM call and the SMTP send.",
+  "promptCurated": false
+}
