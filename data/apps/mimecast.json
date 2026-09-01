@@ -1,0 +1,52 @@
+{
+  "slug": "mimecast",
+  "name": "Mimecast",
+  "domain": "mimecast.com",
+  "category": "security",
+  "subcategory": "email security and archiving",
+  "tagline": "Cloud email security, phishing defense, and compliance archiving for organizations.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.mimecast.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Mimecast sits in front of corporate mail and decides what is allowed to reach humans, then keeps an immutable copy of everything for legal and regulatory reasons. You can absolutely write a spam and phishing filter in an afternoon: SPF and DKIM and DMARC checks, URL rewriting, attachment sandboxing stubs, a quarantine UI. What you cannot write is the detection telemetry from billions of messages across tens of thousands of tenants, which is what makes the difference between catching a targeted business email compromise attempt and catching only obvious Viagra spam. The archive side is worse: WORM storage, chain of custody, eDiscovery holds and auditor-acceptable retention are compliance products, not code. For a personal mailbox, your provider's built-in filtering plus a rules file already covers the realistic threat model.",
+  "coreLoopDIY": "A local mail gateway that scores incoming messages on SPF/DKIM/DMARC, sender reputation, and link heuristics, quarantines the bad ones in a small web UI, and archives everything to append-only local storage.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An IMAP mailbox you control, with app password or OAuth credentials",
+    "Somewhere to run a long-lived process",
+    "Local disk for the archive, ideally on a filesystem you can snapshot",
+    "Optional: an LLM API key if you want text-based phishing scoring"
+  ],
+  "whatYouLose": [
+    "Threat intelligence learned across a huge multi-tenant customer base, which is the actual detection edge",
+    "Attachment sandboxing and detonation in real isolated environments",
+    "Legally defensible archiving: WORM guarantees, retention policy enforcement, chain of custody, eDiscovery export",
+    "Inbound gateway posture, so mail hits your mailbox before your filter sees it unless you own the MX records",
+    "Security awareness training, phishing simulation, admin reporting, and the audit trail that satisfies an assessor"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "The detection quality and the archive's legal standing are two separate moats that happen to be sold together.",
+  "whyPeopleStillPay": "Companies buy Mimecast for two reasons that have nothing to do with features on a comparison chart. First, when a targeted phishing mail gets through and someone wires money to a stranger, the org wants a vendor with global telemetry and an incident process, not a script somebody wrote. Second, regulators, insurers, and litigators want an archive that a third party attests to, held to retention rules nobody in the company can quietly edit. Both of those are institutional trust purchases, and self-hosting cannot manufacture them.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal phishing filter is a weekend, and a decent one at that. The moat is cross-tenant attack telemetry plus an archive an auditor will accept, and you can build neither alone.",
+  "prompt": "Build a personal email hygiene and archive tool called \"mailguard\" in an empty folder.\n\nStack, no substitutions:\n- Python 3.11, uv for dependency management\n- imaplib and the stdlib email package for mail access\n- SQLite via sqlite3 for metadata, plain files on disk for message bodies\n- FastAPI plus server-rendered Jinja2 templates for the UI, no frontend framework\n- dnspython for SPF and DMARC record lookups\n\nWhat it does:\n1. Connects to one IMAP account using IMAP_HOST, IMAP_USER, IMAP_PASS from .env. Never hardcode secrets, ship a .env.example.\n2. Polls INBOX on an interval, fetches new messages, and for each one computes a risk score from: Authentication-Results headers for SPF/DKIM/DMARC, whether the From display name mismatches the envelope domain, whether the domain is newly seen for this mailbox, count and shape of links, presence of executable or macro-capable attachments, and urgency phrasing in the subject.\n3. Writes every message to an append-only archive: content-addressed file on disk named by sha256, plus a row in SQLite with headers, score, and score reasons. Archive writes are insert-only, no update or delete paths in the code.\n4. Messages scoring above a configurable threshold get moved to an IMAP folder named Quarantine. Nothing is ever deleted.\n5. A local web UI on 127.0.0.1:8787 with three pages: quarantine list with release and confirm-bad buttons, full-text search over the archive, and a sender reputation table built from your own history.\n6. Release and confirm-bad actions update a local allow/deny list that feeds back into scoring.\n\nExplicitly out of scope, do not build: MX-level gateway interception, attachment sandboxing, multi-user support, cloud sync, telemetry, third-party threat feeds, legal hold or retention policy enforcement.\n\nDeliver: pyproject.toml, README with setup in under ten commands, a single make-style entrypoint that runs poller and web app together, and pytest tests for the scoring function using fixture .eml files you generate. Print scoring reasons to stdout so the logic is auditable by a human reading the terminal.",
+  "promptCurated": false
+}
