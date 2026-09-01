@@ -1,0 +1,50 @@
+{
+  "slug": "aurora-forecast-tonight",
+  "name": "Aurora Forecast Tonight",
+  "domain": "auroraforecasttonight.com",
+  "category": "productivity-utilities",
+  "subcategory": "space weather alerts",
+  "tagline": "Tells you whether the northern lights are likely visible from where you are tonight, and pings you when the odds jump.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://auroraforecasttonight.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Every input this category runs on is a free government feed: NOAA SWPC publishes Kp index, solar wind from DSCOVR/ACE, and the OVATION 30-minute aurora probability grid, and Open-Meteo hands you cloud cover for nothing. The actual product is arithmetic on top of public JSON: sample the probability grid at your latitude and longitude, subtract clouds, check that the sun is far enough below the horizon, and shout if the number crosses a threshold. An agent can build that in an evening and it will not be meaningfully worse at predicting aurora than a paid app, because nobody has better data than SWPC. What you are really buying from the paid version is a native app with reliable push notifications, a map that looks good, and someone else maintaining the pipeline when NOAA quietly changes an endpoint. If you live under the oval and check nightly anyway, the DIY version is genuinely fine.",
+  "coreLoopDIY": "Polls NOAA SWPC and Open-Meteo on a schedule, scores tonight's viewing odds for your saved coordinates, shows a simple dashboard, and sends a web push when the score crosses your threshold.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a machine or small VPS that stays awake overnight",
+    "Your latitude and longitude",
+    "Self-generated VAPID keys for web push, plus a browser that will accept notifications"
+  ],
+  "whatYouLose": [
+    "A real native app with iOS/Android push that actually wakes your phone, plus widgets and a lock screen glance",
+    "Someone else noticing when a NOAA endpoint moves or the OVATION grid format changes",
+    "A pretty map overlay and hourly timeline instead of a number and a verdict",
+    "Community sighting reports and photos, which are often better ground truth than the model",
+    "Tuned thresholds: a naive score will cry wolf on Kp 5 nights when your local sky is milky and bright"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the forecast, it is the notification arriving at 11:40pm without you having babysat a cron job.",
+  "whyPeopleStillPay": "Aurora hunting is a push notification product wearing a dashboard costume. The value is being told, on a phone, in bed, that it is worth putting boots on, and that requires a native app, a real push pipeline, and calibration that does not burn your trust in the first week. A few dollars is a fair price for not maintaining that yourself, and for the app being on your phone the one week you happen to be in Tromso.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Free public data plus a threshold is the whole product; the paid version sells you the part where the phone buzzes.",
+  "prompt": "Build a self-hosted \"aurora tonight\" alerting dashboard. Stack, no substitutions: Node 20, TypeScript, Fastify, server-rendered HTML with a single inline CSS block, better-sqlite3 for storage, node-cron for scheduling, web-push for notifications. No React, no build step beyond tsc, no accounts, no cloud services, no telemetry.\n\nData sources, all free and keyless:\n- NOAA SWPC planetary K index: https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json\n- NOAA SWPC solar wind plasma and mag: https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json and mag-1-day.json (pull speed and Bz)\n- NOAA OVATION aurora probability grid: https://services.swpc.noaa.gov/json/ovation_aurora_latest.json (array of [lon, lat, probability]; sample the nearest grid point to the user's coordinates)\n- Open-Meteo forecast for cloudcover at the user's coordinates (no key required)\n\nConfig from .env: LAT, LON, ALERT_THRESHOLD (0-100), VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, PORT. Include a .env.example and an npm script that generates VAPID keys.\n\nScoring: compute a 0-100 \"go outside\" score from OVATION probability at the point, penalised by cloud cover for the next 3 hours, and zeroed unless the sun is more than 12 degrees below the horizon (compute solar altitude yourself with a small NOAA solar position function, no external astronomy library). Store every poll in SQLite with a timestamp.\n\nScheduler: poll every 10 minutes. If score crosses ALERT_THRESHOLD upward and no alert was sent in the last 90 minutes, send a web push to all stored subscriptions with the score, Kp, Bz, and cloud cover.\n\nUI at /: current score as a big number with a plain-English verdict, the raw inputs listed underneath, a sparkline-free table of the last 24 hours from SQLite, and a button to enable notifications (service worker + push subscription stored in SQLite).\n\nIn scope: single location, web push, graceful handling of any feed being down (show stale data with an age label, never crash). Out of scope: maps, multiple locations, email, mobile apps, auth, Docker.\n\nDeliver README with setup, key generation, and one honest paragraph on why the alerts will be noisy until the threshold is tuned.",
+  "promptCurated": false
+}
