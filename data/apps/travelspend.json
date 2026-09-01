@@ -1,0 +1,50 @@
+{
+  "slug": "travelspend",
+  "name": "TravelSpend",
+  "domain": "travel-spend.com",
+  "category": "travel",
+  "subcategory": "trip expense tracking",
+  "tagline": "A mobile trip budget tracker that logs expenses in multiple currencies and splits them between travel companions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://travel-spend.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The data model here is trivial: expenses with a date, amount, currency, category, trip, and payer. An agent will happily produce a working web app with charts, per-day budget burn, and a split calculator in one session. The gap is that this is a phone app used while standing in a market with bad signal, so you need offline-first storage, fast entry, and currency rates cached in advance, and a web app you built yourself is a worse place to do that than a native app from the store. Exchange rate data means an external API and a key, which is mild but real. Buildable, genuinely useful for the planning and post-trip reconciliation half, weaker for the in-the-moment tapping half.",
+  "coreLoopDIY": "A local-first web app where you create a trip with a budget, log expenses in any currency with auto-converted home-currency totals, and see spend by day, category, and person with a settle-up view.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An exchange rate API key (free tier is fine) or a manually pasted rate table",
+    "Somewhere to host it, or just run it locally and add it to your phone home screen as a PWA",
+    "A browser that supports IndexedDB if you want offline entry"
+  ],
+  "whatYouLose": [
+    "A real native app with instant cold start and reliable offline entry when you have no signal",
+    "Shared trips where your travel partners log expenses from their own phones and everything syncs",
+    "Automatically updated exchange rates for dozens of currencies without you babysitting an API key",
+    "Receipt photos, CSV/PDF trip reports, and the small conveniences you only miss on day nine",
+    "Backups that survive you dropping your phone in a lagoon"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is friction: entering an expense in four seconds while walking, offline, on a phone. That is UX work, not logic.",
+  "whyPeopleStillPay": "Because the hard part was never the arithmetic, it was making expense entry so cheap that you actually do it for the whole trip instead of abandoning it on day three. A polished native app with offline sync, shared trips, and rates that just work costs less than one airport sandwich and removes the one excuse you would otherwise use to stop tracking. Nobody wants to debug their own currency converter from a hostel bunk.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The logic is a weekend; the four-second offline expense entry on a phone is the actual product.",
+  "prompt": "Build a local-first trip expense tracker as an installable PWA. Empty folder, no backend service.\n\nStack, no substitutions:\n- Vite + React + TypeScript\n- Tailwind for styling\n- Dexie (IndexedDB) for all storage, no server, no accounts, no telemetry\n- Recharts for charts\n- vite-plugin-pwa for offline install and asset caching\n\nData model in Dexie:\n- trips: id, name, startDate, endDate, homeCurrency, budgetTotal, travellers (array of names)\n- expenses: id, tripId, date, amount, currency, homeAmount, category, payer, splitWith (array of names), note\n- rates: baseCurrency, fetchedAt, map of currency to rate\n\nFeatures in scope:\n1. Trip list screen: create, edit, delete trips. Show total spent vs budget and days elapsed.\n2. Add expense screen optimised for speed: big numeric keypad, currency defaults to the last one used, category as a row of icon buttons, date defaults to today, payer defaults to me. Saving takes at most three taps after the amount.\n3. Convert to home currency at save time using the cached rate table and store both amounts, so past expenses never change when rates move. Show the rate used and allow manual override per expense.\n4. Trip dashboard: spend by category (pie), spend by day (bar) with an average-daily-budget line, remaining budget, and projected end-of-trip total.\n5. Settle up: given expenses with payer and splitWith, compute who owes whom with a minimal set of transfers.\n6. Rates: fetch once from an exchange rate API using EXCHANGE_RATE_API_KEY from .env, cache in Dexie with a timestamp, and work fully offline from the cache. If no key is set, fall back to a manual rate editor screen.\n7. Export a trip to CSV and JSON. Import the JSON back. This is the only backup.\n\nExplicitly out of scope: user accounts, multi-device sync, receipt photo OCR, bank imports, push notifications, any analytics.\n\nShip a README with setup, .env.example, and a one-line note that data lives only in this browser profile and export is the backup. Seed one demo trip with about twenty expenses across three currencies and two travellers so the charts and settle-up have something to show on first run.",
+  "promptCurated": false
+}
