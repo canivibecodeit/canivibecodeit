@@ -1,0 +1,51 @@
+{
+  "slug": "answerthepublic",
+  "name": "AnswerThePublic",
+  "domain": "answerthepublic.com",
+  "category": "seo-marketing",
+  "subcategory": "keyword and question research",
+  "tagline": "Turns a seed keyword into a wheel of the questions, prepositions and comparisons people type into search engines.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://answerthepublic.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The engine here is not secret: it hammers public search autocomplete endpoints with your seed keyword plus a few hundred prefixes and suffixes, then buckets the results by question word, preposition and comparison term. An agent can rebuild that loop plus a radial visualization in an afternoon, and the underlying suggestion data is Google's, not theirs. What you actually pay for is the daily free-tier tease, the pretty wheel PNG you can paste into a client deck, and the search volume numbers bolted on top. Volume and CPC data is the one piece you genuinely cannot conjure locally, since that comes from licensed or scraped ad-platform sources. If you just want the question list for content planning, the DIY version is close to a full replacement.",
+  "coreLoopDIY": "Fans out autocomplete queries for a seed keyword across question words, prepositions, comparisons and the alphabet, dedupes and buckets the suggestions, then renders them as a radial wheel plus an exportable CSV.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 or newer",
+    "Outbound internet access, ideally not from a datacenter IP that autocomplete endpoints already dislike",
+    "Patience with rate limiting: the fan-out is a few hundred requests per seed"
+  ],
+  "whatYouLose": [
+    "Search volume, CPC and trend numbers on each suggestion, which come from data sources you do not have",
+    "Their proxy infrastructure, so your own fan-out will get throttled or temporarily blocked if you get greedy",
+    "The polished wheel image export that looks good in a client report without any fiddling",
+    "Saved reports, comparison over time, and alerts when a keyword's question set shifts",
+    "Curated country and language presets that actually return locale-correct suggestions"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "proprietary-data"
+  ],
+  "moatNotes": "The visualization is the product's memory hook more than its function. People recognize the wheel, and that recognition is doing real work in sales decks.",
+  "whyPeopleStillPay": "Mostly because it is fast, shareable and already trusted by the person approving the invoice. A marketer who needs twelve keyword wheels before a Thursday meeting is not going to babysit a local script fighting autocomplete rate limits, and the volume figures next to each question are what turn a raw suggestion dump into something a client will nod at. There is also the plain inertia of an established brand in SEO tooling: recommending it is safe, recommending your own scraper is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The suggestions belong to the search engine, the wheel belongs to the brand, and only one of those is hard to copy.",
+  "prompt": "Build a local keyword question explorer, a self-hosted take on AnswerThePublic.\n\nStack, no substitutions: TypeScript on Node 20, Hono for the HTTP server, better-sqlite3 for a local cache, and a single static frontend page using vanilla JS plus D3 v7 loaded from a local vendored file. No React, no build step beyond tsx for running TypeScript directly. No accounts, no telemetry, no cloud services.\n\nCore loop:\n1. User enters a seed keyword, a locale (default en-US) and picks Google or Bing as the suggestion source.\n2. Server fans out suggestion requests: the bare seed, seed + each of a to z, each of a to z + seed, and seed combined with question words (who, what, when, where, why, how, which, are, can, will, is, does, should), prepositions (for, with, without, near, to, like, versus, vs) and comparison patterns.\n3. Hit the public autocomplete endpoints (Google: https://suggestqueries.google.com/complete/search?client=firefox&hl=..&gl=..&q=.. , Bing: https://api.bing.com/osjson.aspx?query=..). Concurrency capped at 4, 200ms jitter between requests, exponential backoff on 429 or 503, and a hard stop with a clear message if blocked three times in a row.\n4. Cache every raw response in SQLite keyed by source, locale and query string, with a 7 day TTL. Re-running a seed should be nearly instant.\n5. Bucket the deduped suggestions into groups: questions, prepositions, comparisons, alphabetical, and other. Strip the seed from the display label but keep the full query.\n\nFrontend: one page. Search box, source and locale selectors, and a tabbed view with a D3 radial wheel (center seed, spokes per group, leaves per suggestion) and a plain grouped list. Clicking any suggestion opens the live search results in a new tab. Buttons to export CSV and to download the wheel as SVG and PNG.\n\nExplicitly out of scope: search volume, CPC, difficulty scores, trend data, proxy rotation, user accounts, scheduled re-runs, and multi-user anything. If a suggestion source starts returning empty results, say so in the UI instead of showing a blank wheel.\n\nInclude a .env.example with PORT and CACHE_TTL_DAYS, a README with run instructions, and a warning in the README that aggressive fan-out from one IP will get rate limited and that respecting that is the user's problem.",
+  "promptCurated": false
+}
