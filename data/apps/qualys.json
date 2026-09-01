@@ -1,0 +1,51 @@
+{
+  "slug": "qualys",
+  "name": "Qualys",
+  "domain": "qualys.com",
+  "category": "security",
+  "subcategory": "vulnerability management and compliance scanning",
+  "tagline": "Cloud platform for vulnerability scanning, asset inventory, and compliance reporting across networks, endpoints, and cloud accounts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.qualys.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Qualys is quoted per asset or IP range and varies by module, so there is no public per-seat number worth printing."
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely have an agent wire up nmap, a CVE feed, and a SQLite table in an afternoon, and for a home network that is genuinely enough. What you cannot build is the part people actually pay for: a maintained signature set covering tens of thousands of checks, authenticated scanning that does not break production boxes, and a PCI Approved Scanning Vendor stamp that an auditor will accept. The scanner is the cheap half of Qualys; the detection content, the agent fleet management, and the compliance paperwork are the expensive half. If nobody is asking you for an attestation, skip the whole category and run a scanner on a cron. If somebody is asking you for an attestation, no amount of code you write counts.",
+  "coreLoopDIY": "Scans your own subnet with nmap, matches detected service versions against the NVD CVE feed, and stores results in SQLite with a diff report showing what appeared or disappeared since the last run.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "nmap installed locally",
+    "Python 3.11+",
+    "an NVD API key in .env for reasonable rate limits",
+    "permission to scan the network you are pointing it at"
+  ],
+  "whatYouLose": [
+    "Curated detection content: Qualys ships tens of thousands of maintained checks, version-banner matching against NVD gives you noise and false positives",
+    "Authenticated and agent-based scanning, so you see patch state instead of guessing from open ports",
+    "PCI ASV attestation and the prebuilt CIS/SOC2 compliance policy libraries auditors expect",
+    "Cloud posture coverage for AWS/Azure/GCP config, containers, and web app scanning",
+    "Anything resembling multi-user workflow: ticketing integrations, exceptions, SLA tracking, exec dashboards"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The ASV designation is the load-bearing piece. It is a certification, not a feature, and you cannot code your way to it.",
+  "whyPeopleStillPay": "Vulnerability management is bought to satisfy someone else: an auditor, a customer security questionnaire, a cyber insurance form, a regulator. A homegrown scanner produces findings; Qualys produces findings plus a signed report from a recognized vendor, which is the actual deliverable. On top of that, the detection content is a full-time job for a research team, and the agent architecture solves the boring hard problem of scanning laptops that are not on the corporate network. Nobody pays this much for port scanning.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scanner is a weekend; the detection content and the certification are not. The moat is being an Approved Scanning Vendor with a research team, which is a compliance credential you cannot self-issue.",
+  "prompt": "Build a local network vulnerability scanner as a Python 3.11 CLI. Single folder, no web UI, no accounts, no telemetry, no cloud.\n\nStack: Python 3.11, click for the CLI, sqlite3 from stdlib, httpx for HTTP, and shelling out to the system nmap binary. Use uv for dependency management. No Docker.\n\nWhat it does:\n1. `scan add-target 192.168.1.0/24` stores a target in SQLite. Refuse anything that is not a private RFC1918 range unless the user passes --i-own-this.\n2. `scan run` shells out to nmap with `-sV -oX` against each target, parses the XML, and records hosts, open ports, and detected service product plus version strings.\n3. `scan enrich` takes each distinct product/version pair and queries the NVD 2.0 CVE API by keyword, caching every response in SQLite so repeat runs are offline. Read NVD_API_KEY from .env via python-dotenv. Respect rate limits with a simple sleep and retry on 403/429.\n4. `scan report` prints a table grouped by host: port, service, version, and matched CVEs with CVSS v3 base score, highest first. `--format markdown` writes a file.\n5. `scan diff` compares the two most recent runs and prints new hosts, new open ports, closed ports, and newly matched CVEs.\n\nRules:\n- Store raw nmap XML per run on disk under ./runs/ so results are re-parseable.\n- Every CVE match must be labelled `unconfirmed` in output, with a one-line disclaimer that banner-based matching produces false positives and does not check patch state.\n- Idempotent schema migration on startup. No ORM.\n- Include a README that states plainly: this is not authenticated scanning, it is not a compliance tool, and it produces nothing an auditor will accept.\n\nOut of scope, do not build: agents, credentialed scanning, web app scanning, cloud config checks, exploit attempts, ticketing integrations, multi-user anything, scheduling. Assume cron handles scheduling.\n\nWrite pytest tests against a checked-in sample nmap XML fixture and a stubbed NVD response. No network calls in tests.",
+  "promptCurated": false
+}
