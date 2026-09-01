@@ -1,0 +1,53 @@
+{
+  "slug": "onvis",
+  "name": "OnVis",
+  "domain": "onvid.ai",
+  "category": "ai-video",
+  "subcategory": "script-to-video generation",
+  "tagline": "AI tool that turns a prompt or script into a finished short video with voiceover and captions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://onvid.ai/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline behind a script-to-video tool is not mysterious: an LLM writes the script and shot list, a TTS voice reads it, footage or generated clips get cut to the narration, ffmpeg burns in captions and music. An agent can assemble that end to end in a weekend and the output will be watchable. What it cannot do is conjure the video model itself, so anything beyond stock footage means renting Veo, Kling, Runway or similar per second, which is a hard third-party dependency and usually the real bill. You also inherit all the boring parts the SaaS hides: aspect ratio variants, caption timing that does not drift, voice consistency, and render queues that do not die halfway through. Worth building if you make videos on a schedule and want the pipeline as code; not worth it if you make three videos a month.",
+  "coreLoopDIY": "Takes a topic or script, generates narration and a shot list, fetches or generates clips, and renders a captioned vertical video locally with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "An LLM API key for script and shot list generation",
+    "A TTS provider key, or Piper running locally for offline voice",
+    "A stock footage API key (Pexels or Pixabay) and optionally a hosted video model key for generated shots",
+    "Disk space and patience for renders"
+  ],
+  "whatYouLose": [
+    "Access to whatever tuned or licensed video models the product bundles, which is most of the perceived quality",
+    "Template and style presets that someone already tested against real audience retention",
+    "Browser editing: timeline tweaks, reroll this one shot, swap the voice without re-rendering everything",
+    "Render farm reliability, your laptop is the queue now",
+    "Rights hygiene on music and footage, which becomes your problem the moment you monetize"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The orchestration is a script. The generative model and the GPUs behind it are not, and that is the part you rent no matter which side you land on.",
+  "whyPeopleStillPay": "Because the marginal cost of one more video is what matters, and a hosted tool prices that in one place instead of across four API dashboards plus your own render time. The editing loop matters too: seeing a bad shot and replacing just that shot in a browser is worth real money compared to re-running a CLI and waiting. And for most buyers the video is a means to an end, so the moment the pipeline needs debugging the whole thing stops being a tool and starts being a project.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline is a weekend; the model bill is forever.",
+  "prompt": "Build a local CLI tool that turns a topic into a finished short-form video. No web app, no accounts, no telemetry.\n\nStack, non negotiable:\n- TypeScript on Node 20, run with tsx\n- ffmpeg and ffprobe invoked as child processes, assume they are on PATH\n- Commander for the CLI, Zod for config and LLM output validation\n- Local SQLite via better-sqlite3 to track jobs and cache API results\n- Secrets in .env only: OPENAI_API_KEY, PEXELS_API_KEY. Read with dotenv, fail loudly with a clear message if missing.\n\nCommands:\n- `vid script \"topic\"` : call the LLM once, return JSON validated by Zod: title, hook, 6 to 10 segments, each with narration text (max 20 words) and a 3 to 6 word footage search query. Write to ./projects/SLUG/script.json.\n- `vid assets SLUG` : for each segment, search Pexels Videos for the query, download the first vertical clip at least 1080 wide, cache by query hash in ./cache. Skip if already present.\n- `vid voice SLUG` : synthesize narration per segment via OpenAI TTS to ./projects/SLUG/audio/NN.mp3. Measure real duration with ffprobe and write it back into script.json.\n- `vid render SLUG` : trim each clip to its segment audio duration, scale and center crop to 1080x1920, concat, mux the narration, burn in captions from the narration text using ffmpeg drawtext with a readable outlined font, write ./projects/SLUG/out.mp4.\n- `vid all \"topic\"` : run the four steps in order.\n\nRules:\n- Every step is idempotent and resumable, never redo work that exists on disk.\n- Caption timing comes from measured audio durations, not guesses. One caption block per segment.\n- No music track, no generative video model, no cloud storage. Say so in the README.\n- Log each ffmpeg command before running it so failures are debuggable.\n- Ship a README with install steps, the exact ffmpeg version tested, and a one paragraph note that stock footage licensing is the user's responsibility.\n- Include one end to end smoke test that runs against fixture JSON and a 2 second sample clip, no network calls.",
+  "promptCurated": false
+}
