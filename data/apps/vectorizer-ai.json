@@ -1,0 +1,51 @@
+{
+  "slug": "vectorizer-ai",
+  "name": "Vectorizer.AI",
+  "domain": "vectorizer.ai",
+  "category": "design",
+  "subcategory": "raster to vector conversion",
+  "tagline": "Uploads a bitmap image and returns a clean, editable SVG traced with their own vectorization models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://vectorizer.ai/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Plans are metered by number of results, so effective monthly cost depends on volume.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Tracing a bitmap into vectors is a solved open source problem, up to a point: potrace for bilevel, VTracer for color, both wrapped in a local web UI in an afternoon. For clean flat-color logos and screenshots, that DIY build gets you most of the way there and you never pay per result again. Where it falls down is everything Vectorizer.AI actually spent years on: corner versus curve decisions, anti-aliased edge cleanup, noisy scans, gradients, and output that a designer does not have to spend twenty minutes repairing in Illustrator. The gap is not a missing feature, it is output quality on hard inputs, which is hard to feel until you feed it a photographed sticker or a JPEG artifact soup. Build it, use it for the easy 80 percent, keep a few paid credits around for the images that matter.",
+  "coreLoopDIY": "Drop a PNG or JPEG into a local page, tweak a handful of tracing parameters, and get a downloadable SVG with a side by side preview.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 locally",
+    "vtracer (pip) and the potrace binary",
+    "a browser, no GPU needed",
+    "patience for parameter fiddling on messy inputs"
+  ],
+  "whatYouLose": [
+    "Output quality on anti-aliased, noisy, or JPEG-compressed inputs, where open source tracers produce stair-stepped or blobby paths",
+    "Smart corner and curve fitting, so your paths have more nodes than a designer wants",
+    "Gradient, transparency and stroke reconstruction rather than flat stacked color shapes",
+    "Extra export formats like PDF, EPS and DXF, plus their interactive result editor",
+    "Someone else's problem when a client file just refuses to trace cleanly"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The interesting work is not \"turn pixels into paths\", it is deciding which pixels were never meant to be there. That judgment is tuned, not configured.",
+  "whyPeopleStillPay": "Because vectorization is judged by a human looking at the result at 400 percent zoom, and open source tracers lose on exactly the inputs people bring: phone photos of logos, low-res GIFs pulled off an old site, scans with paper texture. A designer billing hourly will happily pay per image rather than spend half an hour manually deleting stray nodes, and the metered pricing means the pain of paying scales with how much you use it. The self-hosted version wins on volume and privacy, not on the difficult ten percent.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A local tracer is a genuinely good afternoon project, just do not expect it to survive contact with a photographed logo.",
+  "prompt": "Build a local raster-to-vector tracing tool. No accounts, no cloud, no telemetry, no external API calls.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, uvicorn\n- vtracer (pip) for color tracing, potrace binary via subprocess for bilevel tracing\n- Pillow for preprocessing\n- One server-rendered HTML page with vanilla JS, no build step, no npm\n\nBehaviour:\n- Single page at / with a drag-and-drop upload area accepting PNG, JPEG, GIF, WEBP, BMP.\n- Mode selector: \"color\" (vtracer) or \"black and white\" (potrace via pbm conversion).\n- Exposed parameters with sane defaults and short plain-language labels: color precision, gradient step, filter speckle size, corner threshold, path simplification, splice threshold, and a \"max output size\" scale.\n- POST /trace accepts the file plus params, writes to a temp dir, runs the tracer, returns the SVG as text.\n- Preprocessing helpers before tracing: optional despeckle (median filter), optional upscale 2x with nearest neighbour for tiny inputs, optional posterize to N colors for JPEG-heavy inputs.\n- Result view: original bitmap and rendered SVG side by side, synced zoom via CSS transform, a node count readout, and the SVG file size.\n- Buttons: download .svg, copy SVG markup, re-trace with changed params without re-uploading.\n- Batch mode at /batch: accept multiple files, trace with current params, stream a zip.\n- Cache traced results by hash of (file bytes + params) in a local tmp folder so re-renders are instant.\n\nExplicitly out of scope: user accounts, hosted deployment, PDF/EPS/DXF export, an interactive node editor, any ML model training, any paid API fallback.\n\nDeliverables: main.py, templates/, static/, requirements.txt, .env.example for PORT and TMP_DIR only, and a README that is honest about the limits: this handles flat-color art and clean logos well, and degrades on noisy photos, gradients and heavy JPEG artifacts.\n\nRun it, trace two sample images you generate yourself (one flat logo shape, one noisy gradient), and print the node counts so I can see the difference.",
+  "promptCurated": false
+}
