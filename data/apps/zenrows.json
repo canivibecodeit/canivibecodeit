@@ -1,0 +1,51 @@
+{
+  "slug": "zenrows",
+  "name": "ZenRows",
+  "domain": "zenrows.com",
+  "category": "dev-tools",
+  "subcategory": "web scraping API",
+  "tagline": "A scraping API that handles proxy rotation, headless browsers, and anti-bot bypass so your requests come back as HTML instead of a CAPTCHA.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.zenrows.com/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The code part of ZenRows is genuinely easy: an agent can write you a Playwright fetcher with retries, caching, and CSS extraction in an afternoon, and for polite public sites that is all you need. The part you cannot write is a pool of residential and mobile IPs, plus a continuously maintained set of TLS fingerprint, header ordering, and browser-signal tricks that keep Cloudflare, DataDome, and PerimeterX from serving you a challenge page. That side is an arms race with a full time team on the other end, and your datacenter IP loses it in the first ten minutes on any target that actually cares. Self-hosting proxies means renting them from someone anyway, at which point you are paying for the same thing with more steps. Build the local scraper for easy targets, pay someone for the hard ones.",
+  "coreLoopDIY": "A local Playwright based scraper CLI that fetches URLs with retries, rotating user agents, on-disk caching, and CSS or XPath extraction into JSON.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node.js and a Playwright browser install",
+    "Optional: your own proxy credentials in .env if you have any",
+    "Tolerance for being blocked by any site behind serious bot protection"
+  ],
+  "whatYouLose": [
+    "Residential and mobile IP pools, which is most of what you were actually buying",
+    "Anti-bot bypass that keeps working after the vendor ships new detection, updated for you weekly",
+    "Geo targeting by country or city on demand",
+    "Concurrency at scale without your own IP getting rate limited or banned",
+    "Someone else eating the maintenance when a target site changes its defenses"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The proprietary asset is not code, it is IP inventory plus a live map of which fingerprints currently pass which vendors.",
+  "whyPeopleStillPay": "Because scraping is not a parsing problem, it is an access problem. Writing the extractor is thirty minutes; getting a 200 back from a Cloudflare protected page in a specific country, ten thousand times an hour, without maintaining a proxy fleet, is the entire product. People pay per request so that the cat and mouse game is somebody else's on-call rotation, and so that when a target flips on a new detection vendor they file a support ticket instead of losing a week.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scraper is a one sitting build; the network behind it is not. The moat is a rented pool of residential IPs plus a constantly refreshed bag of anti-bot evasion tricks, neither of which you can write.",
+  "prompt": "Build a local command line web scraper in Node.js with TypeScript. No cloud, no accounts, no telemetry.\n\nStack: Node 20+, TypeScript, Playwright (chromium), Commander for the CLI, Cheerio for HTML parsing, better-sqlite3 for the cache. No web UI.\n\nWhat it does:\n1. `scrape fetch URL` fetches a page and prints the HTML.\n2. `scrape extract URL --config recipe.json` fetches the page and extracts fields using a JSON recipe of the form { \"title\": \"h1\", \"price\": \".price::text\", \"links\": [\"a@href\"] }. Support ::text, ::html, and @attr suffixes.\n3. `scrape crawl seeds.txt --config recipe.json --out results.jsonl` walks a list of URLs with a concurrency limit and appends one JSON object per line.\n\nFetching rules:\n- Two modes: `--mode http` uses plain fetch with realistic headers, `--mode browser` uses Playwright chromium headless. Default to http and auto-fall back to browser on a 403, 429, or a body shorter than 500 bytes.\n- Rotate a small built-in list of realistic desktop user agent strings and matching Accept-Language and sec-ch-ua headers.\n- Optional proxy support: read PROXY_URL from .env and pass it to both fetch and Playwright. No proxies are bundled.\n- Retries with exponential backoff and jitter, configurable max attempts, per-domain rate limiting with a default of one request per second.\n- Respect robots.txt by default, with an explicit `--ignore-robots` flag.\n- Cache every successful response body in SQLite keyed by URL, with `--max-age` and `--no-cache` flags so repeated runs are free.\n\nOutput and ergonomics: JSONL results, a summary line with counts of ok, blocked, and failed, and a `--verbose` flag that logs each request with status and timing.\n\nExplicitly out of scope: do not attempt CAPTCHA solving, TLS fingerprint spoofing, or anti-bot evasion. Add a README section stating plainly that sites behind Cloudflare, DataDome, or PerimeterX will likely block this and that the fix is a commercial proxy or scraping API, not more code.\n\nShip a README with install steps, a .env.example containing PROXY_URL, an example recipe.json, and one working end to end example against a scraping-friendly test site.",
+  "promptCurated": false
+}
