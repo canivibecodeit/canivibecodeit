@@ -1,0 +1,51 @@
+{
+  "slug": "smappen",
+  "name": "Smappen",
+  "domain": "smappen.com",
+  "category": "analytics",
+  "subcategory": "geospatial catchment areas",
+  "tagline": "Draw travel time and radius areas on a map, then get population and demographic stats for whatever falls inside.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://smappen.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The geometry half of Smappen is a solved problem: isochrones come from routing engines like Valhalla, OSRM or OpenRouteService, and radius circles are one Turf.js call. A coding agent can absolutely give you a map where you drop pins, draw 15-minute drive areas, union them, and export GeoJSON. The half that hurts is the data underneath: population counts, household income, age bands, competitor POIs, and admin boundary overlaps, per country, cleaned and joined so the number that pops up is trustworthy. You can approximate that with open rasters like GHS-POP or Kontur H3 tiles and get within shouting distance for population, but the moment someone asks for spending power by age bracket in a specific market you are back to buying data. Build it if you mainly need shapes and rough headcounts; pay if the numbers go in a site selection deck.",
+  "coreLoopDIY": "A local map app where you place points, generate drive/walk/bike isochrones or radii, combine or subtract them, read an estimated population inside, and export the result as GeoJSON.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An OpenRouteService or Mapbox API key for isochrones, or a self-hosted Valhalla container if you want no third party",
+    "An open population dataset (GHS-POP raster or Kontur H3 population GeoJSON) downloaded locally",
+    "Basic comfort with GeoJSON and a tile provider for basemaps"
+  ],
+  "whatYouLose": [
+    "Curated demographic layers beyond raw population: income, age, household composition, consumption habits, per country",
+    "POI and competitor datasets you can overlay and count inside a zone",
+    "Polished multi-zone editing, styling, and the export formats colleagues actually open (XLSX, KML, shapefile, clean PDF maps)",
+    "Shared team workspaces and link sharing for maps you send to a client",
+    "Someone else's problem when a routing engine or data vendor changes and your numbers shift"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The routing math is commodity and open. The licensed demographic and POI layers, normalised across dozens of countries, are the thing you cannot download on a Saturday.",
+  "whyPeopleStillPay": "Because the deliverable is not a polygon, it is a defensible number. Retail expansion, franchise territory splits, and clinic catchment reports all end with someone stating how many people live within 20 minutes and what they earn, and that claim needs to survive scrutiny from someone who did not build the tool. Smappen sells the joined datasets, consistent country coverage, and exports that drop into a deck. A DIY isochrone viewer gives you the shape for free and leaves the credibility as an exercise.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The map is a weekend. The census join is a procurement process.",
+  "prompt": "Build a local single-user web app for drawing travel time and radius catchment areas on a map and estimating the population inside them.\n\nStack, no substitutions:\n- Vite + React + TypeScript on the frontend\n- MapLibre GL JS for the map, basemap from a free raster tile source configured in one place\n- Turf.js for all geometry ops (union, difference, area, point-in-polygon)\n- Node + Express backend in the same repo, TypeScript, one process\n- better-sqlite3 for persistence, file at ./data/app.db, no ORM\n- No auth, no accounts, no telemetry, no cloud services beyond the two below\n\nExternal services (keys in .env, never hardcoded, .env.example committed):\n- ORS_API_KEY for OpenRouteService isochrones. Backend proxies the call, frontend never sees the key.\n- Optional MAPTILER_KEY for the basemap; fall back to a keyless raster source if absent.\n\nFeatures in scope:\n1. Click the map or geocode an address to place a point. Multiple points allowed.\n2. Per point, generate an area: mode (drive, bike, walk) plus either travel time in minutes or a straight radius in km. Radius is computed locally with Turf, isochrones via the backend proxy.\n3. Combine mode: union all areas, or subtract a selected area from the union. Show total area in km2.\n4. Population estimate: read a local Kontur H3 population GeoJSON (path in .env, ship a small sample file plus a README note on where to download a country extract). Sum population of hexes whose centroid falls inside the shape. Label it clearly as an estimate with the dataset name and vintage.\n5. Save, list, rename, and delete named maps in SQLite. Each map stores its points, area configs, and combine state.\n6. Export the current shape as GeoJSON download, and a CSV of per-area population and km2.\n\nOut of scope, do not attempt: demographics beyond population, competitor POIs, PDF map export, sharing links, multi-user, mobile app.\n\nDeliverables: README with setup, a single `npm run dev` that starts both frontend and backend, seeded sample map, and an ISOCHRONE_CACHE table so repeat requests do not burn API quota.",
+  "promptCurated": false
+}
