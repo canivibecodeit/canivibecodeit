@@ -1,0 +1,52 @@
+{
+  "slug": "nomad-list",
+  "name": "Nomad List",
+  "domain": "nomads.com",
+  "category": "travel",
+  "subcategory": "city data and nomad community",
+  "tagline": "Crowdsourced city rankings, cost of living data and a paid members community for remote workers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://nomads.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible product is a sortable table of cities with cost, internet speed, safety and weather scores, and yes, an agent can build you a personal version of that table in an afternoon. The problem is where the numbers come from: years of member-submitted rents, speed tests, check-ins and reviews from people who actually lived there, continuously corrected by the next person who shows up. Strip that out and you are left with a scoring UI pointed at whatever public sources you can legally pull, which is fine for a shortlist and useless for the parts people actually pay for. The other half of the value is knowing who else is in Lisbon next month, plus the chat, and that is pure network. Build the dashboard if you like ranking things, do not expect it to replace the membership.",
+  "coreLoopDIY": "A local city-shortlist dashboard where you maintain your own cost and connectivity numbers per city, pull live weather and air quality from free APIs, and rank candidates with weights you control.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "A hand-maintained CSV of candidate cities with your own cost, rent and internet figures",
+    "Internet access for the free Open-Meteo weather and air quality endpoints",
+    "Willingness to keep the data current yourself"
+  ],
+  "whatYouLose": [
+    "Crowdsourced cost and rent data corrected by thousands of people who lived there recently",
+    "Member-submitted internet speed tests per city and per coworking space",
+    "The who-is-in-town map, meetups and the members chat, which is most of the actual reason people subscribe",
+    "Reviews, safety signals and visa notes written by people with skin in the game",
+    "Mobile-friendly polish and someone else keeping the dataset alive when you get bored"
+  ],
+  "moatTags": [
+    "network-effects",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The table is the marketing. The community and the decade of member submissions behind the numbers are the product.",
+  "whyPeopleStillPay": "Because deciding where to spend the next three months is a high-stakes, low-information decision, and the membership sells both sides of that: a dataset assembled from people who already made the mistake, and a way to land somewhere already knowing five people. Neither of those is a software feature. You can replicate the ranking math trivially and still be guessing at Mexico City rent, so most people pay once, use it hard for a month of planning, and consider it cheap next to one bad lease.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scoring table is a weekend project; the numbers inside it are not. The moat is a decade of member-submitted cost and connectivity data plus a community that tells you who else is in town.",
+  "prompt": "Build a local-only city shortlist dashboard called \"Shortlist\" for choosing where to live for a few months.\n\nStack, no substitutions: Next.js 14 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3, Drizzle for schema and migrations. Runs with `npm run dev` on localhost. No auth, no accounts, no telemetry, no hosted database.\n\nData model:\n- cities: id, name, country, latitude, longitude, monthly_cost_usd, rent_1br_usd, internet_mbps, visa_notes (text), safety_note (text), my_rating (1 to 5, nullable), notes (text), updated_at.\n- weather_cache: city_id, month (1 to 12), avg_high_c, avg_low_c, precip_mm, fetched_at.\n\nSeeding: read `data/cities.csv` at the repo root and upsert on (name, country). Ship a sample CSV with 8 cities and clearly fake placeholder numbers, with a comment in the README that every cost figure is the user's own research and the app does not scrape anyone.\n\nLive data: for each city fetch monthly climate normals and current air quality from the Open-Meteo free API (no key required) using latitude and longitude, cache results in SQLite for 30 days, and degrade gracefully to \"no data\" if the request fails. Do not call any other third-party service.\n\nUI, three pages only:\n1. `/` a sortable, filterable table of cities showing cost, rent, internet, a weather-fit badge for a month picked in a dropdown, and a computed Score.\n2. `/city/[id]` detail page with an editable form for all manual fields plus the cached 12-month climate strip.\n3. `/weights` sliders for the score weights (cost, rent, internet, warmth preference, my_rating), persisted in SQLite, applied everywhere immediately.\n\nScoring: normalise each numeric field across the current city set to 0 to 1, invert cost and rent, apply the weights, show the raw components on hover so the number is never a black box.\n\nExplicitly out of scope: user accounts, any community or chat feature, check-ins, other people's data, scraping, image uploads, mobile apps, deployment config.\n\nDeliver a README with setup steps, the CSV column spec, and one blunt paragraph stating that this ranks numbers you enter yourself and is not a substitute for crowdsourced cost data. Put any future API keys in `.env` and commit `.env.example` only.",
+  "promptCurated": false
+}
