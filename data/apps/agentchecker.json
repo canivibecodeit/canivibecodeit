@@ -1,0 +1,52 @@
+{
+  "slug": "agentchecker",
+  "name": "Agentchecker",
+  "domain": "agentchecker.ai",
+  "category": "dev-tools",
+  "subcategory": "AI agent testing and evals",
+  "tagline": "Automated checking of AI agent behavior: run test cases against an agent, score the outputs, flag regressions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://agentchecker.ai/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "An agent eval harness is one of the most one-shottable categories in existence: a test file format, a runner, a scoring pass, a table of results. A coding agent will get you a local CLI that hits your agent endpoint, judges outputs with an LLM, stores runs in SQLite and screams when a score drops. Where it gets thin is everything around the loop: trace ingestion from real production traffic, multi-turn and tool-call replay, dataset curation, team dashboards, CI comments on pull requests. Judge reliability is also a real problem and not one you solve in an afternoon: your homemade rubric will drift and you will not notice for weeks. Build it if your agent is yours and your test set is small, buy something if the evals need to be trusted by people other than you.",
+  "coreLoopDIY": "Runs a folder of YAML test cases against your agent's HTTP endpoint, scores each response with an LLM judge plus deterministic assertions, and diffs the run against the last one to flag regressions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "An LLM API key for the judge model (OpenAI or Anthropic)",
+    "An HTTP endpoint or local function that exposes the agent you want to test",
+    "A hand-written test set, which is the actual work"
+  ],
+  "whatYouLose": [
+    "Production trace capture: you only test what you thought to write down",
+    "Multi-turn conversation and tool-call replay, which is much harder than single-shot scoring",
+    "Judge calibration and inter-rater sanity checks, so your scores drift silently",
+    "CI integration that annotates pull requests instead of dumping a table in a terminal",
+    "Anything resembling a shared dashboard or review queue for non-engineers"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-data"
+  ],
+  "moatNotes": "The defensible part is not the runner, it is calibrated judges and the accumulated eval datasets. Neither ships in a weekend.",
+  "whyPeopleStillPay": "Because eval infrastructure is the work nobody on the team wants to own. A homemade harness starts as 200 lines and ends as a small internal product with its own bugs, its own flaky judge, and one person who understands it. Paid tools also arrive with trace ingestion and dataset tooling already wired up, which means your test set grows from real traffic instead of from your imagination. If agent quality is the thing your customers are paying you for, outsourcing the scoreboard is a reasonable trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Details on this one are thin, so treat the read as directional: the category is easy to clone, the trustworthy version is not.",
+  "prompt": "Build a local AI agent evaluation harness. No accounts, no hosted service, no telemetry.\n\nStack, non-negotiable: TypeScript on Node 20, a CLI built with commander, SQLite via better-sqlite3, YAML parsing with the yaml package, Vitest for the tool's own tests. A single static dashboard served by a tiny Express route. No React, no build step for the UI: server-rendered HTML plus a bit of vanilla JS.\n\nWhat it does:\n1. Reads test cases from ./suites/*.yaml. Each case has: id, input (string or array of chat turns), optional tools_expected (list of tool names), optional contains and not_contains string assertions, optional rubric (free text for the judge), optional weight.\n2. Reads target config from ./agent.config.yaml: an HTTP endpoint, method, headers template, and a JSON body template with {{input}} interpolation, plus a JSONPath-ish response field to extract the agent's answer.\n3. For each case, calls the agent, records latency, raw request and raw response.\n4. Scores each case two ways: deterministic assertions (contains, not_contains, tools_expected) and an LLM judge call scoring 0 to 5 against the rubric with a required one-sentence justification. Judge model and key come from .env (ANTHROPIC_API_KEY or OPENAI_API_KEY, JUDGE_MODEL).\n5. Runs cases with a concurrency limit of 4 and retries transient failures twice.\n6. Persists every run to SQLite: runs table, results table, full payloads.\n\nCommands: `check run [suite]`, `check diff [runA] [runB]` printing per-case score deltas and a regression list, `check ui` serving a dashboard at localhost:4321 with a run list, a run detail table, and a case detail view showing request, response, assertions and judge justification. `check run --fail-under 3.5` exits non-zero so it works in CI.\n\nExplicitly out of scope: production trace ingestion, multi-turn tool-call replay, user auth, hosted storage, judge fine-tuning, alerting.\n\nWrite a README covering setup, .env keys, one example suite with three cases, and an example agent.config.yaml pointing at a dummy local endpoint. Include a .env.example. Never commit keys. Ship it working end to end against a stub agent server included in the repo under ./examples/stub-agent.ts.",
+  "promptCurated": false
+}
