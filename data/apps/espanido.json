@@ -1,0 +1,52 @@
+{
+  "slug": "espanido",
+  "name": "Espanido",
+  "domain": "espanido.com",
+  "category": "education",
+  "subcategory": "Spanish language learning",
+  "tagline": "A Spanish learning app built around short, repeated practice sessions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://espanido.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Language learning apps used to be unclonable because the content was the product: someone had to write, record and sequence thousands of items. That is no longer strictly true, since a decent model will happily generate graded Spanish drills, corrections and a conversation partner on demand. What an agent will not hand you in one session is a curriculum that has been tuned against real learner failure data, clean native audio, a phone app, and the streak machinery that actually makes you show up. A local SRS deck plus an LLM tutor gets you most of the practice value and none of the polish. Treat it as a weekend build with obvious rough edges, not a drop-in replacement.",
+  "coreLoopDIY": "A local web app that generates graded Spanish exercises, drills them on a spaced repetition schedule, grades free-text and spoken answers with an LLM, and tracks what you keep getting wrong.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for exercise generation and grading",
+    "A text-to-speech API or local TTS for listening drills",
+    "Willingness to run it in a browser tab instead of on your phone",
+    "Some patience with occasionally wrong grammar explanations"
+  ],
+  "whatYouLose": [
+    "A curriculum ordered by what learners actually trip on, rather than whatever the model felt like generating",
+    "Consistent native-speaker audio and accent variety",
+    "A real mobile app with offline mode and notifications",
+    "Streaks, reminders and the mild guilt that makes daily practice happen",
+    "Trustworthy correction: your LLM tutor will confidently invent a rule now and then"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The defensible part is not the exercises, it is knowing which exercises to show you next and having recorded audio that does not sound like a robot reading a menu.",
+  "whyPeopleStillPay": "Because the hard part of learning a language is adherence, not content generation, and a paid app with a phone icon, a streak counter and a sequence someone else already thought through beats a localhost tab you built and abandoned on day nine. People also pay for the assurance that the grammar explanation is correct, which is exactly the thing a hand-rolled LLM tutor cannot promise. If you already have the discipline, the DIY version is genuinely fine and considerably more customizable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The drills are cheap now, the sequencing and the audio are not. Build it if you want vocabulary you actually chose.",
+  "prompt": "Build a local-first Spanish practice app called \"drills\". Single user, runs on my machine, no accounts, no telemetry, no cloud database.\n\nStack, no substitutions:\n- Python 3.11 with FastAPI\n- SQLite via sqlite3, single file drills.db, schema created on first run\n- Server-rendered Jinja2 templates plus HTMX for interactions, no React, no build step\n- OpenAI-compatible API for generation and grading, key read from OPENAI_API_KEY in .env via python-dotenv\n- OpenAI TTS for audio, cached as mp3 files in ./audio and reused, never regenerated\n\nCore loop:\n1. I create a \"topic\" by typing a plain-English description, for example \"past tense of irregular verbs\" or \"ordering food in Mexico City\".\n2. The app calls the model once and stores 20 exercise items for that topic. Each item is JSON: prompt_es, prompt_en, expected_answer, item_type (one of translate_to_es, translate_to_en, fill_blank, listening), difficulty 1 to 5.\n3. A review screen serves due items one at a time. I type a free-text answer.\n4. Grading: exact match first, and only if that fails, one model call that returns strict JSON with correct (bool), a one-sentence explanation in English, and a better_phrasing string. Show all three.\n5. Scheduling: plain SM-2 style. Store ease, interval_days, due_at, lapses per item. Wrong answers reset interval to 1 day.\n6. For listening items, synthesize prompt_es with TTS, cache it, and play it with an audio tag. I type what I heard.\n\nAlso build:\n- A \"leeches\" page listing items with 3 or more lapses, sorted worst first\n- A stats page: items due today, reviews done per day for the last 30 days as a plain HTML bar chart, accuracy per topic\n- A GET /export endpoint dumping all topics, items and review history as JSON\n\nExplicitly out of scope: mobile app, push notifications, speech recognition, multi-user, streaks, payment, deployment configs.\n\nDeliver: main.py, db.py, llm.py, templates/, static/, requirements.txt, .env.example, and a README with exact run commands. Seed one example topic so the first run has something to review. Handle model calls that return malformed JSON by retrying once then surfacing a readable error, never a stack trace.",
+  "promptCurated": false
+}
