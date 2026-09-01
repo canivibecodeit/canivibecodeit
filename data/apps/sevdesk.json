@@ -1,0 +1,52 @@
+{
+  "slug": "sevdesk",
+  "name": "sevDesk",
+  "domain": "sevdesk.de",
+  "category": "finance-accounting",
+  "subcategory": "German bookkeeping and invoicing",
+  "tagline": "German cloud accounting: invoices, receipts, VAT returns and DATEV/tax office exports for small businesses.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://sevdesk.de/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build an invoice generator with sequential numbering, a receipt inbox and a revenue chart in an afternoon. What you cannot build is a tool that satisfies German bookkeeping law: GoBD-compliant immutable audit trails, correct Umsatzsteuer handling including reverse charge and OSS, ELSTER submission, DATEV exports your Steuerberater will accept, and e-invoicing formats like ZUGFeRD and XRechnung. Those are not features, they are a moving legal target with certified interfaces and a tax advisor on the other end who will refuse your homemade CSV. A DIY version is fine for issuing invoices and eyeballing cashflow, and actively risky as your book of record. Pay for the compliance, not the UI.",
+  "coreLoopDIY": "A local invoicing and expense ledger that issues numbered PDF invoices, logs receipts with categories and VAT rates, and exports a clean CSV plus a ZUGFeRD-ish XML attempt for your accountant.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "SQLite on disk",
+    "your own invoice numbering policy and a backup habit",
+    "a tax advisor who agrees to accept your export format"
+  ],
+  "whatYouLose": [
+    "GoBD-compliant immutability and audit logging, the part a tax audit actually cares about",
+    "ELSTER filing and automated Umsatzsteuervoranmeldung",
+    "DATEV export your Steuerberater will take without complaint",
+    "Bank feeds and automatic transaction matching",
+    "OCR receipt scanning, mobile app, and validated XRechnung/ZUGFeRD output"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "German tax law changes yearly and the certified interfaces (ELSTER, DATEV, XRechnung) are the actual product surface.",
+  "whyPeopleStillPay": "Because the customer is not really you, it is the Finanzamt and your tax advisor. Accounting software is priced on the risk it absorbs: correct VAT logic, retention rules, an unbroken audit trail, and export formats that a third party will accept without argument. A self-built ledger shifts all of that risk onto you at the worst possible moment, several years later, in writing. The monthly fee is cheaper than one contested audit or one accountant re-keying your year by hand.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The invoice PDF is a weekend, the legal surface is not. The moat is German tax compliance: GoBD retention, ELSTER filing and DATEV exports that a Steuerberater will actually accept.",
+  "prompt": "Build a local-first invoicing and expense ledger for a German freelancer. Consolation build for sevDesk, explicitly not a compliant book of record.\n\nStack, no alternatives: Node 20, TypeScript, Fastify, SQLite via better-sqlite3, server-rendered HTML with plain templates and a little vanilla JS. PDF generation with pdfkit. No React, no cloud, no accounts, no telemetry.\n\nData model:\n- clients: name, address, country, vat_id, email\n- invoices: sequential number (per year, format YYYY-0001, never reused, never deleted), client_id, issue_date, service_period, due_date, status (draft, sent, paid, cancelled), notes\n- invoice_lines: description, quantity, unit_price_cents, vat_rate (0, 7, 19), reverse_charge flag\n- expenses: date, vendor, gross_cents, vat_rate, category, receipt file path\n- append_only_log: every create/update/cancel written as a JSON row with timestamp, no updates or deletes on this table\n\nBehaviour:\n- Cancelled invoices stay in the database and get a cancellation entry, never a hard delete.\n- Compute net, VAT per rate, and gross. If reverse_charge is set, VAT is 0 and the PDF prints \"Steuerschuldnerschaft des Leistungsempfaengers\".\n- Small business mode toggle in .env: if KLEINUNTERNEHMER=true, all VAT is 0 and the PDF prints the Paragraph 19 UStG note.\n- Invoice PDF includes all mandatory fields: both addresses, invoice number, issue date, service period, itemised lines, VAT breakdown, total, your tax number.\n- Receipt upload stores files under ./data/receipts with a hash in the filename.\n- Reports page: revenue and expenses per month, VAT collected minus VAT paid per quarter, as HTML plus CSV download.\n- Export: one CSV of all bookings (date, doc number, counterparty, net, vat rate, vat amount, gross, category) intended for handing to a tax advisor.\n\nOut of scope, do not attempt or fake: ELSTER submission, DATEV format, valid ZUGFeRD or XRechnung XML, bank feeds, OCR, multi-user, dunning automation.\n\nSecrets and config in .env: COMPANY_NAME, COMPANY_ADDRESS, TAX_NUMBER, IBAN, KLEINUNTERNEHMER. Provide .env.example.\nSeed script with two clients and three invoices. README that states in the first line that this is not GoBD-compliant and must not be used as the sole book of record. Nightly-ish backup script that copies the SQLite file with a date suffix.",
+  "promptCurated": false
+}
