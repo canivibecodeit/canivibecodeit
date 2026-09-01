@@ -1,0 +1,52 @@
+{
+  "slug": "resend",
+  "name": "Resend",
+  "domain": "resend.com",
+  "category": "email",
+  "subcategory": "transactional email API",
+  "tagline": "An email API for developers: send transactional and marketing mail with React templates, logs, and webhooks.",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly, volume tiered",
+    "unit": "usage",
+    "source": "https://resend.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The code part of Resend is genuinely small: an HTTP endpoint, a template renderer, a queue, a log table. An agent can write that before lunch. What it cannot write is a warmed pool of sending IPs, established relationships and feedback loops with Gmail, Outlook and Yahoo, or the years of reputation data that decide whether your password reset lands in the inbox or the spam folder. Self-hosting a mail sender from a fresh VPS IP is the classic way to discover that deliverability is a reputation business, not a protocol. The honest personal build is a thin service that wraps someone else's sending infrastructure, which means you still pay somebody, just less and with worse dashboards.",
+  "coreLoopDIY": "A self-hosted send API that renders templates, queues messages, hands them to Amazon SES, and records every send, bounce and complaint in a local database with a small log viewer.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An AWS account with SES moved out of sandbox",
+    "A domain you control, plus DNS access for SPF, DKIM and DMARC records",
+    "Somewhere to run a small Node process with a persistent disk",
+    "Patience for a bounce and complaint rate you now have to police yourself"
+  ],
+  "whatYouLose": [
+    "Warmed, monitored IP pools and the deliverability team that babysits them",
+    "Suppression list handling, bounce classification and complaint loops done for you",
+    "A dashboard with searchable message logs, retries and per-domain delivery stats",
+    "Maintained SDKs plus the React Email ecosystem and its template rendering edge cases",
+    "Someone to blame and page at 3am when mail stops flowing"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "Deliverability is the product. The API surface is the wrapper around it, and wrappers are cheap.",
+  "whyPeopleStillPay": "Because email is the one channel where the failure mode is silent. Nothing errors, the request returns 200, and the customer simply never gets the invite. Paying an ESP buys you inbox placement as a service: reputation someone else built, bounce and complaint handling someone else automated, and logs that tell you what actually happened. For most teams the monthly bill is far cheaper than one afternoon of debugging why Outlook started quietly dropping their signup emails.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The API, the templates and the log viewer are a weekend; inbox placement is not. The moat is warmed IP reputation and a working relationship with the four mailbox providers that matter.",
+  "prompt": "Build a small self-hosted transactional email service called \"postbox\". This is the consolation build for Resend: it owns the API, templates and logs, and delegates actual delivery to Amazon SES.\n\nStack, no substitutions:\n- TypeScript on Node 20, Hono for the HTTP server\n- SQLite via better-sqlite3, single file at ./data/postbox.db\n- @aws-sdk/client-sesv2 for sending, @aws-sdk/client-sns not needed\n- React Email (@react-email/components) rendered to HTML at request time\n- Zod for request validation, no ORM, plain SQL in a migrations.sql file\n\nEndpoints:\n- POST /emails: body { to, from, subject, template, props, idempotencyKey? }. Validate, render the named template to HTML plus a plaintext fallback, insert a row with status \"queued\", return { id }. Reject sends to any address on the suppression table with 422.\n- GET /emails/:id: status, timestamps, SES message id, last error.\n- GET /emails: paginated list, filter by status and recipient domain.\n- POST /webhooks/ses: accepts SES event notifications via SNS HTTP subscription, verifies the SNS signature properly, and records deliveries, bounces and complaints. Hard bounces and any complaint insert into the suppression table.\n- GET /: a single server-rendered HTML page listing recent sends with status badges and a search box. No client framework, no build step for the UI.\n\nWorker:\n- An in-process worker polls queued rows every second, sends via SES, retries with exponential backoff up to 5 attempts, marks permanent failures as \"failed\". Concurrency limit of 5. Respect a configurable per-second send rate.\n\nTemplates:\n- ./templates/*.tsx exporting default React components. Ship three: welcome, password-reset, receipt. A template registry maps names to components so unknown names 400.\n\nRules:\n- Auth is a single bearer token from .env, compared with timingSafeEqual. No user accounts, no signup, no multi-tenancy.\n- Secrets in .env: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, POSTBOX_TOKEN, MAIL_FROM. Include .env.example.\n- No telemetry, no analytics, no outbound calls except AWS.\n- Structured JSON logs to stdout.\n- Vitest tests for validation, suppression enforcement, retry backoff and SNS signature verification, with SES mocked.\n- README covers SES sandbox exit, SPF, DKIM and DMARC DNS records, and a curl example.\n\nOut of scope, do not build: marketing campaigns, contact lists, unsubscribe pages, A/B testing, inbound email parsing, custom sending IPs, a dashboard login.",
+  "promptCurated": false
+}
