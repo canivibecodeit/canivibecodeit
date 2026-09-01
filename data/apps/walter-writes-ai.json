@@ -1,0 +1,52 @@
+{
+  "slug": "walter-writes-ai",
+  "name": "Walter Writes AI",
+  "domain": "walterwrites.ai",
+  "category": "ai-writing",
+  "subcategory": "AI humanizer / detector evasion",
+  "tagline": "Rewrites AI-generated text so it reads as human and, allegedly, slips past AI detectors.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://walterwrites.ai/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanic is not exotic: send text to an LLM with an aggressive rewrite prompt, vary sentence length and burstiness, strip the tells, repeat. An agent can build that loop in an evening and it will produce text that sounds noticeably less like a language model. What you cannot build is proof that the output beats Turnitin, GPTZero or whatever detector your school bought this semester, because those are closed boxes and the whole business is an arms race run against them weekly. So the DIY version is a decent rewriter with an unverifiable claim attached, which is arguably also true of the paid version, just with fewer people testing it. Also worth saying out loud: the primary use case here is academic dishonesty, and neither build changes that.",
+  "coreLoopDIY": "A local web tool that takes pasted text and runs multi-pass LLM rewrites tuned for varied sentence rhythm and plainer phrasing, with a side-by-side diff and an optional detector-score check if you supply your own detector API key.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) in .env",
+    "Node 20 and a browser",
+    "Optionally a paid detector API key if you want any feedback signal at all",
+    "Acceptance that you cannot validate evasion claims against closed detectors"
+  ],
+  "whatYouLose": [
+    "Continuous tuning against detectors that change their models without telling anyone",
+    "Any claim, honest or not, that the output passes a specific checker",
+    "Style presets and tone controls someone else already spent months tweaking",
+    "Batch processing, history, and a UI that does not look like a weekend project",
+    "Plausible deniability if the API provider logs your prompts, which they do"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The only real asset is a private test harness against paid detectors and the iteration history that produced the current prompt stack. That decays constantly, which is why it is a subscription.",
+  "whyPeopleStillPay": "Because the buyer is usually panicking at 2am and wants someone else to have already solved the detector question. Paying feels like buying a guarantee even though nobody in this market can actually offer one. A homegrown rewriter demands that you trust your own prompt engineering against an adversary you cannot see, and most people would rather pay ten dollars to outsource that anxiety than run the experiment on their own transcript.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The rewriting is a solved evening; the confidence is the product. Whatever moat exists is a private detector test harness and the weekly grind of re-tuning against it.",
+  "prompt": "Build a local text rewriting tool called \"plainpass\" in an empty folder. No accounts, no cloud, no telemetry, no database beyond a local JSON file.\n\nStack, no substitutions: Node 20, TypeScript, Fastify for the server, plain HTML plus vanilla JS for the UI, served from /public. No React, no Tailwind CDN, write about 150 lines of CSS.\n\nCore flow:\n1. Paste text into a textarea, pick a rewrite profile, click Rewrite.\n2. Server runs a configurable multi-pass pipeline against one LLM API and streams the result back.\n3. Show original and output side by side with a word-level diff highlight.\n4. Show simple readability stats for both: mean sentence length, sentence length standard deviation, comma density, top repeated phrases.\n\nRewrite pipeline, implement as named passes in src/passes/:\n- vary: force alternating short and long sentences, target a high sentence-length standard deviation.\n- deflate: remove hedging, \"it is important to note\", \"delve\", \"tapestry\", \"in conclusion\", and other listed filler in src/tells.ts.\n- concrete: replace abstract nouns with specific ones where possible, keep meaning identical.\n- voice: apply the selected profile, one of: undergrad-essay, plain-business, casual-blog.\nEach pass is one LLM call with its own system prompt, run in sequence, each seeing the previous output. Passes are toggleable in the UI.\n\nLLM: OpenAI chat completions, model and key from .env (OPENAI_API_KEY, MODEL). Ship .env.example. Fail loudly with a readable message if the key is missing.\n\nOptional detector check: if DETECTOR_API_URL and DETECTOR_API_KEY are set, POST the output and display the returned score. If unset, hide the panel entirely and do not fake a score. Never display an invented \"human %\" number anywhere.\n\nAlso include: local history of the last 50 runs in data/history.json with a restore button, a copy-to-clipboard button, and a hard 6000 character input cap with a clear error.\n\nOut of scope: user auth, payments, browser extension, file upload, PDF parsing, any bundled detector model, any UI text claiming the output will pass a specific detector.\n\nDeliver a README with setup, an honest one-paragraph limitations section stating that detector evasion is unverifiable without access to the detectors, npm scripts dev and build, and a vitest suite covering the readability stats and the tell-stripping regexes.",
+  "promptCurated": false
+}
