@@ -1,0 +1,52 @@
+{
+  "slug": "indeed",
+  "name": "Indeed",
+  "domain": "indeed.com",
+  "category": "career",
+  "subcategory": "job board / hiring marketplace",
+  "tagline": "Job search and hiring marketplace where employers pay to post and promote listings to a very large candidate pool.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://indeed.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Employer side is sponsored-job budgets and per-application style billing rather than a flat monthly fee.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Indeed is not software you use, it is a pile of people on both sides of a transaction. An agent can absolutely build you a job feed aggregator, a keyword scorer, and an application tracker in an afternoon, and honestly that part of Indeed is mediocre. What you cannot build is the reason employers post there in the first place, which is that millions of candidates already look there. Same in reverse: your scraper is only as good as the boards and career pages that already exist, and most of them exist because Indeed pushed them to. Build the tracker, keep using the marketplace.",
+  "coreLoopDIY": "Pulls jobs from career-page feeds and job APIs you configure, dedupes and scores them against your keywords, and tracks each application through a local pipeline.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A list of company career pages or job feeds you actually care about",
+    "Python 3.11+ and SQLite locally",
+    "Tolerance for feeds breaking when sites redesign",
+    "Optional LLM API key if you want resume-to-posting match scoring"
+  ],
+  "whatYouLose": [
+    "The demand side entirely: no employer is posting into your local database",
+    "Aggregate reach, one search across effectively every listed job in a country",
+    "One-click apply and stored resume profiles that recruiters actually screen",
+    "Salary benchmarks and company reviews built from years of submitted data",
+    "Recruiter inbound, which for many people is the only part of a job board that ever worked"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "proprietary-data"
+  ],
+  "moatNotes": "Two-sided and self-reinforcing: employers pay for candidate volume, candidates show up because the listings are there. Nobody's weekend project bootstraps that.",
+  "whyPeopleStillPay": "Employers pay Indeed because posting anywhere else means fewer applicants, and applicant volume is the entire product being sold. The software layer is not the value, the distribution is; a job ad with no audience is a text file. Candidates pay nothing and mostly tolerate the experience for the same reason, it is where the jobs are aggregated. Any self-hosted alternative is a search and tracking tool on top of a marketplace someone else has to run.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The aggregator and tracker are a one-sitting build; the marketplace is not. The moat is marketplace liquidity: employers post where the candidates already are, and the candidates are there because the postings are.",
+  "prompt": "Build a local job hunt tracker and feed aggregator. Single Python service, no cloud, no accounts.\n\nStack (do not substitute):\n- Python 3.11, FastAPI, SQLite via sqlite3, Jinja2 templates, plain HTML with a little vanilla JS. httpx + feedparser + selectolax for fetching and parsing.\n- Run with: uvicorn app:app --reload. One file per concern, keep it under ~8 files.\n\nData model (SQLite):\n- sources: id, label, kind (rss | json | html), url, selector_json (nullable), enabled\n- jobs: id, source_id, external_id, title, company, location, remote_flag, url, posted_at, description_text, score, first_seen_at, hidden\n- applications: id, job_id, status (interested | applied | screen | interview | offer | rejected | ghosted), applied_at, next_action_at, notes\n- keywords: id, term, weight (positive or negative)\n\nFeatures in scope:\n1. Ingest job: for each enabled source, fetch, parse, normalize into jobs. Dedupe on (source_id, external_id) and on a normalized hash of title+company+location. Never overwrite user notes or application state.\n2. Scoring: sum keyword weights matched in title and description, plus a small recency bonus. Store score on the job row.\n3. Web UI: list view sorted by score with filters (source, remote, min score, unapplied only), a hide button, and a detail page. A kanban-ish board grouped by application status with drag-free status dropdowns.\n4. A digest page showing new jobs since last visit and any application whose next_action_at is past due.\n5. CLI: python -m tasks ingest, and python -m tasks seed to load example sources.\n\nOut of scope, do not build: scraping Indeed or LinkedIn (respect robots.txt, and hardcode a refusal for those hosts), auto-apply, resume generation, user accounts, email sending, telemetry.\n\nConfig: sources seeded from sources.example.yaml. Any optional LLM key goes in .env read via os.environ, and the app must run fine with no keys set.\n\nDeliver: README with setup in five commands or fewer, a Makefile with run and ingest targets, and pytest covering dedupe and scoring.",
+  "promptCurated": false
+}
