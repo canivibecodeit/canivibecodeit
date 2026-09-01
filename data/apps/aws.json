@@ -1,0 +1,52 @@
+{
+  "slug": "aws",
+  "name": "Amazon Web Services",
+  "domain": "aws.amazon.com",
+  "category": "hosting",
+  "subcategory": "cloud infrastructure platform",
+  "tagline": "Amazon's cloud platform: compute, storage, databases, networking and a few hundred other services rented by the second.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage based, varies wildly by service",
+    "unit": "usage",
+    "source": "https://aws.amazon.com/pricing/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. AWS has no single monthly number, it is metered per service.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You cannot one-shot a global network of data centers. An agent can absolutely give you a local approximation of the handful of AWS services you actually use: object storage, a Postgres instance, a container runner, a cron scheduler, a queue. What it cannot give you is durability across three availability zones, capacity you did not plan for, someone else's on-call rotation, or the ability to stop caring about the disk in your closet. The honest version of this build is not a replacement, it is a dev environment plus a home server, and that is genuinely useful for hobby projects and cost paranoia. If anything is load bearing for other people, keep paying.",
+  "coreLoopDIY": "Spins up a single-node Docker Compose stack that mimics the four or five AWS primitives most side projects touch, behind one local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine you control with Docker installed, ideally always on",
+    "Disk you are willing to lose, or a real backup plan to somewhere off box",
+    "Comfort with reverse proxies, TLS certificates and DNS if anything faces the internet",
+    "Acceptance that you are now the on-call engineer"
+  ],
+  "whatYouLose": [
+    "Durability and redundancy: S3 spreads objects across zones, your NVMe drive does not",
+    "Elasticity: no scaling to a traffic spike, no scaling back down to zero cost",
+    "The managed part of managed services: backups, failover, patching, upgrades are all yours now",
+    "The ecosystem: IAM, VPC networking, CloudFront, Lambda, and the thousands of tools and hires that assume all of it",
+    "Compliance paper: no SOC 2, no HIPAA BAA, no region residency story for anyone who asks"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "Capital expenditure measured in tens of billions, plus an egress pricing model that makes leaving expensive on purpose.",
+  "whyPeopleStillPay": "Because the alternative is buying servers, racking them, wiring them, and then hiring the people who care when a drive fails at 3am. AWS turns all of that into a line item and an API call, and for anything with real users the arithmetic almost always favors renting. The deeper lock in is not the compute, it is everything built around it: IAM policies, VPCs, managed Postgres, queues, the tooling your team already knows, the contractors who only know AWS. Even the companies loudly leaving the cloud usually leave partially, and usually after they have already grown large enough for the bill to hurt.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The five services you actually use are a weekend of Docker Compose; the rest of it is not. The moat is a decade of data center capital expenditure and an ecosystem that assumes AWS is the floor.",
+  "prompt": "Build a self-hosted \"tiny cloud\" for a single machine: the five AWS primitives a side project actually uses, nothing more.\n\nStack, non negotiable:\n- Docker Compose as the only orchestration layer\n- MinIO for S3 compatible object storage\n- Postgres 16 for the relational database\n- Redis for queues and caching\n- Caddy as reverse proxy with automatic TLS\n- A small Node 22 + TypeScript control plane using Fastify, serving a plain server rendered dashboard, no frontend framework\n\nWhat to build:\n1. docker-compose.yml wiring all services on an internal network. Only Caddy exposes ports.\n2. A control plane at / that shows, on one page: container status and uptime, disk usage per volume, MinIO bucket list with object counts and total size, Postgres database list with sizes, Redis key count and memory use.\n3. Bucket management: create a bucket, upload a file, get a presigned URL, delete an object. Use the AWS SDK v3 S3 client pointed at MinIO so the code stays portable.\n4. A cron page: define scheduled jobs in a jobs.yaml file (name, schedule, shell command), run them with node-cron, log stdout and stderr to Postgres, show the last 20 runs per job with exit codes.\n5. A backup script: nightly pg_dump of every database plus mc mirror of every bucket to a second location read from BACKUP_TARGET in .env. Fail loudly, log the result, surface last successful backup time on the dashboard.\n6. Health checks every 30 seconds per service, with a 7 day uptime sparkline stored in Postgres.\n\nExplicitly out of scope: multi node anything, IAM style policies beyond a single admin password, autoscaling, Lambda style function runtime, VPC networking, billing.\n\nRules: all secrets in .env with a committed .env.example. No telemetry, no external accounts, no signup. Single admin login via a password hash in .env, session cookie, that is it. Ship a README that states plainly what happens when the disk dies and how to restore from the backup target.\n\nWhen done, print the dashboard URL and the exact restore command.",
+  "promptCurated": false
+}
