@@ -1,0 +1,52 @@
+{
+  "slug": "vidnext",
+  "name": "VidNext",
+  "domain": "vidnext.ai",
+  "category": "ai-video",
+  "subcategory": "AI video generation and editing",
+  "tagline": "AI video tool that turns text or raw footage into finished short-form clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://vidnext.ai/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Strip away the marketing and most tools in this shape are a pipeline: write a script, generate a voiceover, pull or generate visuals, force-align captions, render with ffmpeg. That pipeline is genuinely a weekend build and the output can be embarrassingly close to the paid version. The catch is that every interesting step is someone else's GPU: the voice model, the clip generator, the transcription. You get to own the orchestration and the render settings, not the models, so your cost per video becomes an API bill instead of a subscription. If VidNext leans more on true text-to-video generation than on assembly, drop this to a firm no.",
+  "coreLoopDIY": "A local CLI that takes a topic or a script, generates voiceover and visuals via APIs, burns word-level captions, and renders a vertical MP4 with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "API keys for an LLM, a TTS provider, and a stock or generative video source",
+    "local Whisper for caption timing, or a hosted transcription API",
+    "patience for aspect ratio and font rendering nonsense"
+  ],
+  "whatYouLose": [
+    "Any proprietary video model they trained or fine-tuned, which you cannot replicate at any budget",
+    "Template libraries and preset styling that took a design team months to tune",
+    "Browser editing, timeline scrubbing, and instant preview",
+    "Rendering that happens on their machines instead of pinning your laptop fan for ten minutes",
+    "Direct publishing to social accounts with the OAuth mess handled for you"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "Video is the most compute-hungry consumer AI category, so hosted render capacity is a real advantage even when the code around it is thin.",
+  "whyPeopleStillPay": "Because video is the one media type where the last ten percent of polish is most of the perceived quality, and because nobody wants to babysit a render queue on their own hardware. A DIY pipeline gets you a watchable clip; it does not get you the font choices, the caption animations, the beat-matched cuts, or the one-click publish. Also, per-video API costs add up fast, and a flat subscription with pooled GPU capacity is often cheaper than paying retail for every generation you throw away.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The assembly line is copyable, the models underneath it are rented either way.",
+  "prompt": "Build a local command-line short-form video generator in Python. No web UI, no accounts, no telemetry, no cloud storage.\n\nStack: Python 3.11, click for the CLI, httpx for API calls, ffmpeg-python or plain subprocess calls to a system ffmpeg, faster-whisper for caption timing. Nothing else.\n\nCommands:\n1. `vid script \"topic\"` calls an LLM chat completion endpoint and writes a 40 to 60 second narration script to out/SLUG/script.txt. Prompt it for short sentences and no stage directions.\n2. `vid voice SLUG` sends script.txt to a TTS API and saves out/SLUG/voice.mp3.\n3. `vid visuals SLUG` splits the script into beats, queries a stock video API for each beat keyword, downloads one clip per beat into out/SLUG/clips/.\n4. `vid captions SLUG` runs faster-whisper on voice.mp3 to get word-level timestamps and writes out/SLUG/captions.json plus an ASS subtitle file with two-word-at-a-time pop styling.\n5. `vid render SLUG` uses ffmpeg to trim and scale each clip to 1080x1920, concatenate them to match the voiceover duration, mux the audio, burn in the ASS subtitles, and write out/SLUG/final.mp4.\n6. `vid all \"topic\"` runs the whole chain.\n\nRules:\n- All API keys read from .env via python-dotenv. Ship .env.example with LLM_API_KEY, TTS_API_KEY, STOCK_VIDEO_API_KEY and nothing filled in.\n- Every step is resumable and writes its artifact to disk. Never redo work that already exists unless --force is passed.\n- Fail loudly with the actual HTTP body when an API call fails. No silent retries beyond one.\n- Put all tunables at the top of a config.py: resolution, font, font size, caption position, words per caption group, max clip length.\n\nOut of scope: generative text-to-video, avatars, music beds, background removal, publishing to social platforms, any GUI.\n\nFinish with a README showing the install steps, the ffmpeg version requirement, and one worked example from topic to final.mp4.",
+  "promptCurated": false
+}
