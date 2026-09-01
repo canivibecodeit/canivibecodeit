@@ -1,0 +1,51 @@
+{
+  "slug": "lumitalk-language-coach",
+  "name": "LumiTalk - Language Coach",
+  "domain": "apps.apple.com",
+  "category": "education",
+  "subcategory": "AI language practice",
+  "tagline": "iOS app that gives you an AI conversation partner for language practice, with corrections and pronunciation feedback.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://apps.apple.com/us/app/lumitalk-language-coach/id6790710527",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is speech in, LLM reply, speech out, plus a log of your mistakes. That is a genuinely small build now: transcription, a coach system prompt, and text to speech are three API calls glued together, and an agent will get you a working browser version in a session. The gaps are the parts that make it feel like an app: sub-second voice latency, decent pronunciation scoring, a curriculum that knows what to drill next, and the fact that yours lives in a browser tab instead of on your phone. If you already speak enough of the target language to just talk, your version is fine. If you need structure and something that nags you into showing up daily, the paid app is doing real work.",
+  "coreLoopDIY": "Hold a spoken conversation in your target language with an LLM coach that corrects you, then reviews your logged mistakes as flashcards.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "OpenAI API key (or any provider with speech to text, chat, and text to speech)",
+    "A modern browser with mic access, served over localhost or HTTPS",
+    "Node 20+",
+    "Willingness to pay per minute of audio instead of a flat subscription"
+  ],
+  "whatYouLose": [
+    "Real time voice with barge-in; a record-then-send loop feels like walkie talkie, not conversation",
+    "Actual pronunciation scoring at the phoneme level, which is a different model class than transcription",
+    "A designed curriculum: level placement, what to drill next, review scheduling that someone tuned",
+    "A native iOS app with offline handling, notifications, and streaks you will actually respond to",
+    "Polish: the thousand small interaction details that decide whether you open it on day nine"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The technical moat is thin, the habit moat is not. Language apps live and die on whether you come back, and that is design and notifications, not model access.",
+  "whyPeopleStillPay": "Because the hard part of language practice was never the software, it was showing up, and a polished app with streaks, levels, and a phone icon you tap without thinking buys you compliance that your localhost tab never will. There is also a real latency gap: a tuned realtime voice pipeline feels like talking to a person, and a naive record-upload-play loop feels like leaving voicemails. For a few dollars a month, most learners would rather have someone else own the curriculum and the nagging.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Talking to an LLM in Spanish is free; being made to do it every day at 8pm is the product.",
+  "prompt": "Build a local web app called \"Lingo Bench\": a spoken language practice partner with mistake tracking.\n\nStack, no substitutions:\n- Node 20 + Express for the server, plain TypeScript, no framework beyond that\n- Vanilla HTML/CSS/JS single page in /public, no React, no build step\n- better-sqlite3 for storage, file at ./data/lingo.db\n- OpenAI API for everything model related: whisper-1 or gpt-4o-transcribe for speech to text, gpt-4o-mini for the coach, gpt-4o-mini-tts for speech out\n- OPENAI_API_KEY in .env, loaded server side only. The browser never sees the key.\n\nCore loop:\n1. User picks a target language and a CEFR level (A1 to C1) and a scenario (ordering food, job interview, small talk, free chat). Persist the choice.\n2. Push to talk button records mic audio with MediaRecorder, posts the blob to POST /api/turn.\n3. Server transcribes it, appends to the conversation, calls the coach model with a system prompt that: replies in the target language at the chosen level, keeps replies under 3 sentences, and returns strict JSON with fields reply, corrections (array of {youSaid, better, why}), and newWords (array of {word, gloss}).\n4. Server synthesizes reply audio, returns JSON plus a URL to the mp3. Client plays it and renders the transcript, corrections, and new words in a side panel.\n5. Every correction and new word gets written to SQLite with an SM-2 style review schedule.\n\nAlso build:\n- GET /review: a flashcard page that serves due items, shows the prompt, reveals the answer, takes an again/hard/good/easy grade, updates the schedule.\n- A session list page showing past conversations with full transcripts.\n\nExplicitly out of scope, do not build:\n- accounts, login, multi-user, hosting, telemetry, analytics\n- realtime streaming audio or interruption handling; push to talk is fine\n- phoneme level pronunciation scoring, do not fake a score\n- native mobile app\n\nDeliver a README with setup, an .env.example, and npm run dev that starts the server on port 5173. Handle mic permission denial and API errors with visible messages, not silent failures. Cache generated mp3s on disk so replaying a turn costs nothing.",
+  "promptCurated": false
+}
