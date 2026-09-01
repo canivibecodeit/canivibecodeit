@@ -1,0 +1,53 @@
+{
+  "slug": "easy-interview",
+  "name": "Easy Interview",
+  "domain": "easyinterview.life",
+  "category": "hr",
+  "subcategory": "AI interview screening",
+  "tagline": "AI-assisted interview tooling for screening candidates: generate questions, collect answers, get summaries and scores.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.easyinterview.life/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core here is genuinely a weekend build: take a job description, have an LLM produce structured questions, record or type candidate answers, transcribe, score against a rubric, dump a summary. None of that needs proprietary data or a network. What you do not get in one session is the part that faces strangers: a candidate link that works on a five year old Android in a hotel wifi dead zone, video that uploads reliably, email that lands, and a record you would be comfortable showing a lawyer. Hiring tools also carry real legal weight in a way personal tools do not, since automated screening decisions are regulated in several jurisdictions and 'my AI ranked them' is a bad answer in a discrimination claim. Build it if you are screening for your own small team and reading every transcript yourself; buy something if candidates outside your building are going to touch it.",
+  "coreLoopDIY": "A local web app that turns a job description into a structured question set, collects candidate answers by text or browser recording, transcribes them, and scores each answer against a rubric with an LLM.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key in .env, or a local model if you prefer",
+    "Whisper (API or whisper.cpp) for transcription if you accept audio or video",
+    "A publicly reachable URL if candidates outside your machine need to respond: a small VPS or a tunnel",
+    "Disk or object storage for recordings, they get large fast",
+    "Somewhere to send invite links from, your own inbox is fine at low volume"
+  ],
+  "whatYouLose": [
+    "Candidate-side reliability: device permissions, upload retries, mobile browsers, timezone handling, all the boring stuff that decides whether you actually get the interview",
+    "Scoring that has been calibrated across thousands of interviews rather than whatever your rubric prompt happened to say on Tuesday",
+    "ATS, calendar and email integrations, so results live in your app instead of the pipeline your recruiters use",
+    "An audit trail and a vendor who has thought about EEOC, GDPR and EU AI Act exposure on automated candidate assessment",
+    "Anti-cheat and identity signals, which matter more every month that answer-generating AI gets better"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the prompt. It is being the party that signs off on a screening process someone might sue over, plus making the candidate-facing flow not break.",
+  "whyPeopleStillPay": "Because the buyer is not optimizing for cost, they are optimizing for not being embarrassed. A hiring manager will happily pay a monthly fee so that fifty candidates get a link that works, so scores look consistent enough to defend in a debrief, and so the results land in the ATS instead of a folder on someone's laptop. Your self-hosted version handles the interesting 80 percent and leaves you personally responsible for the 20 percent that involves strangers, lawyers and deliverability. That trade is fine for a founder screening ten people and terrible for a recruiting team screening a thousand.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as an internal screening helper for a team you can shout across; stop short of letting it make the decision.",
+  "prompt": "Build a local-first interview screening tool called \"deskinterview\". No hosted accounts, no telemetry, single operator.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) with server actions\n- SQLite via better-sqlite3, file at ./data/app.db, migrations in ./migrations run on boot\n- Tailwind for styling, no component library\n- LLM calls through the OpenAI-compatible chat completions API, base URL and key from .env (OPENAI_API_KEY, OPENAI_BASE_URL, MODEL)\n- Transcription via the same provider's audio transcription endpoint, key from .env\n- Recordings written to ./data/media on local disk, never to a third party\n\nIn scope:\n1. Roles: create a role with a title and a pasted job description. One click generates 5 to 8 structured interview questions plus a per-question scoring rubric (1 to 5, with what each level looks like). Questions and rubric are editable and versioned, and the version used is stored on every interview.\n2. Candidates: add name and email, generate an unguessable invite link (random 32 char token) per candidate per role. Links expire after a configurable number of days.\n3. Candidate page at /i/[token]: shows one question at a time, accepts either a typed answer or a browser MediaRecorder audio recording, saves progress after each question, works without login. Handle denied mic permission by falling back to text.\n4. Processing: on submit, transcribe any audio, then score each answer against its rubric with the LLM. Store the raw model output, the parsed score, and a two sentence justification per question. Never store a hire/no-hire recommendation.\n5. Operator dashboard: list candidates per role, per-question scores, transcripts, audio playback, and a compare view across candidates for the same role. Export a role's results as CSV and JSON.\n6. Every scored answer displays a visible \"AI draft, human decides\" banner and requires the operator to enter their own score before the candidate can be marked reviewed.\n\nOut of scope, do not build: video recording, calendar or ATS integrations, payment, multi-tenant orgs, email sending (generate links for the operator to copy), anti-cheat detection, auto-ranking or auto-rejection.\n\nRequirements: seed script with one example role and two fake candidates, .env.example with every key, README covering setup, where data lives, how to delete a candidate and all their media, and a short honest note that automated candidate assessment is regulated in some jurisdictions and this tool keeps a human in the loop on purpose. Basic HTTP auth on everything except /i/[token], credentials from .env.",
+  "promptCurated": false
+}
