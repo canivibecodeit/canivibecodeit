@@ -1,0 +1,51 @@
+{
+  "slug": "dust",
+  "name": "Dust",
+  "domain": "dust.tt",
+  "category": "ai-assistant",
+  "subcategory": "company-data agents / RAG platform",
+  "tagline": "Platform for building AI agents that answer questions and run tasks over your company's tools and documents.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per user per month on the paid tier, custom for enterprise",
+    "unit": "per-seat",
+    "source": "https://dust.tt/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part of Dust everyone demos, an agent with a system prompt, a document index, and a few tools, is now a boring afternoon of work with an embeddings API and a vector store. For one person pointing at one folder of notes and docs, a local version gets you most of the daily value and none of the seat fees. What you cannot one-shot is the boring half: OAuth into Notion, Slack, Drive, GitHub, Intercom, plus incremental sync, permission mirroring so the agent never surfaces a doc you should not see, and a Slack bot that behaves in threads. Dust is really a connector fleet with an agent builder bolted on, and connector fleets rot without maintenance. Build it if your knowledge lives in files you control; keep paying if it lives in ten SaaS tools with different access rules.",
+  "coreLoopDIY": "Indexes a local folder of documents into embeddings, then serves a chat UI where named agents answer with citations and can call a small set of tools.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for chat and embeddings, in .env",
+    "Python 3.11 and a local folder of documents you actually want searched",
+    "Willingness to re-run the indexer instead of getting live sync"
+  ],
+  "whatYouLose": [
+    "Managed OAuth connectors to Notion, Slack, Drive, GitHub and friends, with incremental sync",
+    "Permission mirroring, so shared agents cannot leak documents the asker should not see",
+    "A Slack bot and browser extension where the agents actually get used",
+    "Shared workspace: agent library, versioning, usage analytics, per-team guardrails",
+    "Enterprise paperwork: SOC 2, data residency, model routing and retention controls"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The agent builder is commodity. The connector fleet plus permission inheritance is the part with real maintenance cost.",
+  "whyPeopleStillPay": "Companies do not buy an agent, they buy the wiring. Dust's pitch is that within an hour your data from Notion, Drive, Slack and the ticket queue is indexed, permission-aware, and reachable from Slack by people who will never open a terminal. A self-hosted personal build reproduces the retrieval and the answers, but it cannot reproduce twenty colleagues casually using it, or the security review that lets the thing touch customer data in the first place. If you are a team, the seat price is cheaper than owning eight OAuth integrations forever.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Solo knowledge search over your own files: build it. Company-wide agents over ten SaaS tools with access rules: pay someone.",
+  "prompt": "Build a local, single-user AI agent workspace over my own documents. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, uvicorn\n- SQLite for metadata (chunks, documents, conversations)\n- numpy arrays on disk for embeddings, brute-force cosine search (my corpus is small, do not add a vector database)\n- Server-rendered HTML with htmx and plain CSS for the UI, no React, no build step\n- OpenAI-compatible API for chat and embeddings, base URL and key read from .env (OPENAI_API_KEY, OPENAI_BASE_URL, CHAT_MODEL, EMBED_MODEL)\n\nFeatures in scope:\n1. `python -m app.index /path/to/folder` walks the folder, reads .md, .txt, .pdf and .html, chunks to roughly 800 tokens with 100 token overlap, embeds, and stores chunks with file path, heading trail and mtime. Re-running skips unchanged files by mtime and hash, and deletes chunks for files that vanished.\n2. Agents defined as YAML files in ./agents/*.yaml: name, description, system prompt, model, temperature, allowed tools, optional folder scope filter.\n3. Chat UI at / : pick an agent, chat with streaming responses, conversations persisted in SQLite, message history replayed on reload.\n4. Tools via function calling, implemented server side: search_docs(query, k) returning chunks with file path, read_file(path) limited to the indexed roots, list_files(glob), fetch_url(url) returning readable text. Nothing else, no shell, no file writes.\n5. Every answer ends with a citations block listing the file paths used. If retrieval returns nothing relevant, the agent must say so instead of guessing.\n6. GET /api/search?q= returns raw retrieval results as JSON so I can debug relevance.\n\nExplicitly out of scope: OAuth connectors, Slack integration, multi-user auth, permissions, billing, Docker orchestration, evals dashboards.\n\nDeliverables: pyproject.toml, .env.example, README with three commands (install, index, run), one seeded example agent YAML, and pytest tests covering chunking, incremental re-index, and cosine search ranking. Keep it under about 900 lines total and make `uvicorn app.main:app` work on first try.",
+  "promptCurated": false
+}
