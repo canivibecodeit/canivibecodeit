@@ -1,0 +1,52 @@
+{
+  "slug": "plunk",
+  "name": "Plunk",
+  "domain": "useplunk.com",
+  "category": "email",
+  "subcategory": "email marketing and automation for SaaS",
+  "tagline": "Email marketing, transactional sends, and event-triggered automations in one dashboard, sitting on top of AWS SES.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://useplunk.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The application layer here is genuinely modest: contacts, a template store, an events endpoint, automations that fire on those events, and a send queue. An agent can produce that in a weekend and it will work for your own product's onboarding emails and a small list. What you cannot build is deliverability, so you are still renting SES or a similar API, and you inherit the fun parts yourself: bounce and complaint handling, suppression lists, unsubscribe headers, warmup. Also worth knowing before you build anything: Plunk is open source, so the fastest honest path is cloning it rather than regenerating it from a prompt.",
+  "coreLoopDIY": "A self-hosted dashboard where you store contacts, write templates, POST events from your app, and have automations send the matching email through SES with open and click tracking.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "AWS account with SES out of sandbox mode",
+    "A verified sending domain with SPF, DKIM and DMARC records",
+    "Somewhere to run a Node process and a small database",
+    "A cron trigger for scheduled campaigns and delays"
+  ],
+  "whatYouLose": [
+    "Deliverability babysitting: someone else watching bounce rates, complaint thresholds and shared IP reputation",
+    "A visual template editor that non-technical teammates will actually touch",
+    "Bounce, complaint and suppression handling that is already wired to SES webhooks correctly",
+    "Prebuilt integrations and SDKs, so every event you track is your own glue code",
+    "Nothing to blame but yourself when the onboarding sequence silently stops firing"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The regulatory weight in email is real but not exotic: unsubscribe links, list-unsubscribe headers, consent records, honoring suppression. It is all doable, it is just tedious and the failure mode is your domain reputation.",
+  "whyPeopleStillPay": "Email is the category where the boring operational layer is the product. Paying means someone else has already handled the SES event webhooks, the suppression table, the retry logic, the unsubscribe compliance and the dashboard your marketing person uses without asking you. If your sends are load-bearing for revenue, a weekend build that drops a campaign at 2am is expensive in a way the subscription is not. If you are sending a few thousand lifecycle emails from your own app, that math flips fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Plunk is open source, so the genuinely fastest version of this build is git clone. Generate your own only if you want something smaller than the real thing.",
+  "prompt": "Build a single-tenant, self-hosted email marketing and automation server. I run it for one product, my own.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind\n- SQLite via Prisma\n- AWS SES v2 through @aws-sdk/client-sesv2 for sending\n- React Email for templates\n- All secrets in .env: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SENDING_DOMAIN, FROM_ADDRESS, ADMIN_PASSWORD, APP_URL, UNSUB_SECRET\n\nData model: Contact (email, subscribed bool, createdAt, JSON traits), Event (contactId, name, createdAt, JSON payload), Template (name, subject, React Email component name or MJML-free HTML body), Automation (trigger event name, optional delay in minutes, templateId, active bool), Send (contactId, templateId, status, sesMessageId, openedAt, clickedAt), Suppression (email, reason).\n\nIn scope:\n- POST /api/track with a bearer token: upserts a contact by email, records an event, enqueues any matching automation runs\n- A worker route /api/cron that processes due automation runs and scheduled campaigns, idempotent, safe to call every minute\n- Campaign send to a filtered contact list, with a rate limit that respects an SES sends-per-second env var\n- Every outbound email gets a signed one-click unsubscribe link plus a List-Unsubscribe and List-Unsubscribe-Post header\n- SES notification webhook at /api/ses-webhook that writes bounces and complaints into Suppression and unsubscribes the contact; never send to a suppressed address\n- 1x1 open pixel and a click-tracking redirect, both recorded on the Send row\n- Admin UI behind a single password cookie: contacts table with search, template list and preview, automation editor, campaign composer, a sends log with delivered / bounced / opened counts\n- A seed script and a README covering SES domain verification, SPF, DKIM, DMARC and getting out of the sandbox\n\nOut of scope, do not build: multi-tenancy, drag-and-drop email builder, A/B testing, SMS, OAuth, billing, telemetry, analytics beyond the counts above.\n\nShip a working dev setup with `npm run dev`, a real migration, and a `--dry-run` flag on the campaign sender that logs recipients instead of calling SES.",
+  "promptCurated": false
+}
