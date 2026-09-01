@@ -1,0 +1,54 @@
+{
+  "slug": "vagaro",
+  "name": "Vagaro",
+  "domain": "vagaro.com",
+  "category": "scheduling",
+  "subcategory": "salon, spa and fitness booking",
+  "tagline": "Booking, client records, payments and marketing for salons, spas, barbers and small fitness studios.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly, scales with number of bookable calendars",
+    "unit": "per-seat",
+    "source": "https://vagaro.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part most solo operators actually use every day is a services list, a calendar with availability rules, a public booking page and a client history sheet. That is a weekend build and an agent will get you most of the way in one sitting. What does not come for free is everything wrapped around it: card-on-file deposits and no-show fees, SMS reminders that actually arrive, a client-facing app, and the Vagaro marketplace sending you strangers who were browsing for a haircut. If you already have a full book and just want to stop paying per calendar, the DIY version is realistic. If you rely on Vagaro to fill empty slots or run your register, it is not.",
+  "coreLoopDIY": "A self-hosted booking site where you define services and hours, clients pick a slot and get an email confirmation, and you see a day view plus per-client visit history and notes.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A cheap VPS or any Node host, plus a domain",
+    "Postgres or SQLite for bookings and client records",
+    "Transactional email provider for confirmations, API key in .env",
+    "Stripe account if you want deposits or prepayment",
+    "Twilio or similar if you want SMS reminders, and a real budget for it"
+  ],
+  "whatYouLose": [
+    "Marketplace discovery: Vagaro lists you where consumers already search and book",
+    "Payments as a solved problem, including card on file, tips, no-show fees and PCI scope",
+    "Reliable SMS reminders, which is the single biggest lever on no-shows",
+    "Branded client mobile app, plus staff apps that work at the chair",
+    "Point of sale, retail inventory, gift cards, memberships, payroll and commission tracking",
+    "Multi-staff scheduling nuance: resources, rooms, double-booking rules, staff-specific service durations"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The consumer side is the real asset. Booking software is a commodity; a queue of people looking for a 4pm appointment near them is not.",
+  "whyPeopleStillPay": "Because it is the business's till, not just its calendar. Once card-on-file, gift card balances, memberships, three years of client notes and payroll all live in one place, the monthly fee is cheaper than the migration, and any gap in the DIY version shows up as a missed booking or an argument about money. Multi-staff shops also need the mobile and POS surfaces that a self-hosted booking page simply does not have.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine target for a solo operator with a full book; bad target for a five-chair shop that runs its register through it.",
+  "prompt": "Build a self-hosted appointment booking app for a single-location service business, for example a two-stylist salon.\n\nStack, no substitutions: Next.js App Router with TypeScript, Prisma with SQLite, Tailwind, and Lucia-style cookie session auth for the owner only. No third-party booking widgets, no analytics, no telemetry.\n\nData model: Staff, Service (name, duration minutes, price cents, which staff can perform it), BusinessHours per staff per weekday, TimeOff blocks, Client (name, email, phone, notes), Appointment (client, staff, service, start, end, status: booked | completed | no_show | cancelled).\n\nPublic side, no login:\n- /book: pick service, then staff or \"anyone\", then a date, then an available slot.\n- Availability is computed server side from business hours minus time off minus existing appointments, stepped by 15 minutes, respecting service duration and a configurable buffer.\n- Booking form takes name, email, phone. On submit, create or match the client by email, create the appointment, send a confirmation email with an ICS attachment and a cancel/reschedule link signed with an HMAC token.\n- /appointment/[token]: client can cancel or move within a configurable cutoff window.\n\nOwner side, behind login at /admin:\n- Day and week calendar view, columns per staff, click a slot to book manually.\n- Mark appointments completed or no_show.\n- CRUD for services, staff, hours, time off.\n- Client list with visit history and free-text notes.\n- Simple report: appointments and revenue by week, no-show rate.\n\nOut of scope, do not build: payments, SMS, point of sale, inventory, gift cards, memberships, payroll, multi-location, a native app.\n\nEmail via a provider SDK with the API key in .env; if the key is absent, log the email to console instead of failing. Store the HMAC secret, session secret and business timezone in .env with a committed .env.example. Handle timezones explicitly: store UTC, render in the business timezone.\n\nSeed the database with two staff, five services, weekday hours and a handful of appointments. Include a README with setup, and Vitest tests for the availability calculation covering overlaps, buffers, time off and daylight saving boundaries.",
+  "promptCurated": false
+}
