@@ -1,0 +1,51 @@
+{
+  "slug": "kleo",
+  "name": "Kleo",
+  "domain": "kleo.so",
+  "category": "social-media",
+  "subcategory": "LinkedIn growth and post research",
+  "tagline": "Chrome extension that surfaces any LinkedIn creator's top performing posts and tracks how your own posts do.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://kleo.so/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanic is not exotic: a content script reads the posts LinkedIn already renders for a logged in user, sorts them by reactions and comments, and stores what you keep. An agent can produce a working personal version of that in a sitting, and a swipe file with tags and search is genuinely nicer when it is yours. The gap is maintenance: LinkedIn changes its markup and internal endpoints on its own schedule, aggressively rate limits anything that scrolls too fast, and does not love automation on your account. You also lose the part that is not code, which is the pile of already indexed posts across thousands of creators that makes lookups instant instead of you scrolling someone's profile for two minutes. Fine if you research a handful of accounts; annoying if you live in this tool daily.",
+  "coreLoopDIY": "A local Chrome extension that collects the posts LinkedIn renders on a profile or your own activity page, sorts them by engagement, and saves the good ones into a searchable local swipe file.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Chrome or any Chromium browser with developer mode extensions enabled",
+    "A logged in LinkedIn account, and tolerance for the risk that heavy scrolling automation annoys LinkedIn",
+    "Willingness to fix selectors when LinkedIn ships a redesign"
+  ],
+  "whatYouLose": [
+    "The pre indexed corpus of posts across many creators, so every lookup starts from scratch in your own browser",
+    "Somebody else absorbing LinkedIn markup and API churn every few weeks",
+    "Reliable per post analytics history, since you only capture what you happened to look at while the extension was running",
+    "Polish: the in page panel, sorting, and hook extraction that already work without you debugging a content script",
+    "Any sense that this is sanctioned, which a paid extension at least fakes better than your unpacked local build"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The scrape is easy, the accumulated index and the constant repair work against a hostile host page are the actual product.",
+  "whyPeopleStillPay": "Because nobody wants a research tool that is also a chore. Kleo's value is that you type a creator's name and immediately see their best posts, with no scrolling, no broken selectors, and no thinking about whether LinkedIn shipped a change last Tuesday. People writing on LinkedIn daily are optimizing for reps, not for owning their tooling, and a subscription that removes twenty minutes of friction per week clears that bar easily. The self hosted version wins only if you enjoy the maintenance or you want your swipe file to be plain files you actually own.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, but you are now the person responsible for LinkedIn DOM changes forever.",
+  "prompt": "Build a local Chrome extension called \"Swipe\" that helps me research LinkedIn posts and keep a personal swipe file. No accounts, no server, no telemetry, no cloud sync.\n\nStack, no alternatives:\n- Chrome extension, Manifest V3, plain TypeScript compiled with esbuild, no framework for the content script.\n- Side panel UI using the chrome.sidePanel API, plain TypeScript plus minimal CSS.\n- Storage: IndexedDB via the idb package, one database with two stores: \"posts\" and \"saved\".\n- Build with npm scripts only: npm run build and npm run watch. Output to dist/ loadable as an unpacked extension.\n\nBehavior:\n- Content script runs on https://www.linkedin.com/* only.\n- It observes the DOM with a MutationObserver and extracts post cards that are already rendered on screen: author name, author profile URL, post permalink, post text, reaction count, comment count, repost count if present, and a rough timestamp string.\n- Extraction lives in one file, src/extract.ts, with every CSS selector declared as a named constant at the top so I can fix them in one place when LinkedIn changes.\n- Never auto scroll, never fetch LinkedIn endpoints directly, never batch requests. Only read what the page renders while I scroll. Add a short comment saying this is deliberate to avoid rate limiting and account risk.\n- Deduplicate on post permalink. Upsert into the \"posts\" store with a lastSeen timestamp.\n\nSide panel:\n- Tab 1 \"Captured\": table of everything collected, sortable by reactions, comments, and date, filterable by author name and free text search over post body.\n- Tab 2 \"Swipe file\": posts I explicitly saved, each with editable tags and a notes field.\n- A \"Save\" button injected on each post card in page that adds it to the swipe file.\n- Export button: dumps the swipe file as one Markdown file and one JSON file via a download.\n- Import button: reads a previously exported JSON back in.\n\nExplicitly out of scope: AI post generation, engagement prediction, scheduling, any cross user or shared database, any analytics beyond counting what I captured.\n\nInclude a README with load instructions, a short \"when selectors break\" section pointing at src/extract.ts, and a blunt note that this reads a third party site's markup and may stop working at any time. Put nothing in .env because nothing here needs a secret.",
+  "promptCurated": false
+}
