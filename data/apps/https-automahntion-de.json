@@ -1,0 +1,52 @@
+{
+  "slug": "https-automahntion-de",
+  "name": "Automahntion",
+  "domain": "automahntion.de",
+  "category": "finance-accounting",
+  "subcategory": "dunning / receivables automation",
+  "tagline": "Automated dunning for unpaid invoices: escalating reminder emails on a schedule, with German Mahnwesen conventions baked in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://automahntion.de/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not hard: a table of invoices, a due date, a schedule of escalating emails, a stop condition when money lands. An agent will write that against SQLite and SMTP in an afternoon, and for a freelancer with twenty open invoices that is genuinely enough. What it will not write for you is the boring half: pulling live payment status out of your accounting tool or bank so you never dun someone who already paid, and reminder wording that holds up if the thing ever escalates to a formal Mahnbescheid. Deliverability is the other quiet tax, since dunning mail that lands in spam is worse than no dunning mail at all. Build it if your invoice data is already somewhere you can read programmatically; pay if reconciliation is manual today.",
+  "coreLoopDIY": "Tracks open invoices in a local database and sends escalating reminder emails on a fixed schedule until the invoice is marked paid.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "SMTP credentials on a domain with SPF and DKIM set up",
+    "A machine or cheap VPS that stays awake to run the scheduler",
+    "An invoice source you can read: CSV export, Stripe, or an accounting API key",
+    "Someone to actually mark invoices paid if payment status is not automated"
+  ],
+  "whatYouLose": [
+    "Payment reconciliation: matching bank transactions or partial payments to invoices is the real work and your build will fake it with a checkbox",
+    "Accounting integrations: DATEV, lexoffice, sevdesk and friends each want their own OAuth and their own schema",
+    "Reminder templates that a lawyer has looked at, with correct fee and interest handling per escalation level",
+    "Deliverability infrastructure, so your first month is spent learning why Outlook ate the second reminder",
+    "An audit trail you would want to hand to a collections agency or a court"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the email sender, it is being wired into the ledger that knows who paid.",
+  "whyPeopleStillPay": "Because dunning is a job you only notice when it goes wrong, and it goes wrong in expensive ways: reminding a client who paid last Tuesday, or quietly not reminding anyone for three months because a cron job died. Paying for it means payment status arrives from the accounting system instead of from your memory, the escalation wording is not improvised, and the mail actually gets delivered. For anyone billing meaningful volume, the subscription is cheaper than one awkward call to a good customer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The reminder engine is a weekend; knowing who already paid is the product.",
+  "prompt": "Build a local dunning tool: it tracks open invoices and sends escalating payment reminder emails until an invoice is marked paid.\n\nStack, no substitutions:\n- TypeScript on Node 22, run with tsx\n- SQLite via better-sqlite3, single file data/dunning.db\n- Nodemailer for sending, SMTP config from .env\n- node-cron for scheduling\n- Fastify plus server-rendered HTML (no React, no client build step) for a small local dashboard on port 3000\n\nData model:\n- invoices: id, customer_name, customer_email, invoice_number, amount_cents, currency, issued_on, due_on, status (open, paid, cancelled, escalated), notes\n- reminders: id, invoice_id, level (1..3), sent_at, subject, body, error\n- settings: sender name, sender email, reminder offsets in days per level, optional flat fee per level\n\nBehaviour:\n- Import invoices from a CSV at import/invoices.csv, upserting on invoice_number. Print a summary of added, updated, skipped.\n- A daily job at 09:00 local time finds every open invoice past due, works out the highest reminder level whose day offset has passed, and sends exactly one reminder per invoice per run. Default offsets: level 1 at 3 days overdue, level 2 at 14, level 3 at 30. After level 3 set status to escalated and stop sending.\n- Templates live in templates/level1.md through level3.md, plain text with {{customer_name}}, {{invoice_number}}, {{amount}}, {{due_on}}, {{days_overdue}}, {{fee}}. Tone gets firmer per level. Ship German and English variants, chosen by an invoice language column.\n- DRY_RUN=true in .env must log the full rendered email instead of sending. Make that the default.\n- Every send attempt writes a reminders row, successes and failures alike. Never send the same level twice for the same invoice.\n\nDashboard, read-mostly:\n- Table of invoices with status, days overdue, last reminder level, next scheduled date\n- One button per invoice to mark paid or cancelled\n- A reminder log page\n- No auth, bind to 127.0.0.1 only, and say so in the README\n\nOut of scope, do not build: bank or accounting integrations, payment reconciliation, PDF invoice generation, multi-user accounts, telemetry, any cloud service.\n\nDeliver a README covering .env keys, the CSV column format, how to dry run, and a blunt warning that reminder wording and any fees are the operator's legal problem, not the tool's. Include seed data and a test that proves no invoice can receive the same reminder level twice.",
+  "promptCurated": false
+}
