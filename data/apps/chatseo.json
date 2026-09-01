@@ -1,0 +1,51 @@
+{
+  "slug": "chatseo",
+  "name": "ChatSEO",
+  "domain": "chatseo.app",
+  "category": "seo-marketing",
+  "subcategory": "LLM visibility tracking",
+  "tagline": "Tracks whether AI chatbots mention your brand when people ask about your category, and what they cite.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://chatseo.app/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not exotic: you keep a list of prompts a buyer might type, fire them at a few model APIs on a schedule, and count how often your brand and your competitors show up, plus which URLs get cited. An agent can build that in a weekend, store it in SQLite, and draw you a share of voice chart that is directionally as useful as the paid version. The honest gap is that API responses are not what humans see in the ChatGPT or Perplexity web apps, which have different retrieval, personalization, and ad-adjacent surfaces, and scraping those properly means proxies, captchas, and constant breakage. You also start with zero history, and in a category this new the history is most of what you are actually buying. Fine for one brand you care about, weak as a client-facing report.",
+  "coreLoopDIY": "Runs your prompt list against several LLM APIs on a cron, extracts brand mentions and cited domains from each answer, and charts share of voice over time in a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for at least two model providers (OpenAI, Anthropic, Perplexity or similar)",
+    "A few dollars a month of token spend",
+    "A machine or cheap VM that stays awake for the scheduled runs"
+  ],
+  "whatYouLose": [
+    "Answers from the real consumer chat interfaces, which differ from the API and are the thing that actually matters",
+    "Any historical baseline: you see trends starting the day you run it",
+    "Google AI Overviews and other scraped surfaces, which need proxy infrastructure to collect reliably",
+    "Curated prompt sets and competitor lists someone else already thought about",
+    "Shareable reports that a client or a boss will accept without a caveat paragraph"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The defensible asset is a growing longitudinal record of model answers across many brands and prompts, not the dashboard on top of it.",
+  "whyPeopleStillPay": "Because the interesting question is never \"what did the model say today\", it is \"is my visibility going up or down and versus whom\", and that requires a dataset that started before you cared. Agencies also need output they can hand to a client without explaining that the numbers come from an API that no customer has ever used. If you are one founder watching one brand, a local script gets you most of the signal for the price of tokens.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, cheap to run, and genuinely useful for one brand; the moment you need to prove anything to someone else, the missing history hurts.",
+  "prompt": "Build a local LLM brand visibility tracker as a TypeScript project. No accounts, no cloud, no telemetry.\n\nStack: Node 20+, TypeScript, better-sqlite3 for storage, a single Fastify server that serves a small static dashboard (vanilla JS plus Chart.js from a CDN). No React, no Next.js, no auth.\n\nData model in SQLite:\n- prompts(id, text, category, active)\n- brands(id, name, aliases_json, is_self)\n- runs(id, prompt_id, provider, model, started_at, raw_response, error)\n- mentions(id, run_id, brand_id, mentioned, first_position, sentence)\n- citations(id, run_id, url, domain)\n\nProviders: implement an adapter interface and ship three adapters, OpenAI, Anthropic, and Perplexity, each reading its key from .env (OPENAI_API_KEY, ANTHROPIC_API_KEY, PERPLEXITY_API_KEY). Skip any provider whose key is missing instead of crashing. Ship a .env.example and never log keys.\n\nCLI commands via package.json scripts:\n- seed: load prompts and brands from a config/tracker.yaml file (include a sample with 10 prompts and 5 brands)\n- run: execute every active prompt against every configured provider once, store raw responses, then extract mentions and citations\n- serve: start the dashboard on localhost:4317\n\nExtraction rules: match brand names and aliases case-insensitively on word boundaries, record the character offset of the first hit as first_position, and pull cited URLs both from provider citation fields when present and from markdown or bare links in the answer text. Normalize to registrable domain.\n\nDashboard: share of voice over time per brand (percent of runs where mentioned), average first_position, a table of top cited domains, and a raw response viewer for spot checking.\n\nScheduling: a documented crontab line calling the run script. Do not build an in-process scheduler.\n\nOut of scope, do not attempt: scraping the ChatGPT, Gemini, or Google AI Overviews web UIs, headless browsers, proxy rotation, multi-user support, PDF reports, keyword volume data.\n\nInclude a README with setup, cost warning about token spend per run, and a note that API answers differ from what users see in consumer chat apps.",
+  "promptCurated": false
+}
