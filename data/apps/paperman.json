@@ -1,0 +1,50 @@
+{
+  "slug": "paperman",
+  "name": "Paperman",
+  "domain": "paperman.cc",
+  "category": "rss-research",
+  "subcategory": "research paper reading",
+  "tagline": "AI reading assistant for research papers: import PDFs, get summaries, ask questions, keep a searchable library.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://paperman.cc/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not exotic: parse a PDF, chunk it, embed it, let a model answer questions with citations back to the page. An agent can stand that up in one sitting and it will work well enough for the twenty papers you actually care about. The gaps show up at the edges: math and multi-column layouts mangle on extraction, figures and tables get dropped, and a homemade PDF viewer with clickable citations is its own miserable afternoon. You also inherit the token bill and lose whatever discovery layer exists, the part that tells you what to read next. Verdict is a soft kinda mostly because the reading experience, not the retrieval, is what you are paying for.",
+  "coreLoopDIY": "Drop PDFs into a folder, get them parsed, chunked, embedded and stored locally, then chat with any paper or your whole library with page-level citations.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key for chat and embeddings, or a local model via Ollama",
+    "Python 3.12 and a machine with a few GB of disk for the vector store",
+    "Willingness to accept messy text extraction from math-heavy PDFs"
+  ],
+  "whatYouLose": [
+    "A real PDF reader with inline highlights, annotations and citation jumping",
+    "Sync across laptop, tablet and phone, plus any mobile app",
+    "Clean handling of equations, figures, tables and scanned papers",
+    "Discovery: recommendations, feeds, and following what other people are reading",
+    "Someone else eating the inference cost and tuning the retrieval quality"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The papers are public. The reading surface, the parsing quality and the citation UX are the actual product.",
+  "whyPeopleStillPay": "Because the thing you do all day is read, not maintain a retrieval pipeline. A local build gives you answers in a text box; a paid tool gives you a viewer where the answer is anchored to the paragraph on page 7, on whichever device you happen to be holding. Anyone who has watched a homemade extractor turn a LaTeX equation into a pile of unicode understands the gap immediately. If you read one paper a month, build it. If you read six a week, the subscription is cheaper than your evenings.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Retrieval over PDFs is a solved weekend exercise; a reading experience you will actually tolerate is not.",
+  "prompt": "Build a local research paper reading assistant. Single Python service, no accounts, no cloud storage, no telemetry.\n\nStack, non negotiable:\n- Python 3.12, FastAPI, uvicorn\n- SQLite for metadata and chunks, sqlite-vec for vector search\n- PyMuPDF for PDF text extraction with page numbers\n- Server rendered HTML with Jinja2 and htmx, no JS build step\n- OpenAI API for embeddings and chat, key from .env as OPENAI_API_KEY, model names in .env with sane defaults\n\nWhat it does:\n1. A watched folder ./papers. On startup and on a manual Reindex button, ingest any new PDF: extract text per page, split into roughly 1200 character chunks with page numbers kept, embed, store.\n2. Library page: table of papers with title (first guess from PDF metadata, else first line of page 1), page count, ingest date, and a delete button.\n3. Paper page: left column shows the extracted plain text by page, right column is a chat box scoped to that paper. Answers must cite page numbers, rendered as clickable anchors that scroll the left column to that page.\n4. A global search page: one query, semantic search across the whole library, results grouped by paper with page numbers and matching snippet.\n5. A one paragraph auto summary generated on first open of a paper and cached in SQLite.\n\nExplicitly out of scope: rendering the actual PDF, annotations, OCR for scanned files, figure and table extraction, arXiv fetching, multi user anything, auth.\n\nRequirements: everything runs with `uv run uvicorn app:main`, DB file created on first run, no migrations framework. Handle extraction failures by marking the paper as failed and continuing. Include a README with setup in under ten lines and an honest Limitations section that says math and multi column layouts will extract badly.",
+  "promptCurated": false
+}
