@@ -1,0 +1,51 @@
+{
+  "slug": "painonsocial",
+  "name": "PainOnSocial",
+  "domain": "painonsocial.com",
+  "category": "user-research",
+  "subcategory": "pain point mining from social posts",
+  "tagline": "Mines social discussions, mostly Reddit threads, for recurring user complaints you can turn into a product idea.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://painonsocial.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is genuinely small: pull posts and comments from a handful of subreddits, filter for complaint-shaped language, hand the pile to an LLM, get clusters of recurring pain with quotes attached. An agent can build that in a session and it will work well enough to be useful for your own idea hunting. The gaps are unglamorous: rate limits, API terms, keeping a crawl running on a schedule, and the fact that cluster quality is a tuning problem you will be poking at for weeks, not minutes. You also only see what you thought to point it at, which is the actual difference between a script and a product that has been crawling continuously and building a taxonomy. Fine for a founder scratching an itch, weak as a research surface.",
+  "coreLoopDIY": "Crawls chosen subreddits on a schedule, filters posts and comments for complaint language, clusters them with an LLM into ranked pain themes with source quotes, and serves the result as a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Reddit API credentials (script app, read-only)",
+    "An LLM API key, OpenAI or Anthropic",
+    "Somewhere to run a cron job if you want it to keep crawling",
+    "Patience for prompt tuning on the clustering step"
+  ],
+  "whatYouLose": [
+    "Coverage beyond whatever sources you wired up yourself, so no X, no HN, no app store reviews, no review sites",
+    "The accumulated backlog: a hosted crawler has months of history, your build starts empty today",
+    "Dedupe and ranking that has been tuned against real usage instead of your first prompt attempt",
+    "Someone else absorbing Reddit API policy changes and rate limit surprises",
+    "A shareable link, alerts, and any UI polish worth showing a cofounder"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The crawl history is the asset, not the clustering. Anyone can cluster; nobody wants to wait six months to have something to cluster.",
+  "whyPeopleStillPay": "Because the value is a corpus you did not have to collect, and because the boring parts never stay solved. Reddit changes its rules, subreddits go private, your regex for complaint language starts pulling in sarcasm and jokes, and the LLM cheerfully invents a theme that three posts support. A paid tool absorbs all of that and hands you a ranked list on a Tuesday morning. If idea validation is a phase you are passing through rather than your job, renting it is cheaper than owning it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scraper is a weekend, the taste in what to scrape is not.",
+  "prompt": "Build a local pain point miner for Reddit. Stack: TypeScript, Node 20, SQLite via better-sqlite3, a small Express server, and plain server-rendered HTML with no frontend framework. No accounts, no cloud, no telemetry.\n\nStructure:\n1. config.json at the repo root listing target subreddits and an optional list of keyword filters.\n2. A crawler that uses the Reddit OAuth script-app flow (client id, client secret, username, password in .env) to fetch new and top posts plus top-level comments for each configured subreddit. Respect rate limits with a simple queue, 1 request per second, and store raw items in SQLite with a unique constraint on reddit id so re-runs are idempotent.\n3. A filter step that scores each item for complaint-shaped language: phrases like \"I hate\", \"why is there no\", \"wish there was\", \"so frustrating\", \"any alternative to\", \"waste of time\". Keep the rules in one file so they are easy to edit.\n4. A clustering step that batches filtered items (max 40 per call) to an LLM via the OPENAI_API_KEY in .env and returns JSON: theme name, one sentence description, severity guess 1-5, and the ids of supporting items. Merge themes across batches with a second pass. Never let the model invent quotes, it may only cite stored text.\n5. An Express UI on localhost:3000: ranked theme list, click a theme to see the real quotes with permalinks, plus filters by subreddit and date range. Server-rendered, one CSS file, no build step for the frontend.\n6. Commands: npm run crawl, npm run analyze, npm run serve. Cron instructions in the README, no scheduler code.\n\nRules: strict TypeScript, .env.example committed and .env gitignored, all LLM calls logged to a local jsonl file so you can debug bad clustering. Out of scope: any source other than Reddit, auth, multi-user, deployment, email alerts. Include a seed script that crawls two subreddits so the UI is not empty on first run.",
+  "promptCurated": false
+}
