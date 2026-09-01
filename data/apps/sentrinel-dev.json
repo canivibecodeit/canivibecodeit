@@ -1,0 +1,53 @@
+{
+  "slug": "sentrinel-dev",
+  "name": "sentrinel.dev",
+  "domain": "sentrinel.dev",
+  "category": "security",
+  "subcategory": "monitoring and alerting for developers",
+  "tagline": "Keeps an eye on your sites and code for security problems and tells you when something changes.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://sentrinel.dev/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of a developer security watchdog is not hard: a scheduler, a list of checks, a diff against last run, an alert when something moves. An agent will hand you TLS expiry warnings, DNS drift, missing security headers, publicly reachable .env and .git paths, and a dependency audit against a public vulnerability database in a single sitting. What it will not hand you is calibration, which is the entire product: knowing which findings are real, which are noise, and which are worth waking you up for. Run your own and you will either mute it in week two or chase ghosts forever. Details on this specific product are thin here, so treat the verdict as directional and not gospel.",
+  "coreLoopDIY": "Runs a fixed set of security checks against your domains and repos on a schedule, stores results in SQLite, and alerts you only when a finding is new or worse than last time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A list of your own domains and repos, since scanning other people's is a bad idea",
+    "An always-on box or a scheduled CI job, because a scanner that only runs when your laptop is open is decoration",
+    "An SMTP account or a Slack or Discord webhook for alerts",
+    "A GitHub token if you want repo and dependency checks"
+  ],
+  "whatYouLose": [
+    "Curated vulnerability and threat intelligence, which is the expensive part and does not come from a weekend of code",
+    "Tuned detection rules, so your homegrown version fires on things that do not matter and stays quiet on things that do",
+    "Ready integrations into Slack, GitHub issues, Jira and whatever else your workflow already lives in",
+    "A third-party report you can forward to a customer or an auditor, which carries weight precisely because you did not write it",
+    "Someone else maintaining the checks as the web changes underneath them"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "Security tools sell two things: a data feed you cannot assemble yourself, and an outside name on the report. Code is the cheap third thing.",
+  "whyPeoplePayStillPay": null,
+  "whyPeopleStillPay": "Security tooling gets paid for attention you do not have. The checks are commodity, but keeping them current, keeping false positives low, and being the thing that actually pages you at 3am is ongoing labor. There is also the signature problem: when a customer or an auditor asks whether you scan, \"yes, I wrote a script\" lands differently than a report from a vendor. If security is a checkbox someone else is holding, buy it. If it is just you wanting to know when your TLS cert is about to lapse, build it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, genuinely useful, and you will hate it the first week it cries wolf.",
+  "prompt": "Build a self-hosted security watchdog for my own domains and repos. Single Node service, no SaaS dependency.\n\nStack, no substitutions: TypeScript on Node 20, Fastify for the HTTP layer, better-sqlite3 for storage, node-cron for scheduling, server-rendered HTML with a single plain CSS file. No React, no ORM, no Docker requirement.\n\nData model in SQLite: targets (domain or repo), checks, findings (target_id, check_id, severity, fingerprint, first_seen, last_seen, resolved_at, raw_json), runs.\n\nChecks to implement, each as its own module exporting a run(target) function:\n1. TLS certificate expiry and issuer, warn under 21 days.\n2. DNS snapshot of A, AAAA, MX, NS, TXT records, flag any change from the last stored snapshot.\n3. HTTP response headers: missing HSTS, CSP, X-Content-Type-Options, and any Server or X-Powered-By header that leaks a version.\n4. Path probe for a small fixed list of things that should never be public: /.env, /.git/HEAD, /.DS_Store, /backup.sql, /wp-config.php.bak. Rate limit to 1 request per second per host.\n5. Dependency audit: read package-lock.json or requirements.txt from a configured local path or a GitHub repo, query the public OSV.dev API, record vulnerable versions.\n6. Optional GitHub repo hygiene via the API: public repos with no branch protection, secret scanning disabled.\n\nAlerting: on each run, diff current findings against stored ones by fingerprint. Only notify on new findings, findings that got worse, and resolutions. Send via SMTP and an optional webhook. Never send an unchanged-state digest more than once a week.\n\nDashboard at /: current open findings grouped by severity, per-target history, last run time, and a button to run all checks now.\n\nConfig lives in targets.yml plus secrets in .env (SMTP_URL, WEBHOOK_URL, GITHUB_TOKEN). Commit an example of each, never real values.\n\nExplicitly out of scope: multi-tenancy, user accounts, billing, PDF compliance reports, active exploitation of any kind, scanning hosts I do not own, and any telemetry back to you.\n\nDeliver a README with setup, a seeded example target, and one test per check module using recorded fixtures.",
+  "promptCurated": false
+}
