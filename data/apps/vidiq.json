@@ -1,0 +1,52 @@
+{
+  "slug": "vidiq",
+  "name": "vidIQ",
+  "domain": "vidiq.com",
+  "category": "seo-marketing",
+  "subcategory": "YouTube growth and keyword research",
+  "tagline": "YouTube analytics, keyword research and title/thumbnail coaching for channel growth.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://vidiq.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard part of vidIQ is genuinely easy: YouTube's Data API and Analytics API will hand you your own views, retention, subscriber deltas and every public stat on a competitor's uploads, and an agent can wire that into a local dashboard in an afternoon. What you cannot build is the reason people pay: keyword search volume, competition scores, and the outlier detection that says this video is doing 6x what this channel normally does. Those numbers come from continuously crawling and storing a huge slice of YouTube plus years of accumulated history, not from an endpoint. Your own API quota is small, historical snapshots you never took do not exist, and no amount of prompting invents a search volume estimate. Build the personal dashboard, keep the subscription if you actually rely on keyword research.",
+  "coreLoopDIY": "Pulls your channel's stats and a watchlist of competitor channels through the YouTube APIs into a local SQLite database, snapshots them daily, and shows growth curves plus a views-per-hour outlier score per video.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with YouTube Data API v3 and YouTube Analytics API enabled",
+    "OAuth client for your own channel's private analytics",
+    "API key for public channel/video data",
+    "somewhere to run a daily cron job so snapshots accumulate"
+  ],
+  "whatYouLose": [
+    "Keyword search volume and competition scores, which are derived from vidIQ's own crawl, not from any public API",
+    "Historical data before the day you start collecting, so trend views are empty for months",
+    "Outlier and benchmark scoring calibrated against millions of channels rather than your five-channel watchlist",
+    "Title, thumbnail and description coaching tuned on what actually performed across the platform",
+    "Browser extension overlays on youtube.com while you are researching, plus mobile access"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The API gives everyone the same public numbers. The product is the longitudinal archive of those numbers plus the scoring built on top.",
+  "whyPeopleStillPay": "Because the useful question is not how did my video do, it is which topic should I make next and is this title going to underperform. Answering that needs a corpus: search volume estimates, per-niche benchmarks, and enough history to know what normal looks like. vidIQ has been collecting that continuously for years and surfaces it inside YouTube itself while you work. A self-hosted dashboard tells you the truth about your own channel, which is worth having, but it starts with zero history and can never tell you what the rest of the platform is doing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the search volume data is not. The moat is a multi-year crawl of YouTube plus the scoring models trained on it.",
+  "prompt": "Build a local YouTube channel analytics dashboard called \"tubewatch\". Single Node.js project, no framework menu: Next.js 15 App Router with TypeScript, SQLite via better-sqlite3, Tailwind for styling, Recharts for graphs. Runs on localhost only, no auth, no telemetry, no cloud.\n\nData sources:\n1. YouTube Data API v3 with an API key for public data: channel stats, uploads playlist, video snippets and statistics.\n2. YouTube Analytics API with OAuth for MY channel only: daily views, watch time, average view duration, subscribers gained and lost.\nSecrets in .env: YOUTUBE_API_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, MY_CHANNEL_ID. Include a small CLI script that walks me through the OAuth consent flow once and prints the refresh token to paste into .env.\n\nSchema: channels, videos, video_snapshots (video_id, captured_at, views, likes, comments), channel_snapshots, my_daily_analytics.\n\nA script `npm run sync` that: refreshes my channel's daily analytics, fetches all uploads for every channel in a watchlist table, and writes one snapshot row per video per run. Respect API quota: batch video IDs 50 at a time, cache aggressively, log quota units used and exit cleanly if a call fails. Document how to run it from cron once a day.\n\nUI, three pages:\n- Overview: my views, watch time and subscriber net change over 7/28/90 days, plus my last 20 videos in a sortable table.\n- Video detail: snapshot-derived view curve for one video, and a views-per-hour figure for its first 48 hours if snapshots exist.\n- Watchlist: add or remove competitor channel IDs, see their recent uploads with views, and an outlier score computed as a video's views divided by the median views of that channel's last 20 videos.\n\nExplicitly out of scope, and say so in the README: keyword search volume, competition scores, platform-wide benchmarks, title or thumbnail scoring. None of that is available from the API and the app must not fake it with invented numbers.\n\nSeed the database with nothing. Include a README covering API setup, quota limits, and the fact that history only starts the day I first run sync.",
+  "promptCurated": false
+}
