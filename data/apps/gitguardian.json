@@ -1,0 +1,51 @@
+{
+  "slug": "gitguardian",
+  "name": "GitGuardian",
+  "domain": "gitguardian.com",
+  "category": "security",
+  "subcategory": "secrets detection",
+  "tagline": "Scans your git repos, commits and history for leaked API keys and credentials, then routes them as incidents.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per developer, annual contracts on higher tiers",
+    "unit": "per-seat",
+    "source": "https://gitguardian.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanical part of GitGuardian is a regex and entropy scanner walking your working tree and git history, and an agent can write that in an afternoon. Open source prior art is thick here, so a personal build starts from a good place and a pre-commit hook covers the case that actually matters: not committing the key in the first place. What you cannot one-shot is the detector corpus, which is hundreds of provider-specific patterns tuned against real leak data, and the validity check that pings the provider to tell you whether the leaked token is still live. You also lose org-wide, always-on coverage: GitGuardian watches every push from every developer, plus public GitHub for your company's secrets leaking out of personal side projects. For one person with a handful of repos, a local scanner plus hook is genuinely enough. For a team that needs an audit trail, it is not.",
+  "coreLoopDIY": "A local CLI that scans your working tree and full git history against a rules file plus an entropy heuristic, installs a pre-commit hook that blocks matching diffs, and keeps an allowlist so you only see a finding once.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and git installed locally",
+    "a list of repos to scan, or a folder to walk",
+    "tolerance for tuning false positives yourself in the first week"
+  ],
+  "whatYouLose": [
+    "Hundreds of provider-specific detectors tuned against real leaks, instead of the twenty patterns you remember to write",
+    "Validity checking: knowing whether the key you just found is still live and needs rotating today",
+    "Always-on coverage of every push by every developer, including the repos nobody told you about",
+    "Monitoring of public GitHub for your org's secrets leaked from personal accounts",
+    "Incident workflow, assignment, resolution history and the audit trail an auditor will ask for"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The detector set and its false positive tuning is the real asset; the scanning engine is commodity.",
+  "whyPeopleStillPay": "Because secret scanning is only useful if it runs on everything, always, without anyone remembering to run it. A local CLI protects the repos you point it at, on the days you think about it, which is the wrong shape for a problem where one forgotten push at 2am is the whole incident. Paying buys the GitHub App that sits on the org, the detector corpus somebody else maintains as providers change token formats, the validity check that turns a finding into a priority, and a paper trail you can hand to a SOC 2 auditor. Solo developers can skip all of that. Teams generally discover they cannot.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scanner is a weekend; the rules file is a full time job.",
+  "prompt": "Build a local secrets scanner CLI called \"leakcheck\" in a new empty folder.\n\nStack, no substitutions: Python 3.11, standard library plus `click` and `rich` only. No network calls anywhere. No telemetry. No accounts. Package with a `pyproject.toml` so `pipx install .` works.\n\nCommands:\n1. `leakcheck scan PATH` : walk the working tree of a git repo (respect .gitignore, skip binaries and files over 1MB), match every line against the rules file, print findings as a rich table with file, line number, rule name and a masked preview of the match.\n2. `leakcheck history PATH` : stream `git log -p --all --full-history` via subprocess, parse added lines only, and report findings with the commit SHA, author and date. Do not load the whole log into memory.\n3. `leakcheck hook install PATH` : write a `.git/hooks/pre-commit` shell script that runs the scanner over the staged diff and exits nonzero on a finding, with a printed instruction on how to bypass deliberately.\n4. `leakcheck baseline PATH` : write every current finding to `.leakcheck-baseline.json` keyed by a hash of (relative path, rule id, matched secret). All commands suppress baselined findings unless `--all` is passed.\n\nRules: ship `rules.yaml` (parse it yourself with a tiny loader, or use tomllib and make it TOML, your choice, pick one and commit). Include at minimum: AWS access key id and secret, GitHub personal and fine-grained tokens, Slack tokens and webhooks, Stripe live and test keys, OpenAI and Anthropic keys, Google API keys, private key PEM blocks, generic `password=` and `api_key=` assignments, and JWTs. Each rule has id, name, regex, severity and an optional keyword prefilter for speed.\n\nAlso implement a Shannon entropy check for base64 and hex strings over 20 chars above a configurable threshold, reported as low severity and off unless `--entropy` is passed, because it is noisy.\n\nExit codes: 0 clean, 1 findings above the `--fail-on` severity, 2 usage error.\n\nExplicitly out of scope: any web UI, any database, any GitHub or GitLab API integration, any check of whether a found key is still live, any auto-rotation, any multi-repo dashboard.\n\nSecrets in `.env` are not needed since nothing talks to a network; do not create one.\n\nWrite pytest tests with a fixture repo built at test time via subprocess git commands, covering one true positive per rule family and at least five known false positives (example keys in docs, `AKIAIOSFODNN7EXAMPLE`, test fixtures) that must not fire. Finish with a README showing the four commands and how to tune `rules.yaml`.",
+  "promptCurated": false
+}
