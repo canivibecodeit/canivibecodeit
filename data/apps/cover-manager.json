@@ -1,0 +1,53 @@
+{
+  "slug": "cover-manager",
+  "name": "Cover Manager",
+  "domain": "covermanager.com",
+  "category": "scheduling",
+  "subcategory": "restaurant reservations",
+  "tagline": "Reservation and table management for restaurants, with a booking widget, floor plans, guest history and channel bookings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://covermanager.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core of a reservation system is genuinely simple: shifts, capacity, tables, a public booking form, a service-day view. An agent can build that in a weekend and it will work fine for one room with one manager who trusts it. What it cannot build is the inbound plumbing: bookings arriving from Google, Instagram and your listing pages, SMS and email confirmations that actually deliver, deposits and no-show charges, and a phone-friendly floor view that a host can hammer during a full Saturday service. It is also a system that loses you money the moment it double books or drops a confirmation, which is a bad property for something you wrote yourself last weekend. Fine as a self-hosted booking book for a small place, not a swap for a live front-of-house stack.",
+  "coreLoopDIY": "A self-hosted booking system with shift and capacity rules, a public reservation form, a table plan, and a day view for the pass.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a small VPS or Fly/Railway box with a real domain, since guests book from their phones",
+    "Postgres or SQLite with backups you actually test",
+    "a transactional email sender, Resend or Postmark, plus Twilio if you want SMS confirmations",
+    "Stripe if you want deposits or no-show holds",
+    "someone on staff willing to trust a homemade booking book during service"
+  ],
+  "whatYouLose": [
+    "Bookings flowing in from Google Reserve, Instagram, hotel and portal channels; you get whoever visits your own page",
+    "Reliable confirmation and reminder delivery, which is most of what cuts no-shows",
+    "POS, CRM and marketing integrations, plus the guest history that builds up across venues",
+    "Multi-venue and multi-shift operational detail: waitlists, overbooking rules, walk-in reshuffles, table combinations",
+    "Support at 8pm on a Friday when the floor view stops loading"
+  ],
+  "moatTags": [
+    "integrations",
+    "brand-trust",
+    "switching-costs"
+  ],
+  "moatNotes": "The real product is not the calendar, it is being the endpoint every booking channel and every staff phone already points at.",
+  "whyPeopleStillPay": "Restaurants do not pay for a table grid, they pay for covers arriving without anyone answering the phone and for not having to think about it during service. That means channel connections, deliverable confirmations, deposit handling and a host interface that survives a rush, all of which are boring, integration-heavy work that no single venue wants to own. Add the fact that the booking system is load-bearing revenue infrastructure and the appetite for a homemade version drops fast. A self-built version is defensible for a small place with mostly walk-ins and one shift, and indefensible for anyone doing two hundred covers a night.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Building the reservation book is easy; building the thing the whole floor trusts at 9pm is not.",
+  "prompt": "Build a self-hosted restaurant reservation manager for a single venue. No SaaS, no accounts beyond one staff login.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) with Tailwind\n- SQLite via Prisma, file at ./data/app.db\n- Resend for transactional email, key in .env, and a DRY_RUN mode that logs emails to console when no key is set\n- Single staff password from .env, cookie session, no user table\n\nData model:\n- Venue settings: name, timezone, party size min/max, booking lead time, cancellation window\n- Tables: name, seats min/max, area (dining room, terrace, bar), joinable flag\n- Shifts: weekday, name (lunch/dinner), start, end, slot interval in minutes, max covers per slot\n- Closures: date ranges that block booking\n- Reservations: guest name, phone, email, party size, datetime, status (requested, confirmed, seated, no-show, cancelled), assigned table, notes, allergy/occasion tags, source\n- Guests: keyed on phone, with visit count and no-show count, auto-linked on booking\n\nPublic side (no auth):\n- /book: date picker, party size, then available slots computed from shifts, closures, table inventory and existing reservations. Never offer a slot that has no table combination that fits.\n- Confirmation screen plus confirmation email with a cancel link (signed token, no login)\n- Cancel page that frees the slot\n\nStaff side (password):\n- /service: today's view, hour columns, one row per table, drag-free but click-to-assign, status buttons (seated, no-show)\n- /reservations: list with search by name or phone, manual booking form that can override capacity with a warning\n- /setup: CRUD for tables, shifts, closures, venue settings\n- Guest panel showing prior visits and no-show count when a phone number matches\n\nExplicitly out of scope: Google Reserve and other channel integrations, SMS, payments and deposits, POS sync, multi-venue, native apps.\n\nSeed the database with a plausible 12-table venue and two shifts. Write a README covering local run, deploy to Fly.io with a persistent volume, and a nightly SQLite backup script. Mobile layout for /service is a requirement, not an afterthought: a host will use it one-handed on a phone.",
+  "promptCurated": false
+}
