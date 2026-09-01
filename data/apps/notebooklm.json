@@ -1,0 +1,52 @@
+{
+  "slug": "notebooklm",
+  "name": "NotebookLM",
+  "domain": "notebooklm.google.com",
+  "category": "notes-knowledge",
+  "subcategory": "grounded RAG over your own sources",
+  "tagline": "Upload your documents and get a chatbot, summaries, and podcast-style audio overviews grounded in only those sources.",
+  "priceMonthly": 19.99,
+  "pricing": {
+    "plan": "Google AI Pro (includes NotebookLM Plus limits)",
+    "basis": "monthly per user, bundled with a wider AI subscription",
+    "unit": "per-seat",
+    "source": "https://notebook.google/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. A usable free tier exists, the paid tier is mostly higher limits and sharing.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core of NotebookLM is a retrieval-augmented chat that refuses to talk about anything outside the files you gave it, and that is a well-trodden build: chunk, embed, retrieve, cite. An agent can get you a local version with source-grounded answers and inline citations in a weekend, and it will genuinely be useful for your own PDF pile. What you will not get in one sitting is the Audio Overview, two synthetic hosts having a weirdly listenable conversation about your tax documents, which is the feature people actually show their friends. You also inherit the boring pain: PDF layout parsing, YouTube transcript fetching, and Google Drive ingestion all break in different ways. Worth noting the free tier is generous enough that building this is a privacy or tinkering decision, not a cost one.",
+  "coreLoopDIY": "Drop files into a folder, get a local web app that chunks and embeds them, answers questions using only those chunks, and shows which passage each sentence came from.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted LLM with a long context window, or Ollama plus a local embedding model if you want it fully offline",
+    "A TTS API key if you want any attempt at audio overviews",
+    "Python 3.11 and a working PDF text extraction stack",
+    "Patience for scanned PDFs, which need OCR and will not just work"
+  ],
+  "whatYouLose": [
+    "Audio Overviews, the whole reason half the users are there",
+    "Gemini's very long context, which lets it reason across a whole source instead of the top eight chunks your retriever guessed at",
+    "One-click ingestion of Google Docs, Slides, Drive, and YouTube URLs",
+    "Mobile apps, sharing a notebook with someone, and the polished citation UI that highlights the exact sentence in the source pane",
+    "A free tier that costs you nothing and requires no maintenance"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The retrieval is commodity. The million-token grounding and the audio host voices are not, and both come from models Google does not rent out in the same shape.",
+  "whyPeopleStillPay": "Most people are not paying for NotebookLM specifically, they are paying for a Google AI subscription and NotebookLM comes along. Within that, the reason they use it instead of a local RAG script is that it is zero setup, it handles a messy pile of formats without complaining, and it produces two artifacts, tight cited summaries and audio overviews, that a homegrown build gets wrong in ways you notice immediately. If your sources are sensitive enough that you do not want them in Google's product, that calculus flips fast and the DIY build wins on principle alone.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The chat-with-your-docs part is a solved weekend project; the audio overview is the part you will keep opening the real thing for.",
+  "prompt": "Build a local, single-user NotebookLM-style research app. Empty folder, no accounts, no telemetry, no cloud storage.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, uvicorn\n- SQLite for everything, with sqlite-vec for vector search\n- Server-rendered Jinja2 templates plus a little vanilla JS, no React, no build step\n- pypdf for PDFs, python-docx for docx, markdown-it for md, trafilatura for URLs\n- LLM and embeddings via one provider read from .env: OPENAI_API_KEY, MODEL, EMBED_MODEL. Do not hardcode keys. Include a .env.example.\n\nData model: notebooks, sources (belongs to notebook, has title, kind, raw_text, created_at), chunks (source_id, ord, text, embedding), messages (notebook_id, role, content, citations JSON).\n\nFeatures, in scope:\n1. Create and list notebooks.\n2. Add a source by file upload or by pasting a URL. Extract text, chunk to roughly 900 tokens with 150 overlap on paragraph boundaries, embed, store.\n3. Chat panel per notebook. On each question: embed it, retrieve top 12 chunks across that notebook only, and prompt the model with a strict instruction to answer only from the provided passages and to say it does not know otherwise. Require the model to emit citation markers like [3] mapping to the passage list, and return structured citations.\n4. Render citations as clickable chips. Clicking one opens a side pane showing that chunk's text and its source title, with the chunk highlighted.\n5. Per-notebook \"brief\" button: generate a one-page summary plus five suggested questions, cached in SQLite.\n6. Source list with delete, which cascades to chunks.\n\nExplicitly out of scope: audio overviews, OCR for scanned PDFs, YouTube ingestion, multi-user auth, sharing, mobile app. Do not stub them in the UI, just leave them out.\n\nRequirements: everything runs with `pip install -r requirements.txt` then `uvicorn app:app --reload`. Store the SQLite file and uploads in ./data. Write a README that states plainly what is missing, that scanned PDFs will produce empty text, and roughly what a large notebook costs to embed.\n",
+  "promptCurated": false
+}
