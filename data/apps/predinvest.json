@@ -1,0 +1,51 @@
+{
+  "slug": "predinvest",
+  "name": "Predinvest",
+  "domain": "predinvest.com",
+  "category": "finance-accounting",
+  "subcategory": "investment forecasting and research",
+  "tagline": "A web tool that dresses market data up as forward-looking investment predictions and scores.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://predinvest.com/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The shell of a prediction dashboard is a solved problem: pull prices, compute indicators, run a forecast, render charts, alert on thresholds. An agent will hand you that in a sitting, and for a watchlist of thirty tickers it will feel roughly as informative as a paid screen. The gap is everything behind the number: whatever data licenses, fundamentals coverage, and fitted models produce the actual prediction, plus the backtesting rigor that makes it more than a moving average with confidence. If the product's edge is a proprietary model, you cannot clone the edge, only the layout. If the edge is mostly presentation over public data, the DIY version is genuinely close, and you will find out which within an afternoon of comparing outputs.",
+  "coreLoopDIY": "Pulls daily price history for your watchlist, computes indicators and a simple ensemble forecast with backtested error bars, and shows it as a local dashboard with threshold alerts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine you leave on for the daily job",
+    "A free or cheap market data source, and tolerance for its rate limits",
+    "Willingness to read your own backtest numbers honestly"
+  ],
+  "whatYouLose": [
+    "Licensed fundamentals, estimates and corporate action data that free feeds handle badly or not at all",
+    "Whatever the vendor's actual model is, including years of fitting and out-of-sample checks you cannot see",
+    "Coverage breadth: your build works on liquid US tickers and falls over on everything else",
+    "Mobile access and email alerts that arrive without you babysitting a cron job",
+    "Someone else to blame when the number is wrong"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "In forecasting tools the moat is either a real model or a convincing interface. Both are defensible for different reasons, and from the outside they look identical.",
+  "whyPeopleStillPay": "Because nobody wants to maintain their own data pipeline to make a decision about their own money. A paid screen arrives clean, updated, cross-sectional across thousands of names, and framed confidently enough to act on. A local build gives you the same arithmetic on a narrower universe with more caveats, which is more honest and less comfortable. People also pay for the implicit claim that someone validated the model, whether or not that claim holds up.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it mainly to find out whether the paid version is a model or a stylesheet.",
+  "prompt": "Build a local investment forecasting dashboard. Single Python project, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Uvicorn\n- SQLite via sqlite3 (no ORM)\n- Jinja2 templates plus htmx for partial updates\n- pandas and numpy for computation\n- Plotly rendered client side from JSON endpoints\n- yfinance as the default price source, wrapped behind a single fetch_prices() function so it can be swapped\n\nFeatures in scope:\n1. Watchlist CRUD: ticker, label, notes. Stored in SQLite.\n2. Daily ingest job (a plain `python -m app.ingest` command, plus instructions for cron) that fetches adjusted daily OHLCV for every watchlist ticker and upserts into a prices table keyed on (ticker, date).\n3. Indicator layer: returns, 20/50/200 day moving averages, realized volatility, max drawdown, RSI.\n4. Forecast layer: an ensemble of three deliberately simple models (drift, momentum over a fitted lookback, mean reversion to the 200 day mean) blended by inverse out-of-sample error. Output is a horizon forecast (5, 20, 60 trading days) with an empirical prediction interval from walk-forward residuals.\n5. Backtest page: walk-forward evaluation per ticker showing hit rate, MAE and a naive-baseline comparison. If the ensemble does not beat the naive baseline, say so in plain text on the page. Do not hide it.\n6. Alerts: user-defined threshold rules (price crosses X, forecast interval excludes current price, drawdown exceeds Y). Evaluated during ingest, written to an alerts table, shown as a badge on the dashboard.\n7. CSV export of prices, forecasts and backtest metrics.\n\nExplicitly out of scope: user auth, multi-tenant anything, intraday or realtime data, options, fundamentals, news sentiment, portfolio accounting, brokerage integration, payments.\n\nRules: any API key goes in .env read via python-dotenv, never committed. Ship a .env.example. Every page that displays a forecast must render a one-line disclaimer that this is a naive statistical projection and not advice. Include pytest tests for the indicator math and the walk-forward split (no lookahead leakage). Include a README with setup, the ingest command, a sample cron line, and a short honest section on why these forecasts are weak.\n\nRun with `uvicorn app.main:app --reload`. Seed the database with five tickers so the dashboard is not empty on first boot.",
+  "promptCurated": false
+}
