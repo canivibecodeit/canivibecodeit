@@ -1,0 +1,51 @@
+{
+  "slug": "appllama",
+  "name": "AppLlama",
+  "domain": "appllama.io",
+  "category": "no-code-apps",
+  "subcategory": "AI app builder",
+  "tagline": "Describe an app in plain language and get a generated, deployable web app without writing the scaffolding yourself.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://appllama.io/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a product category where the DIY question is unusually funny: the thing you would use to replace it is the same class of tool that powers it. A coding agent can absolutely build you a local generator, a CLI that takes a prompt, calls a model API, writes a project, installs deps, runs the build, and feeds errors back until it compiles. What you cannot cheaply rebuild is everything wrapped around the generation: hosted previews on a URL you can send someone, provisioned databases, auth boilerplate that actually works, and the accumulated prompt scaffolding that keeps output from drifting into nonsense. If you are a developer, the local version is arguably better because you own the files and skip the middle layer. If you wanted this precisely because you did not want to touch a terminal, self-hosting a terminal tool is not a replacement.",
+  "coreLoopDIY": "A local CLI that turns a plain-language app description into a working scaffolded project, then loops on build errors until it compiles and runs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a terminal you are willing to live in",
+    "An LLM API key with real spend on it, since iteration loops burn tokens",
+    "Somewhere to deploy if you want a shareable URL, which the local build does not give you"
+  ],
+  "whatYouLose": [
+    "Hosted preview URLs you can hand to someone who does not have your laptop",
+    "Managed database and auth provisioning, which is most of the boring work in any real app",
+    "The vendor's tuned system prompts and templates, which are the difference between output that runs and output that almost runs",
+    "A browser UI, so non-developers get nothing out of the DIY version",
+    "Someone else eating the cost and blame when a generation loop goes sideways"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the model, which anyone can rent. It is the hosting, provisioning and template layer that turns raw generation into something a non-developer can actually click on.",
+  "whyPeopleStillPay": "Because the value being sold is not code generation, it is the removal of every step around it. Signing up for a model API, managing keys, picking a stack, provisioning a database, wiring auth, and finding a host are each individually easy and collectively the reason most ideas die in a folder. People pay to skip that, and a local CLI that dumps a project into ./my-app does not skip it. Developers who already have the terminal, the keys and the deploy habit are the ones who should not pay.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Using a coding agent to replace an AI app builder is closing a loop that was probably always going to close.",
+  "prompt": "Build a local command line app generator called \"llamalite\". No accounts, no telemetry, no cloud services beyond one LLM API call.\n\nStack, non negotiable:\n- Node 20 with TypeScript, run via tsx\n- commander for the CLI\n- The Anthropic Messages API called over plain fetch, key read from ANTHROPIC_API_KEY in .env via dotenv\n- Generated projects use Vite + React + TypeScript + Tailwind, nothing else\n\nBehaviour:\n1. `llamalite new \"a habit tracker with a weekly grid and local storage\"` creates ./output/{slug}/.\n2. Copy a bundled Vite React Tailwind starter template from ./template into the new folder. Do not ask the model to generate config files, package.json, or tsconfig. Those are fixed.\n3. Send the description to the model and require a JSON response: an array of objects with `path` and `contents`, restricted to files under src/. Reject any path that escapes src/ or touches config.\n4. Write the files, run `npm install`, then run `npx tsc --noEmit` and `npm run build`.\n5. If either fails, send the model the error output plus the current contents of the files it wrote and ask for a corrected full file set. Retry up to 3 times, then stop and print the last error.\n6. On success print the folder path and the `npm run dev` command.\n7. `llamalite iterate {slug} \"add a dark mode toggle\"` reruns the same loop against the existing src/ files.\n\nAlso build:\n- A `runs/` log per project: prompt, each model response, each build result, token counts and a rough cost line.\n- Sensible retry and timeout handling on the API call.\n\nExplicitly out of scope: hosting, deployment, database provisioning, auth, a web UI, multi user anything, billing, any model other than the one configured. Do not add them.\n\nDeliverables: README with setup in under ten lines, .env.example, the template folder, and one working example run committed as output/example/.",
+  "promptCurated": false
+}
