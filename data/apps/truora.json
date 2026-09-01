@@ -1,0 +1,52 @@
+{
+  "slug": "truora",
+  "name": "Truora",
+  "domain": "truora.com",
+  "category": "security",
+  "subcategory": "identity verification and background checks",
+  "tagline": "Identity verification, KYC and background checks aimed mostly at Latin American markets, including WhatsApp-based onboarding flows.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://truora.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Identity verification is typically quoted per check or per contract, not as a flat subscription.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build the software around identity verification: an upload form, a selfie step, OCR on a document, a review queue, an audit trail. What you cannot build is the part anyone is actually paying for, which is authorized access to national ID registries, criminal and litigation records, sanctions lists and fraud signals across a dozen countries, plus the legal standing to query them. Those connections are contractual and regulated, not an API key you sign up for on a Tuesday. Liveness and document fraud detection are also model problems with adversarial pressure, so a hobby version will pass exactly the attacks nobody was trying. Build the intake and review flow if you want to understand the shape of the problem; do not expect it to tell you whether a person is real.",
+  "coreLoopDIY": "A self-hosted ID intake flow that captures a document photo and a selfie, OCRs the document fields, and drops the case into a manual review queue with an immutable audit log.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local filesystem for document storage",
+    "A browser with camera access for the capture step",
+    "A human willing to actually review every case",
+    "No external data sources, so every verdict is your own eyeballs"
+  ],
+  "whatYouLose": [
+    "Authorized queries against government ID registries, criminal records and litigation databases",
+    "Sanctions, PEP and watchlist screening that is kept current by someone other than you",
+    "Trained liveness and document-tampering detection that survives real fraud attempts",
+    "Country-by-country coverage and the compliance paperwork that makes the checks admissible",
+    "WhatsApp and hosted onboarding flows your non-technical operations team can run without you"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The interesting engineering here is boring plumbing. The value is a stack of data agreements you cannot replicate in a weekend or a year.",
+  "whyPeopleStillPay": "Because the buyer is a compliance or risk team that needs a defensible answer, not a nice form. When a regulator or a fraud loss asks how you verified this person, \"we OCRed their ID and a colleague looked at it\" is not an answer, and \"we queried the national registry through a licensed provider and here is the audit record\" is. That defensibility is bought, not built, and it comes bundled with coverage across markets where each country has its own registries, formats and rules.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The intake form and review queue are a weekend; the answer they are supposed to produce is not. The moat is authorized access to national registries and watchlists across multiple jurisdictions, plus the legal standing to query them.",
+  "prompt": "Build a self-hosted identity document intake and manual review tool. This is a consolation build: it collects and organizes KYC evidence for a human reviewer. It does NOT verify anyone against any external database, and the UI must say so.\n\nStack, no substitutions:\n- Next.js 15 with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, file at ./data/app.db, migrations in plain SQL run at boot.\n- Uploaded files on local disk under ./data/uploads, never in the repo, served only through an authenticated route.\n- tesseract.js for OCR, running server side.\n- Single shared reviewer password read from REVIEWER_PASSWORD in .env, cookie session. No user accounts, no OAuth, no third party services, no telemetry.\n\nApplicant flow, one public page per case link:\n1. Create a case via the reviewer dashboard, which mints a random unguessable URL token.\n2. The applicant opens that URL, enters name and date of birth, uploads or captures a photo of an ID document, then captures a selfie using getUserMedia.\n3. On submit, run OCR on the document image, extract candidate name, document number and expiry with regex heuristics, and store both the raw OCR text and the parsed guesses.\n\nReviewer dashboard:\n- List cases with status: awaiting submission, awaiting review, approved, rejected.\n- Case detail shows document image, selfie, applicant-entered fields, OCR text, and a diff-style comparison of typed name against OCR name.\n- Approve or reject with a required free text reason.\n- Append-only audit_events table: every view, decision and file access gets a row with timestamp, actor and case id. Never update or delete audit rows.\n- Retention job: a script that deletes uploaded files older than N days set by RETENTION_DAYS while keeping the audit rows.\n\nExplicitly out of scope, do not fake these: liveness detection, face matching, sanctions or PEP screening, criminal record lookup, government registry checks, any scoring or risk number. If a field would normally hold such a result, render the string \"not checked\" instead.\n\nDeliver: README with setup, .env.example, seed script that creates one demo case, and a banner in the reviewer UI reading \"Evidence collection only. No external verification is performed.\"",
+  "promptCurated": false
+}
