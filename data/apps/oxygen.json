@@ -1,0 +1,51 @@
+{
+  "slug": "oxygen",
+  "name": "Oxygen",
+  "domain": "oxygen-agent.com",
+  "category": "ai-assistant",
+  "subcategory": "autonomous agent",
+  "tagline": "A hosted AI agent that takes a goal, plans, calls tools, and reports back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://oxygen-agent.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of any agent product is a loop: send context to a model, let it pick a tool, run the tool, feed the result back, repeat until done. That loop is genuinely a one-sitting build and a competent agent will write you a working version with file, shell, and HTTP tools before lunch. What you cannot conjure is the boring part around it: a sandbox that stops a confused model from deleting your home directory, retry and cost accounting, a decent UI for watching long runs, and pre-wired connectors to whatever systems you actually want touched. It also stays permanently tethered to somebody else's model API, so this is not a clean independence story, it is a cheaper and more inspectable one. Good trade if you like reading logs, bad trade if you wanted a product.",
+  "coreLoopDIY": "A local CLI agent that takes a plain-English goal and iterates a model plus tool-call loop over your files, shell, and the web until it declares the task done, logging every step.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a frontier model, with a real token budget",
+    "Python 3.11+ locally",
+    "Willingness to run shell commands suggested by a model, ideally inside a container"
+  ],
+  "whatYouLose": [
+    "Sandboxing and blast-radius controls that someone else already stress-tested",
+    "Prebuilt connectors to SaaS tools, so every integration is yours to write and maintain",
+    "A watchable UI for long runs, plus shareable run history",
+    "Model routing and fallback when your one provider rate-limits or degrades",
+    "Any notion of safety review on destructive actions beyond your own confirm prompt"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "Agent loops are commodity. Guardrails, connectors, and not-losing-the-thread on a two-hour run are the actual product.",
+  "whyPeopleStillPay": "Because the demo loop and the reliable loop are separated by weeks of unglamorous work. Timeouts, tool schema drift, context window management, partial failures halfway through a multi-step task, and the moment the model decides rm is a reasonable idea. A hosted agent also gets you a sandbox you did not have to configure and a history you can scroll instead of grep. If the agent is doing anything that touches other people's systems, paying someone to own the failure modes is defensible.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The loop is a toy weekend project; the guardrails are the product.",
+  "prompt": "Build a local autonomous agent CLI in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11+, uv for deps, Typer for the CLI, Rich for terminal output\n- Anthropic Python SDK for the model, key read from .env as ANTHROPIC_API_KEY via python-dotenv\n- SQLite via stdlib sqlite3 for run history, file agent.db\n- No web server, no frontend\n\nCore behaviour:\n- Command: agent run \"goal text\" [--max-steps 25] [--workdir .]\n- Maintain a message list. Each turn, send the goal plus history to the model with tool definitions. Execute the requested tool, append the result, loop until the model returns a final answer or max-steps is hit.\n- Tools: read_file(path), write_file(path, content), list_dir(path), run_shell(command), http_get(url)\n- All file paths are resolved and confined to --workdir. Reject anything that escapes it.\n- run_shell prints the exact command and requires y/N confirmation unless --yolo is passed. Hard 60s timeout, capture stdout and stderr, truncate to 8000 chars.\n- Truncate every tool result before it goes back into context, and note when truncation happened.\n\nObservability:\n- Persist each run and each step (tool name, args, result preview, token counts if available) to SQLite.\n- Commands: agent runs to list past runs, agent show ID to replay one step by step.\n- Print running token totals after each step so cost is visible.\n\nOut of scope, do not build: a web UI, multi-agent orchestration, vector memory, provider abstraction layers, Docker sandboxing (just document loudly in the README that shell tools run unsandboxed).\n\nDeliver: pyproject.toml, agent/ package, .env.example, README with install and a worked example. Include pytest tests for path confinement and result truncation using a stubbed model client.",
+  "promptCurated": false
+}
