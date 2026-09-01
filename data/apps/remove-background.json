@@ -1,0 +1,51 @@
+{
+  "slug": "remove-background",
+  "name": "remove.bg",
+  "domain": "remove.bg",
+  "category": "ai-image",
+  "subcategory": "background removal",
+  "tagline": "Uploads an image, returns it with the background cut out and a transparent alpha channel.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.remove.bg/pricing",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "remove.bg was genuinely magic in 2018, when nobody else had a good salient-object segmentation model behind a one-click upload. That advantage is gone: open weights like U2Net, ISNet and BiRefNet are downloadable, permissively usable for personal work, and run on a laptop CPU in a few seconds per image. An agent can wire a local model to a drag-and-drop page and a batch folder watcher in one sitting, and on portraits and product shots the output is close enough that most people would not pick the paid one in a blind test. What you are actually paying remove.bg for is not having to install anything and an API with an SLA. If you are cutting out ten product photos a week for your own store, the local build wins on cost and on not uploading your assets to someone else.",
+  "coreLoopDIY": "Runs an open segmentation model locally over dropped or batched images and writes transparent PNGs, with optional flat-color or image backgrounds.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and about 1GB of disk for model weights",
+    "First run downloads model weights from the internet",
+    "A GPU if you want batch runs to be fast, otherwise CPU works but is slower"
+  ],
+  "whatYouLose": [
+    "Edge quality on the hard cases: frizzy hair, fur, chain-link, motion blur, semi-transparent glass",
+    "A production API with uptime guarantees, rate limits and support if it breaks",
+    "Plugins and integrations already sitting inside Photoshop, Figma, Canva and various e-commerce tools",
+    "Zero-setup access from a phone or a machine you do not own",
+    "Their ongoing model updates: your local weights are frozen the day you download them"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The model moat leaked. Open segmentation weights caught up and in some benchmarks passed the tuned commercial pipelines, which is unusual and mostly a gift from academic vision research.",
+  "whyPeopleStillPay": "Because it is a URL, not a project. Designers with a deadline are not going to install Python to save twenty cents an image, and teams need an API endpoint that exists next quarter with someone to email when it 502s. There is also a real batch case: agencies pushing thousands of catalog images want a queue that scales without them owning GPUs. For a person doing personal or small-shop volume, none of that applies.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "One of the rare cases where the open model is arguably better than the product it replaces.",
+  "prompt": "Build a local background remover as a single-machine web app. Empty folder, no cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn.\n- rembg as the segmentation library, with onnxruntime CPU.\n- Frontend: one static index.html with vanilla JS and plain CSS. No React, no build step.\n- Pillow for compositing and output.\n\nFeatures in scope:\n1. Drag-and-drop or file-picker upload of one or many images (png, jpg, webp, heic if pillow-heif installs cleanly, otherwise skip heic).\n2. POST /api/remove accepts an image plus a model name and returns a transparent PNG.\n3. Model selector exposing isnet-general-use, u2net, u2net_human_seg, and birefnet-general if available in the installed rembg version. Default to isnet-general-use. Detect available models at startup and only show ones that load.\n4. Toggle for alpha matting with sliders for foreground threshold, background threshold and erode size, defaults matching rembg's.\n5. Output options: transparent PNG, or composite onto a solid color chosen with a color input, or onto an uploaded background image scaled to cover.\n6. Result view with a checkerboard backdrop, a before/after slider, and a download button. Batch uploads produce a gallery plus a Download all as zip button.\n7. CLI mode: python -m app.cli INPUT_DIR OUTPUT_DIR --model isnet-general-use, processes a folder with a progress bar.\n8. Cache model instances in memory so the second request is fast. Warm the default model on startup.\n\nExplicitly out of scope: user accounts, hosted deployment, an API key system, usage limits, payment, image editing beyond the cutout, manual brush refinement.\n\nDetails: hold uploads in memory or a temp dir and delete them after the response, never write user images into the repo. Cap upload size at 20MB and return a clean 413 past that. Preserve the input's pixel dimensions in the output. Put PORT and MAX_UPLOAD_MB in .env with a committed .env.example, and gitignore .env plus any model cache.\n\nDeliver requirements.txt, a Makefile with make install and make run, and a README that states plainly that first run downloads model weights, roughly how long CPU inference takes per image, and that alpha matting is the knob to reach for on hair.",
+  "promptCurated": false
+}
