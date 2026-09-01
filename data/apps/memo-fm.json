@@ -1,0 +1,51 @@
+{
+  "slug": "memo-fm",
+  "name": "Memo FM",
+  "domain": "memo.fm",
+  "category": "voice-dictation",
+  "subcategory": "voice memo capture and transcription",
+  "tagline": "Record spoken memos, get them transcribed and turned into readable, searchable notes.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.memo.fm/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not hard technology: capture audio, run speech to text, run a cleanup or summary pass, store it somewhere searchable. Whisper-class models are open and good, so a local version of the transcription and tidying step is genuinely a one-session build. What you will not get in one shot is the part that makes a voice memo tool actually usable, which is frictionless capture on a phone you already have in your pocket, plus sync so the note is on your laptop before you forget you recorded it. Build the web version in an afternoon and you will still find yourself opening the paid app while walking. Call it a weekend, and accept that the mobile half stays rough.",
+  "coreLoopDIY": "A local web app that records or accepts audio files, transcribes them with a local Whisper model, generates a cleaned-up summary and title, and stores everything in a searchable SQLite database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ and a machine with enough RAM to run faster-whisper (GPU optional but much faster)",
+    "An LLM for cleanup and summaries: either a local Ollama model or an API key in .env",
+    "A browser with microphone permission, or a phone that can upload voice memo files",
+    "Somewhere to run it if you want it reachable from your phone (home server, Tailscale, or a small VPS)"
+  ],
+  "whatYouLose": [
+    "A real mobile app with background recording, lock screen capture and offline queueing",
+    "Automatic sync across devices, so the note you dictated in the car is just there later",
+    "Polished handling of long recordings: speaker labels, chapters, timestamps that actually line up",
+    "Whatever tuning they have done on prompts and formatting so the output reads like notes instead of transcript soup",
+    "Someone else worrying about model updates, storage, and the day your local Whisper install breaks"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The defensible part is friction removal on mobile, not the transcription itself. Everyone has the same models.",
+  "whyPeopleStillPay": "Because the value of a voice memo tool is measured in the seconds between having a thought and it being captured, and a self-hosted web app you have to open, grant mic access to, and remember exists loses that race constantly. Paying a few dollars a month for an app that is already installed, already authorized, and already synced is a rational trade for most people, even if the underlying pipeline is a hundred lines of Python. The build is worth doing if you mostly process recordings you already have, or if you want the transcripts on disk and out of somebody else's cloud.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The transcription is the easy part; the hard part is being the thing you reach for without thinking.",
+  "prompt": "Build a local voice memo transcription and notes app. Single stack, no menus.\n\nStack: Python 3.11, FastAPI backend, SQLite via plain sqlite3, faster-whisper for transcription, one HTML page with vanilla JS and no build step. No React, no Docker, no cloud services beyond an optional LLM call.\n\nFeatures, in scope:\n1. A single page at / with a big record button using MediaRecorder, plus a drag-and-drop zone that accepts .m4a, .mp3, .wav and .ogg files.\n2. POST /memos accepts audio, writes the raw file to ./data/audio/, creates a memo row with status \"pending\", returns immediately.\n3. A background worker (FastAPI BackgroundTasks is fine) transcribes with faster-whisper, model size from WHISPER_MODEL in .env, defaulting to \"base.en\". Store the full transcript plus per-segment start and end times as JSON.\n4. After transcription, call an LLM to produce a short title, a 2-3 sentence summary, and a cleaned-up version of the transcript with punctuation and paragraphs. Read LLM_BASE_URL, LLM_MODEL and LLM_API_KEY from .env; default to a local Ollama endpoint. If the LLM call fails, keep the raw transcript and mark llm_status \"failed\" instead of crashing.\n5. Memo list view: title, date, duration, summary snippet, status badge. Click to open a detail view with the cleaned text, a collapsible raw transcript, and an audio player.\n6. Full text search across titles, summaries and transcripts using SQLite FTS5. Simple search box, no fuzzy matching.\n7. Delete a memo, which removes the row and the audio file.\n\nOut of scope: user accounts, auth, multi-user, speaker diarization, mobile app, telemetry, payments, sharing links.\n\nRequirements: put all secrets in .env and ship a .env.example. Store everything under ./data/ so it is trivially backupable. Write a README with exact commands to install and run on port 8000. Handle recordings up to 60 minutes without loading the whole thing into memory twice. Make the UI usable on a phone browser: large buttons, no hover-only controls.",
+  "promptCurated": false
+}
