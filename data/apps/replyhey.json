@@ -1,0 +1,51 @@
+{
+  "slug": "replyhey",
+  "name": "ReplyHey",
+  "domain": "replyhey.com",
+  "category": "email",
+  "subcategory": "AI email replies",
+  "tagline": "AI assistant that reads your inbox and drafts replies in something resembling your voice.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://replyhey.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The actual intelligence here is a prompt with your past sent mail stapled to it, and any decent model does that on the first try. The hard part is everything around it: Gmail OAuth, a Google verification review if you ever want it to work for anyone but you, thread parsing, quoted-text hell, and writing drafts back without mangling the conversation. A single-user local script that pulls unreplied threads and stuffs drafts into Gmail is a weekend, and it will be good. An inline button inside the Gmail compose box, on your phone, that feels instant, is not a weekend. So you get the value and lose the surface.",
+  "coreLoopDIY": "Pulls your unreplied Gmail threads, retrieves similar past replies from your own sent mail as style examples, and writes an LLM-drafted response straight into the thread as a Gmail draft.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "A Google Cloud project with the Gmail API enabled and a desktop OAuth client",
+    "An OpenAI or Anthropic API key",
+    "A few hundred of your own sent emails to use as style samples"
+  ],
+  "whatYouLose": [
+    "Inline UI inside Gmail: no button in the compose box, you go read your drafts folder",
+    "Mobile entirely, unless you enjoy shipping an app to review your own drafts",
+    "Someone else eating Google's OAuth verification process and security review",
+    "Tone controls, follow-up nudges, snippets, and the other features that accumulate around a mature product",
+    "Any tuning they have done on which past emails actually make good style examples, which is the one non-obvious part"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is being in the compose box at the moment you are already typing. Latency and placement, not model quality.",
+  "whyPeopleStillPay": "Because a drafting assistant you have to go visit is a drafting assistant you stop visiting. The product's real job is to be sitting there in the reply box when your attention is already on the email, and a local cron job writing to your drafts folder does not do that job. People also pay to not spend a Saturday reading Gmail API docs and then another one when Google changes the scopes policy. If your volume is high enough that email is genuinely your work, the subscription is trivially cheap against the time; if you get eleven emails a day, build the script and enjoy it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Every AI email tool is the same 200 lines plus a very expensive relationship with Google's OAuth reviewers.",
+  "prompt": "Build a local, single-user AI email reply drafter. Stack: Node 20, TypeScript, no framework, no server, no database beyond a local SQLite file. Run it from the CLI.\n\nWhat it does:\n1. `npm run auth` runs a Google OAuth desktop-app flow (loopback redirect on localhost), stores the refresh token in .env.local, and never sends it anywhere.\n2. `npm run index` pulls the last 1000 messages from the SENT label via the Gmail API, strips quoted text and signatures, and stores each one in SQLite with an embedding (OpenAI text-embedding-3-small).\n3. `npm run draft` finds threads in INBOX from the last 7 days where the last message is not from me and no draft exists yet. For each thread: clean the incoming message, embed it, pull the 5 nearest past sent messages as style examples, then call the Anthropic Messages API with a prompt containing the thread, the style examples, and my name. Create the result as a Gmail draft on that thread with gmail.users.drafts.create, correct threadId and In-Reply-To header.\n4. Print a one-line summary per thread: sender, subject, first 80 chars of the draft.\n\nRules:\n- Scopes: gmail.readonly plus gmail.compose. Never gmail.send. The tool must be physically unable to send mail.\n- Secrets in .env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ANTHROPIC_API_KEY, OPENAI_API_KEY. Ship .env.example.\n- Skip threads matching a user-editable ignore list in config.json (newsletters, no-reply addresses, calendar invites).\n- Idempotent: track processed thread ids in SQLite so re-running does not double-draft.\n- No telemetry, no analytics, no accounts, no hosted component.\n\nOut of scope: Chrome extension, web UI, mobile, multi-account, team features, scheduling, follow-up reminders.\n\nDeliver a README with the exact Google Cloud console steps to get a desktop OAuth client, and a note that unverified apps in testing mode work fine for your own account.",
+  "promptCurated": false
+}
