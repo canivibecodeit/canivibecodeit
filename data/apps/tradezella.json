@@ -1,0 +1,51 @@
+{
+  "slug": "tradezella",
+  "name": "Tradezella",
+  "domain": "tradezella.com",
+  "category": "personal-finance",
+  "subcategory": "trading journal and analytics",
+  "tagline": "A trading journal that imports broker fills, groups them into trades, and reports on your performance so you can find the leaks.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription",
+    "unit": "flat",
+    "source": "https://www.tradezella.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math here is not hard: parse fills, pair them into round trips, compute win rate, expectancy, R multiples, drawdown, and slice by tag. An agent can build that plus a calendar heatmap and a note field per trade in a weekend, and for a single trader on one or two brokers it will be honestly useful. What breaks is everything around the math: broker connections that keep working when the broker changes its export format, intraday chart images attached to each trade, replay, and a mobile app for journaling on the way home. You will also be your own data janitor for partial fills, options multipliers, futures tick values, and fees. If you trade one instrument through one broker and export CSVs anyway, the DIY version is fine; if you want push-button sync across five accounts, pay.",
+  "coreLoopDIY": "Imports broker execution CSVs, pairs fills into closed round-trip trades, and shows equity curve, expectancy, tag breakdowns, and a per-trade journal from a local web app.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local terminal",
+    "CSV exports from your broker, plus willingness to write a column mapping per broker",
+    "Contract specs you care about: tick values, multipliers, fee schedules"
+  ],
+  "whatYouLose": [
+    "Automatic broker sync and the maintenance behind it when export formats change",
+    "Chart snapshots and trade replay on real intraday price data, which needs a licensed data feed",
+    "Mobile app for journaling and screenshot capture away from the desk",
+    "Prebuilt handling of options, futures, and forex quirks including multipliers and fees",
+    "Backtesting and simulator features, plus the community and shared setups"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The stats are commodity. The broker connectors and the licensed intraday price data behind chart replay are the parts you cannot rebuild in a weekend.",
+  "whyPeopleStillPay": "Traders pay for the part they will never maintain themselves: connectors to a couple of dozen brokers that keep working, charts attached to every trade without hunting for a screenshot, and a review flow polished enough that they actually do it nightly. A homemade journal that requires a manual CSV export and a mapping tweak every time the broker updates its report is a journal you stop filling in by week three. That habit, not the arithmetic, is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The analytics are a solved spreadsheet problem; the discipline of using them nightly is not.",
+  "prompt": "Build a local, single-user trading journal web app. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3, Recharts for charts. Everything runs with `npm run dev` on localhost. Database file at ./data/journal.db, created and migrated on first boot.\n\nData model: accounts, executions (raw fills), trades (round trips), tags, and journal entries. An execution has account, symbol, side, quantity, price, fees, timestamp, and asset class. A trade has open and close timestamps, direction, average entry and exit, net PnL, R multiple, and a list of tags.\n\nImport: a page that accepts a broker CSV, shows the detected headers, and lets me map them to the execution fields. Save each mapping as a named broker profile in the DB so re-import is one click. Store the raw row as JSON on every execution for debugging. Detect and skip duplicate rows by a hash of account, symbol, timestamp, side, quantity, price.\n\nTrade construction: a deterministic FIFO matcher that groups executions per account and symbol into closed round trips, handling partial fills, scaling in and out, and flips from long to short. Support a per-symbol contract spec table with multiplier and tick value; use it in PnL math. Leave unmatched open positions visible in their own list, not silently dropped.\n\nAnalytics dashboard: cumulative PnL equity curve, win rate, average win and loss, expectancy, profit factor, max drawdown, best and worst trade, distribution of R multiples, PnL by day of week and by hour of entry, and PnL grouped by tag. Every metric filterable by date range, account, symbol, and tag.\n\nJournal: a monthly calendar heatmap of daily net PnL. Clicking a day opens that day's trades plus a free-text markdown note with a mood and a discipline score from 1 to 5. Per-trade detail page with tags, a markdown note, and optional local image upload stored under ./data/uploads.\n\nExport: a button that dumps all tables to CSV and JSON so nothing is trapped.\n\nOut of scope, do not build: broker API connections, live market data, price charts of the instrument, trade replay, multi-user auth, payments, backtesting.\n\nInclude seed data of about 200 fake executions across two accounts so the dashboard is not empty, unit tests for the FIFO matcher including partials and flips, and a README with the exact import steps. Any config goes in .env, never hardcoded.",
+  "promptCurated": false
+}
