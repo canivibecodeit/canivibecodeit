@@ -1,0 +1,51 @@
+{
+  "slug": "tggl",
+  "name": "Tggl",
+  "domain": "tggl.io",
+  "category": "dev-tools",
+  "subcategory": "feature flags",
+  "tagline": "Feature flag and remote config service with SDKs, targeting rules and percentage rollouts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://tggl.io/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A feature flag service is, at its core, a JSON blob behind an API plus a deterministic hash function for percentage rollouts. An agent can build the flag store, the targeting evaluator, an admin page and a typed client in one sitting, and for a solo developer that covers the actual job: change behavior without a redeploy, ship to 10 percent, kill a broken feature. What you cannot one-shot is the SDK matrix across a dozen languages, sub-millisecond edge evaluation from every region, and the audit trail a team needs to trust the switch. None of that matters when you are the only person flipping the switch and your app runs in one place. Build it, keep the flags in SQLite, and skip the seat fee.",
+  "coreLoopDIY": "Runs a local flag service with targeting rules, stable percentage rollouts and environments, plus a typed client your app calls to evaluate flags per user context.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 plus and somewhere to run a small always-on process",
+    "A place to store the SQLite file that survives deploys",
+    "A shared secret for the admin UI and an API key per environment"
+  ],
+  "whatYouLose": [
+    "Official SDKs for languages you did not write a client for, with caching and offline fallback already handled",
+    "Global edge evaluation, so flag reads cost you a round trip to wherever your box lives",
+    "Team features: roles, approvals, change history you can point at during a postmortem",
+    "Flag analytics and experiment reporting, so rollouts are vibes rather than numbers",
+    "Someone else being on call when the flag service is the thing that is down"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "collaboration"
+  ],
+  "moatNotes": "The defensible part is SDK breadth and low-latency delivery, not the evaluation logic, which is about forty lines.",
+  "whyPeopleStillPay": "Teams pay because flags become load-bearing infrastructure the moment more than one person uses them. You want a hosted service when a product manager needs to disable a feature at 2am without a deploy, when compliance wants to know who changed what, and when your app runs in five regions and cannot afford a slow flag read. Paying also means the flag service is not your problem when it breaks, which matters because a flag service that fails open badly is worse than no flags at all. For a single developer with one deployment, none of those pressures exist yet.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Feature flagging is one of the rare SaaS categories where the core algorithm fits on an index card.",
+  "prompt": "Build a self-hosted feature flag and remote config service for a single developer. No accounts, no multi-tenancy, no telemetry.\n\nStack, no substitutions: TypeScript, Node 20, Hono for HTTP, better-sqlite3 for storage, Zod for validation, and a single server-rendered admin page using plain HTML plus htmx. No React, no ORM, no Docker unless you add it at the very end as an optional Dockerfile.\n\nData model in SQLite: environments (id, name, api_key), flags (key, description, type of boolean|string|number|json, archived), flag_configs (flag_key, env_id, enabled, default_value, rules_json, rollout_percent), audit_log (id, ts, actor, action, payload_json).\n\nEvaluation rules: each rule has a list of conditions on context attributes (operators: eq, neq, in, not_in, contains, gt, lt, semver_gt) plus a value to return and an optional rollout_percent. Evaluate rules in order, first match wins, then fall back to default_value. Percentage rollout must be deterministic: hash flag_key plus the context id with a stable non-crypto hash, mod 100, compare to rollout_percent, so the same user always lands the same way.\n\nHTTP API:\n- POST /evaluate with header x-api-key and body { context: {...} } returns a map of every active flag key to its resolved value in one round trip.\n- GET /flags/:key/evaluate for a single flag.\n- GET /stream as Server-Sent Events that pushes a version number whenever any config changes.\nAdmin routes are separate, gated by an ADMIN_TOKEN cookie set from a simple login form.\n\nAdmin UI, one page: list flags, create a flag, per-environment toggle, edit default value, add and reorder rules with a small form, set rollout percent, and a read-only audit log panel. Ugly but usable is fine, no design system.\n\nAlso ship packages/client: a tiny TypeScript client that fetches all flags once on boot, caches them in memory, subscribes to /stream to refetch on change, exposes flag(key, fallback) that never throws and always returns the fallback on error, and takes an optional local overrides object for tests.\n\nSecrets in .env: ADMIN_TOKEN, PORT, DB_PATH. Provide .env.example.\n\nOut of scope, do not build: user roles, SSO, approval workflows, experiment analytics, edge deployment, webhooks, and SDKs for languages other than TypeScript.\n\nDeliver a README with setup in under five commands, a seed script creating dev and prod environments with three example flags, and vitest tests covering the rule evaluator and the rollout hash stability.",
+  "promptCurated": false
+}
