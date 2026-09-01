@@ -1,0 +1,51 @@
+{
+  "slug": "iframely",
+  "name": "Iframely",
+  "domain": "iframely.com",
+  "category": "dev-tools",
+  "subcategory": "URL unfurling and embed API",
+  "tagline": "An API that turns any URL into a rich embed, card, or oEmbed response.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://iframely.com/",
+    "checkedOn": "2026-08-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanics of unfurling are not hard: fetch a URL, look for an oEmbed link tag, fall back to OpenGraph and Twitter card meta, return JSON, cache it. An agent can produce that plus a safe iframe allowlist in one sitting, and for a personal blog or notes app that covers YouTube, Spotify, GitHub, and generic link cards just fine. What you cannot one-shot is the long tail: hundreds of hand-tuned domain parsers, sites that block server-side fetches, paywalls, consent walls, providers who quietly change their markup every quarter. Iframely's actual product is the maintenance treadmill and the normalized response shape, not the parsing code. Build it if your link diet is predictable, pay if you are shipping an editor to strangers who will paste anything.",
+  "coreLoopDIY": "Fetch a URL server-side, resolve oEmbed if declared and OpenGraph or Twitter meta otherwise, normalize it into one JSON shape, sanitize any embed HTML against an iframe allowlist, and cache the result.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Somewhere to run a small Node service with outbound HTTP",
+    "A cache store, SQLite is enough",
+    "Patience for sites that block datacenter IPs"
+  ],
+  "whatYouLose": [
+    "Hundreds of maintained per-domain parsers for sites that publish no usable metadata",
+    "Someone else fixing your embeds the week a provider changes its markup",
+    "Consistent normalized responses across thousands of publishers, including media dimensions and aspect ratios",
+    "Fetching from IP ranges and user agents that big sites actually answer",
+    "Image and thumbnail proxying, plus the CSP and sandbox hardening they already did"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The parser library is the asset. Everything upstream of it is a fetch call and a meta tag reader.",
+  "whyPeopleStillPay": "Because unfurling fails silently and embarrassingly. Your DIY version works beautifully for a month, then a customer pastes a link from some regional news site or a Twitter post and gets a blank card, and now you own that bug forever. Teams pay Iframely to make link previews someone else's on-call rotation, and to get one predictable JSON shape instead of writing conditionals per publisher. For a personal project where you control what gets pasted, that insurance is worth roughly nothing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine to self-host if you are the only person pasting links; less fine the moment users are.",
+  "prompt": "Build a self-hosted URL unfurling service in an empty folder.\n\nStack, no substitutions: TypeScript, Node 20, Fastify, undici for fetching, cheerio for HTML parsing, better-sqlite3 for the cache. No frontend framework, one static HTML demo page served by Fastify.\n\nEndpoint: GET /api/unfurl?url=... returns JSON with a fixed shape: { url, canonicalUrl, type, title, description, siteName, author, thumbnail: { url, width, height } | null, embedHtml | null, providerName, fetchedAt }.\n\nResolution order:\n1. Look for a link rel=\"alternate\" with type application/json+oembed or text/xml+oembed. If found, fetch it and map the oEmbed payload into the shape above.\n2. Otherwise parse OpenGraph tags, then Twitter card tags, then fall back to title tag, meta description, and the first sensible link rel icon or image.\n3. Set type to video, photo, rich, or link based on what was found.\n\nSafety, do this properly:\n- Follow at most 3 redirects, 8 second total timeout, cap the response body at 2 MB, and only read the response if the content type is HTML, XML, or JSON.\n- Reject non http/https schemes and block requests that resolve to private, loopback, or link-local IP ranges to prevent SSRF.\n- Sanitize any embedHtml down to a single iframe element whose src host is on a hardcoded allowlist in src/allowlist.ts, seeded with youtube.com, youtube-nocookie.com, player.vimeo.com, open.spotify.com, and codepen.io. Anything not on the allowlist returns embedHtml null.\n- Force sandbox and loading=\"lazy\" attributes on the surviving iframe.\n\nCaching: store successful and failed lookups in SQLite keyed by normalized URL, with a TTL from CACHE_TTL_SECONDS in .env, default 86400. Add ?refresh=1 to bypass. Strip common tracking params, utm_* and fbclid, when normalizing the cache key.\n\nAlso include: a fixed-window rate limiter per IP, structured error responses with real HTTP status codes, and a USER_AGENT value read from .env.\n\nThe demo page at / is one input box and a rendered preview card that calls the endpoint.\n\nOut of scope, do not build: accounts, API keys, screenshot capture, image proxying or resizing, telemetry, Docker, per-domain custom parsers. Write a .env.example and a README with a curl example and one short section listing which kinds of sites this will fail on and why.\n\nInclude vitest tests covering an oEmbed-declaring page, an OpenGraph-only page, and a page with nothing useful, using fixture HTML files instead of live network calls.",
+  "promptCurated": false
+}
