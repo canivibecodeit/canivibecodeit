@@ -1,0 +1,52 @@
+{
+  "slug": "008",
+  "name": "008",
+  "domain": "008.com",
+  "category": "customer-support",
+  "subcategory": "cloud phone system / call center",
+  "tagline": "Cloud business phone and call center software: numbers, IVR, call routing, recordings, agent dashboards.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://008.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software layer here is the easy part: a call log, a routing tree, a recording player, some agent stats. The hard part is being a telephony provider, which means phone numbers, carrier interconnects, PSTN termination, emergency calling rules, recording consent law, and per-country registration paperwork. An agent can absolutely build you a softphone and a call database in an afternoon, but it will sit on top of somebody else's carrier account, which means you replaced a vendor with a different vendor plus your own on-call rotation. If your team is one or two people, a cheap number and a rented SIP trunk genuinely is the answer. If it is a real support queue where dropped calls cost money, voice quality and uptime are the product and you are not going to out-engineer that in a weekend.",
+  "coreLoopDIY": "A self-hosted softphone plus call log: place and receive calls through a rented SIP or Twilio number, record them, transcribe them, and store notes against a contact.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A telephony provider account (Twilio, Telnyx, or a SIP trunk) with a purchased number",
+    "A publicly reachable HTTPS host for webhooks",
+    "A transcription API key if you want searchable calls",
+    "Willingness to read your local call recording consent rules"
+  ],
+  "whatYouLose": [
+    "Carrier redundancy and voice quality engineering, the thing you are actually paying for",
+    "IVR, skills based routing and queue overflow logic that has been debugged by other people's angry callers",
+    "Supervisor tooling: live queue monitoring, barge-in, whisper coaching, wallboards",
+    "Compliance scaffolding: emergency address registration, number porting, regional caller ID rules, retention policies",
+    "Mobile apps and desk phone provisioning, so agents are stuck at a browser tab"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Anyone can write a call log. Almost nobody wants to be the entity legally responsible for a call that fails.",
+  "whyPeopleStillPay": "Because voice is the one channel where degradation is immediately obvious and immediately expensive. A chat widget that lags is annoying; a call that drops mid-complaint costs a customer. Paying a telephony vendor buys carrier relationships, redundant media paths, number inventory across countries, and someone to escalate to at 2am when audio goes one way. The dashboard is just the receipt.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend, the dial tone is not. The moat is carrier interconnects, number inventory and the regulatory paperwork that comes with being the party responsible when a call fails.",
+  "prompt": "Build a self-hosted single-team phone console: place and receive real calls, log every one, and keep notes per contact.\n\nStack, no substitutions:\n- Node 22 with Fastify for the server\n- SQLite via better-sqlite3, file at ./data/calls.db\n- Server rendered HTML with plain EJS templates and a little vanilla JS, no React\n- Twilio Programmable Voice as the carrier layer, using the Twilio Voice JS SDK in the browser for the softphone\n\nIn scope:\n- .env holds TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_TWIML_APP_SID, TWILIO_NUMBER, PUBLIC_BASE_URL, OPENAI_API_KEY. Never hardcode. Provide .env.example.\n- GET /token issues a short lived Twilio Voice access token for the browser client\n- POST /voice/outbound returns TwiML dialing the requested number from TWILIO_NUMBER\n- POST /voice/inbound returns TwiML that rings the browser client, falls back to voicemail after 20 seconds\n- Enable dual channel recording on both directions, store the recording URL and duration on the call row\n- POST /voice/status and POST /voice/recording webhooks update the call row; validate the Twilio signature on every webhook\n- Contacts table: name, e164 number, notes. Calls table: direction, from, to, contact_id, started_at, duration, status, recording_url, transcript, agent_note\n- Web UI: one page with a dialpad and a live call state banner, a call history table with inline playback and an editable note field, and a contacts page\n- Background job that pulls finished recordings and transcribes them with the OpenAI transcription API, saved to calls.transcript\n- Full text search across transcripts and notes using SQLite FTS5\n- A visible banner on the dial screen reading \"Recording is on. Announce it.\" because consent law is your problem now\n- README covering: buying a number, creating the TwiML app, pointing it at PUBLIC_BASE_URL, and running with ngrok for local testing\n\nOut of scope, do not build:\n- Multi tenant accounts, billing, user signup. Single shared HTTP basic auth password from .env is enough\n- IVR trees, skills based routing, queues, supervisor barge-in\n- Number porting, emergency address handling, SMS\n- Any telemetry or analytics calls to third parties\n\nDeliver: package.json with a single npm start, migrations that run on boot, seed script that inserts two fake contacts, and a smoke test that stubs the Twilio webhooks and asserts a call row is created, updated and searchable.",
+  "promptCurated": false
+}
