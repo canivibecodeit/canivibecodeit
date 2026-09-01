@@ -1,0 +1,52 @@
+{
+  "slug": "nicereply",
+  "name": "Nicereply",
+  "domain": "nicereply.com",
+  "category": "customer-support",
+  "subcategory": "CSAT, CES and NPS surveys",
+  "tagline": "Customer satisfaction surveys that ride along with help desk replies and score individual agents.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.nicereply.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanics here are not hard: a signed rating link, a landing page that records a score and an optional comment, and a dashboard that averages it into CSAT, CES or NPS. An agent can produce all of that in one sitting, and if you are a solo operator emailing your own customers it will genuinely do the job. What you cannot one-shot is the part Nicereply actually sells: clean one-click rating widgets embedded in Zendesk, Intercom, Freshdesk or Help Scout replies, per-agent attribution pulled from ticket data, and ratings that render correctly in Outlook and Gmail. Rebuild the survey, not the plumbing. If your ratings need to appear inside someone else's help desk automatically, you are signing up for an integration project, not a weekend.",
+  "coreLoopDIY": "Generates signed per-customer rating links, captures a score plus comment on a self-hosted landing page, and shows CSAT, CES and NPS trends with CSV export.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and SQLite",
+    "A publicly reachable URL for the rating links (small VPS or a tunnel)",
+    "SMTP credentials if you want the tool to send survey emails itself",
+    "Manual copy-paste of the signature snippet into whatever tool sends your replies"
+  ],
+  "whatYouLose": [
+    "Native help desk integrations that inject rating widgets into every reply automatically",
+    "Per-agent attribution and team leaderboards derived from ticket metadata",
+    "Email rendering that survives Outlook, Gmail clipping and image blocking",
+    "Industry benchmarks and the reporting polish managers actually look at",
+    "Deliverability, bounce handling and the reputation of a sending domain you did not have to warm up"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The survey is a form. The product is the twenty places that form has to appear without anyone thinking about it.",
+  "whyPeopleStillPay": "Support teams pay because the survey has to be invisible. It goes out on every ticket, attaches itself to the right agent, lands in the right inbox, renders as clickable stars in whatever email client the customer uses, and feeds a dashboard a manager can screenshot into a review. Each of those is small and all of them break quietly. A self-hosted rating link is fine when you are one person tracking your own replies, and hopeless when you have eight agents and a QA process.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine solo build, real project the moment a shared inbox is involved.",
+  "prompt": "Build a self-hosted customer satisfaction survey tool in an empty folder.\n\nStack, no substitutions: Node 20, Express, better-sqlite3, EJS for server-rendered pages, plain CSS. No frontend framework, no auth provider, no cloud services.\n\nData model in SQLite:\n- contacts: id, email, name, external_ref\n- surveys: id, type (csat | ces | nps), question text, scale config\n- invites: id, survey_id, contact_id, agent_name, ticket_ref, token, created_at, responded_at\n- responses: id, invite_id, score, comment, created_at, user_agent\n\nFeatures that are in scope:\n1. Admin UI behind a single password from ADMIN_PASSWORD in .env, session cookie only.\n2. Create surveys of type csat (1-5), ces (1-7) or nps (0-10) with custom question text and thank-you text.\n3. Generate invites: paste a list of emails with optional agent name and ticket ref, get back one signed URL per row. Token is a random 32-char id, single response per token, no expiry unless SURVEY_TTL_DAYS is set.\n4. Public rating page at /r/:token that shows the scale as large clickable buttons, records the score immediately on click, then shows an optional comment box and saves it separately. Record score first so a bounce still counts.\n5. Support prefilled scores at /r/:token?score=4 so the rating buttons can be embedded directly as links in an email signature. Add a snippet generator page that outputs the HTML for those links given a token.\n6. Dashboard: overall CSAT percent, average CES, NPS calculated properly (promoters minus detractors), response rate, 30-day trend as an inline SVG sparkline, breakdown by agent_name, and the latest comments.\n7. CSV export of responses joined to invites.\n8. Optional email sending via nodemailer using SMTP_* vars from .env. If those are unset, the send button is hidden and the tool is link-generation only.\n\nOut of scope, do not build: help desk integrations, webhooks, multi-user accounts, billing, analytics beacons, any outbound telemetry.\n\nDeliverables: server.js, a db.js with schema migration on boot, views, a seed script that creates one survey and five fake responses, .env.example, and a README with run instructions and a warning that the rating page must be served over HTTPS on a real domain for email clients to trust the links.",
+  "promptCurated": false
+}
