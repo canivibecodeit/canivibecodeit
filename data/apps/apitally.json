@@ -1,0 +1,51 @@
+{
+  "slug": "apitally",
+  "name": "Apitally",
+  "domain": "apitally.io",
+  "category": "monitoring",
+  "subcategory": "API traffic analytics and alerting",
+  "tagline": "Drop-in middleware for API frameworks that reports request metrics, errors, per-consumer usage and uptime to a hosted dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "http://apitally.io/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanism here is not mysterious: a middleware wraps each request, records path, method, status, latency and a consumer identifier, batches the counters, and ships them somewhere that can draw a chart. An agent will get you that plus a dashboard in a sitting, and for a single service you own it will be honestly good enough. The gaps are the parts that must live outside your app: alerting that still fires when the app is dead, uptime probes from somewhere that is not your own box, and retention that does not fall over at a few hundred requests per second. You also inherit the boring maintenance of middleware for every framework and runtime you add later. Fine for one or two personal services, less fine the moment you actually depend on the alerts.",
+  "coreLoopDIY": "An ASGI middleware records per-request method, route, status and latency, batches aggregates to a small self-hosted collector, and a dashboard shows request volume, error rates and latency percentiles per endpoint and per API key.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A server or small VPS to run the collector, separate from the app you are monitoring",
+    "Python 3.11+ and a framework you can insert middleware into",
+    "A cheap external cron or uptime service if you want alerts that survive your app going down"
+  ],
+  "whatYouLose": [
+    "Alerting that is genuinely independent of your infrastructure, your collector dies with your box",
+    "Uptime checks from multiple external regions",
+    "Maintained SDKs for FastAPI, Django, Express, Fastify, Litestar and friends, you now write and update your own",
+    "Sane long-term retention and rollups at real traffic volumes",
+    "Someone else's on-call for the monitoring layer itself, which is the whole point of outsourcing monitoring"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The breadth of framework SDKs is the real product surface. Each one is trivial alone and tedious in aggregate.",
+  "whyPeopleStillPay": "Monitoring you host yourself has an obvious flaw: it is on the same machine as the thing it watches, so the outage takes both out and nobody gets paged. Paying moves the observer outside the blast radius, which is most of what you are actually buying. The rest is not having to port your metrics middleware every time you pick up a new framework, plus dashboards and percentile math that someone already tuned. For a hobby API none of that matters much. For anything with users awake at 3am, it does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the credible page at 3am is not. Host the collector somewhere your app is not, or you have built a very pretty tombstone.",
+  "prompt": "Build a self-hosted API traffic monitoring stack in an empty folder. Two parts: a client middleware and a collector service.\n\nStack: Python 3.11+, FastAPI for the collector, SQLite via aiosqlite for storage, HTMX plus server-rendered Jinja2 templates for the dashboard, uv for dependency management. No React, no external analytics, no telemetry.\n\nPart 1, client package in client/:\n- An ASGI middleware class that wraps any ASGI app.\n- Per request, capture: timestamp, method, matched route template (not the raw path, avoid unbounded cardinality), status code, response time in milliseconds, request and response body size, and a consumer identifier pulled from a configurable callable (default: the X-API-Key header hashed with SHA-256, or null).\n- Aggregate in memory into one-minute buckets keyed by (route, method, status_code, consumer). Keep count, sum of latency, and a fixed set of latency buckets for percentile estimation.\n- Flush buckets to the collector every 60 seconds over HTTP with an API key from APITALLY_CLONE_KEY in .env. Never block the request path. Drop data rather than grow unbounded if the collector is unreachable.\n- Capture unhandled exceptions: record exception type and a truncated traceback, once per (route, exception type) per minute, no request bodies, no headers.\n\nPart 2, collector in server/:\n- POST /ingest accepts batches, validates the API key, writes to SQLite.\n- A rollup job that compacts minute buckets older than 48 hours into hourly rows and drops raw minute rows after 7 days. Make retention configurable in .env.\n- Dashboard at / with a time range picker: total requests, error rate, p50/p95/p99 estimated from the latency buckets, a table of slowest and most error-prone endpoints, and a per-consumer usage table. Charts as inline SVG generated server side, no chart library.\n- GET /health for external probes.\n- Alerting: a background task that checks error rate and p95 against thresholds in .env and posts to a webhook URL. Document clearly in the README that this alerting cannot detect the collector itself being down, and that an external cron hitting /health is required for that.\n\nOut of scope: multi-tenant accounts, uptime probing from multiple regions, request body logging, framework SDKs beyond ASGI, and any hosted signup flow. Single operator, single API key, secrets in .env only.\n\nDeliver a docker-compose.yml running the collector, an example FastAPI app under example/ wired to the middleware, a seed script that generates 3 days of fake traffic so the dashboard is not empty, and a README with a five-line quickstart.",
+  "promptCurated": false
+}
