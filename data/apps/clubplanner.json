@@ -1,0 +1,51 @@
+{
+  "slug": "clubplanner",
+  "name": "ClubPlanner",
+  "domain": "clubplanner.be",
+  "category": "crm",
+  "subcategory": "gym and fitness club management",
+  "tagline": "Belgian club management software for gyms and fitness centers: members, subscriptions, class schedules, recurring billing and door access.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.clubplanner.be/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Vendor sells per club, likely quoted.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is not a personal productivity app, it is the operational spine of a gym: membership contracts, recurring SEPA collection, failed payment chasing, class bookings, staff roles and badge readers on the front door. An agent can absolutely produce a member database with a class calendar and a check-in screen in a weekend, and that part is genuinely easy. What it cannot produce is a direct debit mandate flow that a Belgian bank and your accountant both accept, or a driver for the turnstile you already bought. The moment real money and real doors are involved, the boring parts are the entire product. Build the roster if you run a tiny volunteer club, otherwise pay.",
+  "coreLoopDIY": "A local members and classes database with subscription records, a class schedule, and a tablet check-in screen that logs attendance.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a machine or small VPS to run it on",
+    "a tablet or laptop at the front desk",
+    "manual bank reconciliation, or a payment provider account if you want real collection"
+  ],
+  "whatYouLose": [
+    "SEPA direct debit collection with mandates, retries and dunning on failed payments",
+    "Integration with access control hardware: badges, turnstiles, gate relays",
+    "Member-facing app and online signup, so people book classes themselves instead of asking you",
+    "Accountant-friendly invoicing, VAT handling and export to Belgian bookkeeping tools",
+    "Someone else holding the GDPR liability for a database of names, bodies and payment details"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Recurring collection plus physical door hardware is a nasty combination to replicate, and gyms migrate systems roughly never.",
+  "whyPeopleStillPay": "Because the software is not the point, the cash flow is. A club with 600 members needs money to arrive every month without a human touching it, needs the failures flagged, needs the door to stop opening when someone stops paying, and needs a number to call when any of that breaks at 7am on a Monday. A self-built roster gives you the pretty part and leaves you personally holding the billing, the hardware and the data protection exposure. That trade only makes sense at a very small scale.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The member list is a weekend, the direct debit and the turnstile are not. The moat is recurring collection plumbing wired to physical hardware, sitting under a business that cannot afford a bad migration.",
+  "prompt": "Build a small self-hosted club management app for a single-location sports or fitness club. One admin, no public signup, no cloud services.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/club.db, migrations as plain SQL files run on boot\n- Single shared password from ADMIN_PASSWORD in .env, checked in middleware, session in a signed cookie\n- No external APIs, no telemetry, no analytics\n\nData model:\n- members: name, email, phone, birthdate, joined_on, status (active | paused | ended), notes\n- membership_plans: name, price_cents, billing_period (monthly | quarterly | yearly), class_credits_per_period (nullable = unlimited)\n- subscriptions: member, plan, start_date, end_date (nullable), status\n- payments: subscription, period_start, period_end, amount_cents, due_on, status (due | paid | failed), paid_on, method (cash | transfer | card)\n- classes: title, coach name, weekday, start_time, duration_minutes, capacity, active flag\n- sessions: generated occurrences of a class for a given date\n- attendance: member, session, checked_in_at\n\nScreens:\n1. Members list with search and status filter, member detail page showing subscription, payment history and attendance history\n2. Plans and subscriptions CRUD\n3. Billing page: a button that generates due payment rows for the current period from active subscriptions (idempotent, never double-generate for the same period), plus a list of overdue payments and a one-click mark-as-paid\n4. Schedule page: weekly grid of classes, generate sessions for the next 4 weeks, book members into a session up to capacity\n5. Kiosk check-in page at /kiosk: big search box, type a name, tap to check into today's session, shows a red banner if the member has an overdue payment\n6. CSV export of members and of payments\n\nExplicitly out of scope, do not attempt: direct debit or card collection, invoice PDFs, VAT logic, email or SMS sending, access control hardware, member self-service accounts, multi-location, multi-staff roles.\n\nSeed the database with 3 plans, 25 fake members and 6 weekly classes so the app is explorable immediately. Include a README with setup, .env.example, and a one-line nightly backup command that copies the SQLite file with a timestamp.",
+  "promptCurated": false
+}
