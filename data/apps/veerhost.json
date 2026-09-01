@@ -1,0 +1,52 @@
+{
+  "slug": "veerhost",
+  "name": "VeerHost",
+  "domain": "veerhost.com",
+  "category": "hosting",
+  "subcategory": "web hosting",
+  "tagline": "A web hosting provider selling managed space, domains and server uptime.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://veerhost.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "You cannot one-shot a hosting company, because the product is not code, it is machines that stay powered on in a building you do not own. An agent can absolutely write you the control plane: a deploy script, a reverse proxy, automatic TLS, a tiny dashboard that lists your sites. What it cannot produce is the rack, the bandwidth contract, the redundant power, the nightly offsite backups, or the person who answers at 3am when a disk dies. The honest DIY path is renting a VPS from someone else and automating the boring parts, which is a real and often better deal if you enjoy being your own sysadmin. That is a substitution of vendor, not an elimination of one.",
+  "coreLoopDIY": "A single VPS running Docker and Caddy with a small self-hosted panel that deploys static sites and git repos to subdomains with automatic HTTPS.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A VPS you rent and pay for",
+    "A domain with wildcard DNS pointing at it",
+    "Comfort with SSH, Docker and Linux updates",
+    "Your own backup target, for example S3-compatible object storage"
+  ],
+  "whatYouLose": [
+    "Somebody else being responsible when the hardware fails",
+    "Managed backups and restores you did not have to test yourself",
+    "Support tickets, and a human on the other end of them",
+    "Patching, kernel upgrades and security hardening as someone else's job",
+    "Any uptime guarantee beyond your own attention span"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "brand-trust",
+    "switching-costs"
+  ],
+  "moatNotes": "Hosting margins come from buying capacity in bulk and reselling it in slices, plus the fact that migrating a live site is scary enough that most people never do it.",
+  "whyPeopleStillPay": "Because the alternative is being on call for your own website. Hosting is one of the few categories where the money buys accountability rather than features: when the box catches fire, it is their problem, and that transfer of risk is worth more than the twelve dollars a month to anyone whose site makes money. Add domains, mail, and a control panel a non-technical person can click through, and the bundle gets stickier than it looks.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An agent can hand you a perfectly good deploy pipeline in an afternoon. The moat is not the software, it is redundant power, spare disks, and someone else's phone ringing at 3am.",
+  "prompt": "Build a minimal self-hosted deploy panel for a single Linux VPS. Stack: Node 22 with Fastify, SQLite via better-sqlite3, server-rendered HTML with plain CSS, no frontend framework. Caddy runs on the host as the reverse proxy and handles TLS.\n\nWhat it does:\n1. Reads a wildcard domain from .env, for example APP_DOMAIN=example.com, and serves each site at slug.example.com.\n2. Two site types: static (upload a zip or point at a folder) and git (clone a public or key-authenticated repo, run a configured build command, serve the output dir).\n3. A single-admin login using a password hash in .env plus a signed session cookie. No signup, no multi-tenant users.\n4. Deploying a site writes files to /srv/sites/SLUG/current, atomically swaps a symlink, keeps the last 3 releases, and exposes a one-click rollback.\n5. Regenerates a Caddyfile fragment from the SQLite table and reloads Caddy with `caddy reload`. Caddy does automatic HTTPS via DNS or HTTP challenge; do not hand-roll certificates.\n6. A deploy log per site, streamed to the page with server-sent events, stored as text on disk.\n7. A nightly cron inside the app that tars each site plus the SQLite file and pushes to an S3-compatible bucket using credentials from .env. Skip the upload cleanly if the credentials are absent.\n8. A /healthz endpoint and a status page listing each site with last deploy time and last HTTP check result.\n\nOut of scope, do not build: user accounts or billing, domain registration, email hosting, databases-as-a-service, multi-node orchestration, telemetry.\n\nDeliverables: the app, a Caddyfile template, a systemd unit, a .env.example with every variable, and a README with a copy-paste bootstrap for a fresh Ubuntu box including firewall rules and unattended-upgrades. Include a `make backup-restore` path and say plainly in the README that an untested backup is not a backup.",
+  "promptCurated": false
+}
