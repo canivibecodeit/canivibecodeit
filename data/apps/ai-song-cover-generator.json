@@ -1,0 +1,53 @@
+{
+  "slug": "ai-song-cover-generator",
+  "name": "Audjust AI Song Cover Generator",
+  "domain": "audjust.ai",
+  "category": "ai-audio",
+  "subcategory": "voice conversion / song covers",
+  "tagline": "Browser tool that swaps the vocal on a song for an AI voice model and hands you back a finished cover.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://audjust.ai/ai-song-cover-generator",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is public and has been for years: split the track with Demucs, run the isolated vocal through an RVC-style voice conversion model, remix it against the instrumental, normalize. A coding agent can wire that into a local Gradio app in a session and it will work. What it will not do is give you a GPU, a library of trained voice models, or the mixing judgment that keeps the output from sounding like a robot gargling. The hosted version is mostly renting inference and a model catalog, not secret sauce. Build it if you have a decent GPU and a voice model you are entitled to use; otherwise you are paying for someone else's hardware and their willingness to host the models.",
+  "coreLoopDIY": "A local Gradio app that separates a song into stems, converts the vocal with an RVC model you supply, remixes it with the instrumental, and exports a WAV or MP3.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg",
+    "An NVIDIA GPU with 8GB+ VRAM, or Apple Silicon and patience",
+    "Demucs model weights (auto-downloaded on first run)",
+    "An RVC voice model checkpoint plus its index file that you have the rights to use",
+    "Roughly 10GB of disk for models and intermediate stems"
+  ],
+  "whatYouLose": [
+    "Their voice model catalog, which is the actual product for most users",
+    "Zero-setup access from a phone or a laptop with no GPU",
+    "Inference speed: a hosted A100 beats your laptop by a lot",
+    "Post-processing polish: pitch correction, reverb matching, loudness that does not sound flat next to the original",
+    "Any pretense that the rights situation was handled by someone else"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "content-rights",
+    "execution-polish"
+  ],
+  "moatNotes": "The models are open. The GPU bill and the model library are the business.",
+  "whyPeopleStillPay": "Most people who want a song cover want it in ninety seconds from a phone, with a dropdown of voices already trained and hosted. Nobody in that group is installing PyTorch or hunting for a .pth checkpoint on a Discord server. Hosted tools also absorb the compute cost and the tedious parts nobody wants to debug: pitch shifting to the right key, matching the vocal to the instrumental's reverb, not clipping the master. The DIY build produces the same class of output, just slower, uglier, and only on the machine you built it on.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The hard part was never the code, it was getting a voice model that sounds like anything.",
+  "prompt": "Build a local AI song cover tool. Python 3.11, single project folder, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Gradio for the UI, single page, runs at localhost:7860\n- demucs (htdemucs model) for stem separation\n- rvc-python for voice conversion inference\n- ffmpeg via subprocess for all mixing, resampling and export\n- pydub only for loudness normalization\n\nFlow:\n1. User uploads an audio file (mp3, wav, m4a, flac).\n2. Separate into vocals and accompaniment with demucs. Cache stems in ./cache keyed by file hash so re-runs skip separation.\n3. User picks a voice model from ./models. Each model is a folder containing a .pth and a .index file. Scan that folder at startup and populate a dropdown. If empty, show a clear message telling the user to drop a model folder in ./models.\n4. Expose sliders for pitch shift in semitones (-12 to +12), index rate, and output volume envelope mix. Sane defaults.\n5. Run RVC inference on the vocal stem only.\n6. Remix converted vocal with the accompaniment via ffmpeg amix, normalize to -14 LUFS, export both WAV and 320kbps MP3 into ./output.\n7. Show a waveform preview and an audio player for the result, plus download buttons for both formats.\n\nRequirements:\n- Detect CUDA, fall back to MPS, fall back to CPU with a warning that it will be slow.\n- Stream progress to the UI per stage: separating, converting, mixing.\n- All paths and tunables in .env, loaded with python-dotenv. Ship a .env.example.\n- requirements.txt pinned. README with install steps, ffmpeg install note, and one paragraph telling the user that voice models and source tracks are their legal problem, not the script's.\n\nOut of scope: training new voice models, model downloading, multi-user support, any web deployment, auth, batch queues.",
+  "promptCurated": false
+}
