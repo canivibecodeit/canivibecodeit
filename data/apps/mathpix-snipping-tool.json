@@ -1,0 +1,52 @@
+{
+  "slug": "mathpix-snipping-tool",
+  "name": "Mathpix Snipping Tool",
+  "domain": "mathpix.com",
+  "category": "productivity-utilities",
+  "subcategory": "screenshot math OCR",
+  "tagline": "Drag a box around an equation on screen and get LaTeX in your clipboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://mathpix.com/snipping-tool",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app around the model is genuinely trivial: a global hotkey, a region selector, an OCR call, clipboard write, a small history list. An agent will get that working in an afternoon. The hard part is the model, and here you have two imperfect options: run an open LaTeX OCR model locally, which handles clean printed single equations fine and then starts hallucinating on anything long, handwritten, or chemical, or pipe the crop to a hosted vision model, which works well but reintroduces the third-party dependency you were trying to escape. Mathpix is fast, quiet, and unusually good at the ugly cases, and that accuracy gap is the entire product. If you snip a few textbook equations a week, build it; if you convert handwritten notes or whole PDFs, you will crawl back.",
+  "coreLoopDIY": "Global hotkey opens a screen region selector, the crop goes through a local LaTeX OCR model, and the result lands in your clipboard with a searchable snip history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 on a machine you control",
+    "a few GB of disk for the local OCR model weights",
+    "GPU optional, CPU inference is slow but tolerable",
+    "OS accessibility/screen-recording permission for the hotkey and capture (macOS especially)"
+  ],
+  "whatYouLose": [
+    "Accuracy on handwriting, chemistry, tables, and multi-line derivations, which is where Mathpix actually earns its money",
+    "PDF and full-document conversion, plus Mathpix Markdown and docx export",
+    "Mobile apps and cross-device snip history sync",
+    "A capture overlay that behaves identically on three operating systems and every monitor scaling setup",
+    "Someone else fixing the model when it starts mangling your notation"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "Years of labeled math images and a model tuned specifically for notation, not a general OCR engine with math bolted on.",
+  "whyPeopleStillPay": "Because the failure mode is expensive in a boring way. A wrong subscript that you paste into a paper and do not notice costs more than a subscription, and open math OCR models fail confidently rather than loudly. People who snip all day are paying for the top few percent of accuracy and for the fact that the overlay never fights their window manager.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The snipping tool is a weekend build; the OCR is not, and you will feel the difference the first time you snip handwriting.",
+  "prompt": "Build a local, offline screenshot-to-LaTeX tool. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, managed with uv\n- PySide6 for the region-select overlay and the small history window\n- mss for screen capture\n- pynput for the global hotkey\n- pix2tex (the LaTeX-OCR package) running locally for inference\n- SQLite via stdlib sqlite3 for snip history\n- pyperclip for clipboard writes\n\nBehavior:\n1. Runs as a tray app. Global hotkey (default Ctrl+Alt+M, configurable in a TOML file next to the app) dims all displays with a translucent overlay and lets the user drag a rectangle. Esc cancels.\n2. On release, capture that rectangle as a PNG at native pixel density (handle HiDPI scaling correctly, this is the most common bug).\n3. Run the crop through pix2tex. Write the resulting LaTeX to the clipboard immediately. Show a small non-blocking toast with the first 60 characters and a confidence-ish note if the model exposes one.\n4. Store every snip in SQLite: timestamp, PNG bytes on disk under a data dir, LaTeX text, whether the user edited it.\n5. History window: list of past snips with thumbnail, editable LaTeX field, copy button, delete. Full-text search over the LaTeX. Editing a snip updates the stored text.\n6. Offer three clipboard formats via a settings toggle: raw LaTeX, inline-wrapped $...$, and display-wrapped $$...$$.\n\nExplicitly out of scope: PDF ingestion, handwriting-specific tuning, table extraction, chemistry, mobile, sync, any hosted API.\n\nFirst run should download the model weights once and cache them; if download fails, print a clear message rather than crashing. Ship a README with per-OS notes on the screen-capture and accessibility permissions the hotkey needs. Any future API keys go in .env, and .env is gitignored.\n\nAdd a smoke test that feeds three bundled PNGs of printed equations through the pipeline and asserts non-empty output.",
+  "promptCurated": false
+}
