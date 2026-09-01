@@ -1,0 +1,53 @@
+{
+  "slug": "octolens",
+  "name": "Octolens",
+  "domain": "octolens.com",
+  "category": "social-media",
+  "subcategory": "social listening and mention monitoring",
+  "tagline": "Watches social platforms and forums for mentions of your brand, competitors and keywords, then pings you where you work.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://octolens.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The concept is a keyword grep over public firehoses plus a notification, which is genuinely a weekend build for the platforms that still have sane APIs: Reddit, Hacker News, YouTube, Bluesky, RSS. Where it falls apart is X and LinkedIn, where official access is expensive or nonexistent and scraping is a maintenance treadmill you will lose. The other quiet cost is relevance: a raw keyword match on a common brand name produces a firehose of noise, and the paid product spends real effort on scoring and dedupe so your Slack channel stays readable. If your keywords are distinctive and you mostly care about Reddit and HN, the DIY version is fine and arguably better because you can tune it. If your job depends on catching every X mention within minutes, you are paying for data access, not code.",
+  "coreLoopDIY": "Polls Reddit, Hacker News, YouTube and Bluesky on a schedule for your keyword list, dedupes and scores each hit for relevance, then posts new mentions to Slack or email with a link and the surrounding context.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that can run a cron job continuously",
+    "Reddit API credentials (free tier is sufficient for polling)",
+    "A YouTube Data API key if you want video and comment coverage",
+    "A Slack incoming webhook or SMTP credentials for delivery",
+    "An LLM API key if you want relevance scoring instead of raw keyword matching"
+  ],
+  "whatYouLose": [
+    "X/Twitter coverage, which is the whole point for a lot of buyers and is gated behind paid API tiers",
+    "LinkedIn coverage, which has no legitimate API path at all",
+    "Historical backfill: your index starts the day you run it, so no \"what were people saying last quarter\"",
+    "Tuned relevance and sentiment scoring, so expect a noisier feed until you iterate on prompts",
+    "Somebody else absorbing API changes, rate limit shifts and platform bans on your behalf"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is data access agreements and the ongoing cost of staying connected to platforms that actively do not want to be monitored. Nothing about the software is hard.",
+  "whyPeopleStillPay": "Because the product is a subscription to platform access, not to a keyword matcher. Paying the X API bill yourself, keeping scrapers alive, and eating the maintenance every time a platform changes its rules costs more than the plan does, and it costs it in your attention rather than dollars. Teams also want mentions in a shared inbox with assignment and read state, which is where a personal script quietly stops being enough.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine DIY if your keywords are weird enough to be searchable and you can live without X.",
+  "prompt": "Build a self-hosted social mention monitor called \"mentions\" in an empty folder.\n\nStack, no substitutions: TypeScript on Node 20, SQLite via better-sqlite3, node-cron for scheduling, Hono for a tiny local web UI on port 8787. No Docker, no ORM, no frontend framework: server-rendered HTML with a single CSS file.\n\nCore loop:\n1. Read a keywords.json file at the repo root: an array of objects with { term, mustAlsoContain (optional array), exclude (optional array) }.\n2. Every 15 minutes, poll these sources for each term and insert new hits into SQLite:\n   - Reddit: the official search API using script-app OAuth credentials, sorted by new.\n   - Hacker News: the Algolia search API, both stories and comments, no auth needed.\n   - YouTube: Data API v3 search, videos published after last check, if YOUTUBE_API_KEY is set.\n   - Bluesky: the public app.bsky.feed.searchPosts endpoint.\n   - Any RSS or Atom feed URLs listed in feeds.json.\n3. Dedupe on a stable source + external id key. Never insert the same item twice.\n4. If OPENAI_API_KEY is set, score each new hit 0-100 for \"is this actually about the thing the keyword refers to, or a coincidental word match\" and store a one-line reason. If the key is absent, skip scoring and store null.\n5. Deliver hits above a configurable score threshold to a Slack incoming webhook if SLACK_WEBHOOK_URL is set, otherwise just leave them in the UI. Batch deliveries so one poll cycle sends at most one message with up to 10 items.\n\nWeb UI: one page listing mentions newest first with source badge, author, matched term, score, an excerpt, and a link out. Filters by source, term and minimum score. Buttons to mark read or archive. A second page to edit keywords and the threshold, writing back to keywords.json.\n\nRules: all secrets in .env, read via process.env, with a .env.example committed. Respect rate limits with a simple per-source delay and exponential backoff on 429. No user accounts, no telemetry, no analytics, no cloud services beyond the APIs listed. Store the last successful poll timestamp per source per term so restarts do not refetch or re-notify.\n\nExplicitly out of scope: X/Twitter, LinkedIn, Instagram, TikTok. Do not write scrapers for them and do not pretend to support them. Add a README section that says so and explains why.\n\nShip a seed script that runs one poll cycle immediately so I can see data on first launch, plus a README with setup, how to get Reddit credentials, and how to run it under a systemd timer or pm2.",
+  "promptCurated": false
+}
