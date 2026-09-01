@@ -1,0 +1,52 @@
+{
+  "slug": "ssemble",
+  "name": "Ssemble",
+  "domain": "ssemble.com",
+  "category": "audio-video",
+  "subcategory": "browser video editor",
+  "tagline": "Browser based collaborative video editor for short form creators, with auto subtitles, effects and stock assets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://ssemble.com/",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "An agent can absolutely wire ffmpeg to a web page and give you trimming, concatenation and burned-in Whisper subtitles in a session. What it cannot give you in a session is a timeline that feels good: frame accurate scrubbing, instant preview of a cut you have not rendered yet, undo that never corrupts a project, drag and drop layering that behaves the same at 4K as at 720p. Ssemble's actual product is that editing surface running in a browser, plus a library of effects, templates and stock clips somebody licensed, plus multiplayer on a project. Every one of those is a grind rather than a trick, which is exactly the kind of thing one-shot builds are worst at. Build the cutting-and-captioning pipeline if that is the 80 percent you use, but do not pretend it is an editor.",
+  "coreLoopDIY": "A local web tool that ingests a video, lets you mark keep/cut ranges against a waveform, transcribes with Whisper, and renders a captioned mp4 via ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg and ffprobe on PATH",
+    "Python 3.11",
+    "faster-whisper model download, a GPU if you value your afternoon",
+    "local disk for intermediate renders"
+  ],
+  "whatYouLose": [
+    "A real multi-track timeline with transitions, keyframes and layered text",
+    "Instant preview: your version renders, then you look at it, then you fix it, then you render again",
+    "The licensed stock footage, music, effects and template library",
+    "Collaboration: shared projects, comments, review links for a client",
+    "Cloud rendering and sharing, so long exports pin your own machine"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights",
+    "collaboration"
+  ],
+  "moatNotes": "Timeline editors are the classic case where the hard part is not the feature list, it is the thousand small behaviors that make dragging a clip feel correct.",
+  "whyPeopleStillPay": "Because editing is an interactive loop, not a batch job. People pay for the moment where you nudge a cut, hear it immediately, and move on, and for not thinking about codecs, fonts, aspect ratios or where the b-roll came from. A DIY pipeline is fine when you already know exactly what the output should be, which is roughly never during an edit. Add a team reviewing the same cut and the price stops being the argument.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An ffmpeg wrapper cuts clips, it does not give you a timeline you enjoy touching. The moat is execution polish plus an asset library someone cleared the rights on, and neither one falls out of a single prompt.",
+  "prompt": "Build a local video cutting and captioning tool. No accounts, no cloud, no telemetry.\n\nStack, not negotiable:\n- Python 3.11, FastAPI, uvicorn\n- ffmpeg and ffprobe via subprocess, no python video libraries\n- faster-whisper for transcription, model name from .env (default \"small\")\n- Frontend: one static index.html with vanilla JS and canvas, no build step, no framework\n- SQLite via sqlite3 for project state\n\nIn scope:\n1. POST /projects with a local file path or an upload. Probe duration, fps, resolution, store in SQLite.\n2. Generate a waveform PNG (ffmpeg showwavespic) and a thumbnail strip (one frame every 2s) and serve them.\n3. Web page: pick a project, see waveform + thumbnail strip, click-drag to mark ranges, toggle each range keep or cut, keyboard shortcuts for play/pause and set in/out. Ranges persist to SQLite immediately.\n4. Preview: HTML5 video element with JS that skips over cut ranges during playback, so preview needs no render.\n5. POST /transcribe: run faster-whisper on extracted audio, store word-level segments, show them as an editable text list. Editing text updates the stored segments.\n6. POST /render: build one ffmpeg command that trims the kept ranges, concatenates them, burns subtitles from a generated .ass file, and writes output mp4 next to the source. Stream progress lines back over Server-Sent Events.\n7. Subtitle style config in a single JSON file: font, size, outline, position. Read it at render time.\n\nOut of scope, do not build: multi-track timeline, transitions, effects, stock assets, sharing links, collaboration, mobile UI, auth, GPU cloud rendering.\n\nRules: secrets and model config in .env, .env.example committed. All state in ./data. Fail loudly with the actual ffmpeg stderr, never swallow it. README with exact install and run commands, plus a note on the model size tradeoff.",
+  "promptCurated": false
+}
