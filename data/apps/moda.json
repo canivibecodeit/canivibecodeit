@@ -1,0 +1,52 @@
+{
+  "slug": "moda",
+  "name": "Moda",
+  "domain": "moda.app",
+  "category": "email",
+  "subcategory": "ecommerce email and SMS marketing",
+  "tagline": "Email and SMS marketing automation aimed at ecommerce stores, with flows, segments and campaign reporting wired to store data.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://moda.app/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app-shaped part of this is genuinely easy: a form builder, a segment query, a template editor and a cron that sends. The part you cannot one-shot is everything that makes the send actually arrive and stay legal. Bulk email lives or dies on IP reputation, warmed domains, bounce and complaint handling, and a suppression list you never get wrong twice; SMS adds carrier registration, consent records and quiet-hour rules that are somebody's job, not a weekend's. Store integration is also more annoying than it looks, because order and cart events need to be reliable and idempotent before an abandoned-cart flow stops embarrassing you. A personal build is fine for a small list you own; at real volume you are rebuilding an ESP, badly.",
+  "coreLoopDIY": "Pulls your store's orders and customers, lets you write templates and define segments, and fires campaigns and simple event-triggered flows through a transactional email provider.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a store admin API token with read access to customers and orders",
+    "a sending domain with SPF, DKIM and DMARC set up",
+    "an email API key (Resend, Postmark or SES) and its sending limits understood",
+    "somewhere always-on to run the scheduler"
+  ],
+  "whatYouLose": [
+    "Deliverability as a service: warmed IPs, feedback loops, complaint handling, and someone who notices when Gmail starts folding you into spam",
+    "SMS entirely, plus the consent and carrier registration paperwork that makes SMS legal",
+    "Prebuilt store integrations, template libraries and flow presets that already work on day one",
+    "Revenue attribution and reporting you can trust in a meeting, plus benchmarks to compare against",
+    "A safety net when a broken segment sends the wrong campaign to your whole list at 3am"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Suppression lists, consent records and unsubscribe handling are the unglamorous core. Getting them wrong is a legal problem, not a bug.",
+  "whyPeopleStillPay": "Because the product you are buying is not the campaign editor, it is the promise that the mail lands in an inbox and the SMS does not get you fined. Sending reputation is accumulated infrastructure: warmed domains, provider relationships, complaint feedback loops, and years of tuning bounce logic. Add per-store event pipelines, consent audit trails and reporting the marketing team already knows how to read, and the monthly fee is cheaper than the first deliverability incident. Self-hosting makes sense at small list sizes and stops making sense fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The editor and the scheduler are a weekend; the inbox placement is not. The moat is deliverability infrastructure plus the consent and suppression plumbing that keeps bulk sending legal.",
+  "prompt": "Build a self-hosted ecommerce email marketing tool. Stack: TypeScript, Node 20, Hono for the HTTP layer, SQLite via better-sqlite3, server-rendered HTML with Tailwind via CDN. No React, no auth provider, no cloud services beyond the email API.\n\nWhat to build:\n1. Config from .env only: STORE_DOMAIN, STORE_ADMIN_TOKEN, EMAIL_API_KEY, FROM_ADDRESS, BASE_URL. Never commit secrets, ship .env.example.\n2. A sync job that pulls customers and orders from the store Admin API into SQLite, paginated, resumable, idempotent by remote id. Store raw JSON plus extracted fields: email, marketing consent flag, total spent, order count, last order date.\n3. A contacts table that is the single source of truth for sendability: unsubscribed_at, bounced_at, complained_at. A contact is sendable only if consent is true and all three are null. Enforce this in one function that every send path must call.\n4. Segments defined as saved SQL WHERE fragments against contacts, with a preview count and a sample of 20 rows before anything sends.\n5. A template editor: name, subject, HTML body with {{first_name}} and {{unsubscribe_url}} placeholders. Reject saving a template that lacks an unsubscribe placeholder.\n6. Campaigns: pick template plus segment, send a test to one address, then send with a rate limit read from env and a per-recipient send log so retries never double-send.\n7. Two event flows only: abandoned checkout after 4 hours, and post-purchase thank-you after 24 hours. Implement as a single scheduler tick that runs every 5 minutes and dedupes by contact plus flow plus trigger id.\n8. A one-click unsubscribe endpoint using a signed token, no login required, and a webhook endpoint that records bounces and complaints from the email provider.\n9. A dashboard page: sends, opens if the provider reports them, bounce rate, unsubscribe rate, last sync time.\n\nOut of scope: SMS, A/B testing, drag-and-drop editors, multi-store, multi-user accounts, analytics telemetry, revenue attribution modelling.\n\nSafety rails: dry-run mode on by default, a hard MAX_RECIPIENTS_PER_CAMPAIGN env cap, and a refusal to send if the sending domain lacks a DMARC record you have recorded in config. Write a README that says plainly this is safe for lists in the low thousands and that deliverability is the operator's problem.",
+  "promptCurated": false
+}
