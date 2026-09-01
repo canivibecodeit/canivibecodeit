@@ -1,0 +1,51 @@
+{
+  "slug": "schemawriter",
+  "name": "SchemaWriter",
+  "domain": "schemawriter.ai",
+  "category": "seo-marketing",
+  "subcategory": "schema markup generation",
+  "tagline": "Generates JSON-LD structured data markup for pages, with entity data filled in automatically.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://schemawriter.ai/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Schema markup is a public, documented spec, which is the worst possible foundation for a moat. The core loop is: fetch a URL, pull the title, headings, author, FAQs and product bits out of the HTML, then emit valid JSON-LD for the right schema.org types. An agent can do that in a session, including a Zod-style validator so you never ship a malformed graph. What you are actually paying for here is opinionated templates, entity lookups against Wikidata and the Knowledge Graph, and someone tracking Google's rich results guidelines so your Article markup does not quietly become ineligible. If you publish a handful of pages a month, the local script wins; if you are doing client SEO at volume, the polish and the audit trail matter more than the code.",
+  "coreLoopDIY": "A CLI that crawls a URL, extracts page entities and content, asks an LLM to draft schema.org JSON-LD for the chosen types, validates the output, and writes a ready to paste script tag.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) in .env",
+    "Node 20+",
+    "Pages you can actually edit, or a template hook to inject the script tag"
+  ],
+  "whatYouLose": [
+    "Curated, battle tested templates for the long tail of types: LocalBusiness, Service, Course, Recipe, HowTo",
+    "Entity linking against Wikidata and Google Knowledge Graph IDs, which is fiddly to do well",
+    "Someone else noticing when Google deprecates a rich result and updating the output for you",
+    "Bulk runs across hundreds of URLs with a review UI instead of terminal output",
+    "WordPress or CMS injection, so you are pasting tags by hand"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The entity graph and the type templates are the real product; the JSON-LD generation itself is a solved problem with a public spec.",
+  "whyPeopleStillPay": "Agencies pay because schema is billable work they do not want to think about, and a tool that spits out clean, validated, entity-linked markup for fifty client pages is faster than babysitting a script. There is also a defensive angle: if markup gets you a manual action or kills a rich result, having used a maintained tool feels safer than having used your own regex. Solo site owners with five pages get almost none of that value and should probably just generate the graph once and forget it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Structured data is a spec, not a secret, and specs make bad moats.",
+  "prompt": "Build a local command line tool called schemagen that generates schema.org JSON-LD for a web page.\n\nStack, no substitutions:\n- Node 20 with TypeScript, run via tsx\n- undici for fetching, cheerio for HTML parsing\n- zod for validating generated JSON-LD shapes\n- commander for the CLI\n- One LLM call via the OpenAI SDK, model and key from .env (OPENAI_API_KEY, OPENAI_MODEL)\n\nCommands:\n- schemagen url --type Article,FAQPage --out ./out\n- schemagen file ./page.html --type Product\n- schemagen validate ./out/page.jsonld\n\nPipeline:\n1. Fetch the URL (or read the file), strip scripts and styles, and extract: title, meta description, canonical URL, h1 through h3 outline, visible body text capped at 8000 chars, existing JSON-LD blocks, OpenGraph tags, author and date hints, any question/answer pairs that look like an FAQ.\n2. Build a compact JSON summary of that extraction. Print it so the user can see what the model was given.\n3. Send the summary plus the requested schema types to the LLM with a strict instruction: return only a JSON object with an @graph array, use @id values anchored to the canonical URL with fragment identifiers, never invent facts not present in the extraction, omit properties you cannot ground.\n4. Validate the result: parse JSON strictly, check every node has @type and @id, check required properties per supported type against local zod schemas, and reject anything containing placeholder strings like \"example.com\" or \"TODO\".\n5. Write two files: page.jsonld (raw) and page.snippet.html (the script tag with type=\"application/ld+json\").\n\nSupported types, hardcoded with local zod schemas and required property lists: Article, BlogPosting, Organization, Person, WebSite, WebPage, BreadcrumbList, FAQPage, Product, LocalBusiness. Unknown types exit with a clear error listing supported ones.\n\nIn scope: single page and file input, a batch mode that reads a newline delimited list of URLs and writes one output per URL with a summary table at the end, a --dry-run flag that skips the LLM and prints the extraction only.\n\nOut of scope, do not build: accounts, a web UI, telemetry, any hosted database, Wikidata or Knowledge Graph lookups, CMS plugins.\n\nInclude a README with setup, an .env.example, and three fixture HTML files with expected outputs plus vitest tests over the validator and the extractor. Fail loudly on network errors and malformed model output; never write a file that failed validation.",
+  "promptCurated": false
+}
