@@ -1,0 +1,52 @@
+{
+  "slug": "contractbook",
+  "name": "Contractbook",
+  "domain": "contractbook.com",
+  "category": "legal",
+  "subcategory": "contract lifecycle management",
+  "tagline": "Contract lifecycle platform: templates, e-signing, storage, renewal tracking and data-driven contract automation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://contractbook.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The boring 80 percent of Contractbook is a database of contracts, a template engine with merge fields, a signing link, and a reminder before renewal dates. An agent can build that in a weekend and it will genuinely work for one freelancer or a small shop with a dozen agreements a year. The part that does not survive is the part you only care about when something goes wrong: a defensible audit trail, identity assurance on the signer, eIDAS or ESIGN posture, and the integrations that push signed contract data into HR and CRM systems. A homemade click-to-sign with a hashed PDF and an IP log is often legally sufficient for simple electronic signatures, but you are now the one arguing that in a dispute. Build it if your contracts are low stakes and you mostly want to stop losing them in email.",
+  "coreLoopDIY": "Fill a markdown template with counterparty data, render a PDF, send a tokenized signing link, log the signature with a hash and timestamp, and email you before the renewal date.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "SMTP credentials for signing links and reminders",
+    "A domain with HTTPS so signing links are not obviously sketchy",
+    "Headless Chromium for PDF rendering",
+    "Offsite backups of the SQLite file, because this is now your only copy of your contracts"
+  ],
+  "whatYouLose": [
+    "Identity assurance and qualified signature options, so no BankID, no SMS OTP, no advanced or qualified eIDAS tiers",
+    "A tamper-evident audit trail that someone else vouches for rather than one you maintain in your own database",
+    "Native integrations that read and write contract data to HR, CRM and accounting systems",
+    "Counterparty-side polish: negotiation comments, redlining, version history that both sides can see",
+    "Someone to call when a signature is challenged or a renewal is missed"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "collaboration"
+  ],
+  "moatNotes": "The legal defensibility is outsourced trust, not code. Nobody buys contract software because the templating is clever.",
+  "whyPeopleStillPay": "Contracts are a low-frequency, high-consequence workflow, which is exactly the shape where people pay to not be the responsible party. A signed agreement that a court or an acquirer might inspect years from now is worth more when the audit trail lives with a vendor that has a compliance page and a support inbox. Add the integrations that keep signed data flowing into HR and CRM without manual copying, plus the fact that legal and ops teams do not want to own a self-hosted app, and the subscription is cheap relative to the perceived downside.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a private contract shelf with reminders; less fine as the thing you cite in a dispute.",
+  "prompt": "Build a local-first contract manager as a single Next.js 15 app (App Router, TypeScript, Tailwind). No SaaS accounts, no telemetry, no cloud services.\n\nStack, non-negotiable:\n- Next.js 15 + TypeScript + Tailwind\n- SQLite via better-sqlite3, file at ./data/contracts.db, migrations in ./migrations run on boot\n- Playwright's bundled Chromium for HTML to PDF rendering\n- nodemailer for outbound mail, SMTP config from .env only\n- Single-operator auth: one bcrypt password hash in .env, signed httpOnly session cookie. No user table.\n\nData model:\n- counterparties: name, email, company, address\n- templates: title, markdown body with {{mustache}} merge fields, declared field list\n- contracts: template_id, counterparty_id, title, merged_markdown snapshot, status (draft, sent, signed, declined, expired), effective_date, end_date, renewal_notice_days, value, currency, pdf_path, content_sha256\n- signature_events: contract_id, actor (owner or counterparty), event type (sent, viewed, signed, declined), typed_name, ip, user_agent, iso timestamp, sha256 of the PDF at that moment\n\nFeatures in scope:\n1. CRUD for counterparties and templates. Template editor is a plain textarea with a live merge-field list parsed from the body.\n2. \"New contract from template\": pick template + counterparty, form auto-generates inputs for each merge field, prefilled from counterparty data where names match.\n3. Render the merged markdown to a clean A4 PDF (serif body, page numbers, signature block at the end). Store the file under ./data/pdfs and record content_sha256.\n4. Send for signature: generate a 32-byte random token, email the counterparty a link at /sign/[token]. Page shows the PDF inline, requires typed full name plus an explicit \"I agree to sign electronically\" checkbox, then writes a signature_event and stamps a signature page onto a new PDF version. Log a view event on first load.\n5. Dashboard: contracts grouped by status, plus a \"renewals\" panel listing anything where end_date minus renewal_notice_days is within 30 days.\n6. A /api/cron/reminders route, protected by a CRON_SECRET, that emails the operator about upcoming renewals and unsigned contracts older than 7 days. Include a crontab line in the README.\n7. Per-contract audit page rendering the full signature_events timeline, and a CSV export of all contracts.\n\nExplicitly out of scope: redlining, multi-party or sequential signing, negotiation comments, CRM or HR integrations, ID verification, qualified eIDAS signatures, mobile apps.\n\nDeliverables: working app, seed script with two templates (mutual NDA, freelance services agreement) and one demo counterparty, .env.example, and a README that states plainly that this produces a simple electronic signature with a self-maintained audit trail and is not a qualified signature service. Add a nightly script that copies data/ to a timestamped backup folder.",
+  "promptCurated": false
+}
