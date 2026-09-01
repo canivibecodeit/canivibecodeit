@@ -1,0 +1,52 @@
+{
+  "slug": "similarlabs",
+  "name": "SimilarLabs",
+  "domain": "similarlabs.com",
+  "category": "ai-search",
+  "subcategory": "AI tool directory and alternatives search",
+  "tagline": "A searchable directory of AI tools that surfaces similar products and alternatives to whatever you already use.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://similarlabs.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Directories like this usually monetise listings and placement rather than end-user subscriptions.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software here is a search box over a list, and a search box over a list is a Tuesday afternoon. What you cannot one-shot is the list: thousands of products, categorised, deduped, described, kept alive as half of them die every quarter. A local clone can query a web search API and have an LLM guess at five alternatives, and it will be right often enough to be dangerous, wrong quietly the rest of the time, and stale within a month. The reason anyone lands on a directory is that someone else already did the boring maintenance. Build the consolation tool if you want a private research helper, but do not pretend it replaces a maintained index.",
+  "coreLoopDIY": "You paste in a product name or URL and a local script uses a web search API plus an LLM to return a ranked list of plausible alternatives with one-line descriptions, cached in SQLite.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A web search API key (Brave, Tavily, or SerpAPI)",
+    "An LLM API key",
+    "Node 20 and a local SQLite file",
+    "Tolerance for hallucinated or dead products in the results"
+  ],
+  "whatYouLose": [
+    "A curated, deduped corpus of tools that someone maintains as products launch and die",
+    "Category browsing that reflects how humans actually group these things, not what an LLM guessed today",
+    "Any confidence that a suggested product still exists and still has a working site",
+    "Screenshots, pricing snippets, and descriptions written by a person rather than autocompleted",
+    "Discovery by accident, which is most of what a directory is actually for"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is janitorial: continuous entry, correction, and pruning. It compounds because founders submit their own tools, which is free labour a personal clone will never receive.",
+  "whyPeopleStillPay": "Nobody pays for the search box, they pay for or around the corpus. Vendors pay to be listed because the site has traffic; users use it free because the list is already assembled and mostly not rotten. A personal build has neither the assembled list nor the incoming submissions, so it degrades into an LLM guessing game the moment you stop feeding it. That is a fine private research tool and a bad directory.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The search box is an afternoon; the corpus is a job. The moat is a maintained, deduped index plus the vendors who submit themselves to it for free.",
+  "prompt": "Build a local command line tool called \"altfinder\" that suggests alternatives to a given software product.\n\nStack, no substitutions:\n- Node 20, TypeScript, run with tsx\n- SQLite via better-sqlite3, single file ./altfinder.db\n- Brave Search API for web results\n- One LLM call via the OpenAI-compatible chat completions API\n- Keys in .env: BRAVE_API_KEY, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL\n- No server, no accounts, no telemetry, no analytics\n\nBehaviour:\n- `altfinder \"Notion\"` or `altfinder https://notion.so`\n- Step 1: run 3 Brave searches: \"X alternatives\", \"tools like X\", \"X competitors\"\n- Step 2: collect the top 20 result titles, URLs, and snippets\n- Step 3: send those snippets to the LLM with a strict instruction: extract only product names that actually appear in the snippets, do not invent any, return JSON array of {name, domain, oneLiner, whyRelevant}\n- Step 4: for each returned domain, do a HEAD request; mark dead or non-200 domains as UNVERIFIED and print them last\n- Step 5: print a clean table, then write the results to SQLite keyed by query with a timestamp\n- `altfinder --cached \"Notion\"` reads from SQLite instead of hitting the network\n- `altfinder --stale 30` re-runs any cached query older than 30 days\n\nExplicitly out of scope: crawling, screenshots, a web UI, category browsing, pricing scraping, any public site.\n\nRequirements: fail loudly with a readable message if a key is missing, never silently return LLM-invented products, keep the whole thing under roughly 300 lines, and write a README with setup and the honest caveat that results are only as good as today's search index.",
+  "promptCurated": false
+}
