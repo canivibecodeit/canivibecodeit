@@ -1,0 +1,52 @@
+{
+  "slug": "notesnook",
+  "name": "Notesnook",
+  "domain": "notesnook.com",
+  "category": "notes-knowledge",
+  "subcategory": "encrypted note-taking",
+  "tagline": "End-to-end encrypted note-taking with cross-device sync, notebooks, and web clipping.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://notesnook.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A local, encrypted, searchable notes app is a genuinely tractable one-shot: rich text editor, notebooks, tags, full text search, AES-GCM at rest. The part that eats your weekend and then your month is everything after that: real multi-device sync with conflict resolution, native iOS and Android builds, attachments, importers, app lock. Notesnook is also open source, so the honest cheat code is cloning it and running your own sync server instead of writing a worse one from scratch. If you only ever take notes on one machine, the DIY build is fine and arguably better because nothing leaves the disk. If you want notes on your phone at the grocery store, you are now maintaining a sync backend.",
+  "coreLoopDIY": "A local-first web app that stores encrypted notes in the browser database, organized by notebook and tag, with instant full text search and markdown export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "A browser you trust as your notes client",
+    "Optional: a small VPS or Tailscale box if you want the sync server",
+    "A passphrase you will not lose, because there is no reset"
+  ],
+  "whatYouLose": [
+    "Polished native apps on iOS, Android, macOS, Windows and Linux, all staying in step",
+    "Sync that survives offline edits on three devices without silently eating a paragraph",
+    "Audited crypto and key handling instead of your first PBKDF2 attempt",
+    "Attachments, file vault, web clipper, and importers from Evernote, Notion, Obsidian, Google Keep",
+    "Nice-to-haves you will miss: app lock, note history, publishing a note as a link, reminders"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The crypto is standard; shipping it identically on five platforms with sync that never loses data is the actual product.",
+  "whyPeopleStillPay": "People pay for zero-knowledge sync they do not have to operate. Notes are the one dataset where you notice corruption years later and cannot reconstruct it, so \"I wrote my own sync layer\" is a bet with a bad payoff curve. The subscription is really buying mobile apps, conflict resolution, attachment storage, and someone else being on call when the sync server hiccups. Cheap enough that self-hosting mostly makes sense if you enjoy the hosting more than the notes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The single-device version is a weekend well spent; the moment you want your phone in the loop, go clone the upstream repo instead.",
+  "prompt": "Build a local-first, single-user encrypted notes app. No accounts, no cloud, no telemetry, no analytics.\n\nStack, not negotiable:\n- Vite + React + TypeScript\n- TipTap for the rich text editor (headings, bold/italic/code, lists, checkboxes, code blocks, links)\n- Dexie (IndexedDB) for storage\n- Tailwind for styling, keyboard-first and dark by default\n- Vitest for a handful of tests\n\nData model:\n- Note: id, title, encryptedBody, notebookId (nullable), tags (string array), createdAt, updatedAt, pinned, trashedAt (nullable)\n- Notebook: id, name, parentId (nullable, one level of nesting is enough)\n\nEncryption:\n- On first run, prompt for a passphrase. Derive a key with PBKDF2-SHA256, 300k iterations, random 16-byte salt stored in IndexedDB.\n- Encrypt note bodies and titles with AES-GCM, fresh 12-byte IV per write. Store salt + IV + ciphertext, never the passphrase or the key.\n- Key lives in memory only. Lock the app after 15 minutes idle or on a Cmd+L shortcut, which requires the passphrase again.\n- Be explicit in the README that there is no recovery if the passphrase is lost.\n\nSearch:\n- Since bodies are encrypted at rest, decrypt into an in-memory index on unlock (use MiniSearch). Full text search across title, body, tags, updating live as notes change. Search must feel instant with 5000 notes; generate a seed script that proves it.\n\nUI:\n- Three panes: notebooks/tags sidebar, note list (sorted pinned then updatedAt), editor.\n- Cmd+K command palette for search and jump-to-note, Cmd+N new note, / for tag filter.\n- Autosave, debounced 500ms. Trash with 30-day retention and a restore action.\n\nImport/export:\n- Export all notes to a zip of markdown files with YAML frontmatter (title, tags, notebook, dates).\n- Import a folder of markdown files with the same frontmatter shape.\n\nExplicitly out of scope, and say so in the README: sync, mobile apps, attachments, sharing, collaboration, note history.\n\nDeliver: working app on npm run dev, seed script, README covering the threat model (protects against someone reading the IndexedDB file, does not protect against a compromised browser or machine), and .env.example even though nothing secret should be needed.",
+  "promptCurated": false
+}
