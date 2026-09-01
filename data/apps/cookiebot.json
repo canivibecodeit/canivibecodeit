@@ -1,0 +1,52 @@
+{
+  "slug": "cookiebot",
+  "name": "Cookiebot",
+  "domain": "cookiebot.com",
+  "category": "legal",
+  "subcategory": "consent management platform",
+  "tagline": "Cookie consent banner, automatic tracker scanning, and consent logging for GDPR and Google Consent Mode.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://cookiebot.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Tiering is domain and subpage based, with a free tier for small sites.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The banner is the easy part: a category toggle UI, a consent cookie, Google Consent Mode v2 defaults set to denied, and script gating via type=text/plain placeholders that you swap in after consent. An agent will do that in an afternoon and it will look better than most paid banners. What you cannot one-shot is the reason people buy Cookiebot: a crawler that finds every cookie and tracker on your site each month, a maintained mapping of those trackers to purposes and vendors, and a timestamped consent log you can hand to a regulator. Add IAB TCF and Google certified CMP status if you serve ads in the EEA, and DIY stops being an option at all. For a personal site with no ad tech, roll your own; for anything with legal exposure or programmatic ads, this is a bad place to save money.",
+  "coreLoopDIY": "Renders a categorized consent banner, sets Google Consent Mode v2 signals, blocks tagged scripts until the matching category is accepted, and stores a local timestamped consent record.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A static or server-rendered site you control the head of",
+    "Node 20 for the local scanner script",
+    "Playwright browsers installed for scanning",
+    "Somewhere to POST consent records if you want a log outside the browser"
+  ],
+  "whatYouLose": [
+    "Automatic monthly crawling that finds new cookies and trackers you forgot you added",
+    "A maintained tracker database that maps each cookie to a purpose, provider, and expiry for your declaration table",
+    "Server-side consent logs with proof of what banner text was shown when, which is what an audit actually asks for",
+    "IAB TCF support and Google certified CMP status, non negotiable if you run ads in the EEA",
+    "Dozens of translations and the geo logic for which regime applies to which visitor"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The certification and the tracker corpus are the product. The banner is a UI component people mistake for the product.",
+  "whyPeopleStillPay": "Because consent is one of the few web features where the buyer is not optimizing for features, they are optimizing for someone else being accountable. A homegrown banner works right up until a cookie appears from a tag someone added in Google Tag Manager six months ago, and then you have no scan history, no consent log, and no vendor to point at. The subscription is cheap relative to a data protection authority letter, and Google's certified CMP requirement removes the choice entirely for ad supported sites.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Perfectly reasonable DIY for a personal blog with Plausible and nothing else. The moment money or ad tech is involved, buy the paperwork.",
+  "prompt": "Build a self-hosted cookie consent kit for a single website I control. No accounts, no SaaS, no telemetry.\n\nStack: TypeScript, built with Vite in library mode to a single ES module plus a minified IIFE. Vanilla DOM, no framework, no CSS framework. Styles injected as a scoped stylesheet inside a shadow root so the host page cannot break the banner. Node 20 for tooling.\n\nDeliverable 1: consent-banner\n- Categories: necessary (always on), preferences, statistics, marketing. Config driven from a single config object.\n- On first visit, set Google Consent Mode v2 defaults to denied for ad_storage, analytics_storage, ad_user_data, ad_personalization, and granted for security_storage, pushing to window.dataLayer BEFORE any tag loads. Document the exact head snippet order in the README.\n- Banner with Accept all, Reject all, and a details panel with per category switches. Keyboard accessible, focus trapped, aria labelled, dark mode via prefers-color-scheme.\n- Store the decision in a first party cookie named consent_state as versioned JSON: categories, ISO timestamp, policy version, banner text hash. Expire in 12 months. Re-prompt automatically when policy version changes.\n- Script gating: any script tag written as type=\"text/plain\" with data-consent-category=\"statistics\" is activated by cloning it with the real type once that category is granted. Same for iframes via data-consent-src.\n- Expose window.consent with get(), set(partial), openSettings(), and an onChange subscription. Fire a consentchange DOM event.\n\nDeliverable 2: scripts/scan.ts\n- Playwright script that crawls a sitemap.xml or a list of URLs, accepts nothing, then accepts everything, and diffs the cookies, localStorage keys, and third party request hosts observed in each pass.\n- Output a scan-report.json and a markdown table I can paste into my cookie policy. Leave the purpose column blank for me to fill in; do not guess purposes.\n\nDeliverable 3: optional log endpoint\n- A tiny Node http handler at server/log.ts that accepts POSTed consent records and appends newline delimited JSON to a local file. Off unless CONSENT_LOG_URL is set in .env.\n\nOut of scope, and say so in the README: IAB TCF, Google certified CMP status, geo detection, translations beyond English, and any claim that this makes me compliant.\n\nInclude a demo/index.html wired with a fake gated analytics script, a README with the head snippet and integration steps, and Vitest unit tests for the cookie serializer, the script activation logic, and the policy version re-prompt.",
+  "promptCurated": false
+}
