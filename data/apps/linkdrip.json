@@ -1,0 +1,52 @@
+{
+  "slug": "linkdrip",
+  "name": "LinkDrip",
+  "domain": "linkdrip.com",
+  "category": "link-in-bio",
+  "subcategory": "short links and link pages",
+  "tagline": "A hosted tool for creating trackable short links and simple link pages.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.linkdrip.com/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Redirect a slug to a URL, log the click, show a chart: that is the entire product surface, and it has been a weekend project since roughly 2008. An agent can produce a working self-hosted version in one session, including an admin UI, QR codes, UTM appending and a public link page. The genuinely annoying parts are operational rather than intellectual: automatic TLS for custom domains, and the fact that a link you already posted somewhere cannot be moved if your box falls over. If your links live in bios and newsletters rather than on billboards, that risk is small and the savings are total. Note that details on this particular product are thin here, so judge the feature list against your own needs before assuming parity.",
+  "coreLoopDIY": "Create short slugs that redirect to target URLs, log every click with referrer and country, and render a public page listing your links.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small always-on VPS or a serverless host, since every posted link depends on it staying up",
+    "a domain, ideally a short one, with DNS you control",
+    "a reverse proxy with automatic TLS if you want custom domains per link page",
+    "a GeoIP database file if you want country breakdowns"
+  ],
+  "whatYouLose": [
+    "Automatic TLS provisioning for customer or client custom domains, which is the one part that is genuinely fiddly",
+    "Someone else being on call when a redirect 500s at 3am with your campaign traffic behind it",
+    "Polished analytics with bot filtering, so your click counts will be inflated by scrapers and link previewers",
+    "Any built in integrations, retargeting pixels or team accounts",
+    "Link rot insurance: your self-hosted domain and box are now a single point of failure for everything you ever posted"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the code, it is that published links are permanent commitments to whoever serves them.",
+  "whyPeopleStillPay": "Uptime as a service. A short link is a promise you made in public, and paying a small monthly fee to make that promise somebody else's problem is rational, especially for anyone running paid traffic or print campaigns. There is also the custom domain plus TLS plumbing, which is boring rather than hard, and boring work is exactly what people pay to skip. If you are just tidying up a bio page, none of that applies.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy; the ten year commitment to keeping the redirects alive is the actual purchase.",
+  "prompt": "Build a self-hosted short link and link page app in an empty folder.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3, Zod for validation. No ORM. No external services.\n\nData model in SQLite:\n- links: id, slug (unique), target_url, title, note, tags (comma string), active, created_at\n- clicks: id, link_id, ts, referrer, user_agent, country (nullable), is_bot\n- pages: id, handle (unique), display_name, bio, theme, link_ids_ordered\n\nFeatures in scope:\n1. GET /:slug looks up the slug, records a click row, then issues a 302 to target_url. Keep this path as fast as possible: one indexed read, one insert, no rendering. Unknown or inactive slugs render a plain 404 page.\n2. Optional UTM appending per link: store utm params as JSON and merge them into the target URL query string at redirect time.\n3. Admin UI at /admin behind a single password read from ADMIN_PASSWORD in .env, using an httpOnly signed cookie. No user accounts, no signup, no email.\n4. Admin can create, edit, deactivate and bulk import links from pasted CSV. Auto generate a slug if none is given.\n5. Per link stats page: total clicks, clicks per day for the last 30 days as a simple SVG bar chart, top referrers, top countries. Filter out obvious bots by user agent substring match and store is_bot so counts can be shown both ways.\n6. QR code PNG for any link at /api/qr/:slug, generated server side with the qrcode package.\n7. Public link pages at /p/:handle: avatar, bio, ordered list of links, three hardcoded themes. Clicks from a page route through /:slug so they are tracked.\n8. Rate limit click inserts per IP in memory to avoid trivial counter spam.\n\nOut of scope, do not build: multi tenant accounts, billing, teams, custom domain TLS automation, retargeting pixels, A/B split testing, email.\n\nAlso deliver: schema.sql, a seed script with five example links, a .env.example containing ADMIN_PASSWORD and COOKIE_SECRET, a nightly backup script that copies the SQLite file to a timestamped path, and a README covering deployment behind Caddy with automatic HTTPS. Explain in the README that every published link depends on this host staying up.",
+  "promptCurated": false
+}
