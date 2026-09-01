@@ -1,0 +1,52 @@
+{
+  "slug": "preuve-ai",
+  "name": "Preuve AI",
+  "domain": "preuve.ai",
+  "category": "documents",
+  "subcategory": "AI document and evidence review",
+  "tagline": "An AI tool that ingests documents and turns them into structured, cited proof: extracted claims, supporting passages, and an exportable report.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://preuve.ai/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not exotic: parse files, chunk them, ask a model to pull out claims and the passages that back them, then render something a human can hand to someone else. An agent can build that in a weekend with a decent PDF parser, an embedding index, and page-anchored citations, and for a personal pile of contracts or case files it will be genuinely useful. Where the DIY version cracks is the boring part: scanned and rotated documents, tables, handwriting, OCR quality, and the fact that a citation that is off by one page is worse than no citation at all. Public detail on this product is thin, so treat the specifics of what it does and what it costs as unconfirmed. If your use case touches anything legal or regulated, the audit trail, retention rules, and someone to sue matter more than the model does.",
+  "coreLoopDIY": "Drop a folder of PDFs into a local app, get back extracted claims with page-anchored quotes, a searchable index, and a Markdown or PDF report you can export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key in .env (or a local model, slower and worse at citation discipline)",
+    "Python 3.11 plus poppler or tesseract installed for PDF text and OCR fallback",
+    "Enough disk for a local SQLite plus vector index",
+    "Patience for tuning chunking on your actual document types"
+  ],
+  "whatYouLose": [
+    "Reliable OCR on scans, faxes, photos of documents, and rotated pages",
+    "Table and form extraction that does not silently scramble numbers",
+    "Any compliance story: retention policies, access logs, data residency, someone accountable if it hallucinates a citation",
+    "Multi-user review workflows, comments, and shared case files",
+    "Someone else's evaluation harness catching regressions when the underlying model changes"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "In proof and evidence work the differentiator is rarely the prompt, it is the extraction accuracy on ugly inputs plus a defensible audit trail.",
+  "whyPeopleStillPay": "Because the output is meant to be shown to a third party: a client, a regulator, a counterparty, a judge. That changes the tolerance for error from \"mostly right\" to \"citable\", and a personal build has no evaluation set, no OCR pipeline hardened on a decade of bad scans, and no one to answer for a fabricated quote. Teams also want shared case files and access logs, which is exactly the part a solo build skips. If you are just reading your own documents faster, none of that applies and the DIY version is fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build if you want to interrogate your own document pile; less fine if the report leaves your laptop.",
+  "prompt": "Build a local document evidence reviewer. Single Python service, no cloud accounts beyond one LLM API key.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, Uvicorn, SQLite via sqlite3 (no ORM)\n- pypdf plus pdfplumber for text and page geometry, pytesseract as OCR fallback when a page yields under 100 characters\n- sqlite-vec (or a numpy cosine fallback) for embeddings\n- Server-rendered Jinja2 templates plus a little vanilla JS. No React, no build step.\n- LLM and embedding calls via one provider, key from .env as LLM_API_KEY. Nothing else leaves the machine.\n\nFeatures, in scope:\n1. POST /ingest: accepts a local folder path or uploaded PDFs, DOCX, TXT. Extract text per page, store document, page, char offsets in SQLite.\n2. Chunk at roughly 1200 characters with 150 overlap, never crossing page boundaries. Store page number on every chunk.\n3. Embed chunks, store vectors.\n4. Ask page: /ask takes a question, retrieves top 12 chunks, sends them to the model with instructions to answer only from provided text and to cite chunk ids. Reject any answer whose cited ids are not in the retrieved set, then retry once.\n5. Claims extraction: /extract runs per document and returns a list of claims, each with the verbatim supporting quote, the page number, and a confidence label. Store results.\n6. Report: /report/{doc_id} renders claims plus quotes plus page numbers to HTML and dumps Markdown to disk.\n7. Every quote in the UI links to a page view showing the raw extracted text of that page, so a human can check it.\n\nOut of scope, do not build: user accounts, multi tenancy, billing, telemetry, table structure parsing, handwriting, e signature, cloud storage.\n\nRequirements:\n- Store everything in ./data (SQLite file plus original files). One command to wipe.\n- If OCR is used on a page, mark it in the database and show an \"OCR, verify manually\" badge next to any quote from that page.\n- Log every LLM call with prompt hash, model name, and timestamp to a calls table so results are reproducible.\n- README with install steps including the tesseract system dependency, plus a one line honest warning that citations must be spot checked before anyone relies on them.\n- Ship a seed script that ingests three sample PDFs and prints extraction results so I can see it work immediately.",
+  "promptCurated": false
+}
