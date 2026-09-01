@@ -1,0 +1,52 @@
+{
+  "slug": "https-backflow-dev",
+  "name": "Backflow",
+  "domain": "backflow.dev",
+  "category": "dev-tools",
+  "subcategory": "event and webhook plumbing (unconfirmed)",
+  "tagline": "A developer tool at backflow.dev whose exact product surface we could not confirm at draft time.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://backflow.dev/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Honest disclosure first: we have not verified what Backflow ships, what it costs, or how big its integration surface is, so this page is provisional. The name and the .dev domain point at plumbing for events and data moving between systems, and that whole family of tool is the classic weekend build: a receiver, a queue, a retry loop, a replay button. What kills the DIY version is never the happy path, it is the long tail of destination quirks, auth schemes, and the fact that nobody wants to be paged when their own relay silently drops events. If the product turns out to be mostly a hosted convenience over open protocols, a personal replacement is realistic. If it turns out to be a broad connector catalog, downgrade this to no.",
+  "coreLoopDIY": "Stands up a self-hosted endpoint that accepts inbound events, persists them, forwards them to configured destinations with retries and backoff, and lets you inspect and replay anything that failed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on host or VPS with a public HTTPS endpoint",
+    "Docker and Node 20+",
+    "Destination URLs and any API tokens you plan to forward to",
+    "Willingness to own your own retry and alerting story"
+  ],
+  "whatYouLose": [
+    "Whatever prebuilt connectors and provider-specific quirk handling the hosted product ships",
+    "Someone else's uptime, autoscaling, and delivery guarantees under real burst load",
+    "Team accounts, roles, and audit trails",
+    "A polished dashboard for tracing a single event end to end",
+    "Support when a destination changes its payload contract at 2am"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "Plumbing products win on the boring parts: idempotency, ordering, retries that do not amplify outages, and a connector list nobody wants to maintain themselves.",
+  "whyPeopleStillPay": "Event and data plumbing is the definition of undifferentiated heavy lifting. You can build a relay in an afternoon and it will work fine until the day one destination starts returning 500s and your retry loop turns a small outage into a self-inflicted flood. Paying moves the pager, the connector maintenance, and the delivery semantics onto someone whose whole job is that, which is usually cheaper than the incident you avoid.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "This listing is deliberately thin: the product surface was not confirmable at draft time, so the verdict is provisional and the prompt targets the most likely shape of the tool.",
+  "prompt": "Build a self-hosted webhook and event relay called \"backflow-lite\". Single service, no cloud accounts, no telemetry.\n\nStack, non negotiable: TypeScript, Node 20, Fastify for HTTP, SQLite via better-sqlite3 for storage, Zod for validation, htmx plus server-rendered templates for the UI. One Dockerfile and one docker-compose.yml. No React, no ORM, no message broker.\n\nIn scope:\n1. POST /hook/:sourceId accepts any JSON or raw body, stores method, headers, body, timestamp, and returns 202 immediately.\n2. Sources and destinations are defined in a config.yaml: each source has an id, an optional shared secret for HMAC SHA256 signature verification, and one or more destinations (url, method, optional static headers, optional token read from env).\n3. A background worker delivers each stored event to every destination with exponential backoff: 1s, 5s, 30s, 5m, 30m, then dead letter. Deliveries are recorded with status code, response body snippet, and duration.\n4. Idempotency: dedupe inbound events by an X-Idempotency-Key header or a body hash within a configurable window.\n5. Circuit breaker per destination: after 10 consecutive failures, pause that destination for 10 minutes and log it. Do not amplify outages.\n6. UI at /: list recent events, filter by source and status, expand one event to see payload plus every delivery attempt, and a Replay button that re-enqueues delivery to one or all destinations.\n7. GET /healthz plus a /metrics text endpoint with counters for received, delivered, failed, dead lettered.\n8. Retention job that deletes events older than N days, N from env.\n\nOut of scope: multi user auth (protect the UI with a single bearer token from .env), prebuilt SaaS connectors, payload transformation beyond a simple optional JSONata-free field passthrough, ordering guarantees across sources.\n\nSecrets and config in .env and config.yaml, never hardcoded. Include a README with a curl example that sends a signed test event, plus vitest tests covering signature verification, backoff scheduling, dedupe, and the circuit breaker.",
+  "promptCurated": false
+}
