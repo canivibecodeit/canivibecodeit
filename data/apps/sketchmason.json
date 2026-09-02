@@ -1,0 +1,51 @@
+{
+  "slug": "sketchmason",
+  "name": "Sketchmason",
+  "domain": "sketchmason.com",
+  "category": "design",
+  "subcategory": "sketch to UI generation",
+  "tagline": "Draw labeled boxes on a canvas, get a finished screen that respects the layout you actually drew.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sketchmason.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The clever part here is the input format, not the model: boxes plus one word labels are a spec, so you skip the usual argument with a prompt box about where the nav goes. That spec is maybe two hundred lines of code, a rectangle editor that exports normalized coordinates and a containment tree, and any decent agent will hand it to you in a session. The parts that eat a weekend are the design token extraction from reference images and making screen two look like screen one, which means persisting tokens and replaying them on every generation. What you cannot one-shot is the output quality, the difference between markup that technically matches your boxes and markup someone would ship, which is tuned prompts and post-processing nobody writes on day one. Also worth noting: the whole thing rides a hosted vision model, so your local build has a hard third-party dependency and a per-screen bill.",
+  "coreLoopDIY": "A local canvas where labeled rectangles export to a layout JSON, then get sent with saved design tokens to a vision model that returns a React and Tailwind screen you preview in an iframe.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An Anthropic or OpenAI API key with vision access, in .env",
+    "Node 20 and a browser",
+    "Willingness to pay per generated screen",
+    "Patience for prompt tuning, since first-pass output will look like a wireframe that got dressed in the dark"
+  ],
+  "whatYouLose": [
+    "Tuned generation prompts and post-processing, which is most of the gap between usable markup and a screenshot you would show a client",
+    "Cross-screen consistency that holds up past three screens without you babysitting the token file",
+    "Flow expansion and mobile variants as one click instead of you re-running with hand-written constraints",
+    "Any component library or code style opinions baked in, so you get generic Tailwind soup unless you specify everything",
+    "The mood board pipeline, which is easy to fake with one vision call and hard to make produce a coherent palette, type scale, radius and spacing system"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "No data or network moat at all. The defensibility is entirely in output quality and in your accumulated design system living in their project, which is a mild lock-in and nothing more.",
+  "whyPeopleStillPay": "Because the ratio matters. A DIY version gets you eighty percent of the mechanism and maybe thirty percent of the result, and the missing seventy percent is exactly what you were buying: markup you do not have to rewrite. Anyone generating screens weekly will burn more hours tuning their own prompt chain than the subscription costs, and the design system continuity across a whole product is the kind of feature that only looks trivial until your fifth screen has a different button radius.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The insight is that a sketch is a cheaper spec than a paragraph, and insights are not patentable.",
+  "prompt": "Build a local sketch-to-screen tool in an empty folder. Stack: Vite + React + TypeScript + Tailwind for the UI, one small Express server for API proxying and file storage. Node 20. No database, no auth, no accounts, no telemetry, no cloud.\n\nPart 1, the canvas. An SVG editor filling the viewport. Drag on empty space to create a rectangle, drag a rectangle to move it, drag its bottom right corner to resize, double click to type a short label inside it (nav, hero, pricing, footer, card grid, sidebar). Delete key removes the selected rectangle. No layers panel, no z-index UI. Nesting is inferred purely from geometric containment: if box A fully contains box B, B is a child of A.\n\nPart 2, the spec. Export the drawing to layout JSON: every box gets id, label, x, y, w, h, children. Normalize x and w to a 12 column grid and y and h to viewport percentages. Order siblings top to bottom, then left to right. This JSON is the source of truth for structure. The model must not invent, reorder or drop regions.\n\nPart 3, design tokens. A separate page where I drop 2 to 5 reference images. Send them in one vision call and ask for a design system as strict JSON: color roles (bg, surface, text, muted, accent, border), a type scale with font family suggestions, a spacing scale, border radius, shadow style, and one sentence on overall visual tone. Save to tokens.json on disk. Show the tokens as editable fields so I can fix bad guesses.\n\nPart 4, generation. A Generate button sends layout JSON plus tokens.json to Claude Sonnet via the Express proxy. System prompt: return a single self contained React component using Tailwind utility classes only, honor the layout tree exactly, use only the given tokens as arbitrary Tailwind values, fill labeled regions with plausible placeholder content matching the label, no external imports, no icon libraries, no comments. Render the result in a sandboxed iframe next to the canvas. Save each generation to screens/NAME.tsx with its layout JSON beside it.\n\nPart 5, second screens. A screen list. Selecting an existing screen and clicking New From This copies the canvas so I can edit boxes, and generation always replays the same tokens.json, so screens stay consistent. Add one Mobile Variant button that regenerates the current layout with an instruction to collapse to a single column at 390px wide.\n\nOut of scope: Figma or code export beyond the .tsx files on disk, component libraries, multi user anything, undo history beyond a single step, animated previews, automatic flow generation.\n\nSecrets: ANTHROPIC_API_KEY in .env, never in client code, all model calls go through the Express proxy. Ship a README with setup, a note on per-generation cost, and one paragraph on where to edit the system prompt, because tuning that string is the actual work.",
+  "promptCurated": false
+}
