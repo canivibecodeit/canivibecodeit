@@ -1,0 +1,52 @@
+{
+  "slug": "telegram-finder",
+  "name": "Telegram Finder",
+  "domain": "telegram-finder.io",
+  "category": "ai-search",
+  "subcategory": "Telegram channel and group discovery",
+  "tagline": "A search engine over Telegram channels, groups and their message history, sold for OSINT, research and marketing lead work.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.telegram-finder.io/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software here is boring: a crawler, a Postgres or Elastic index, a search box. The thing you are actually paying for is a standing index of hundreds of thousands of public channels and groups plus their historical messages, built by joining, scraping and re-scraping over a long period through Telegram's rate limits and account bans. Telegram's own global search is deliberately shallow, so you cannot query your way to breadth; you have to have already crawled. A one-shot agent gives you a very good personal index of the channels you already know about, which is the opposite of discovery. Keyword monitoring on a seed list is a genuinely good DIY consolation prize; discovery is not.",
+  "coreLoopDIY": "A Telethon crawler that joins or reads a seed list of public channels, stores every message in SQLite FTS5, expands via forwards and @mentions, and gives you a local full text search and keyword alert feed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 plus Telethon",
+    "A Telegram API id and hash from my.telegram.org",
+    "A real phone number and an account you accept may get limited or banned",
+    "Patience with FloodWait rate limits, crawling is measured in days not minutes",
+    "Disk space, message archives get large fast"
+  ],
+  "whatYouLose": [
+    "Discovery: you can only search channels you already thought to seed",
+    "Historical backfill on channels you joined yesterday, Telegram gives you the archive but the crawl time is real",
+    "Cross-channel analytics: member counts over time, growth, admin and forward graphs",
+    "Somebody else's account taking the ban risk instead of yours",
+    "Deduplication and spam filtering across the long tail of scam and mirror channels"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The index is the product. Every competitor starts at zero messages and cannot buy time.",
+  "whyPeopleStillPay": "Because breadth is the entire value proposition and breadth is bought with crawl-years, banned accounts and infrastructure, none of which an agent can produce in a session. Investigators, brand monitoring teams and lead hunters need to answer questions about channels they have never heard of, which is precisely what a personal index cannot do. There is also a quiet compliance and hygiene benefit: you query a third party rather than joining several thousand sketchy channels from an account tied to your own phone number.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The crawler is a weekend build; the crawl is not. the moat is a years-deep index of channels nobody handed you a list of, plus the burned accounts it cost to get.",
+  "prompt": "Build a local Telegram channel archiver and search tool. No web hosting, no accounts, no telemetry.\n\nStack, non negotiable: Python 3.11, Telethon, SQLite with FTS5, and a single FastAPI app serving one server-rendered HTML page with plain Jinja templates. No React, no Docker, no Elasticsearch.\n\nSecrets in .env, loaded with python-dotenv: TG_API_ID, TG_API_HASH, TG_SESSION_NAME. Never hardcode them. Store the Telethon session file in ./data/.\n\nDeliverables:\n1. seeds.txt, a newline list of public channel usernames or t.me links that I edit by hand.\n2. crawl.py: for each seed, resolve the entity, fetch message history newest-to-oldest with iter_messages, and upsert into SQLite. Tables: channels(id, username, title, about, participants_count, first_seen, last_crawled), messages(id, channel_id, date, sender_id, text, views, forward_from_channel, url). Create an FTS5 virtual table over messages.text with external content and keep it in sync via triggers.\n3. Incremental crawls: remember the highest message id per channel and only fetch newer ones on later runs.\n4. Handle FloodWaitError by sleeping the requested seconds and logging it. Handle ChannelPrivateError and UsernameNotOccupiedError by marking the channel dead and moving on. Never crash the whole run for one bad channel.\n5. expand.py: scan stored messages for forwarded-from channels and @mentions, and append unseen public usernames to discovered.txt for me to review. Do not auto-join anything.\n6. app.py: one page with a search box. FTS5 query with snippet() highlighting, filters for channel and date range, results sorted by date, links back to the t.me message url. Add a /alerts route that lists new matches since last visit for saved keywords stored in a watchlist table.\n7. README with exact setup steps, and a blunt note that crawling large channel sets risks account limits.\n\nExplicitly out of scope: global discovery of channels I have not seeded, member scraping, media downloads, any hosted deployment, any attempt to bypass Telegram rate limits.\n\nWhen done, run a smoke test against two small public channels and print row counts.",
+  "promptCurated": false
+}
