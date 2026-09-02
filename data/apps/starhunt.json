@@ -1,0 +1,52 @@
+{
+  "slug": "starhunt",
+  "name": "StarHunt",
+  "domain": "getstarhunt.com",
+  "category": "ai-search",
+  "subcategory": "ranked discovery search",
+  "tagline": "A search product built on top of a maintained index, where the pitch is less the search box and more the ranking of what comes back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.getstarhunt.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is the cheap part: a search box, filters, a results list, and some sorting. An agent will hand you that in an afternoon on SQLite FTS5 with a scoring function you can tune. The expensive part is the index behind it, meaning continuous ingestion, deduping, enrichment, and a ranking that was tuned against real queries until it stopped embarrassing anyone. Your version will be good for the narrow slice you care about and noticeably worse everywhere else, because you will index one source instead of many and your ranking weights will be guesses. Build it if your actual need is a personal watchlist over data you can already reach; do not build it expecting parity on coverage.",
+  "coreLoopDIY": "Ingests records from a source you point it at into a local SQLite index, then serves a filtered, ranked search page over them with saved queries and a daily digest of new hits.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API access or scrape permission for whatever source you want indexed",
+    "somewhere always-on to run the ingest cron, even a tiny VPS",
+    "tolerance for hand tuning ranking weights until results stop being noise",
+    "Python 3.11+ and Docker if you want the one-command version"
+  ],
+  "whatYouLose": [
+    "The maintained corpus: theirs keeps growing while yours stops the day you stop babysitting the cron",
+    "Ranking that has been beaten into shape by real user queries instead of your three test searches",
+    "Cross-source coverage, deduping, and entity cleanup, which is the unglamorous majority of the work",
+    "Alerting and delivery that actually fires reliably instead of failing silently at 3am",
+    "Any ability to trust that a null result means nothing exists rather than nothing was ingested"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The ranking is downstream of the corpus. Copy the ranking formula and you still have nothing to rank.",
+  "whyPeopleStillPay": "Because nobody wants to own an ingestion pipeline. A personal build is fine right up until a source changes its response shape, the cron dies quietly, and you spend a Saturday discovering your search index has been three weeks stale while you made decisions off it. Paying converts an ongoing maintenance obligation into a URL, and for anyone using this as an input to real work rather than as a hobby, that trade is obviously correct.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth building as a narrow personal index, not as a competitor; the moment you widen the source list you have signed up for a second job.",
+  "prompt": "Build a local ranked discovery search app. Stack: Python 3.11, FastAPI, SQLite with FTS5, Jinja2 templates plus htmx for interactivity, no JS framework, no build step. Single repo, runnable with uvicorn or docker compose up.\n\nData model in SQLite: table `items` with id, source, external_id (unique per source), title, url, description, tags (JSON array), created_at, first_seen_at, last_seen_at, plus a flexible `metrics` JSON column for numeric signals like counts or scores. FTS5 virtual table over title, description, tags. Table `snapshots` storing (item_id, taken_at, metrics JSON) so momentum can be computed. Table `saved_searches` storing name, query string, filters JSON, created_at.\n\nIngestion: a `python -m app.ingest` command with pluggable source adapters in app/sources/. Implement exactly two adapters. (1) `jsonl_file`: reads a local .jsonl file of records and upserts them, so the app is usable with zero network access. (2) `paged_api`: a generic adapter configured entirely from .env with BASE_URL, AUTH_HEADER, page param names, and a JSONPath-style mapping from response fields to the item columns. Both write a snapshot row on every run. Upserts are idempotent on (source, external_id).\n\nRanking: a single `score(item, query)` function combining FTS5 bm25 relevance, recency decay on first_seen_at, and momentum computed as the delta of a chosen metric between the two most recent snapshots. Weights live in a `ranking.toml` file with comments, not hardcoded, because tuning them is the whole game. Expose the raw component scores in the UI behind a \"why this ranked here\" toggle.\n\nUI: one search page with a query box, tag filter chips, numeric range filters generated from whatever keys exist in metrics, sort selector (score, newest, momentum), and paginated results. Buttons to save the current search and to export current results as CSV.\n\nDigest: a `python -m app.digest` command that runs every saved search, finds items whose first_seen_at is newer than the last digest run, and writes a Markdown file to ./digests/ plus optional SMTP send if SMTP_* env vars are present. Wire it to a cron example in the README.\n\nExplicitly out of scope: user accounts, multi-tenancy, hosted deployment, telemetry, LLM reranking, any scraping of sites that forbid it. Single user, local, all secrets in .env with a committed .env.example.\n\nInclude: seed script generating 500 fake items so the UI is populated on first run, pytest covering upsert idempotency, momentum math, and score ordering, and a README that is blunt about the fact that result quality is entirely a function of what you ingest.",
+  "promptCurated": false
+}
