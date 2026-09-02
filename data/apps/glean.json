@@ -1,0 +1,51 @@
+{
+  "slug": "glean",
+  "name": "Glean",
+  "domain": "glean.com",
+  "category": "ai-search",
+  "subcategory": "enterprise work search and AI assistant",
+  "tagline": "Permission-aware AI search and chat across every app a company uses.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://glean.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Glean sells annual enterprise contracts with per-seat pricing plus platform fees, quoted by sales.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The demo looks like a chat box over your documents, which is why people think it is a weekend project. The actual product is a hundred-plus connectors that continuously crawl Slack, Jira, Confluence, Salesforce, Drive, Github and the rest, and then mirror every source system's access control list so a search never leaks a doc the asker is not allowed to read. That permission mirroring is the whole thing, and it is boring, endless, per-connector maintenance work with legal consequences when it breaks. A local RAG index over the files on your own laptop is genuinely useful and very buildable, but it is a different product: one user, one permission set, no company. If you are one person, you do not need Glean, and if you are a company, you cannot build it in a sitting.",
+  "coreLoopDIY": "Indexes a folder of your own local files and exported chat or doc dumps, embeds the chunks, and answers questions over them with citations back to the source file.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for an embedding and chat model, or a local model via Ollama",
+    "Local copies or exports of the content you want searchable",
+    "Comfort re-running the indexer manually or on a cron"
+  ],
+  "whatYouLose": [
+    "Live connectors to Slack, Jira, Confluence, Salesforce, Drive and the other few dozen systems where work actually lives",
+    "Permission-aware results: your local index has no concept of who is allowed to see what",
+    "Continuous incremental crawling, so your index is as fresh as the last time you remembered to run it",
+    "People search, org context and the knowledge-graph ranking that makes Glean answers feel company-aware instead of document-aware",
+    "SOC 2 and enterprise audit trails, which is the reason security teams sign off on this category at all"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "proprietary-data"
+  ],
+  "moatNotes": "Every connector is a permanent maintenance contract with someone else's API and someone else's permission model. The count is the moat, and the count only goes up.",
+  "whyPeopleStillPay": "Companies do not buy Glean because chat over documents is hard. They buy it because nobody internally wants to own sixty OAuth integrations, per-source access control syncing, and the incident review that happens the first time search surfaces a compensation spreadsheet to the wrong person. The value is that a vendor takes that liability, keeps the crawlers running, and passes the security questionnaire. An individual gets almost none of that value and can happily self-host a local index instead.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A citation-backed RAG box over your own files is a weekend build and worth doing. The moat is not the retrieval, it is a hundred live connectors that faithfully mirror every source system's permissions, forever.",
+  "prompt": "Build a local, single-user semantic search and Q&A tool over my own files. Call it \"shelf\".\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, plain server-rendered Jinja2 templates plus a little vanilla JS. No React, no build step.\n- SQLite for everything: documents, chunks, and vectors stored as blobs, plus an FTS5 table for keyword search.\n- Embeddings and chat via the OpenAI API, model names in .env so they are swappable. Also support a LOCAL_MODE=ollama switch that hits a local Ollama endpoint instead.\n\nIn scope:\n- A CLI command `shelf index /path/to/folder` that walks the folder recursively and ingests .md, .txt, .pdf, .docx, .html, .csv. Use pypdf and python-docx. Skip anything over 20MB.\n- Chunk to roughly 800 tokens with 100 token overlap, keep the source path, page or heading, and modified time on every chunk.\n- Store a content hash per file so re-running the indexer only re-embeds files that actually changed. Deletions remove their chunks.\n- Hybrid retrieval: FTS5 keyword search plus cosine similarity over embeddings, merged with reciprocal rank fusion, top 12 chunks.\n- A single page at / with a search box. Show ranked results with the matching snippet and a clickable local file path.\n- An \"Ask\" mode that stuffs the top chunks into a prompt and streams an answer with inline numbered citations that map to the source files. If retrieval is weak, say so instead of guessing.\n- `shelf watch /path` using watchdog for incremental reindexing while it runs.\n\nOut of scope, do not build: user accounts, permissions, multi-tenancy, any third-party SaaS connectors, OAuth, telemetry, Docker, deployment configs.\n\nRules:\n- All secrets in .env, read via python-dotenv, and ship a .env.example. Never commit keys.\n- Everything runs on localhost and binds to 127.0.0.1 only.\n- One `uv` or `requirements.txt` install, then `uvicorn` to run. Put the exact two commands at the top of the README.\n- Include a `shelf stats` command printing file count, chunk count, and index size on disk.\n- Write it so an empty database bootstraps itself on first run with no migration tooling.",
+  "promptCurated": false
+}
