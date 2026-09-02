@@ -1,0 +1,52 @@
+{
+  "slug": "postsyncer",
+  "name": "Postsyncer",
+  "domain": "postsyncer.com",
+  "category": "social-media",
+  "subcategory": "multi-platform scheduling",
+  "tagline": "Schedule and cross-post content to multiple social accounts from one dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://postsyncer.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a form, a queue, and a cron job, which any competent agent will hand you in an afternoon. The hard part is not the software, it is the platform side: every network wants its own OAuth app, its own review process, its own rate limits and media rules, and some of them will simply not approve a hobby project for posting on your behalf. LinkedIn and Instagram are the usual heartbreak; X now charges for write access. If you only care about two or three networks that still have sane APIs, the DIY version is genuinely fine and free. If you want everything in one queue with previews and retries, you are signing up for weeks of API paperwork, not a weekend of coding.",
+  "coreLoopDIY": "A local scheduler that stores drafts with media, holds per-network OAuth tokens, and posts them at their scheduled time via a background worker.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Developer apps and OAuth credentials for each network you want to post to",
+    "A machine or small VPS that stays awake to run the scheduler",
+    "Patience with platform app review, especially Meta and LinkedIn",
+    "Paid API tier if you want to post to X"
+  ],
+  "whatYouLose": [
+    "Pre-approved API access to networks that will not approve your own app",
+    "Per-network preview and character/media validation you did not have to write",
+    "Token refresh, rate limit backoff and failure retries handled by someone else",
+    "Analytics and unified inbox style extras if the paid tool offers them",
+    "Mobile access unless you host it somewhere public and secure it"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not code, it is being an approved API partner across a dozen platforms that change their rules quarterly.",
+  "whyPeopleStillPay": "Because the ugly part of cross-posting is entirely outside your codebase. Platform APIs deprecate endpoints, rotate scopes, tighten review, and quietly break media uploads, and a scheduling SaaS absorbs that maintenance as its actual product. Paying twelve or twenty a month to never read Meta's app review docs is a rational trade for most people, especially anyone posting for clients rather than themselves.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduler is trivial; the API access is the whole product.",
+  "prompt": "Build a self-hosted social media scheduler called \"postqueue\". Single user, runs locally or on a small VPS.\n\nStack, no substitutions:\n- Node 20, TypeScript, Fastify for HTTP\n- SQLite via better-sqlite3, schema created on boot by a migration file\n- Server-rendered HTML with Nunjucks templates plus a little vanilla JS, no React\n- node-cron for the scheduling tick\n\nFeatures in scope:\n1. Compose page: textarea, optional image/video upload stored on local disk, checkboxes for which connected accounts to post to, a datetime-local field for scheduled time, and a timezone read from .env.\n2. Data model: accounts (network, handle, access_token, refresh_token, expires_at), posts (body, scheduled_at, status), post_targets (post_id, account_id, status, remote_id, error, attempts), media.\n3. Queue page: upcoming, published and failed posts, with edit, delete, duplicate, and a \"retry\" button on failed targets.\n4. Worker: cron every 60 seconds picks post_targets where status is pending and scheduled_at is due, calls the adapter for that network, records remote_id or the error message, retries up to 3 times with exponential backoff, then marks failed.\n5. Adapter interface: publish(target, post, media) plus refreshToken(account). Implement two real adapters, Mastodon and Bluesky, because their APIs need no app review. Add a stubbed adapter file for X, LinkedIn and Instagram that throws a clear \"not configured\" error and includes a comment listing the exact scopes and review steps needed.\n6. OAuth/credential setup: a settings page to paste tokens or run the Mastodon/Bluesky auth flow. Client IDs and secrets live in .env, never in the database or repo.\n7. Per-network validation before saving: character limits, image count and file size, and reject with a readable message.\n\nOut of scope: analytics, inbox, teams, multiple users, AI caption generation, hosted media CDN, mobile app.\n\nAlso produce: .env.example, a README that explains how to get Mastodon and Bluesky credentials in under five minutes and honestly warns that the other networks require developer app review, and a seed script that inserts a fake account so the UI can be viewed without any tokens.\n\nUse basic HTTP auth from .env for the whole app. No telemetry, no external services beyond the social APIs themselves.",
+  "promptCurated": false
+}
