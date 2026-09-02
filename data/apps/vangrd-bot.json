@@ -1,0 +1,52 @@
+{
+  "slug": "vangrd-bot",
+  "name": "Vangrd.bot",
+  "domain": "vangrd.bot",
+  "category": "automation",
+  "subcategory": "hosted bots and scheduled jobs",
+  "tagline": "A hosted service for running unattended bots and scheduled automations without maintaining your own box.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://vangrd.bot/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Public detail on this one is thin, so read this as a ruling on the shape of the thing: hosted bots that run on a schedule and act on your behalf. The logic inside any single bot is small, and a coding agent will write it plus a scheduler in an afternoon. What you are actually paying for is the part that runs at 3am without you: retries, rate limit backoff, credential handling, and an alert when a job quietly stops doing anything. That is buildable, but it is a weekend followed by a permanent tax every time an upstream API shifts under you. Worth doing if you own one or two automations and do not mind being the on-call engineer.",
+  "coreLoopDIY": "A self-hosted job runner that executes your bot scripts on a cron schedule, keeps state in SQLite, retries on failure, and pings a webhook when a run breaks or goes silent.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 or newer",
+    "An always-on machine or cheap VPS, since cron on a laptop is not cron",
+    "API keys or tokens for whatever the bot actually touches, in .env",
+    "A notification sink you already read, Slack or Telegram or plain email"
+  ],
+  "whatYouLose": [
+    "Someone else's uptime, so your automation dies quietly when your VPS reboots",
+    "Prebuilt connectors and templates, you write every integration by hand",
+    "A real dashboard with run history, logs and diffs instead of grepping a SQLite file",
+    "Maintenance when upstream APIs change shape, which they will",
+    "QA discipline: a bot that runs but does the wrong thing is worse than one that crashes"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Not a data or network moat, just the unglamorous work of keeping unattended jobs correct and visible over months.",
+  "whyPeopleStillPay": "Because writing a bot is a Saturday and operating one is forever. The failure mode of DIY automation is not a stack trace, it is six weeks of silence where you assumed something was running and it was not. Paying for a hosted runner buys observability, alerting and a maintenance culture you would otherwise have to invent for yourself, and for anything touching money, customers or credentials that is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Bot logic is cheap, bot reliability is not.",
+  "prompt": "Build a self-hosted bot runner I can deploy on a single small VPS. No accounts, no multi-tenancy, no telemetry.\n\nStack, non-negotiable: TypeScript on Node 20, better-sqlite3 for storage, node-cron for scheduling, Hono for a tiny local HTTP dashboard, Vitest for tests. No Docker orchestration, a single process is fine.\n\nCore behaviour:\n1. Bots live in ./bots as .ts files. Each exports a default object: { id, schedule (cron string), timeoutMs, run(ctx) }.\n2. ctx gives the bot: a logger, a get/set key-value store scoped to that bot id, and a fetch wrapper with timeout and exponential backoff on 429 and 5xx.\n3. On boot, load every bot, validate the schedule, register it with node-cron, and print a table of what will run when.\n4. Every run is recorded in SQLite: bot id, start, end, status (ok, error, timeout), attempt count, log lines, and a short result string the bot may return.\n5. Retries: up to 3 attempts with jittered backoff. After the final failure, write the run as error and fire an alert.\n6. Heartbeat watchdog: if a bot has not completed a successful run within 2x its expected interval, fire a stale alert once, then suppress until it recovers.\n7. Alerts go to a generic webhook URL from .env (Slack and Telegram incoming webhooks both work). If the URL is missing, log loudly instead of crashing.\n8. Dashboard on localhost:8787: list of bots with last run status and next run time, a run detail page with logs, and a POST endpoint to trigger a bot manually.\n9. Secrets only from .env via a typed config module that fails fast on missing required keys. Never log secret values.\n10. Graceful shutdown: on SIGTERM, stop scheduling, let in-flight runs finish up to 30 seconds, then exit.\n\nAlso include: a dry-run mode that executes a single bot once and exits with a non-zero code on failure, so I can test in CI.\n\nShip two example bots: one that hits a public JSON endpoint and stores a value, and one that deliberately fails so I can see retries, alerts and the error page working.\n\nOut of scope: user auth, hosted UI, plugin marketplace, LLM agents, queues beyond SQLite, anything distributed.\n\nWrite a README with setup, a systemd unit file, and one paragraph on how to add a new bot.",
+  "promptCurated": false
+}
