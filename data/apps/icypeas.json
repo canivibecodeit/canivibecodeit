@@ -1,0 +1,52 @@
+{
+  "slug": "icypeas",
+  "name": "Icypeas",
+  "domain": "icypeas.com",
+  "category": "sales-outreach",
+  "subcategory": "email finding and verification",
+  "tagline": "Email finder and verifier for B2B prospecting, with bulk search and lead enrichment.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.icypeas.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible product is a search box that turns a name plus a company into a work email, which looks trivial and is not. Guessing permutations is a fifty-line script; knowing which guess is right depends on a corpus of previously confirmed addresses, pattern models per domain, and the ability to probe mail servers at volume without getting your IP blacklisted. A local build can do MX lookups and cautious SMTP checks, but Google Workspace and Microsoft 365 stopped answering catch-all probes honestly years ago, so your accuracy on the domains that matter most collapses. Bulk enrichment and LinkedIn-based lookups are worse: that is scraped and licensed data you do not have. Build the verifier for fun, buy the finder.",
+  "coreLoopDIY": "A local CLI that generates likely email permutations from a name and domain, then scores each by MX record checks, disposable/role-address filtering, and a rate-limited SMTP RCPT probe.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite",
+    "Outbound port 25 access, which most consumer ISPs and every major cloud host block by default",
+    "A domain and static IP you are willing to burn reputation on",
+    "Patience for false positives from catch-all domains"
+  ],
+  "whatYouLose": [
+    "The confirmed-address corpus that makes a guess a hit instead of a coin flip",
+    "Per-domain pattern inference learned from millions of prior lookups",
+    "Bulk CSV enrichment and LinkedIn profile to email lookups",
+    "Deliverability signals from probing at scale without tripping spam defenses",
+    "Someone else carrying the GDPR paperwork for holding contact data on Europeans"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Every email finder is really a database company wearing a search box.",
+  "whyPeopleStillPay": "Because the failure mode of a homemade finder is invisible until it is expensive: you do not learn that 40 percent of your guesses were wrong until your bounce rate has cooked the sending reputation of the domain you actually care about. Paid finders sell a confidence score backed by addresses that have already been confirmed elsewhere, plus the operational burden of probing mail servers from infrastructure that has not been blacklisted. For anyone doing outbound at any real volume, credits are cheaper than a burned domain.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The permutation generator is an afternoon, the accuracy is not. The moat is a corpus of already-confirmed addresses plus mail-probing infrastructure that has not been blacklisted yet.",
+  "prompt": "Build a local email verification CLI in Node 20 with TypeScript, in this empty folder. No web UI, no accounts, no telemetry, no cloud services.\n\nScope, in:\n- Command: `verify guess --first Jane --last Doe --domain acme.com`\n- Generate the standard permutation set: first, first.last, firstlast, f.last, flast, first_last, last.first, plus initials variants. Dedupe.\n- For the domain, once per run: resolve MX records, cache them in SQLite, and detect obvious provider (Google, Microsoft, Zoho, other) from MX hostnames.\n- Catch-all detection: probe a random 20-char local part. If it is accepted, mark the domain catch-all and downgrade every result for that domain to `unknown` with a clear reason string.\n- SMTP probe: connect to the lowest-priority MX on port 25, EHLO with a configurable hostname, MAIL FROM with a configurable address, RCPT TO with the candidate, then QUIT. Never send DATA.\n- Rate limit: one probe per domain every 5 seconds, max 20 probes per domain per run, exponential backoff on 4xx, hard stop and mark `blocked` on 5xx greylisting or connection refusal.\n- Classify each candidate: valid, invalid, unknown, blocked, catch-all, role (info@, sales@, admin@, etc), disposable (ship a small static blocklist file).\n- Score and rank candidates: pattern prior (first.last highest) times probe result. Print a table plus a single best guess with a numeric confidence and a plain-English reason.\n- Command: `verify batch input.csv --out results.csv` reading first,last,domain and reusing the per-domain cache.\n- SQLite store of every probe with timestamp so repeat runs read the cache instead of reprobing.\n\nScope, out: no scraping, no LinkedIn, no purchased or bundled contact data, no proxy rotation, no sending mail.\n\nConfig in .env: PROBE_HELO_HOST, PROBE_MAIL_FROM, MAX_CONCURRENCY. Commit .env.example only.\n\nREADME must state plainly: port 25 is blocked on most ISPs and cloud hosts, Google and Microsoft domains will usually return `unknown`, and probing at volume from a residential IP will get it blacklisted. Include a one-paragraph honest accuracy caveat at the top.\n\nVitest tests for the permutation generator, the classifier, and the rate limiter using a fake SMTP transport. No live network calls in tests.",
+  "promptCurated": false
+}
