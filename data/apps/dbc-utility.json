@@ -1,0 +1,49 @@
+{
+  "slug": "dbc-utility",
+  "name": "DBC Utility",
+  "domain": "dbcutility.com",
+  "category": "dev-tools",
+  "subcategory": "CAN bus DBC file tooling",
+  "tagline": "Browser based tool for viewing, editing and converting CAN bus DBC database files.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://dbcutility.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The DBC format is plain text and mostly documented, so an agent can produce a parser, a signal table and a decode preview in a single sitting. The trouble starts at the edges: extended multiplexing, attribute definitions, value tables, comments, signal groups, environment variables, and the fact that every supplier ships DBCs that bend the grammar in a different direction. A viewer is easy, a lossless round trip editor that does not quietly drop a section you did not implement is a weekend of grinding through real files. If you only need to read a handful of internal DBCs and decode logged frames, build it. If you are shipping edited DBCs to someone else's ECU team, the boring correctness is the whole product.",
+  "coreLoopDIY": "Parse a DBC file into messages and signals, edit them in a local web UI, decode sample CAN frames against the definitions, and write the file back out.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 locally",
+    "A few real DBC files to test against, ideally ugly ones"
+  ],
+  "whatYouLose": [
+    "Round trip fidelity that has been beaten on by other people's weird supplier files",
+    "Coverage of the rare sections: extended multiplexing, attribute defaults, signal groups, environment variables",
+    "Conversion to and from adjacent formats like sym, ARXML, LDF, or JSON schemas someone else expects",
+    "Decoding straight from log formats such as BLF, ASC or MF4 without writing more parsers",
+    "Someone to blame when a malformed DBC silently loses a value table"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is format edge cases and adjacent conversions, not infrastructure. It erodes for anyone whose DBCs all come from one place.",
+  "whyPeopleStillPay": "Because DBC work is usually a side quest inside a much bigger automotive or telemetry job, and nobody wants to spend Tuesday debugging a grammar for a file format they did not choose. A hosted tool opens the file, shows the signals, and lets you fix a scaling factor without a build step. That is worth a license fee to a team whose actual deliverable is a vehicle, not a parser.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Parsing DBC is a solved exercise; parsing everyone's DBC is not.",
+  "prompt": "Build a local-only CAN DBC file utility. Stack: Python 3.12, FastAPI backend, plain HTML plus vanilla JS frontend served by the same app, no build step, no npm. No accounts, no cloud, no telemetry. Everything runs at 127.0.0.1.\n\nCore features, all in scope:\n1. Hand written DBC parser in pure Python, no cantools dependency, because I want full control over round trip output. Support: VERSION, NS_, BS_, BU_, BO_ message definitions, SG_ signal definitions including byte order, signedness, factor, offset, min, max, unit, receivers, CM_ comments, VAL_ value tables, VAL_TABLE_, BA_DEF_, BA_DEF_DEF_, BA_ attributes, and simple multiplexing with M and m0 style indicators.\n2. Preserve anything you cannot model as raw passthrough lines keyed to their section so writing the file back does not lose data. Log a warning list of unmodelled lines and show it in the UI.\n3. A writer that serialises the model back to DBC text. Add a round trip test: parse then write then parse again, assert the models match.\n4. Web UI: file picker to load a .dbc from disk, a message list, an expandable signal table per message, inline editing of name, start bit, length, factor, offset, unit, min, max, comment, and a Save As button that writes to a new path.\n5. Frame decoder panel: paste a CAN id in hex plus up to 8 data bytes in hex, get every matching signal decoded with physical value, unit, and value table label if one applies. Also an encoder going the other way.\n6. Bit layout view for a selected message: an 8 by 8 grid showing which signal owns which bit, so overlaps are obvious. Flag overlapping signals and signals that run past the message length as errors.\n\nOut of scope, do not build: live CAN hardware access, BLF/ASC/MF4 log parsing, ARXML or LDF or sym conversion, multi user anything, authentication, Docker.\n\nDeliverables: main.py, dbc/parser.py, dbc/writer.py, dbc/model.py, static/index.html, static/app.js, tests/, and a README with a single run command. Use pytest. Include two small fixture DBC files in tests, one clean and one with a value table plus a multiplexed message. Any config goes in .env read via os.environ, and .env is gitignored. Print the local URL on startup and stop.",
+  "promptCurated": false
+}
