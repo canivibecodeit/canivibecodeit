@@ -1,0 +1,53 @@
+{
+  "slug": "maestro",
+  "name": "Maestro",
+  "domain": "maestro.dev",
+  "category": "dev-tools",
+  "subcategory": "mobile UI test automation",
+  "tagline": "YAML-defined UI tests for iOS and Android apps, with a hosted cloud that runs them on real devices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://maestro.dev/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The odd thing about Maestro is that the part most people love is already free: the CLI and the YAML flow format are open source, so there is nothing to reverse engineer there. What you pay for is the cloud, running your flows on real devices and OS versions in parallel, with hosted video, logs and flake history. A coding agent can absolutely build the personal version of that in a weekend: a local orchestrator that boots emulators and simulators, shards your flows across them, and spits out a static HTML report with screenshots and pass/fail history. What it cannot build is a rack of real phones. If you are one developer testing one app on two or three device profiles, local orchestration is genuinely enough; if you need to know whether your app breaks on a specific mid-range Android from 2021, you are buying hardware you do not own.",
+  "coreLoopDIY": "Runs your existing Maestro YAML flows across local Android emulators and iOS simulators in parallel shards, then generates a static HTML report with screenshots, logs and a pass/fail history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Maestro CLI installed locally (Apache-2.0, free)",
+    "Android SDK with at least one emulator image",
+    "macOS plus Xcode if you want iOS simulators",
+    "Node 20+ for the orchestrator",
+    "A debug build of the app under test"
+  ],
+  "whatYouLose": [
+    "Real devices. Emulators and simulators do not reproduce vendor skins, thermal throttling, weird OEM keyboards or actual GPU behavior.",
+    "Wide OS and device matrix coverage without buying and maintaining the hardware yourself.",
+    "A hosted dashboard your teammates can link to in a PR, with video replay and historical flake analytics.",
+    "Someone else fixing the drivers the week a new iOS or Android release breaks them.",
+    "Parallelism beyond what your laptop's RAM and CPU will tolerate, which is usually two or three emulators."
+  ],
+  "moatTags": [
+    "hardware",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the test format, which they gave away. It is the device farm behind it, plus the ongoing work of keeping automation drivers alive against two hostile mobile platforms.",
+  "whyPeopleStillPay": "Because the failing test you care about is the one that only fails on a real Samsung, and owning that device fleet is a worse business than renting it. Teams also pay for the CI story: someone else's machines, running in parallel, reporting back in minutes with video, instead of one developer's laptop being the bottleneck for the whole mobile release. The local harness is a real tool, it just cannot answer the hardware question.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the good part is already open source and the paid part is a warehouse full of phones.",
+  "prompt": "Build a local mobile UI test orchestrator that wraps the open source Maestro CLI. No cloud, no accounts, no telemetry.\n\nStack: Node 20 with TypeScript, commander for the CLI, better-sqlite3 for run history, no web server. Output is static HTML written to disk.\n\nAssume the `maestro` binary is already on PATH and that flow files live in ./flows/*.yaml. Do not reimplement Maestro itself.\n\nCLI surface:\n- `runner devices` : list available Android emulators (via `emulator -list-avds`) and iOS simulators (via `xcrun simctl list -j`), print them as a table.\n- `runner run --targets android:Pixel_7_API_34,ios:iPhone_15 --shards 2 --app ./build/app.apk` : boot the named targets, wait until each is actually ready (adb wait-for-device plus boot_completed, simctl bootstatus), install the app, then distribute the flow files across shards and run them concurrently with `maestro --device <id> test <flow>`.\n- `runner report` : regenerate the HTML report from the SQLite history.\n- `runner flaky --last 20` : list flows whose pass/fail result changed across the last N runs.\n\nBehavior:\n- Capture stdout/stderr per flow to ./artifacts/<runId>/<flow>.log, and copy any screenshots or recordings Maestro emits into the same folder.\n- On failure, run `adb logcat -d` or the simulator log equivalent and save the tail to the artifact folder.\n- Store one row per flow execution in SQLite: runId, flow, target, status, durationMs, startedAt, artifactPath.\n- Retry a failed flow once, and mark the row as `flaky` if the retry passes. Do not hide the first failure.\n- Exit code 1 if any flow ends up failing after retry, so this can drop straight into CI.\n- Emit ./artifacts/<runId>/index.html: run summary, per-flow rows with duration and status, inline screenshots for failures, and a sparkline of the last 20 runs per flow. Plain HTML and inline CSS, no build step, no framework.\n\nOut of scope, do not attempt: real device provisioning, remote device farms, video streaming, a hosted dashboard, user accounts, Slack or GitHub integrations.\n\nConfig: read defaults from ./runner.config.json (targets, shard count, app path). Any secrets needed by test flows come from .env and are passed through to Maestro as environment variables; never commit .env, ship a .env.example.\n\nDeliverables: working CLI, runner.config.json example, two sample flows, and a README that states plainly which parts of the real product this does not replace (real hardware, wide OS matrix, hosted reporting).",
+  "promptCurated": false
+}
