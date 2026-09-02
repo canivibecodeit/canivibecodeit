@@ -1,0 +1,51 @@
+{
+  "slug": "speechyou",
+  "name": "Speechyou",
+  "domain": "speechyou.com",
+  "category": "ai-audio",
+  "subcategory": "text to speech",
+  "tagline": "Paste text, pick a voice and language, get a narrated audio file back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://speechyou.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app around text to speech is thin: a text box, a voice picker, a queue, a file library. An agent can wire that up locally in a weekend against open weights like Piper, Kokoro or XTTS, and for English plus the dozen best supported European languages the output is genuinely fine. Where it breaks down is the long tail: tuned voices for languages with less training data, correct stress and number handling, and consistent quality across a 40-language dropdown. That gap is model work, not app work, and you cannot one-shot it. So you get the product, not the voice catalog.",
+  "coreLoopDIY": "A local web app that chunks pasted text, renders it with an open text to speech model in your chosen voice and language, and stores the resulting audio in a browsable library.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine with at least 16GB RAM, GPU strongly preferred for the larger models",
+    "several GB of local model weights downloaded on first run",
+    "ffmpeg installed for mp3 encoding",
+    "willingness to accept whatever voices the open models ship with"
+  ],
+  "whatYouLose": [
+    "Voice quality and coverage in languages outside the well resourced set, which is exactly where the paid models earn their keep",
+    "Curated, named, consistent voices instead of whatever the checkpoint gives you",
+    "Someone else's GPUs handling a 90 minute audiobook while you close the laptop",
+    "Clear commercial usage terms for the generated audio",
+    "Pronunciation dictionaries, SSML style controls and number and abbreviation handling that were tuned by hand"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is per language, not global: strong in the long tail, close to zero in English.",
+  "whyPeopleStillPay": "Because most people buying text to speech are not buying software, they are buying one specific voice in one specific language sounding acceptable to a client. If your language is Vietnamese or Hungarian or Arabic, the difference between a tuned commercial model and an open checkpoint is obvious in the first sentence, and no amount of prompt engineering closes it. Add usage rights you can point a lawyer at and hosted rendering that does not eat your laptop for an hour, and the subscription is cheaper than the afternoon you would spend comparing checkpoints.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you narrate in English and want unlimited runs. Pay if your language is not on the short list of the ones open models were actually trained well on.",
+  "prompt": "Build a local text to speech studio. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, uvicorn, managed with uv\n- Piper for fast multilingual synthesis, Kokoro as the higher quality English option\n- SQLite via sqlite3 for job and library metadata\n- Server rendered Jinja2 templates plus a little vanilla JS, no frontend framework\n- ffmpeg via subprocess for wav to mp3\n\nFeatures in scope:\n1. One page with a large textarea, a language dropdown, a voice dropdown filtered by language, a speed slider, and a Generate button.\n2. On submit, create a job row, split the text into sentence chunks under 500 characters using a simple regex splitter, synthesize each chunk, concatenate the wavs, encode to mp3, store under ./output/{job_id}.mp3.\n3. Run jobs in a single background worker thread with a queue so long texts do not block the request. Poll job status from the page every 2 seconds.\n4. A library page listing past jobs: first 80 characters of text, language, voice, duration, created date, inline HTML5 audio player, download link, delete button.\n5. A /models page that lists installed voices and downloads missing Piper voices on demand from the official voice index into ./models.\n6. A pronunciation overrides file, overrides.json, mapping strings to replacement text, applied before synthesis. Editable from the UI.\n\nExplicitly out of scope: voice cloning, user auth, payments, hosted deployment, mobile app, SSML.\n\nRules:\n- Any optional config goes in .env read via python-dotenv. Ship .env.example, never commit .env.\n- First run must work with a single command: uv run uvicorn app:main. Download the default English voice automatically if none exists.\n- Handle model download failure and ffmpeg missing with clear terminal errors, not stack traces.\n- Write a README with setup, the exact hardware expectations, and a blunt note that language coverage and quality depend entirely on which Piper voices you install.",
+  "promptCurated": false
+}
