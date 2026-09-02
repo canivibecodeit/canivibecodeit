@@ -1,0 +1,51 @@
+{
+  "slug": "milemarker",
+  "name": "Milemarker",
+  "domain": "milemarker.co",
+  "category": "finance-accounting",
+  "subcategory": "advisory firm data integration and reporting",
+  "tagline": "Data plumbing and reporting for financial advisory firms: pull custodian, CRM, billing and portfolio systems into one place and report off it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.milemarker.co/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Pricing appears to be quote-based rather than public self-serve.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible part of this is a dashboard, and dashboards are a solved one-shot problem. The invisible part is a pile of connectors to custodians, CRMs, portfolio accounting and billing systems, most of which are not friendly public APIs with a signup button, plus the ongoing work of keeping them alive when a vendor changes a field name. On top of that sits a category of customer who has to care about audit trails, data retention and who touched a client record. An agent can absolutely build you a local warehouse plus charts off CSV exports in an afternoon. It cannot build you the access, the mappings, or the willingness to be responsible when a number is wrong.",
+  "coreLoopDIY": "Drop CSV or Excel exports from your custodian, CRM and billing systems into a folder and get a local warehouse plus a dashboard of AUM, revenue, client counts and flows.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Ability to manually export CSVs from each source system",
+    "A stable mapping of accounts to households or clients",
+    "Python 3.11 plus local disk, no cloud needed"
+  ],
+  "whatYouLose": [
+    "Live connectors: you are exporting CSVs by hand instead of getting nightly syncs",
+    "Entity resolution across systems, which is the actual hard part and is mostly human judgment",
+    "Anyone to blame or call when a reported number disagrees with the custodian",
+    "Audit logging, retention policy and the paperwork that makes compliance people relax",
+    "Advisory work: the product ships alongside humans who tell you which metrics matter"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "proprietary-data"
+  ],
+  "moatNotes": "Financial data connectors are gated by contracts and vendor relationships, not by cleverness. That gate is the product.",
+  "whyPeopleStillPay": "Nobody buys this for the charts. They buy it because their data lives in five systems that were never designed to talk to each other, the exports disagree, and no one on staff wants to own the reconciliation. Paying means someone else maintains the connectors, absorbs the vendor churn, and stands behind the numbers when a partner meeting turns into an argument. A local DIY warehouse is genuinely useful for one operator who knows their own data, and genuinely useless the moment a firm needs a number it can defend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the pipes are not. The moat is contracted access to custodian and CRM data plus the reconciliation nobody wants to own.",
+  "prompt": "Build a local, single-user financial data warehouse and reporting dashboard. No cloud, no accounts, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, DuckDB as the store, pandas for ingestion, Jinja2 templates plus Chart.js from a vendored file for the UI. No React, no Node build step.\n- Everything runs with: uv run uvicorn app.main:app --reload\n\nIn scope:\n1. A ./drop folder. On startup and via a POST /ingest endpoint, scan it for CSV and XLSX files.\n2. A ./mappings/ folder holding one YAML file per source type (custodian_positions, custodian_transactions, crm_clients, billing_invoices). Each mapping declares: file glob, source name, and a column map from source header to canonical field. Ship one example mapping per source type with realistic column names and comments saying \"edit this\".\n3. Canonical tables in DuckDB: clients, households, accounts, positions, transactions, invoices. Load raw files into raw_* tables first, then transform into canonical tables so bad loads are debuggable.\n4. Entity resolution, deliberately dumb and transparent: a households.csv the user maintains that maps account_id to household_id and client_id. Any account not present lands in an \"unmapped\" bucket that the UI shows loudly with a count. Do not guess matches.\n5. Metrics computed in SQL views: total AUM by date, AUM by household, net flows by month, revenue by month from invoices, effective fee rate, client count, top 10 households by AUM.\n6. Web UI at /: four charts, a table of households with AUM and trailing revenue, and an \"issues\" panel listing unmapped accounts, duplicate account ids, positions with null market value, and any date gaps in the AUM series.\n7. GET /export/{view} returns any metric view as CSV.\n8. An idempotent ingest: re-dropping the same file replaces its rows rather than duplicating, keyed on file hash.\n\nOut of scope, do not attempt:\n- Any live API integration with custodians, CRMs or portfolio accounting vendors.\n- Multi user auth, roles, audit logging, billing.\n- Performance reporting, time weighted returns, tax lots.\n\nInclude: a seed script that generates fake data for three households across two sources so the dashboard is populated on first run, a README that explains the mapping YAML in plain language, and pytest tests for the transform layer and the flow calculation. Secrets, if any are ever added, go in .env and .env is gitignored.",
+  "promptCurated": false
+}
