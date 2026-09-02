@@ -1,0 +1,50 @@
+{
+  "slug": "jobfit-ai",
+  "name": "JobFit AI",
+  "domain": "tryjobfitai.org",
+  "category": "career",
+  "subcategory": "resume and job description matching",
+  "tagline": "Scores your resume against a job posting and suggests rewrites to close the gap.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tryjobfitai.org/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a document, a job posting, and a language model in a trench coat. Parse the resume, paste the JD, ask a model for a match score, missing keywords, and rewritten bullets: that is the whole product loop, and it works fine locally. There is no network effect, no proprietary corpus you cannot approximate, and no reason the analysis has to leave your laptop, which is arguably better since your resume is not something you need sitting in someone else's database. The gap is polish and the little conveniences: nice PDF exports, browser extension capture of postings, history you can access from your phone. None of that is the value, and none of it is hard, it is just work you would not do for yourself.",
+  "coreLoopDIY": "A local web app that ingests your resume file plus a pasted job description and returns a match score, missing keyword list, and rewritten bullet suggestions you can copy out.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) in .env",
+    "Python 3.11 and a terminal",
+    "Your resume as PDF or DOCX"
+  ],
+  "whatYouLose": [
+    "Polished report layouts and shareable PDF exports",
+    "One-click capture of postings from job boards instead of copy paste",
+    "Any pretense of ATS-specific scoring calibration, real or claimed",
+    "Mobile access and synced history across devices",
+    "Someone else maintaining the prompts as model behavior drifts"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Most resume tools compete on feeling authoritative during a stressful week, not on technology.",
+  "whyPeopleStillPay": "People pay for this while job hunting because job hunting is demoralizing and a $20 tool that tells you exactly which five keywords you are missing feels like buying back control. Paid versions also arrive already tuned: the prompts have been iterated on, the output looks like a report rather than a wall of chat text, and there is a plausible claim that it knows something about applicant tracking systems. That confidence is the product. If you are comfortable running a local script and reading raw model output, you are paying for reassurance you can generate yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The rare paid app where the DIY version has a real advantage: your resume and salary history never leave the machine.",
+  "prompt": "Build a local resume-to-job-description fit analyzer. Single Python project, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Uvicorn\n- Jinja2 templates plus plain HTML and a little vanilla JS, no frontend framework\n- SQLite via sqlite3 for saved analyses\n- pypdf for PDF text, python-docx for DOCX text\n- Anthropic or OpenAI SDK, key read from .env via python-dotenv, never hardcoded\n\nFeatures, in scope:\n1. Single page at / with a file upload for a resume (PDF, DOCX, or TXT) and a large textarea for a pasted job description.\n2. On submit, extract resume text, then call the LLM once with a structured prompt that returns strict JSON: overall_fit_score (0-100), verdict_sentence, matched_requirements (list), missing_requirements (list), missing_keywords (list of strings), rewritten_bullets (list of objects with original and suggested), and cover_letter_paragraph.\n3. Validate the JSON with Pydantic. If parsing fails, retry once with an instruction to return JSON only, then show a readable error.\n4. Render results on the same page: score as a big number with a colored bar, then collapsible sections for each list. Every suggested bullet gets a copy-to-clipboard button.\n5. Save each analysis to SQLite with timestamp, job title extracted by the model, score, and full JSON. A /history page lists them newest first with links to a read-only /analysis/{id} view.\n6. A /diff route is out of scope. Do not add it.\n\nExplicitly out of scope: user accounts, browser extension, job board scraping, PDF report export, ATS-specific scoring claims, multi-resume comparison, email.\n\nRules:\n- Store uploads in ./uploads and the database at ./data/jobfit.db; both gitignored.\n- Prompt text lives in a single prompts.py so it is easy to tune.\n- Include requirements.txt, .env.example with the API key name, and a README with two commands: install and run.\n- Cap resume text sent to the model at roughly 12000 characters and say so in the README.\n- No analytics, no outbound calls except the LLM API.\n- App must run with: pip install -r requirements.txt then uvicorn app:app --reload, and be usable at localhost:8000 with no other setup.",
+  "promptCurated": false
+}
