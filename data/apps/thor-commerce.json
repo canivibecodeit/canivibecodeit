@@ -1,0 +1,52 @@
+{
+  "slug": "thor-commerce",
+  "name": "Thor Commerce",
+  "domain": "thorcommerce.io",
+  "category": "commerce",
+  "subcategory": "ecommerce platform",
+  "tagline": "Hosted commerce platform for running an online store, including checkout, orders, and tax handling.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://thorcommerce.io/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "A store UI is a weekend project: products, cart, checkout, order list, done. The part that actually costs money is everything after the buy button: payment processing that does not lose money, sales tax and VAT rates that change every quarter across thousands of jurisdictions, invoices that survive an audit, refunds, chargebacks, and fraud rules. An agent can wire Stripe Checkout and get you selling in an afternoon, but the moment you sell across borders or cross a registration threshold you are doing tax law as a side project. There is also the boring operational tail: uptime during a launch spike, PCI scope, webhook retries, and someone to blame when an order silently fails. Build the storefront if you like owning your frontend, but do not plan to replace the compliance layer.",
+  "coreLoopDIY": "Runs a self-hosted storefront with a product catalog, cart, and Stripe Checkout handoff, then records paid orders in a local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account with API keys and a webhook secret",
+    "A host with a stable public URL for webhooks",
+    "Somewhere to store product images",
+    "A real plan for sales tax registration and filing, which the code does not solve"
+  ],
+  "whatYouLose": [
+    "Managed tax calculation, registration thresholds, and filing across jurisdictions",
+    "Fraud screening, chargeback handling, and dispute workflows",
+    "Battle-tested checkout conversion and payment method coverage",
+    "Integrations with shipping carriers, accounting tools, and marketplaces",
+    "Somebody on call when checkout breaks during your biggest traffic day"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "Tax is not a feature, it is a subscription to a moving target. That is why commerce platforms rent it out rather than sell it once.",
+  "whyPeopleStillPay": "Because the failure modes are financial and legal rather than cosmetic. A slightly ugly storefront costs you a few conversions; a mispriced VAT line across a year of EU orders costs you money you already spent, plus the cleanup. Paid platforms absorb the rate tables, the registration nagging, the payment method sprawl, and the audit trail, and they keep absorbing it as rules change. Most solo sellers would rather pay a monthly fee than become an accidental tax researcher.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is a weekend; the tax engine is not. The moat is compliance that never stops moving, plus the payments and integration plumbing nobody wants to maintain alone.",
+  "prompt": "Build a self-hosted single-vendor storefront I can run for my own products. This is a consolation build, not a full commerce platform.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, migrations as plain .sql files run at startup.\n- Stripe Checkout in hosted mode for payments. Do not build a card form.\n- No auth provider, no analytics, no telemetry, no third party scripts.\n\nIn scope:\n- Product model: slug, title, description markdown, price in minor units, currency, stock count, one or more image paths.\n- Public pages: product list, product detail, cart stored in a signed cookie, and a checkout button.\n- Checkout: create a Stripe Checkout Session server side from cart contents, priced from the database and never from client input.\n- Webhook route for checkout.session.completed that is idempotent on the Stripe event id, decrements stock, and writes an Order row with line items, amount, currency, customer email, and the Stripe payment intent id.\n- Admin at /admin behind a single password from ADMIN_PASSWORD, with product CRUD, image upload to a local /uploads folder, and an order list with a CSV export.\n- Order confirmation page keyed to the session id.\n\nOut of scope, do not build:\n- Tax calculation, tax registration logic, or VAT rate tables. Add a single configurable flat tax rate per store and a visible README warning that this is not compliance.\n- Subscriptions, discount engines, multi vendor, shipping rate APIs, fraud rules.\n\nDeliverables:\n- .env.example with STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_PASSWORD, BASE_URL. Never commit real keys.\n- Seed script with three fake products.\n- README with local run steps, how to forward webhooks with the Stripe CLI, and a short section titled \"What this does not handle\" covering tax filing, chargebacks, and PCI scope.\n- Basic tests for price recalculation and webhook idempotency.",
+  "promptCurated": false
+}
