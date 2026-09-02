@@ -1,0 +1,52 @@
+{
+  "slug": "lahjty",
+  "name": "Lahjty",
+  "domain": "lahjty.com",
+  "category": "voice-ai",
+  "subcategory": "Arabic dialect speech",
+  "tagline": "Dialect-aware Arabic speech tooling: transcription, synthesis, and dialect handling that generic models fumble.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://lahjty.com/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The scaffolding around Arabic speech work is genuinely a weekend project: an upload box, a queue, a transcript editor, a playback view, all of it standard. The part that is not a weekend project is the model quality on actual dialects, where open weights swing from decent Modern Standard Arabic to embarrassing on Gulf, Maghrebi, or Egyptian colloquial speech. So you can absolutely build the app and hit a wall that is entirely about training data, not code. If your use case is mostly MSA or you tolerate cleanup passes, the DIY version is fine. If you need dialect fidelity you are paying for someone else's corpus, and no prompt fixes that.",
+  "coreLoopDIY": "Local web app where you drop Arabic audio, get a Whisper transcript with right-to-left editing and speaker segments, and export text or subtitles.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and Node 20 locally",
+    "A GPU or patience, or an API key for a hosted speech model",
+    "Comfort with right-to-left text rendering and Arabic normalization quirks",
+    "ffmpeg installed"
+  ],
+  "whatYouLose": [
+    "Dialect-tuned models: open weights degrade fast outside Modern Standard Arabic",
+    "Any mobile app or on-the-go recording flow",
+    "A polished right-to-left UI that someone actually tested with native speakers",
+    "Hosted GPU capacity, so long files mean long waits on your laptop",
+    "Whatever glossary, speaker, or domain adaptation the paid product has accumulated"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "Dialect audio corpora are expensive, regionally fragmented, and not sitting on Hugging Face. That is the whole game here.",
+  "whyPeopleStillPay": "Because the bottleneck was never the interface. Arabic dialect speech is the kind of problem where a generic model gives you output that looks plausible and is wrong in ways you only catch if you speak the dialect, which means every hour saved on transcription gets spent on verification. A product that has been fed real regional audio and corrected by real speakers is buying you accuracy, not features, and accuracy is the only thing that makes the workflow worth running at all.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Details on this one are thin from outside the region, so treat the specifics as unverified and the verdict as provisional.",
+  "prompt": "Build a local Arabic speech transcription workbench. Single machine, no accounts, no telemetry, no cloud storage.\n\nStack, no substitutions:\n- Backend: Python 3.11, FastAPI, SQLite via SQLModel, background jobs with a simple in-process worker queue (no Celery, no Redis).\n- Transcription: faster-whisper with the large-v3 model, language forced to Arabic, word timestamps on. Read MODEL_SIZE and DEVICE from .env so a CPU-only machine can drop to medium.\n- Optional fallback: if OPENAI_API_KEY exists in .env, expose a per-job toggle to send audio to a hosted transcription API instead of running locally. Default is local.\n- Frontend: Vite plus React plus TypeScript, Tailwind. No component library.\n\nFeatures that are in scope:\n1. Drag and drop audio or video upload. Use ffmpeg to normalize everything to 16kHz mono wav before transcription.\n2. Job list with status: queued, running, done, failed, plus elapsed time.\n3. Transcript editor: segment rows with start and end timestamps, editable text, audio scrub that jumps to the segment on click. Full right-to-left layout with dir=\"rtl\" on text inputs, correct Arabic font stack, and no mangling of mixed Latin and Arabic runs.\n4. Arabic text utilities as toggleable post-passes: strip tashkeel, normalize alef and ya and ta marbuta variants, remove tatweel. Toggles must be reversible and never destroy the original transcript.\n5. A per-project glossary: list of terms and preferred spellings, applied as a find and replace pass with a diff preview before commit.\n6. Export: plain text, SRT, VTT, and JSON with timestamps.\n7. Simple search across all transcripts using SQLite FTS5.\n\nExplicitly out of scope: user accounts, speaker diarization, text to speech, translation, mobile apps, payments, any hosted deployment.\n\nDeliverables: docker-compose.yml that runs backend and frontend, .env.example with MODEL_SIZE, DEVICE, OPENAI_API_KEY, a README with setup steps and a note that dialect accuracy outside Modern Standard Arabic will be poor, and a seed script that transcribes a bundled sample file to prove the pipeline works end to end.",
+  "promptCurated": false
+}
