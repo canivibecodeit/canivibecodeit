@@ -1,0 +1,53 @@
+{
+  "slug": "google-photos",
+  "name": "Google Photos",
+  "domain": "photos.google.com",
+  "category": "cloud-storage",
+  "subcategory": "photo library and backup",
+  "tagline": "Cloud photo and video backup with automatic organization, face grouping, and natural language search.",
+  "priceMonthly": 1.99,
+  "pricing": {
+    "plan": "Google One 100 GB",
+    "basis": "monthly, storage tier",
+    "unit": "flat",
+    "source": "https://one.google.com/about/plans",
+    "checkedOn": "2026-09-03",
+    "confidence": "medium",
+    "notes": "AI-drafted from a site submission. Google Photos itself is free with limited storage; paid tiers are Google One storage plans and vary by region and tier size.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can absolutely build a personal photo library: an indexer, thumbnails, a timeline, even CLIP-powered semantic search that feels like magic the first time it finds \"dog on a beach\". What you cannot one-shot is the part that actually matters, which is a battery-efficient background uploader on iOS and Android that never loses a photo, plus redundant storage you trust with the only copy of your kid's first birthday. Google Photos is a durability product wearing a gallery app's clothes, and durability is infrastructure, not code. The honest self-hosted answer here is Immich, which is a mature multi-year project with real mobile clients, not a weekend of agent output. Build the search toy, keep the backup boring.",
+  "coreLoopDIY": "Indexes a local folder of photos and videos, generates thumbnails, extracts EXIF into SQLite, and serves a date-grouped web timeline with CLIP text search and near-duplicate detection.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine that stays on, with the disk space to hold the whole library",
+    "A real backup strategy for that disk, ideally 3-2-1, because the DIY build is not one",
+    "Python 3.11 plus ffmpeg and exiftool installed",
+    "A few GB for the CLIP model, and patience for the first index pass",
+    "Reverse proxy plus auth if you want it reachable outside your LAN"
+  ],
+  "whatYouLose": [
+    "Automatic background upload from phones, which is the entire product for most people",
+    "Google's storage redundancy: your NAS is one drive fire away from nothing",
+    "Face and pet grouping that actually works across fifteen years and lighting changes",
+    "Sharing that works for relatives who will not install anything or make an account",
+    "Free instant access from any device, plus Memories, editing tools, and the search quality trained on a planet of images"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-models",
+    "switching-costs"
+  ],
+  "moatNotes": "The switching cost is emotional as much as technical: nobody re-uploads a decade of family photos twice.",
+  "whyPeopleStillPay": "Two dollars a month for offsite, redundant, always-available storage of the only irreplaceable files most people own is one of the better deals in consumer software. The paid tier is not buying features, it is buying the absence of a decision: you never think about where the photos went. A self-hosted library gives you control and no ads and no scanning, and it also gives you a new chore and a single point of failure. Plenty of people run both, Google for the safety net and something local for the archive.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The gallery is a weekend; the guarantee that nothing is ever lost is not. The moat is planet-scale redundant storage plus mobile background upload that survives ten OS versions of battery policy.",
+  "prompt": "Build a self-hosted personal photo library called \"Shoebox\" in an empty folder. Local only, no cloud, no accounts, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, uvicorn, SQLite via sqlite3 (no ORM)\n- Jinja2 templates plus vanilla JS and plain CSS, no build step, no npm\n- Pillow for image thumbnails, ffmpeg subprocess for video poster frames\n- open-clip-torch with ViT-B-32 for embeddings, numpy for cosine similarity\n- exifread or piexif for EXIF, no external API calls anywhere\n\nBehavior:\n1. Read PHOTO_DIR from .env, default ./library. Never move, rename, or write inside PHOTO_DIR. Treat it as read only.\n2. `python index.py` walks PHOTO_DIR recursively for jpg, jpeg, png, heic, mp4, mov. For each file store path, sha256, size, mtime, EXIF datetime, camera make and model, GPS lat and lon if present, width, height, duration for video.\n3. Write 320px and 1600px WebP thumbnails into ./cache keyed by sha256. Skip work if the thumbnail already exists.\n4. Compute a CLIP image embedding per file, store as a float32 blob in SQLite. Videos use the poster frame.\n5. Indexing is resumable and idempotent: keyed on sha256, safe to interrupt, prints progress every 50 files.\n6. Web UI at /: infinite-scroll timeline grouped by month, newest first, thumbnails only, lightbox on click with arrow key navigation and EXIF details panel.\n7. /search takes a text query, embeds it with CLIP, returns top 60 by cosine similarity. Show the raw score so the user can judge it.\n8. /duplicates lists groups where embeddings exceed 0.98 similarity or sha256 matches exactly, side by side, with file paths and sizes. Report only, delete nothing.\n9. /map renders geotagged photos with Leaflet from CDN. Skip gracefully when nothing has GPS.\n10. Filters in the UI: year, camera model, media type.\n\nOut of scope, do not build: user accounts, upload endpoints, editing, face recognition, sharing links, mobile apps, sync.\n\nDeliver requirements.txt, .env.example, index.py, app.py, templates, and a README that states plainly that this is not a backup and tells the reader to keep an offsite copy.",
+  "promptCurated": false
+}
