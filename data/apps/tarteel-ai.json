@@ -1,0 +1,52 @@
+{
+  "slug": "tarteel-ai",
+  "name": "Tarteel AI",
+  "domain": "tarteel.ai",
+  "category": "education",
+  "subcategory": "Quran memorization and recitation feedback",
+  "tagline": "Listens to you recite the Quran and flags where you slipped, plus memorization drills and progress tracking.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://apps.apple.com/us/app/tarteel-ai-quran-memorization/id1391009396",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible app is a reader with drills, and yes, an agent can build that in an afternoon: Quran text is freely available, so is verse-by-verse recitation audio. The part people actually pay for is real-time speech recognition tuned to classical Quranic Arabic that can tell you that you swapped a word or skipped an ayah, and that is a fine-tuned model trained on a large corpus of recitation audio collected from users over years. General purpose ASR handles recited Arabic badly: no diacritics, wrong word boundaries, hallucinated fillers, and it cannot distinguish a genuine mistake from its own error. You can hack a fuzzy match between a Whisper transcript and the expected verse and it will be wrong often enough to be worse than no feedback at all when the text is scripture. Build the drill app, keep it local, and accept that mistake detection is not the thing you are shipping.",
+  "coreLoopDIY": "A local memorization trainer: pick a range, hide and reveal words, loop reciter audio, and track daily review with spaced repetition, with optional and unreliable transcript comparison behind a flag.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Quran text with diacritics from a public source such as Tanzil",
+    "verse-by-verse recitation audio URLs (EveryAyah style) or your own files",
+    "optional ASR API key in .env if you want the experimental transcript check",
+    "a browser with microphone access if you enable recording"
+  ],
+  "whatYouLose": [
+    "Recitation mistake detection that is actually trustworthy on classical Arabic",
+    "Tajweed and pronunciation nuance, which general ASR does not model at all",
+    "A polished mobile app with offline audio, background playback, and streak nudges",
+    "Scholarly review of the text and the feedback logic, which matters more here than in most apps",
+    "Cross-device sync of memorization progress and the community habit layer"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "Years of user-donated recitation audio in one narrow domain, which is exactly the dataset nobody else has and nobody can scrape.",
+  "whyPeopleStillPay": "Because the feedback loop is the product. Anyone can put the Quran text on a screen with a reciter audio player; only a model trained on tens of thousands of hours of recitation can hear you say the wrong word and stop you. Add that this is scripture, so users want something that has been checked by people who know the text rather than a weekend script that fuzzy matches a transcript, and the willingness to pay makes sense. The subscription is buying a model and an institutional reputation, not a UI.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The reader and the drills are a weekend; the ear is not. The moat is years of donated recitation audio turned into a domain-specific ASR model, plus the trust that comes with getting scripture right.",
+  "prompt": "Build a local-first Quran memorization trainer as a single-page web app. No accounts, no backend, no telemetry.\n\nStack, no substitutions: Vite + React + TypeScript, Tailwind for styling, Dexie (IndexedDB) for all state, Zustand for UI state. Everything runs with `npm install && npm run dev`.\n\nData:\n- On first run, fetch the full Quran text with diacritics from a public Tanzil-derived JSON source, then cache it in IndexedDB so the app works offline afterwards. Put the source URL in a single config file, not scattered through components.\n- Recitation audio: build per-ayah URLs from an EveryAyah-style pattern (reciter folder + zero-padded surah/ayah). Ship a config list of 3 reciters. Do not download the whole corpus, stream on demand and cache fetched clips in IndexedDB.\n\nCore features, all of these:\n1. Surah and ayah range picker, with the selected range saved as a named \"set\".\n2. Reading view: Arabic text right-to-left, generous line height, a font size slider, optional English translation toggle (fetch one public translation, cache it).\n3. Hide modes per set: hide all words, hide last N words of each ayah, hide every other ayah, first-letter-only. Tap a hidden word to reveal it. Track which words you revealed.\n4. Audio drill: loop the selected range, with per-ayah repeat count (1 to 10), playback speed 0.75 to 1.25, and a gap-of-silence setting after each ayah so you can recite along.\n5. Spaced repetition review: SM-2 style scheduling at the ayah-group level (group = up to 5 ayat). After a session, self-grade each group 1 to 4. A \"Due today\" home screen lists groups by due date.\n6. Progress: heatmap calendar of sessions, per-surah percent marked memorized, and a JSON export/import button for all local data.\n\nExperimental, behind a clearly labeled toggle that is OFF by default:\n- Record microphone audio for one ayah, send it to an ASR endpoint whose base URL and key come from .env (OPENAI_API_KEY style, read at build time via import.meta.env), then diff the returned transcript against the expected ayah after stripping diacritics and normalizing alif/hamza/ya forms. Show the diff with a permanent warning that transcription of recited Arabic is unreliable and that flagged words are frequently false positives. Never store or upload audio anywhere else.\n\nOut of scope, do not build: tajweed scoring, pronunciation grading, leaderboards, social features, push notifications, native mobile wrappers, any server.\n\nDeliverables: working app, .env.example, and a README that states which public text/audio sources it pulls from and that the ASR check is a toy.",
+  "promptCurated": false
+}
