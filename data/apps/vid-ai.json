@@ -1,0 +1,52 @@
+{
+  "slug": "vid-ai",
+  "name": "Vid.ai",
+  "domain": "vid.ai",
+  "category": "ai-video",
+  "subcategory": "text to video generation",
+  "tagline": "Browser based AI video generation: text or script in, finished video out.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://vid.ai/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "Anything in the text to video lane is buying you two things you cannot produce in an afternoon: a generative video model and the GPUs to run it. An agent can absolutely build you the surrounding product, a script editor, a shot list, a render queue, a stitcher, and that part is genuinely a weekend. The pixels themselves still come from someone else's weights behind someone else's API, so you have not replaced the service, you have rebuilt its front end and kept paying for inference. The consolation build below is honest about that: it makes real videos, just from stock footage, TTS, and ffmpeg instead of a diffusion model. Treat the specifics of this product's tiers and feature set as unverified.",
+  "coreLoopDIY": "Takes a script, splits it into scenes, generates voiceover with TTS, pulls matching stock clips, and renders a captioned video with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg installed locally",
+    "A TTS provider key, or a local Piper voice model",
+    "A stock footage API key such as Pexels",
+    "Disk space and patience for renders"
+  ],
+  "whatYouLose": [
+    "Actual generative video: no model of your own means no invented footage, avatars, or lip sync",
+    "Hosted rendering, so long videos tie up your own machine",
+    "Template and brand polish that makes output look intentional rather than assembled",
+    "Any kind of asset licensing story beyond whatever the stock API grants you",
+    "Iteration speed: their pipeline is tuned, yours will be a lot of ffmpeg trial and error"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "Even the companies selling this mostly rent the weights. The durable part is the GPU bill and the taste baked into the templates.",
+  "whyPeopleStillPay": "Because the thing people want is not a video pipeline, it is a video, and generative video is currently the most compute hungry consumer AI category there is. Paying a monthly fee to avoid provisioning GPUs, chasing model updates, and debugging frame timing is a rational trade for anyone whose job is marketing rather than infrastructure. The self hosted version of this is not a smaller version of the same thing, it is a different, more manual product that happens to also output an mp4.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The editor, queue, and renderer are a weekend; the model is not. The moat is proprietary video weights plus the GPU capacity to serve them at consumer prices.",
+  "prompt": "Build a local command line tool called scriptvid that turns a written script into a narrated, captioned video. Python 3.11 only, no web UI, no accounts, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, typer for the CLI, pydantic for config models\n- ffmpeg and ffprobe invoked as subprocesses, no moviepy\n- requests for HTTP, no async\n- Stock footage from the Pexels video API\n- Voiceover from OpenAI TTS if OPENAI_API_KEY is set, otherwise fall back to a local piper binary if PIPER_MODEL is set\n- All keys read from .env via python-dotenv, and ship a .env.example\n\nBehaviour:\n1. `scriptvid init` writes a project folder with script.md and project.toml (resolution, fps, voice, words per scene).\n2. Scenes are separated in script.md by blank lines. Each scene is one narration paragraph plus an optional line starting with `visual:` that gives search keywords for stock footage.\n3. `scriptvid narrate` renders one wav per scene, caches by hash of the text so reruns are cheap, and records durations with ffprobe.\n4. `scriptvid footage` searches Pexels per scene using the visual keywords (falling back to keywords extracted from the narration), downloads the best landscape clip at or above the project resolution, and caches downloads by clip id.\n5. `scriptvid captions` produces per scene SRT by splitting narration text proportionally across the measured audio duration. Crude is fine, but the timing must be monotonic and gap free.\n6. `scriptvid render` builds each scene by trimming or looping the clip to the narration length, scaling and center cropping to the target resolution, burning in captions with the subtitles filter, mixing narration over the muted clip, then concatenates scenes with the concat demuxer into out.mp4.\n7. `scriptvid build` runs narrate, footage, captions, render in order.\n\nIn scope: caching, resumable steps, a clear progress log, non zero exit codes on failure, and a Makefile with `make demo` that builds a three scene sample.\nOut of scope: generative video, avatars, lip sync, music beds, transitions beyond hard cuts, uploading anywhere.\n\nWrite a README that states plainly that this assembles stock footage and does not generate video, and lists the licensing responsibility as the user's. Include pytest coverage for scene parsing, caption timing, and the ffmpeg command builders using fake binaries.",
+  "promptCurated": false
+}
