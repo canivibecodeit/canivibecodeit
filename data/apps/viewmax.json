@@ -1,0 +1,50 @@
+{
+  "slug": "viewmax",
+  "name": "ViewMax",
+  "domain": "viewmax.io",
+  "category": "social-media",
+  "subcategory": "video audience growth",
+  "tagline": "A small SaaS pitched at growing and tracking video view counts across social platforms.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://viewmax.io/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a thinly documented product and the name covers two very different businesses. If ViewMax is a dashboard that tracks view counts, velocity, and thumbnail/title experiments, an agent can rebuild the useful 80 percent in a sitting on top of the platform APIs. If it is in the business of actually manufacturing views, that runs on account inventory and proxy infrastructure you cannot conjure locally, and you should not want to. Treat the DIY build as the analytics half, which is the half that is legal, durable, and boring in a good way.",
+  "coreLoopDIY": "Polls the YouTube Data API daily for your channel, snapshots per-video views and engagement into SQLite, and charts velocity plus a change log of title and thumbnail edits.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Google Cloud project with YouTube Data API v3 enabled and an API key",
+    "Your own channel ID or video IDs",
+    "Python 3.12 locally, plus something to run a daily job (cron or launchd)"
+  ],
+  "whatYouLose": [
+    "Cross-platform coverage: TikTok, Instagram, and X APIs are hostile or paid, so you get YouTube and not much else",
+    "Benchmark context: no comparison against other channels in your niche",
+    "A hosted history that keeps collecting while your laptop is closed",
+    "Any packaged recommendations, however hand-wavy, about what to post next",
+    "Whatever growth-service side of the product exists, which no local build replicates"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "Aggregated cross-channel benchmarks are the only real asset in this category; a single-user dashboard has no benchmarks by definition.",
+  "whyPeopleStillPay": "Because API keys, quota errors, and cron jobs are not why anyone got into making videos. A hosted tool keeps collecting snapshots whether or not you remember it exists, covers platforms whose APIs are a nightmare to touch directly, and shows your numbers next to somebody else's. The self-built version is more honest and cheaper, and it will quietly stop working the first week you are traveling.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Low-confidence entry: the product is obscure enough that the category boundary matters more than the feature list. The analytics half is a weekend; anything that promises views on demand is running infrastructure, not software.",
+  "prompt": "Build a local YouTube performance tracker. Single user, runs on my machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates\n- Chart.js from a CDN in the template, no frontend build step\n- httpx for API calls, python-dotenv for config\n\nConfig in .env, loaded at startup, never committed:\n- YOUTUBE_API_KEY\n- CHANNEL_ID\nShip a .env.example and a .gitignore.\n\nCore behavior:\n1. `python -m app.sync` calls the YouTube Data API v3, lists all uploads for CHANNEL_ID, and fetches statistics plus snippet for each video in batches of 50.\n2. Write one row per video per run into a `snapshots` table: video_id, captured_at, views, likes, comments, title, thumbnail_url, duration.\n3. Keep a `videos` table with first_seen and published_at. Detect changes: if title or thumbnail_url differs from the last snapshot, insert into a `changes` table with old value, new value, timestamp.\n4. Compute per-video view velocity: views gained per day between consecutive snapshots, and a 7-day trailing rate.\n\nWeb UI at 127.0.0.1:8000:\n- Table of videos sorted by 7-day velocity, with sparkline of cumulative views\n- Video detail page: full view curve, engagement ratio over time, timeline of title/thumbnail changes annotated on the chart\n- CSV export of all snapshots\n\nExplicitly out of scope: uploading, commenting, or any write action against YouTube; anything that generates, buys, or simulates views; multi-user auth; TikTok, Instagram, or X connectors; Docker; hosted deployment.\n\nHandle quota errors and 403s by printing the API error body and exiting nonzero. Idempotent sync, safe to run twice in a day. Include a README with a one-line cron example for daily sync, and seed the database with two fake days of data so the charts render before my first real sync.",
+  "promptCurated": false
+}
