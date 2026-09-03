@@ -1,0 +1,52 @@
+{
+  "slug": "getmentions-ai",
+  "name": "GetMentions AI",
+  "domain": "getmentions.ai",
+  "category": "seo-marketing",
+  "subcategory": "digital PR and link placement",
+  "tagline": "Paid brand mention and link placements across a large publisher network, pitched at getting your brand cited in AI search answers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getmentions.ai/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software here is the thin part: a dashboard, a prompt tracker, some reporting. The product you are actually buying is a rolodex of publishers who will accept a placement and an operations team that gets the piece live. No coding agent can generate an editor at a site with real traffic who says yes to your link. You can absolutely one-shot the measurement half, checking whether your brand shows up when models are asked buying-intent questions, and that is genuinely useful, but it tells you the problem rather than fixing it. The closest honest DIY is a visibility tracker plus an outreach CRM you then have to work by hand.",
+  "coreLoopDIY": "Runs a saved list of buying-intent prompts against LLM APIs on a schedule, records whether your brand or domain gets mentioned, and tracks your own manual publisher outreach in the same local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key or two, and budget for repeated queries",
+    "A list of prompts your buyers would actually type",
+    "Willingness to do outreach and negotiation yourself",
+    "Optional: a search API key if you want to cross-check cited sources"
+  ],
+  "whatYouLose": [
+    "The publisher network itself, which is the entire product",
+    "Someone else handling pitching, negotiation, and getting the piece actually published",
+    "Editorial vetting so your brand does not end up on obvious link farms",
+    "Volume: dozens of placements a month instead of you emailing three editors and hearing back from none",
+    "Client-ready reporting that ties placements to visibility changes"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "content-rights"
+  ],
+  "moatNotes": "Supply side is the scarce good. Publishers who accept placements and still have traffic are a finite, relationship-gated list, and they get farmed out over time.",
+  "whyPeopleStillPay": "Because measurement is cheap and distribution is not. Anyone can build a script that tells them ChatGPT never mentions their brand; almost nobody can build the list of sites that will publish something about them next week. Agencies pay for throughput and for not having to run a cold email operation, and they pay again for the plausible reporting they can forward to a client. If the placements are real and indexed, the price is basically arbitrage on relationships you do not have.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can one-shot the scoreboard, not the game. The moat is a supply side of publishers willing to run placements, and every one of those relationships was earned by a human on a phone.",
+  "prompt": "Build a local AI search visibility tracker and outreach log. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, plain venv, no Docker\n- SQLite via sqlite3 stdlib, single file data/visibility.db\n- typer for the CLI, httpx for API calls, jinja2 for the HTML report\n- Secrets in .env loaded with python-dotenv: OPENAI_API_KEY, ANTHROPIC_API_KEY (either may be absent, skip that provider)\n\nData model:\n- brands(id, name, domain, aliases_csv)\n- prompts(id, brand_id, text, intent_tag)\n- runs(id, prompt_id, provider, model, created_at, response_text, mentioned_bool, position_int, competitors_csv)\n- prospects(id, brand_id, site_domain, contact, status, price_quoted, last_touch_at, notes)\n\nCommands:\n- init: create db and schema\n- brand add / prompt add / prompt import from a CSV file\n- run --brand X: send every prompt to each configured provider, store raw response, detect mentions of the brand name, aliases, or bare domain case-insensitively, record first-mention character offset as position, and extract other capitalized brand-like tokens into competitors_csv with a crude regex plus a stopword list\n- report --brand X: write out/report.html with mention rate per prompt over time, a sparkline-free simple table, provider breakdown, and a top-competitors count\n- prospect add / prospect touch --status: manual outreach log, no sending, no scraping\n\nRules:\n- Sequential requests with a 1 second sleep, retry once on 429, print estimated call count and ask for confirmation before a run\n- Never fabricate a result: if a provider call fails, store nothing for that pair and log it\n- Deterministic settings: temperature 0, pinned model names in config.py\n\nOut of scope, do not build: sending email, scraping publisher sites, buying placements, any hosted dashboard, auth, multi-user.\n\nDeliver: README with setup in five commands, a seed CSV of ten example prompts, and pytest tests for mention detection including the alias and substring-false-positive cases.",
+  "promptCurated": false
+}
