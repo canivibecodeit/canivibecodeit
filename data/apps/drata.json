@@ -1,0 +1,52 @@
+{
+  "slug": "drata",
+  "name": "Drata",
+  "domain": "drata.com",
+  "category": "security",
+  "subcategory": "compliance automation",
+  "tagline": "Continuous compliance automation for SOC 2, ISO 27001, HIPAA and friends, with evidence collection, policy management and auditor handoff.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "annual contract, quoted",
+    "unit": "custom",
+    "source": "https://drata.com/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a control tracker: a table of controls, mapped evidence, policy markdown files, and cron jobs that hit AWS and your identity provider to check MFA and encryption settings. What you cannot build is the thing you are actually buying, which is an audit that a customer's security review accepts. The value sits in the auditor relationships, the pre-baked control framework mappings that auditors already recognize, and the fact that an external system attests your evidence was collected continuously rather than screenshotted the night before. A homegrown dashboard shifts the burden back onto you to convince an auditor your own scripts are trustworthy, which is more expensive than the license. Build the tracker if you want visibility, not if you want a report.",
+  "coreLoopDIY": "A local control register that maps SOC 2 style controls to evidence, stores policies as versioned markdown, and runs scheduled read-only checks against your cloud and identity provider to flag drift.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Read-only API credentials for your cloud provider and identity provider",
+    "Someone who actually knows which controls apply to you",
+    "An external auditor, who you still have to pay separately",
+    "A place to run scheduled jobs and store evidence durably"
+  ],
+  "whatYouLose": [
+    "Auditor relationships and the pre-negotiated audit workflow that makes the report cheap to produce",
+    "Framework mappings maintained by people who track standard revisions for a living",
+    "Third-party attestation that evidence was collected continuously and not fabricated",
+    "Trust Center pages, security questionnaire automation and the sales unblocking that comes with them",
+    "Personnel workflows: onboarding checklists, policy acceptance, background check tracking, device compliance"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "The product is a wrapper around an assurance market. The software is the cheap part.",
+  "whyPeopleStillPay": "Compliance spend is not a software purchase, it is a sales unblocking purchase. An enterprise buyer asks for a SOC 2 report, and the fastest path from zero to a report in hand runs through a vendor whose auditor partners have already seen a thousand identical evidence exports. Paying for that collapses a six month scramble into a few weeks of clicking, and the auditor does not have to audit your audit tooling. A startup that builds its own tracker still ends up hiring a GRC consultant and an auditor, and now also maintains the tooling. The honest read is that the license is cheaper than your own time, and the report is what the customer wanted anyway.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The control dashboard is a weekend; the audit report is not. The moat is auditor trust plus framework mappings that external assessors already accept without argument.",
+  "prompt": "Build a local-first compliance control tracker called \"controlroom\". Stack: Next.js App Router with TypeScript, SQLite via better-sqlite3, Tailwind, no auth, runs on localhost only.\n\nData model:\n- frameworks (id, name) seeded with one row: \"SOC 2 Type II (Trust Services Criteria)\"\n- controls (id, framework_id, code, title, description, owner, status: not_started | in_progress | met | not_applicable, notes)\n- evidence (id, control_id, kind: file | link | check_result, label, path_or_url, collected_at)\n- checks (id, control_id, name, kind: aws_mfa | aws_s3_encryption | idp_mfa_coverage, last_run_at, last_result: pass | fail | error, last_detail)\n- policies stored as markdown files in /policies, listed and rendered in the UI, git is the version history\n\nSeed the controls table from a JSON file I can edit: /seed/soc2-controls.json with roughly 60 plausible TSC-style controls across CC1 through CC9. Make clear in the README that these are a starting scaffold, not an authoritative mapping.\n\nUI:\n- Dashboard: coverage donut by status, list of failing checks, list of controls with no evidence\n- Control detail page: edit status, owner, notes, attach evidence (file upload to /evidence on disk, or a URL), see check history\n- Policies page: list markdown files, render one, no editor needed\n\nChecks:\n- /lib/checks/*.ts, each exports run() returning { result, detail }\n- Implement three real ones using read-only AWS SDK v3 and a generic OIDC/SCIM style stub: root account MFA enabled, all S3 buckets have default encryption, percentage of directory users with MFA\n- A single npm script \"npm run checks\" runs all checks and writes results as evidence rows with collected_at timestamps. Wire nothing to a scheduler, print the crontab line in the README instead.\n\nCredentials from .env only: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, IDP_API_TOKEN. Ship .env.example. No telemetry, no accounts, no external calls other than the check targets.\n\nIn the README, state plainly: this tracks your own control posture and nothing else. It does not produce an audit report, it is not evidence an auditor is obligated to accept, and you will still need a licensed assessor.",
+  "promptCurated": false
+}
