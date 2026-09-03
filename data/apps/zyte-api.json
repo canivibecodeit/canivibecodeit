@@ -1,0 +1,52 @@
+{
+  "slug": "zyte-api",
+  "name": "Zyte API",
+  "domain": "zyte.com",
+  "category": "dev-tools",
+  "subcategory": "web scraping and proxy infrastructure",
+  "tagline": "A single API for fetching pages that don't want to be fetched: proxy rotation, ban handling, browser rendering, and automatic extraction.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.zyte.com/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Zyte API bills on usage, with per-request costs that vary by whether you need a browser or residential IPs.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely one-shot a scraper. What you cannot one-shot is a large pool of IP addresses that target sites have not already blocked. Zyte's product is mostly infrastructure plus accumulated knowledge of which fingerprint, header set, and retry pattern gets past which anti-bot vendor, updated continuously as those vendors ship changes. A local Playwright script with your home IP works great until the first Cloudflare challenge, and then you are shopping for proxies anyway, which is the actual bill. The DIY version is genuinely fine for small, friendly, low-volume targets, and that covers more use cases than people admit.",
+  "coreLoopDIY": "A local crawler that fetches URLs through a headless browser with polite per-domain rate limits, caches every response to disk, retries on failure, and pulls structured fields out with CSS selectors you write yourself.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and a Playwright browser install",
+    "your own proxy credentials if targets block your IP",
+    "selectors or extraction rules per site, maintained by you",
+    "willingness to read robots.txt and terms of service yourself"
+  ],
+  "whatYouLose": [
+    "A large, actively rotated IP pool, the single most expensive part to replicate",
+    "Ongoing anti-bot countermeasures, updated by people who watch the vendors full time",
+    "A managed headless browser farm, so hard crawls do not cook your laptop",
+    "Automatic extraction models for products, articles, and job posts without writing selectors",
+    "Someone else's lawyers and compliance posture between you and the target site"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The Scrapy lineage matters less than it looks: Scrapy is open source and you can use it for free. The paid thing is the network layer plus the tacit knowledge of what currently works.",
+  "whyPeopleStillPay": "Because scraping economics are step functions. At ten pages a day you need nothing, at ten million a day you need a proxy vendor, a browser fleet, a retry policy, and an on-call human for the week a target site swaps anti-bot providers. Zyte collapses that into one endpoint and one invoice, and for teams whose product depends on data arriving reliably, that is cheaper than an engineer maintaining evasion logic forever. The people who churn are the ones whose targets were never defended in the first place.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Your agent can write the crawler in an afternoon; it cannot write you an IP pool. The moat is proxy infrastructure at scale plus live knowledge of which anti-bot fingerprint currently passes.",
+  "prompt": "Build a local, single-user web scraping toolkit in an empty folder. Stack: TypeScript on Node 20, Playwright for fetching, better-sqlite3 for storage, no framework, no cloud, no accounts.\n\nStructure:\n- src/fetch.ts: a fetch function that takes a URL and options { browser: boolean }. If browser is false, use undici with realistic headers. If true, use Playwright Chromium with a persistent context.\n- src/cache.ts: content-addressed disk cache under ./cache, keyed by sha256 of the URL plus render mode. Every response body, status, and header set gets stored. Never refetch a cached URL unless --force is passed.\n- src/limiter.ts: per-domain politeness. Default one request per 2 seconds per host, configurable per host in config.json. Respect robots.txt via a fetched and cached parse, and log loudly when a rule blocks a URL.\n- src/retry.ts: exponential backoff with jitter, max 4 attempts. Treat 403, 429, and 503 as blocked, not broken, and record the distinction in the database.\n- src/proxy.ts: read a newline-delimited proxy list from PROXY_LIST_PATH in .env. If present, rotate round-robin and mark a proxy dead after 3 consecutive blocks. If absent, go direct and say so at startup.\n- src/extract.ts: extraction rules per host defined in rules.json as { host, urlPattern, fields: { name: cssSelector, attr } }. Output plain JSON objects.\n- src/db.ts: sqlite tables for pages (url, status, fetched_at, render_mode, blocked) and items (url, host, json).\n- src/cli.ts: commands crawl --seed URL --depth N, refetch --url, extract --host, export --host --out file.jsonl.\n\nIn scope: crawling, caching, politeness, retries, selector extraction, JSONL export.\nOut of scope: distributed workers, a UI, anti-bot evasion tricks, CAPTCHA solving, and anything that pretends to defeat a commercial bot defense. If a host blocks you consistently, the tool should print a clear message saying this target needs real proxy infrastructure and stop.\n\nSecrets in .env only: PROXY_LIST_PATH, USER_AGENT. Ship a README with a 5 line quickstart and one worked example against a site that permits scraping.",
+  "promptCurated": false
+}
