@@ -1,0 +1,51 @@
+{
+  "slug": "h2o",
+  "name": "H2O.ai",
+  "domain": "h2o.ai",
+  "category": "dev-tools",
+  "subcategory": "AutoML and enterprise ML platform",
+  "tagline": "Enterprise AutoML, model deployment and LLM tooling, built around the open source H2O-3 engine.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://h2o.ai/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. H2O.ai sells enterprise contracts with quoted pricing, and much of the core engine is open source.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely get an agent to build a local AutoML runner: load a CSV, try a dozen model families, cross validate, rank them, print SHAP plots. That is a real afternoon and it will genuinely serve a solo analyst. What you cannot one-shot is what people actually buy H2O for: distributed training over data that does not fit on your laptop, the Driverless AI feature engineering recipes, and the audit trail that lets a bank or insurer put a model in front of a regulator. The paid tiers exist because a model risk team needs signed documentation, reproducible pipelines and a vendor to blame, not because scikit-learn is hard to import. Also worth noting that the base engine is already open source, so the thing you would be rebuilding is the compliance and ops layer, which is the least fun part.",
+  "coreLoopDIY": "Point a script at a CSV, have it train and cross validate a spread of models, then hand back a ranked leaderboard with feature importance and a saved best-model artifact.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with scikit-learn, LightGBM, Optuna and SHAP",
+    "A dataset that fits in your machine's RAM",
+    "Enough patience to wait out hyperparameter search on CPU"
+  ],
+  "whatYouLose": [
+    "Distributed training across a cluster, so your dataset ceiling is your RAM",
+    "Driverless AI's automated feature engineering, which is the actual differentiator over a plain sklearn sweep",
+    "Model documentation and validation artifacts that satisfy model risk management and regulators",
+    "Deployment targets: scoring pipelines, MOJO artifacts, low latency serving with someone on call",
+    "The LLM Studio and agentic tooling side of the product entirely"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-models",
+    "scale-infra"
+  ],
+  "moatNotes": "The open source core is a customer acquisition funnel. The money is in the enterprise wrapper: governance, support, and a name that passes procurement in regulated industries.",
+  "whyPeopleStillPay": "Nobody signs an H2O contract because they cannot figure out gradient boosting. They sign because a regulated institution needs a documented, reproducible, auditable path from raw data to a deployed score, with a vendor that will answer the phone when a model drifts and a legal entity that will stand behind the validation paperwork. That is org chart software, not algorithm software. A personal AutoML script solves your curiosity; it does not solve a model risk committee.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A leaderboard over sklearn models is a weekend; a model a regulator will sign off on is not. The moat is compliance paperwork, cluster scale training, and the feature engineering recipes inside Driverless AI.",
+  "prompt": "Build a local command line AutoML tool in Python 3.11. Single folder, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- pandas for data loading\n- scikit-learn for splits, metrics, and the baseline models\n- lightgbm and xgboost as the boosted tree candidates\n- optuna for hyperparameter search\n- shap for explanations\n- typer for the CLI\n- joblib for saving artifacts\n\nBehavior:\n- `automl run data.csv --target churn` reads the CSV, infers whether the target is classification or regression, and reports the inferred task before doing anything.\n- Build a preprocessing pipeline inside a ColumnTransformer: median impute plus scale for numerics, most-frequent impute plus one hot for low cardinality categoricals, drop free text and ID-like columns and say which ones you dropped and why.\n- Candidate models: logistic or linear regression, random forest, LightGBM, XGBoost, and a dummy baseline. The dummy baseline is mandatory and always shown, so the user can see when the fancy models are not actually beating the mean.\n- For each candidate run an Optuna study with a trial budget from `--trials` (default 25) scored by stratified 5-fold CV. Respect a `--timeout` in seconds.\n- Print a leaderboard sorted by the primary metric: ROC AUC and log loss for classification, RMSE and MAE for regression. Include CV standard deviation, not just the mean.\n- Refit the winner on all training data, evaluate once on a held-out 20 percent test split, and write `artifacts/best_model.joblib` plus `artifacts/report.md` with the leaderboard, the test metrics, a confusion matrix or residual summary, and the top 20 SHAP feature importances as a PNG.\n- `automl predict artifacts/best_model.joblib new.csv` writes predictions to stdout as CSV.\n- Set a fixed random seed and record it in the report so runs are reproducible.\n\nOut of scope, do not build: any web UI, any distributed or multi-machine training, deep learning, time series specific handling, automated feature synthesis, model monitoring, or a serving API.\n\nDeliverables: pyproject.toml, the CLI module, a sample run against a bundled toy dataset, and a README that states plainly that this is a single-machine tool and that its results are not audit artifacts.",
+  "promptCurated": false
+}
