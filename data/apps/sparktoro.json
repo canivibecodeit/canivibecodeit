@@ -1,0 +1,52 @@
+{
+  "slug": "sparktoro",
+  "name": "SparkToro",
+  "domain": "sparktoro.com",
+  "category": "seo-marketing",
+  "subcategory": "audience research",
+  "tagline": "Audience research tool that tells you what publications, podcasts, social accounts and YouTube channels a given group of people pay attention to.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://sparktoro.com/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is a search box and a few ranked tables, which is genuinely a weekend of work. The thing behind the search box is a continuously refreshed index of tens of millions of social profiles, bios, follows and web mentions, which is not. You can absolutely build a tool that ingests accounts you already have handles for and computes overlaps between their follows, subscriptions and feeds, and that is useful for one niche at a time. What you cannot build in a session is the ability to type any keyword or audience descriptor and get back who that group actually reads and listens to, because that answer is a function of the crawl, not the code. Ranking quality here is data quality.",
+  "coreLoopDIY": "Point a local CLI at a seed list of accounts and feeds you already know, pull their public follows, subscriptions and RSS mentions, then rank what overlaps most across the group into an HTML report.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and SQLite",
+    "API keys for whatever sources you use: Reddit, YouTube Data API, and any social platform you have legitimate access to",
+    "A hand-built seed list of accounts or feeds representing the audience you care about",
+    "Patience with rate limits, since the crawl is the whole job"
+  ],
+  "whatYouLose": [
+    "Keyword and audience search: you must supply the seeds yourself instead of typing 'vegan bakers' and getting an answer",
+    "Coverage across platforms whose APIs are now closed or expensive",
+    "Demographic and behavioural estimates layered on top of the raw index",
+    "Freshness, since a personal crawler goes stale the moment you stop running it",
+    "Any confidence that your sample is representative rather than whoever you happened to seed"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The index is the product. Everything visible in the UI is a thin ranking layer over a crawl that costs real money to keep warm.",
+  "whyPeopleStillPay": "Because the question 'where does this audience actually spend attention' is only answerable if someone has already crawled the internet and kept doing it. A team paying for this is buying a few hours of research they would otherwise spend guessing, and they get an answer that is at least consistently wrong across all their queries rather than randomly wrong depending on which seed accounts they happened to think of. There is also a credibility factor: a chart from a named tool survives a client meeting better than a spreadsheet you assembled yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ranking tables are a weekend; the crawl is not. The moat is a continuously refreshed index of tens of millions of profiles and mentions that no personal script can approximate.",
+  "prompt": "Build a local audience overlap research tool. Python 3.11, SQLite, Typer for the CLI, httpx for requests, Jinja2 for a static HTML report. No web server, no accounts, no telemetry.\n\nThe premise: I supply the seed audience by hand, the tool finds what that seed group has in common. It does not search the web by keyword and it should never pretend to.\n\nData model in SQLite:\n- seeds: platform, handle, label, added_at\n- entities: type (channel, subreddit, feed, account), platform, external_id, name, url\n- edges: seed_id, entity_id, source, observed_at\n- runs: started_at, finished_at, seed_count, edge_count\n\nCollectors, each in its own module behind a common interface, each skipped cleanly if its key is missing from .env:\n- reddit: for each seed Reddit username, pull recent public comments and posts via the official API and record which subreddits they appear in\n- youtube: for each seed channel ID, pull public subscriptions if visible and recent activity via the YouTube Data API\n- rss: for each seed feed URL, parse entries and extract outbound domains and repeatedly cited sources\n\nRanking: for each entity, compute how many distinct seeds touch it, plus a lift score against a baseline built from a control seed list I can supply separately. Sort by seed count, break ties by lift. Filter out anything touched by only one seed by default, with a flag to include them.\n\nCommands: seeds add, seeds import (CSV), collect (with --only reddit,youtube,rss), report (writes report.html with one ranked table per entity type), and db reset.\n\nRules: respect rate limits with a simple token bucket and honest sleeps, cache every raw HTTP response to a local cache dir so reruns are free, put all keys in .env and ship .env.example, and write a README that says plainly that coverage equals whatever I seeded and nothing more. Out of scope: keyword search, demographic estimation, any platform whose API I do not have access to, and scraping anything behind a login.",
+  "promptCurated": false
+}
