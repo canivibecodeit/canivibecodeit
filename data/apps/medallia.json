@@ -1,0 +1,52 @@
+{
+  "slug": "medallia",
+  "name": "Medallia",
+  "domain": "medallia.com",
+  "category": "user-research",
+  "subcategory": "experience management",
+  "tagline": "Enterprise experience management platform that collects customer and employee feedback across channels and turns it into scored, routed, reportable action.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://medallia.com/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Medallia does not publish list pricing, deals are quoted per enterprise.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a survey tool. Medallia is not a survey tool, it is the plumbing that pipes feedback from call centers, IVR, apps, kiosks, review sites and HR systems into one governed dataset, then routes individual responses to the manager who has to close the loop. Half the product is the parts nobody demos: SSO, role hierarchies mirroring an org chart of 40,000 people, data residency, retention policies, and the fact that a VP's bonus is tied to a number this system computes. An agent can one-shot a personal NPS collector in an evening and it will be genuinely fine for one person's side project. It will not survive contact with the reason anyone buys Medallia, which is that the CX number has to be auditable and everyone has to agree on it.",
+  "coreLoopDIY": "A self-hosted survey and feedback inbox that collects NPS or CSAT responses via a link, stores them locally, and shows trend plus auto-clustered themes on one dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a place to run it",
+    "SQLite file for storage",
+    "An LLM API key if you want theme clustering and sentiment, otherwise keyword counts",
+    "A domain or tunnel if you want to send survey links to real people"
+  ],
+  "whatYouLose": [
+    "Omnichannel intake: IVR, SMS, in-app intercepts, review site ingestion, contact center speech analytics",
+    "Org-wide role and hierarchy permissions so 4,000 managers each see only their slice",
+    "Case management and closed-loop workflow, the part where a low score becomes an assigned ticket with an SLA",
+    "Text and speech analytics tuned on years of labeled CX data, plus benchmarking against industry peers",
+    "SOC 2, GDPR tooling, data residency, retention controls, and an audit trail your legal team will actually accept"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The integration surface is the product: telephony, CRM, HRIS, SSO, data warehouse. Each one is boring and each one took years.",
+  "whyPeopleStillPay": "Because the buyer is not the person reading the responses, it is the executive who needs one defensible number in a board deck and a system of record that survives an audit and a reorg. Medallia sells governance, distribution and the assumption that the score is trustworthy, none of which is code you can write in a weekend. The survey form is the cheapest part of the whole thing and everyone knows it. Ripping it out means rewiring telephony, SSO, warehouse feeds and a few thousand managers' workflows, which is why these contracts renew even when people complain about them.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The survey form is a one-sitting build; the org chart is not. The moat is omnichannel intake plus the governance layer that makes one number count as the truth across a company of tens of thousands.",
+  "prompt": "Build a self-hosted customer feedback collector called \"Loop\". This is a personal-scale replacement for enterprise experience management, not an enterprise one.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, single file at ./data/loop.db, migrations run on boot\n- Recharts for the trend chart\n- Single-admin auth: one bcrypt password hash in .env, cookie session, no user table\n\nIn scope:\n1. Survey builder, minimal: create a survey with a type (nps, csat-1-5, or open-text), a question string, and an optional follow-up free-text prompt. Each survey gets a public slug.\n2. Public response page at /s/[slug]. Mobile-first, no login, one screen, big tap targets. Store response, timestamp, and any query params passed in the link (?customer=, ?segment=, ?source=) so responses can be sliced later.\n3. Response inbox at /inbox. Table with score, comment, segment, source, date. Filters by survey, segment, date range. Mark a response as \"followed up\" with an internal note. That is the whole closed loop, do not build case assignment.\n4. Dashboard at /. NPS or average CSAT computed correctly (NPS = %promoters minus %detractors, show the n), trend line by week, breakdown by segment and source.\n5. Themes: a POST /api/themes route that sends unthemed comments to an LLM in batches of 25 and asks for 5 to 8 short theme labels plus an assignment per comment. Cache results in a themes table. If OPENAI_API_KEY is missing, fall back to stopword-filtered bigram frequency and label it clearly as keyword counts, not themes.\n6. CSV export of all responses.\n\nOut of scope, do not build: multi-tenant orgs, role hierarchies, SSO, email or SMS sending, integrations, speech analytics, benchmarking, alert routing.\n\nRules: all secrets in .env with a committed .env.example. No telemetry, no analytics scripts, no external calls except the LLM route. Seed script that inserts 120 fake responses across 3 segments and 8 weeks so the dashboard is not empty on first run. README with setup in under 10 lines and one honest paragraph on what this does not do.",
+  "promptCurated": false
+}
