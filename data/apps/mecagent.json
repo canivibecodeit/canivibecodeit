@@ -1,0 +1,52 @@
+{
+  "slug": "mecagent",
+  "name": "MecAgent",
+  "domain": "mecagent.com",
+  "category": "design",
+  "subcategory": "AI CAD / text-to-geometry",
+  "tagline": "An AI agent that generates parametric mechanical CAD geometry from text and reference input.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://mecagent.com/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "You can absolutely wire a general LLM to CadQuery in an afternoon and get simple brackets, plates and enclosures out of it. What you cannot reproduce is the part that makes a CAD agent useful: models tuned on large corpora of parametric CAD with real feature trees, plus the evaluation harness that tells you whether the generated solid is valid, watertight and machinable. Generic models hallucinate geometry constantly and fail silently, so you end up debugging Python instead of designing parts. For a hobby print or a one-off spacer the DIY route is fine. For anything where the output feeds a manufacturing process, the checking layer is the product and it is not a one-shot build.",
+  "coreLoopDIY": "A local chat loop that asks an LLM for CadQuery code, executes it in a sandbox, shows the solid in a browser viewer, and exports STEP and STL.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key with a decent coding model",
+    "Python 3.11 with CadQuery and OCP installed, which is the actual hard part",
+    "Comfort reading and fixing generated Python when the geometry is wrong",
+    "A slicer or CAD tool to sanity check exported files"
+  ],
+  "whatYouLose": [
+    "Models actually tuned on parametric CAD instead of guessing from general code training",
+    "Validation that the generated solid is watertight, non self intersecting and manufacturable",
+    "Feature tree output that a real CAD package can open and edit, rather than dead mesh or script output",
+    "Any notion of tolerances, materials or process constraints",
+    "Iteration speed: you become the error handler for every failed script"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "Parametric CAD training data is scarce, mostly proprietary, and messy to license. That scarcity is the whole game.",
+  "whyPeopleStillPay": "Because generating geometry is easy and generating correct geometry is not. Anyone can get an LLM to emit CadQuery, and anyone who has tried knows the failure mode: code that runs, produces a solid, and is quietly wrong in a way you only notice at the printer or the mill. The value is in models trained on real CAD plus a validation loop that rejects garbage before it reaches you, and that loop is built from data and evaluation work, not from a clever prompt.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat loop and viewer are a weekend; the model that gets geometry right is not. The moat is CAD training data plus a validation harness that knows when a solid is unmanufacturable.",
+  "prompt": "Build a local text-to-CAD scratchpad. Single user, runs on my machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions: Python 3.11, FastAPI backend, CadQuery for geometry, SQLite via sqlite3 for history, plain HTML plus vanilla JS plus three.js from a CDN for the frontend. No React, no build step.\n\nFlow:\n1. Browser page with a prompt box, a chat transcript, a 3D viewport, and an export panel.\n2. I type a part description, for example: a 60 by 40 by 5 mm aluminium plate with four M4 clearance holes 8 mm in from each corner and a 20 mm center bore.\n3. Backend sends the description plus a fixed system prompt to an LLM and asks for a complete CadQuery script that defines a variable named result holding the final solid. Code only, no prose.\n4. Execute that script in a subprocess with a hard timeout of 20 seconds and no network access. Capture stdout, stderr and tracebacks.\n5. On failure, feed the traceback back to the model and retry, maximum three attempts. Show every attempt in the transcript.\n6. On success, export result to STL and STEP into ./out, then load the STL into the three.js viewport with orbit controls and a 10 mm grid.\n7. Run and display basic checks: bounding box dimensions, volume, whether the shell is closed, and the number of solids. Flag anything with more than one solid or zero volume as suspect.\n8. Follow up messages edit the previous script instead of starting over. Keep the working script visible and editable in a textarea, with a Run button so I can fix things by hand.\n9. Store every turn in SQLite: prompt, generated script, status, stderr, output file paths. Add a sidebar to reload any past part.\n\nIn scope: LLM API key in .env, a requirements.txt, a README with the exact OCP and CadQuery install steps for macOS and Linux, and three worked example prompts.\n\nOut of scope: assemblies, mates, drawings, GD and T, tolerance analysis, mesh repair, multi user anything, deployment. Do not pretend the output is manufacturing ready; print the dimension check next to the viewport so I can verify it myself.",
+  "promptCurated": false
+}
