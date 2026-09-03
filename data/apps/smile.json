@@ -1,0 +1,52 @@
+{
+  "slug": "smile",
+  "name": "Smile.io",
+  "domain": "smile.io",
+  "category": "commerce",
+  "subcategory": "loyalty and rewards for ecommerce",
+  "tagline": "Points, referrals and VIP tiers bolted onto a Shopify or BigCommerce store.",
+  "priceMonthly": 49,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly flat, higher tiers priced by features and order volume",
+    "unit": "flat",
+    "source": "https://smile.io/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is a ledger: orders in, points out, points burned for a discount code. That part is genuinely a weekend of work against the Shopify Admin API and order webhooks, and a small storefront widget can show a balance and mint rewards. Where it gets ugly is everything around the ledger: refunds and partial cancellations clawing back points, referral attribution that survives ad blockers and shared links, VIP tier recalculation, guest checkout identity matching, and a customer-facing UI that does not look like a homework assignment inside your paid theme. Smile also earns its keep on the boring reliability side, since a loyalty balance that silently drifts is worse than no loyalty program at all. Buildable for one store you control, not something you should ship and forget.",
+  "coreLoopDIY": "A points ledger that listens to order webhooks, awards and expires points, and mints one-time discount codes when a customer redeems, with a small storefront widget showing the balance.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Shopify (or similar) store you admin, with a custom app and Admin API access token",
+    "Somewhere always-on to receive webhooks, plus a public HTTPS URL",
+    "A theme edit or script tag to inject the balance widget",
+    "Basic willingness to reconcile the ledger by hand when a refund lands weird"
+  ],
+  "whatYouLose": [
+    "Refund, cancellation and chargeback handling that claws points back correctly",
+    "Referral link attribution, fraud checks and double-sided reward payouts",
+    "Prebuilt integrations with email, reviews and subscription apps that read loyalty state",
+    "A polished embedded launcher and rewards page that matches modern themes on mobile",
+    "Anyone to blame at 2am when balances stop updating during a sale"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The lock-in is the accrued balances: once customers hold points, migrating means importing a ledger you cannot get wrong.",
+  "whyPeopleStillPay": "Loyalty software is a trust artifact, not a feature. Customers see a number, believe it, and get angry when it moves the wrong way, so merchants pay for someone else to own the correctness of that number across refunds, exchanges, POS orders and multi-currency checkouts. Add the ecosystem hooks (Klaviyo segments on tier, review apps awarding points, subscription apps stacking rewards) and the monthly fee is cheaper than a founder debugging discount code collisions during Black Friday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a one-store hack, risky as a customer-facing promise.",
+  "prompt": "Build a self-hosted loyalty points system for a single Shopify store. Stack: Node 20, TypeScript, Express, SQLite via better-sqlite3, plain server-rendered EJS for the admin views. No React, no cloud services, no telemetry, no user accounts beyond one admin password.\n\nData model (SQLite, migrations in code on boot):\n- customers: shopify_customer_id, email, points_balance, lifetime_points, tier\n- ledger: id, customer_id, delta, reason (order_earn, refund_clawback, manual_adjust, redemption), shopify_order_id, created_at\n- rewards: id, name, points_cost, discount_type (fixed_amount or percentage), discount_value\n- redemptions: id, customer_id, reward_id, discount_code, points_spent, created_at\n\nBehaviour:\n1. Verify and consume Shopify webhooks with HMAC checks: orders/paid awards floor(subtotal * POINTS_PER_CURRENCY) points; refunds/create and orders/cancelled write a negative ledger row. Every balance change is a ledger row, never a direct column write. Balance is recomputed from the ledger and cached on the customer row.\n2. Idempotency: unique index on (reason, shopify_order_id) so replayed webhooks do nothing.\n3. Tiers: recompute tier from lifetime_points using thresholds in a config file.\n4. Redemption endpoint: POST /api/redeem with a signed customer token, checks balance, creates a single-use Shopify price rule and discount code through the Admin REST API, writes redemption plus negative ledger row in one transaction, returns the code.\n5. Storefront widget: one small vanilla JS file served at /widget.js that renders a floating panel showing balance, tier, and available rewards, and calls /api/redeem. Style it with plain CSS, no framework.\n6. Admin UI at /admin behind basic auth: search customers, view ledger, manual adjust with a required reason note, reward CRUD.\n\nIn scope: earning, clawbacks, tiers, redemption to discount codes, admin ledger view.\nOut of scope: referrals, email sending, points expiry, POS orders, multi-currency conversion, analytics dashboards. Leave clearly marked TODO comments where those would hook in.\n\nSecrets in .env: SHOPIFY_STORE_DOMAIN, SHOPIFY_ADMIN_TOKEN, SHOPIFY_WEBHOOK_SECRET, WIDGET_TOKEN_SECRET, ADMIN_PASSWORD, POINTS_PER_CURRENCY. Ship a .env.example.\n\nInclude a seed script and a script that replays a fake orders/paid and refunds/create payload so the ledger logic can be tested without a live store. Write a README with setup steps, webhook registration curl commands, and one blunt paragraph on what breaks if the ledger and Shopify disagree.",
+  "promptCurated": false
+}
