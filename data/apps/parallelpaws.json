@@ -1,0 +1,52 @@
+{
+  "slug": "parallelpaws",
+  "name": "parallelpaws",
+  "domain": "parallelpaws.app",
+  "category": "dev-tools",
+  "subcategory": "parallel AI coding agents",
+  "tagline": "A workspace for running several AI coding agents at once, each in its own isolated branch or worktree, with one place to review and merge the results.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://parallelpaws.app/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanic underneath this category is not exotic: git worktrees, a process supervisor, log streaming, and a diff viewer. An agent can absolutely wire that up in a weekend and you will get real value out of it, because the annoying part of running three agents at once is bookkeeping, not intelligence. Where the homebrew version falls down is everything around the edges: crash recovery, sane handling of agents that ask interactive questions, a diff review UI you actually enjoy using, and per-run cost tracking. You are also on the hook for whatever the underlying agent CLIs change next month, which is a maintenance tax the paid version quietly pays for you. Buildable, genuinely useful, permanently 80 percent done.",
+  "coreLoopDIY": "Spins up N isolated git worktrees, launches an agent CLI in each with its own task prompt, streams the logs to a local web dashboard, and lets you diff and merge the winners.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A local git repo and git 2.5+ for worktree support",
+    "An agent CLI already installed and authenticated on your machine",
+    "Bun or Node on the host",
+    "Model API key in .env if the CLI needs one",
+    "Enough RAM and rate limit headroom to run three or four agents concurrently"
+  ],
+  "whatYouLose": [
+    "A diff and review UI that is pleasant instead of merely functional",
+    "Robust handling of agents that stall, crash, or wait on an interactive prompt",
+    "Per-run token and cost accounting rolled up across sessions",
+    "Any polish on the parts you did not think to build: session history, replay, sharing a run with a teammate",
+    "Someone else absorbing breaking changes in the agent CLIs you are wrapping"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the orchestration, it is the hundred small behaviors around failed and half-finished runs.",
+  "whyPeopleStillPay": "Because the value is in the boring reliability. Your own runner works great on the happy path and then one agent hangs waiting for a y/n it will never get, another blows through your rate limit, and you lose an hour to something you built to save time. Paid tools in this space live or die on how they handle the ugly states, plus a review surface that makes comparing four competing diffs fast instead of a chore. If you run parallel agents occasionally, self-host and move on. If it is your daily driver, the polish is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth a weekend if you already run multiple agents daily; skip it if one terminal is still enough for you.",
+  "prompt": "Build a local web dashboard for running multiple AI coding agents in parallel against one git repo.\n\nStack, no substitutions: Bun + Hono for the server, SQLite via bun:sqlite for state, server-rendered HTML with htmx and plain CSS. No React, no build step, no auth, no cloud, no telemetry.\n\nCore behavior:\n1. Config comes from .env: REPO_PATH (absolute path to a git repo), AGENT_CMD (the agent CLI command template, e.g. \"claude -p {prompt}\"), MAX_CONCURRENT (default 3). Never hardcode secrets; read model API keys from .env and pass them through to child processes.\n2. A \"new run\" form takes a task prompt and a number of variants N. For each variant, create a branch pp/RUNID-VARIANT and a git worktree under .parallelpaws/worktrees/RUNID-VARIANT.\n3. Launch AGENT_CMD in each worktree as a child process, respecting MAX_CONCURRENT with a simple queue. Capture stdout and stderr to both SQLite and a per-variant log file.\n4. Stream live logs to the browser over server-sent events. Show status per variant: queued, running, exited-ok, exited-error, killed.\n5. Detect stalls: if a process emits nothing for STALL_SECONDS (default 300), mark it stalled and expose a kill button. Always close stdin so agents cannot block on an interactive prompt.\n6. Per variant, show `git diff --stat` against the base commit plus a full unified diff rendered in a scrollable pane.\n7. Actions per variant: kill, rerun with an edited prompt, merge branch into the base branch, discard (remove worktree and delete branch).\n8. Runs list page with history, duration, exit code, and files changed. Everything survives a server restart because state lives in SQLite.\n\nOut of scope: user accounts, multi-machine support, hosted deployment, cost estimation, editing files in the browser, conflict resolution UI beyond surfacing that a merge failed.\n\nInclude a README with setup steps, a .env.example, and a `bun run dev` script. Handle the case where REPO_PATH has uncommitted changes by refusing to start a run and saying why.",
+  "promptCurated": false
+}
