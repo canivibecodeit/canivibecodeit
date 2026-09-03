@@ -1,0 +1,52 @@
+{
+  "slug": "finale",
+  "name": "Finale Inventory",
+  "domain": "finaleinventory.com",
+  "category": "commerce",
+  "subcategory": "multichannel inventory management",
+  "tagline": "Cloud inventory, purchasing and barcode warehouse management that syncs stock across sales channels.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.finaleinventory.com/",
+    "checkedOn": "2026-09-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The data model here is not exotic: SKUs, lots, locations, stock movements, purchase orders, reorder points. An agent can hand you a local inventory ledger with barcode scanning and CSV import in a single sitting, and for one channel or one warehouse shelf that is genuinely enough. What you cannot one-shot is the reason most people actually pay: live two-way stock sync with Amazon, Shopify, eBay and ShipStation so you stop overselling the last unit in three places at once. Each of those connectors is its own approval process, rate limit budget and failure mode, and the sync has to be reliable at 2am or it is worse than nothing. Build it if your channels are few and your patience is long.",
+  "coreLoopDIY": "A local web app that tracks SKUs, stock levels per location and every inbound/outbound movement, with barcode scanning, purchase orders and reorder alerts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ and a browser",
+    "A USB barcode scanner in keyboard-wedge mode, or a phone camera page",
+    "CSV exports of your current stock and product list",
+    "Willingness to reconcile channel stock by hand or by scheduled CSV"
+  ],
+  "whatYouLose": [
+    "Live two-way stock sync with marketplaces and carts, so oversell protection is on you",
+    "Prebuilt shipping and 3PL integrations for pick, pack and label flows",
+    "Landed cost, lot and serial tracking, and demand forecasting that has been beaten on by real warehouses",
+    "Multi-user warehouse roles, audit trails and mobile pick apps",
+    "Someone to call when the Amazon connector silently stops at quarter end"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the database, it is the dozens of channel and carrier connectors plus the years of edge cases in reconciling them.",
+  "whyPeopleStillPay": "Inventory software is only worth money when it is the single source of truth, and being the source of truth means talking correctly to every place you sell and ship from. Finale's value is the accumulated connector maintenance and the operational habits built around it: receiving flows, cycle counts, reorder logic, permissions for staff who will never read your README. Once real stock and real purchase orders live in a system, the cost of a wrong number is a refund, a suspended listing or a stockout, which makes a hand-rolled sync feel a lot more expensive than a subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ledger is a weekend; the connectors are a career.",
+  "prompt": "Build a local-first inventory management web app called \"Stockroom\" in an empty folder.\n\nStack, no substitutions: Python 3.11, FastAPI, SQLite via SQLAlchemy, Jinja2 templates, HTMX for interactions, plain CSS. No React, no Docker, no cloud services, no telemetry, no login system.\n\nData model:\n- Product: sku (unique), name, description, unit_cost, reorder_point, reorder_qty, supplier_id, barcode.\n- Location: name, type (warehouse | shelf | in-transit).\n- StockMovement: product_id, location_id, qty (signed), reason (receive | ship | adjust | transfer | count), reference, note, created_at.\n- Supplier: name, email, lead_time_days.\n- PurchaseOrder + PurchaseOrderLine: status (draft | ordered | partial | received), expected_date.\nStock on hand is always derived by summing StockMovement, never stored as a mutable column. Every change is an append.\n\nScreens:\n1. Dashboard: total SKUs, stock value at unit_cost, list of products at or below reorder point with a \"draft PO\" button.\n2. Products list with search, filter by low stock, and a detail page showing the full movement history.\n3. Scan page: a single always-focused text input that accepts barcode scanner or typed input, plus a mode toggle (receive / ship / count), a quantity field defaulting to 1, and a location select. Submitting logs a movement and shows a running session log with an undo link per row.\n4. Purchase orders: create, add lines, mark ordered, receive partially or fully (receiving writes movements).\n5. Cycle count: pick a location, scan through it, then commit the count as adjustment movements with a variance report.\n\nAlso include: CSV import for products and opening stock, CSV export of stock on hand and movements, and a /api/stock JSON endpoint so future scripts can read levels.\n\nExplicitly out of scope: no Amazon, Shopify, eBay, ShipStation or carrier integrations, no shipping labels, no user accounts, no multi-tenant anything. Channel reconciliation is CSV in, CSV out.\n\nRun with `uvicorn app.main:app --reload` on SQLite file stockroom.db, seeded with 20 sample products and 2 locations. Any config goes in .env read via os.environ, with a committed .env.example. Write a README that states in one paragraph that this app does not prevent overselling across sales channels.",
+  "promptCurated": false
+}
