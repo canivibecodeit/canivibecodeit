@@ -78,3 +78,16 @@ The v1 backend stack is not yet selected. The current candidates are Node/Expres
 - Kept the Node/Express versus Go v1 stack choice explicitly unresolved.
 - Documentation-only task; no application behavior changed and no runtime verification was required.
 - Commit: `docs: capture production starter kit direction` (pushed to `origin/monster`).
+
+### 2026-09-04 — Add multi-file project packs to verdict pages
+
+- Replaced the single visible prompt on application detail pages with a structured project-pack workspace.
+- Added an accessible build-depth toggle above the pack:
+  - Indie dev: four lean files (`README.md`, `AGENTS.md`, `BUILD_PLAN.md`, and `.env.example`) optimized for a small personal or weekend build.
+  - Product builder: five production-oriented files (`PRODUCT.md`, `ARCHITECTURE.md`, `AGENTS.md`, `MILESTONES.md`, and `OPERATIONS.md`) covering product scope, boundaries, delivery, security, quality, and operations.
+- Generated each file from the selected application's existing build brief, requirements, limitations, core workflow, and alternatives instead of adding duplicate per-app data.
+- Added file navigation, per-file copy, responsive mobile layout, selected-mode summaries, and analytics for mode selection.
+- Updated the existing copy, Claude Code, Codex, and Cursor actions to send the complete selected multi-file bundle while preserving the existing integrations.
+- Verification: `git diff --check`, `npm run validate` (1,093 app files), `npm test`, and `npm exec -- astro build` all passed.
+- Visual QA: confirmed the 1Password page in the local browser, switched between both modes, navigated project files, and verified complete-pack copying.
+- Commit: `feat: add multi-file project packs` (pushed to `origin/monster`).

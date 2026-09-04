@@ -552,6 +552,64 @@
       }, 1800);
     };
 
+    /* ---------- project-pack mode + file browser ---------- */
+    const projectPack = $('[data-project-pack]');
+    if (projectPack) {
+      const promptText = $('#prompt-text');
+      const summary = $('[data-pack-summary]', projectPack);
+      const summaries = {
+        indie: '4 files · fastest path to a working personal build',
+        product: '5 files · architecture, delivery, and operations included',
+      };
+
+      const selectFile = (workspace, path) => {
+        $$('[data-pack-file]', workspace).forEach((btn) => {
+          const active = btn.dataset.packFile === path;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+        $$('[data-pack-panel]', workspace).forEach((panel) => {
+          panel.hidden = panel.dataset.packPanel !== path;
+        });
+      };
+
+      $$('[data-pack-file]', projectPack).forEach((btn) => {
+        btn.addEventListener('click', () => selectFile(btn.closest('[data-pack-mode]'), btn.dataset.packFile));
+      });
+
+      $$('[data-build-mode]', projectPack).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.buildMode;
+          $$('[data-build-mode]', projectPack).forEach((modeBtn) => {
+            const active = modeBtn === btn;
+            modeBtn.classList.toggle('active', active);
+            modeBtn.setAttribute('aria-pressed', String(active));
+          });
+          $$('[data-pack-mode]', projectPack).forEach((workspace) => {
+            workspace.hidden = workspace.dataset.packMode !== mode;
+          });
+          const bundle = $(`[data-pack-bundle="${mode}"]`, projectPack);
+          if (promptText && bundle) promptText.textContent = bundle.textContent;
+          if (summary) summary.textContent = summaries[mode];
+          track('build_mode_select', { app: projectPack.querySelector('.copy-group')?.dataset.slug, mode });
+        });
+      });
+
+      $$('[data-copy-file]', projectPack).forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const content = $('pre', btn.closest('[data-pack-panel]'))?.textContent || '';
+          const copied = await copyText(content);
+          if (copied) {
+            const original = btn.textContent;
+            btn.textContent = 'copied ✓';
+            setTimeout(() => (btn.textContent = original), 1600);
+          } else {
+            toast('copy failed · select the file manually');
+          }
+        });
+      });
+    }
+
     /* The ask lands after the value: the reveal only appears once the prompt is
        in someone's clipboard, and never again after a signup or a dismissal. */
     const reveal = $('#digest-reveal');
