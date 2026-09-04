@@ -581,4 +581,13 @@ restarted.
   `.to-top`, `.to-top.show`, the sibling rule and both media offsets.
 - Not verified: no headless browser here, so the scroll threshold, the fade and
   the focus move were reviewed statically rather than exercised in a browser.
-- Commit: `feat: add a back-to-top button` (pushed to `origin/monster`).
+- Follow-up, same day: the two positional offsets were wrong in practice. The
+  rail offset (`right: calc(var(--sp-side) + 8px)`) put the button well inside
+  the content column, floating over page text · worse than the overlap it was
+  avoiding. Both media-query offsets removed; the button is now pinned to the
+  corner at `right: 16px; bottom: 16px` on every viewport and wins on stacking
+  order instead (z-index 70, above the sponsor tape at 60 and the rails at 40).
+  The `.digest-bar.show ~ .to-top` rule stays: it hides rather than moves, and
+  it is the one case where two controls genuinely occupy the same corner.
+- Commit: `feat: add a back-to-top button` and `style: pin the back-to-top
+  button to the corner` (pushed to `origin/monster`).
