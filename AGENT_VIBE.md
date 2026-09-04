@@ -10,6 +10,48 @@ This file records work completed by coding agents in this repository. Add one en
 - Preserve Faizan Ali as the live operator and retain attribution to Rob Hallam and Can I Vibecode It?.
 - Record tests, builds, or other verification performed for each task.
 
+## Product direction: production starter kit
+
+### Problem
+
+Can I Vibecode It? can provide a verdict and a build prompt, such as "yes, one session, no moat," but it does not provide the production engineering required to turn a demo into software people can trust. The missing layer includes authentication, payments, transactional email, caching, security, and observability.
+
+### Proposed solution
+
+Build a production-grade backend and frontend starter kit with the essential infrastructure pre-wired, documented, and ready to customize:
+
+- Authentication: sessions or JWT, OAuth, and password reset.
+- Payments: Stripe one-time payments and subscriptions, with correct webhook handling.
+- Email: transactional email behind a provider abstraction so providers can be replaced without rewriting the application.
+- Cache: optional, pluggable Redis support.
+- UI: customizable dashboard and landing-page templates.
+- Observability: structured logging and an error-tracking integration hook.
+- Security: rate limiting and hardened middleware on authentication endpoints by default.
+
+### One codebase, two usage modes
+
+#### Quick mode
+
+For solo and indie developers. It uses zero-configuration defaults with one auth method, one payment provider, and one email provider. The intended workflow is `clone → env → run`, producing a working demo in under ten minutes without requiring architectural decisions.
+
+#### Extend mode
+
+For builders who need a longer-lived production foundation. It uses the same scaffold and includes an `ARCHITECTURE.md` that explains each default, why it was selected, how it behaves as the product scales, and how to replace modules without fighting the framework.
+
+### Setup and modularity
+
+- Intended setup command: `npx create-yourkit` (working placeholder; final package name is not decided).
+- Interactive prompts include or exclude modules such as payments and cache.
+- Quick and Extend modes must remain configurations of the same tool and codebase, not separately maintained products.
+
+### Documentation philosophy
+
+Every module ships with a short Markdown guide explaining what it does, why its default was chosen, and how to extend or replace it. Quickstart documentation stays short and immediately actionable; architecture documentation is optional and explains the deeper reasoning when needed.
+
+### Open decision
+
+The v1 backend stack is not yet selected. The current candidates are Node/Express and Go. Do not choose or implement either stack without a later product decision.
+
 ## Task log
 
 ### 2026-09-04 — Create and publish the feature branch
@@ -28,3 +70,11 @@ This file records work completed by coding agents in this repository. Add one en
 - Verification: `npm run validate` passed for 1,093 app files; `npm test` passed; `npm exec -- astro build` passed after the markup correction.
 - Runtime check: development server started at `http://127.0.0.1:8095/` and returned HTTP 200 for the homepage.
 - Commit: `feat: rebrand product as Vibecode It` (pushed to `origin/monster`).
+
+### 2026-09-04 — Preserve the production starter-kit concept
+
+- Added the product problem, proposed solution, module scope, Quick and Extend modes, setup model, and documentation philosophy to this persistent context file.
+- Recorded `npx create-yourkit` as a placeholder rather than a finalized package name.
+- Kept the Node/Express versus Go v1 stack choice explicitly unresolved.
+- Documentation-only task; no application behavior changed and no runtime verification was required.
+- Commit: `docs: capture production starter kit direction` (pushed to `origin/monster`).
