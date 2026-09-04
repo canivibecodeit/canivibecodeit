@@ -706,68 +706,101 @@
       });
     });
 
-    /* ---------- build tracker ----------
-       Device-local progress over the modules the prompt defines. Same contract
-       as my stack: localStorage only, no account, no server round trip. Keyed
-       by slug and stamped with the module count, so a prompt that gains or
-       loses phases later invalidates its own stale ticks instead of silently
-       marking the wrong ones done. */
-    const tracker = $('[data-build-tracker]');
-    if (tracker) {
-      const PROGRESS_KEY = 'vibecodeit:progress';
-      const slug = tracker.dataset.slug;
-      const total = Number(tracker.dataset.total) || 0;
+    /* ---------- build progress ----------
+       Device-local progress over the steps on /<slug>/build, in localStorage
+       under vibecodeit:progress · same contract as my stack, no account and no
+       server round trip. Each entry stores the step count it was saved against,
+       so a prompt that later gains or loses phases invalidates its own stale
+       ticks instead of crossing off the wrong steps. */
+    const PROGRESS_KEY = 'vibecodeit:progress';
+    const readProgress = () => {
+      try {
+        const value = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+      } catch {
+        return {};
+      }
+    };
+    const readSteps = (slug, total) => {
+      const entry = readProgress()[slug];
+      if (!entry || !Array.isArray(entry.done) || entry.total !== total) return [];
+      return entry.done.filter((i) => Number.isInteger(i) && i >= 0 && i < total);
+    };
+    const writeSteps = (slug, total, done) => {
+      try {
+        const all = readProgress();
+        if (done.length) all[slug] = { done: [...done].sort((a, b) => a - b), total, updated: Date.now() };
+        else delete all[slug];
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
-      const readAll = () => {
-        try {
-          const value = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
-          return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-        } catch {
-          return {};
-        }
-      };
-      const readDone = () => {
-        const entry = readAll()[slug];
-        if (!entry || !Array.isArray(entry.done)) return [];
-        // A different module count means the prompt changed under the saved
-        // ticks; drop them rather than crossing off the wrong modules.
-        if (entry.total !== total) return [];
-        return entry.done.filter((i) => Number.isInteger(i) && i >= 0 && i < total);
-      };
-      const writeDone = (done) => {
-        try {
-          const all = readAll();
-          if (done.length) all[slug] = { done: [...done].sort((a, b) => a - b), total, updated: Date.now() };
-          else delete all[slug];
-          localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
-          return true;
-        } catch {
-          return false;
-        }
-      };
+    /* Verdict-page CTA: shows the percentage back once there is any, so the
+       button reads as "resume" rather than "start" on a return visit. */
+    const cta = $('[data-track-cta]');
+    if (cta) {
+      const total = Number(cta.dataset.total) || 0;
+      const done = readSteps(cta.dataset.slug, total);
+      if (done.length) {
+        const ring = $('[data-track-cta-ring]', cta);
+        const pct = $('[data-track-cta-pct]', cta);
+        const sub = $('[data-track-cta-sub]', cta);
+        const percent = total ? Math.round((done.length / total) * 100) : 0;
+        if (pct) pct.textContent = `${percent}%`;
+        if (ring) ring.hidden = false;
+        if (sub) sub.textContent = done.length === total
+          ? 'every step done'
+          : `${total - done.length} of ${total} left`;
+      }
+      cta.addEventListener('click', () => track('build_track_open', { app: cta.dataset.slug }));
+    }
 
-      const bar = $('[data-bt-bar]', tracker);
-      const fill = $('[data-bt-fill]', tracker);
-      const pct = $('[data-bt-pct]', tracker);
-      const doneCount = $('[data-bt-done]', tracker);
+    /* The tracker itself. */
+    const buildPage = $('[data-build-page]');
+    if (buildPage) {
+      const slug = buildPage.dataset.slug;
+      const total = Number(buildPage.dataset.total) || 0;
+      const bar = $('[data-bt-bar]', buildPage);
+      const fill = $('[data-bt-fill]', buildPage);
+      const pct = $('[data-bt-pct]', buildPage);
+      const doneCount = $('[data-bt-done]', buildPage);
+      const finished = $('[data-build-done]', buildPage);
 
       const render = (done) => {
         const set = new Set(done);
-        $$('[data-bt-toggle]', tracker).forEach((btn) => {
-          btn.setAttribute('aria-pressed', String(set.has(Number(btn.dataset.btToggle))));
+        $$('[data-bt-toggle]', buildPage).forEach((btn) => {
+          const i = Number(btn.dataset.btToggle);
+          const isDone = set.has(i);
+          btn.setAttribute('aria-pressed', String(isDone));
+          btn.closest('.step')?.classList.toggle('done', isDone);
         });
         const percent = total ? Math.round((set.size / total) * 100) : 0;
         if (fill) fill.style.width = `${percent}%`;
         if (pct) pct.textContent = `${percent}%`;
         if (doneCount) doneCount.textContent = String(set.size);
         if (bar) bar.setAttribute('aria-valuenow', String(percent));
-        tracker.classList.toggle('complete', total > 0 && set.size === total);
+        if (finished) finished.hidden = !(total > 0 && set.size === total);
+        buildPage.classList.toggle('complete', total > 0 && set.size === total);
       };
 
-      let done = readDone();
+      let done = readSteps(slug, total);
       render(done);
 
-      $$('[data-bt-toggle]', tracker).forEach((btn) => {
+      /* Collapse everything already ticked on arrival: coming back to a
+         half-finished build should open on the step actually being worked. */
+      done.forEach((i) => {
+        const detail = $(`[data-step-detail="${i}"]`, buildPage);
+        const toggle = $(`[data-step-collapse="${i}"]`, buildPage);
+        if (detail && toggle) {
+          detail.hidden = true;
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      $$('[data-bt-toggle]', buildPage).forEach((btn) => {
         btn.addEventListener('click', () => {
           const i = Number(btn.dataset.btToggle);
           const set = new Set(done);
@@ -775,19 +808,19 @@
           if (nowDone) set.add(i);
           else set.delete(i);
           done = [...set];
-          if (!writeDone(done)) {
+          if (!writeSteps(slug, total, done)) {
             toast('progress needs site data enabled in this browser');
-            done = readDone();
+            done = readSteps(slug, total);
           }
           render(done);
-          if (nowDone && done.length === total) toast('every module ticked · nice');
-          track('build_module_toggle', { app: slug, module: i, done: nowDone, completed: done.length, total });
+          if (nowDone && done.length === total) toast('every step done · nice');
+          track('build_step_toggle', { app: slug, step: i, done: nowDone, completed: done.length, total });
         });
       });
 
-      $$('[data-bt-more]', tracker).forEach((btn) => {
+      $$('[data-step-collapse]', buildPage).forEach((btn) => {
         btn.addEventListener('click', () => {
-          const detail = $(`[data-bt-detail="${btn.dataset.btMore}"]`, tracker);
+          const detail = $(`[data-step-detail="${btn.dataset.stepCollapse}"]`, buildPage);
           if (!detail) return;
           const open = btn.getAttribute('aria-expanded') === 'true';
           btn.setAttribute('aria-expanded', String(!open));
@@ -797,7 +830,7 @@
 
       /* Reset wipes work someone actually did, so it arms first and disarms on
          second thoughts, matching the stack's remove control. */
-      const resetBtn = $('[data-bt-reset]', tracker);
+      const resetBtn = $('[data-bt-reset]', buildPage);
       if (resetBtn) {
         const label = resetBtn.textContent;
         let armTimer = null;
@@ -816,7 +849,7 @@
           }
           disarm();
           done = [];
-          writeDone(done);
+          writeSteps(slug, total, done);
           render(done);
           track('build_progress_reset', { app: slug });
         });

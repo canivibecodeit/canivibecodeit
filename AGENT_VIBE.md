@@ -266,3 +266,42 @@ two of a cluster in the same batch.
 - Commit: `feat: track build progress per module on verdict pages` and
   `style: round the verdict badge to match the save control` (pushed to
   `origin/monster`).
+
+### 2026-09-04 — Move build tracking to its own step-by-step page
+
+- Corrected the previous task: the tracker had been built inline on the verdict
+  page, when what was asked for was a button in the slot the big verdict badge
+  used to occupy, leading to a dedicated page.
+- Removed the inline tracker card from `src/pages/[slug].astro`.
+- Added a `track this build` call to action in the header, in the badge's old
+  slot. The verdict badge and the save-to-my-stack control now pair on a
+  `.verdict-row` beneath it, keeping the badge to the left of save as requested.
+  The CTA reads back saved progress on load, so a return visit says how many
+  steps are left rather than inviting a restart.
+- Added `src/pages/[slug]/build.astro`, following the existing `[slug]/` sub-page
+  convention: a sticky progress header, a `Before step 1` block carrying the
+  prompt's stack decision, data model and the app's requirements, then one card
+  per step on a numbered rail with the full `Build` text (bullets and code spans
+  preserved), the `Done when` check as a callout, the `Do not build yet`
+  boundary, a mark-done control and a link to the next step. Steps already ticked
+  collapse on arrival so the page opens on the one being worked. `noindex`: the
+  steps are the prompt's own words and an indexable copy would compete with the
+  verdict page for the same terms.
+- Extracted the parsing into `src/lib/build-plan.js` so both pages share one
+  definition: `parsePhases`, `promptSection`, `buildSteps`, and `DELIVERY_ORDER`,
+  which still renders `BUILD_PLAN.md`'s delivery order and doubles as the
+  fallback for the 1,073 prompts not yet phased.
+- Progress stays device-local in `localStorage` under `vibecodeit:progress`,
+  stamped with the step count so a changed prompt invalidates its own stale ticks.
+- Verification: `node --check public/js/app.js`, `git diff --check`,
+  `npm run validate` (1,093 app files), `npm test` (13 passing), and
+  `npm exec -- astro build` all passed.
+- Runtime check on the production build: `/granola/build` renders 6 real modules
+  with the stack and data model surfaced, `/bitwarden/build` renders its rule-zero
+  block, `/1password/build` renders the 5-step fallback with the honest note, the
+  verdict page carries the CTA and no inline tracker, every selector the script
+  queries resolves, the page still carries only the two hashed inline scripts, and
+  the new route stays out of the sitemap.
+- Not verified: no headless browser here, so the visual result was checked
+  structurally rather than rendered and looked at.
+- Commit: `feat: add a step-by-step build page per app`.

@@ -8,6 +8,7 @@ import RecModule from '../components/RecModule.astro';
 import BuildsSection from '../components/BuildsSection.astro';
 import { getApp, relatedApps, yearlySaving, sortedAlternatives, ALTERNATIVES_PAGE_MIN, CATEGORIES, VERDICTS, MOAT_TAGS, MOAT_TAG_EMOJI, VIBE_CODING_TOOL_SLUGS } from '../lib/apps.js';
 import { voteCount, voteCounts } from '../lib/db.js';
+import { DELIVERY_ORDER, buildSteps } from '../lib/build-plan.js';
 
 const { slug } = Astro.params;
 const app = getApp(slug);
@@ -24,6 +25,9 @@ const moats = (app.moatTags ?? [])
   .map((t) => ({ tag: t, label: MOAT_TAGS[t], emoji: MOAT_TAG_EMOJI[t] }));
 
 const alternatives = sortedAlternatives(app);
+
+// Step count for the tracker button; the steps themselves live on /<slug>/build.
+const { phased, steps } = buildSteps(app);
 const hasAltPage = alternatives.length >= ALTERNATIVES_PAGE_MIN;
 
 const verdictWord = { yes: 'YES', kinda: 'KINDA', no: 'NOT REALLY' }[app.verdict];
@@ -140,62 +144,6 @@ const jsonld = [
     ],
   },
 ];
-
-/* The generic build sequence, defined once: it renders as BUILD_PLAN.md's
-   delivery order below, and doubles as the tracker's module list for the apps
-   whose prompt has not been converted to the phased format yet. Two copies of
-   this list would drift the moment one is edited. */
-const DELIVERY_ORDER = [
-  { title: 'Scaffold the smallest runnable application and document its commands.', doneWhen: 'The project starts from a documented command in a clean checkout.' },
-  { title: 'Implement the primary data model and core workflow.', doneWhen: 'The main object can be created, read and changed end to end.' },
-  { title: 'Add validation, safe failure states, and persistence.', doneWhen: 'Bad input is refused with a readable message and nothing is left corrupted.' },
-  { title: 'Cover the critical path with automated tests.', doneWhen: 'The highest-risk behavior fails the suite when it breaks.' },
-  { title: 'Exercise a clean install from the README and fix every missing step.', doneWhen: 'A fresh clone reaches the first successful workflow using only the README.' },
-];
-
-/* Phased prompts carry their own build sequence as "### Phase N · Title"
-   sections (the format is specified in CONTRIBUTING.md). Pull those out so the
-   tracker lists this app's real modules instead of a generic checklist. */
-const collapse = (text) => (text || '').replace(/\s+/g, ' ').trim();
-const parsePhases = (prompt) => {
-  if (typeof prompt !== 'string' || !prompt) return [];
-  return prompt
-    .split(/\n(?=### )/)
-    .filter((block) => /^### Phase /.test(block.trim()))
-    .map((block) => {
-      const lines = block.trim().split('\n');
-      const head = lines.shift();
-      const body = lines.join('\n');
-      const parts = head.match(/^### Phase\s+([^·]+?)\s*·\s*(.+)$/);
-      /* Split rather than match: a lookahead anchored with /m would stop the
-         lazy capture at the first line break, truncating multi-line checks. */
-      const section = (from, until, leadOnly) => {
-        const after = body.split(from)[1];
-        if (!after) return '';
-        const chunk = until ? after.split(until)[0] : after;
-        /* Build often continues into a bullet list of traps. The panel wants
-           the lead paragraph; the bullets stay in the prompt where they read
-           as a list instead of collapsing into one run-on line. */
-        return collapse(leadOnly ? chunk.split(/\n\s*\n/)[0] : chunk);
-      };
-      return {
-        label: parts ? parts[1].trim() : '',
-        title: parts ? parts[2].trim() : head.replace(/^###\s*/, ''),
-        build: section(/^Build:\s*/m, /\nDone when/, true),
-        doneWhen: section(/^Done when:?\s*/m, /\nDo not build yet/),
-      };
-    });
-};
-
-const phases = parsePhases(app.prompt);
-const phased = phases.length > 0;
-/* No prompt means no build to track: the "don't build this one" pages get no
-   tracker rather than an empty one. */
-const trackerModules = !app.prompt
-  ? []
-  : phased
-    ? phases.map((phase, i) => ({ n: phase.label || String(i + 1), title: phase.title, build: phase.build, doneWhen: phase.doneWhen }))
-    : DELIVERY_ORDER.map((step, i) => ({ n: String(i + 1), title: step.title, build: '', doneWhen: step.doneWhen }));
 
 const requirementLines = (app.requirements ?? []).map((item) => `- ${item}`).join('\n') || '- Implement the core workflow described in the build brief.';
 const lossLines = (app.whatYouLose ?? []).map((item) => `- ${item}`).join('\n') || '- None documented.';
@@ -422,17 +370,31 @@ const tweet = encodeURIComponent(
         <h1>Vibecode {app.name.split(' / ')[0]}</h1>
       </span>
       <span class="verdict-side">
-        <VerdictBadge verdict={app.verdict} big />
-        <button
-          class="head-save"
-          data-stack-icon
-          data-slug={app.slug}
-          aria-pressed="false"
-        >
-          <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
-          <span class="off">save to my stack</span>
-          <span class="on">in your stack</span>
-        </button>
+        {steps.length > 0 && (
+          <a class="track-cta" href={`/${app.slug}/build`} data-track-cta data-slug={app.slug} data-total={steps.length}>
+            <span class="track-cta-main">
+              <b>track this build</b>
+              <small data-track-cta-sub>{steps.length} {phased ? 'modules' : 'steps'}, step by step</small>
+            </span>
+            <span class="track-cta-ring" data-track-cta-ring hidden>
+              <b data-track-cta-pct>0%</b>
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+        )}
+        <span class="verdict-row">
+          <VerdictBadge verdict={app.verdict} big />
+          <button
+            class="head-save"
+            data-stack-icon
+            data-slug={app.slug}
+            aria-pressed="false"
+          >
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+            <span class="off">save to my stack</span>
+            <span class="on">in your stack</span>
+          </button>
+        </span>
       </span>
     </div>
 
@@ -457,66 +419,6 @@ const tweet = encodeURIComponent(
         <p class="bvct-backlink">
           ⌨️ featured in <a href="/best-vibe-coding-tools">the best vibe coding tools</a>
         </p>
-      )
-    }
-
-    {
-      trackerModules.length > 0 && (
-        <section class="build-tracker" data-build-tracker data-slug={app.slug} data-total={trackerModules.length}>
-          <div class="bt-head">
-            <span>
-              <span class="microlabel">your build</span>
-              <span class="bt-sub">
-                {phased
-                  ? `${trackerModules.length} modules, in the order the prompt builds them`
-                  : `${trackerModules.length} steps · this prompt has no phases yet, so this is the generic delivery order`}
-              </span>
-            </span>
-            <span class="bt-count">
-              <b data-bt-pct>0%</b>
-              <small><span data-bt-done>0</span> of {trackerModules.length} done</small>
-            </span>
-          </div>
-
-          <div class="bt-bar" role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-bt-bar>
-            <span data-bt-fill></span>
-          </div>
-
-          <ol class="bt-modules">
-            {trackerModules.map((mod, i) => (
-              <li class="bt-module" data-bt-module={i}>
-                <div class="bt-row">
-                  <button type="button" class="bt-check" data-bt-toggle={i} aria-pressed="false">
-                    <span class="bt-box" aria-hidden="true">
-                      <svg width="11" height="9" viewBox="0 0 11 9" fill="none" aria-hidden="true"><path d="M1 4.5L4 7.5L10 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                    </span>
-                    <span class="bt-n">{mod.n}</span>
-                    <span class="bt-title">{mod.title}</span>
-                  </button>
-                  {mod.doneWhen && (
-                    <button type="button" class="bt-more" data-bt-more={i} aria-expanded="false">
-                      <span class="off">check</span>
-                      <span class="on">hide</span>
-                    </button>
-                  )}
-                </div>
-                {mod.doneWhen && (
-                  <div class="bt-detail" data-bt-detail={i} hidden>
-                    {mod.build && (
-                      <p><b>Build</b> {mod.build}</p>
-                    )}
-                    <p class="bt-done"><b>Done when</b> {mod.doneWhen}</p>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
-
-          <div class="bt-foot">
-            <span class="bt-note">saved on this device only</span>
-            <button type="button" class="bt-reset" data-bt-reset>reset</button>
-          </div>
-        </section>
       )
     }
 

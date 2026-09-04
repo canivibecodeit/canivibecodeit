@@ -1,0 +1,212 @@
+---
+/* Step-by-step build tracker for one app. Split of intent vs /<slug>: that page
+   answers "can I vibecode it" and hands over the project pack; this one is the
+   workbench you keep open while building it.
+
+   noindex on purpose: the steps are the prompt's own content, so an indexable
+   copy would compete with the verdict page for the same words. */
+import Base from '../../layouts/Base.astro';
+import VerdictBadge from '../../components/VerdictBadge.astro';
+import { getApp, CATEGORIES, VERDICTS, yearlySaving } from '../../lib/apps.js';
+import { buildSteps, promptSection } from '../../lib/build-plan.js';
+
+const { slug } = Astro.params;
+const app = getApp(slug);
+if (!app) return new Response(null, { status: 404 });
+
+const { phased, steps } = buildSteps(app);
+// Nothing to track without a prompt: those pages say "don't build this one".
+if (!steps.length) return new Response(null, { status: 404 });
+
+const cat = CATEGORIES[app.category];
+const v = VERDICTS[app.verdict];
+const shortName = app.name.split(' / ')[0];
+const saving = yearlySaving(app);
+
+// The two decisions that are painful to revisit once the steps are underway.
+const stack = phased ? promptSection(app.prompt, 'Stack') : null;
+const model = phased ? promptSection(app.prompt, 'Data model') : null;
+const ruleZero = phased ? promptSection(app.prompt, 'Rule zero') : null;
+const outOfScope = phased ? promptSection(app.prompt, 'Out of scope') : null;
+
+const requirements = Array.isArray(app.requirements) ? app.requirements : [];
+const losses = Array.isArray(app.whatYouLose) ? app.whatYouLose : [];
+
+const title = `Build ${shortName} step by step · Vibecode It?`;
+const description = `Track your ${shortName} replacement build: ${steps.length} ${
+  phased ? 'modules' : 'steps'
+} in dependency order, each with the check that has to pass before the next one starts.`;
+---
+
+<Base {title} {description} noindex>
+  <main class="wrap build-page" data-build-page data-slug={app.slug} data-total={steps.length}>
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/">the death list</a> / <a href={`/${app.slug}`}>{app.slug}</a> / <span class="here">build</span>
+    </nav>
+
+    <div class="build-head">
+      <span class="title">
+        <img src={`/icons/${app.slug}.png`} alt="" width="44" height="44" />
+        <span>
+          <h1>Build {shortName}</h1>
+          <p class="build-sub">
+            <VerdictBadge verdict={app.verdict} />
+            {app.priceMonthly != null && <span>replaces ${app.priceMonthly}/mo</span>}
+            {saving != null && <span>saves ${saving.toLocaleString('en-US')}/yr</span>}
+            <a href={`/${app.slug}`}>back to the verdict</a>
+          </p>
+        </span>
+      </span>
+    </div>
+
+    {/* Sticky so the number stays visible while you work down the page. */}
+    <section class="progress-bar-wrap" data-progress-sticky>
+      <div class="progress-top">
+        <span class="progress-label">
+          <b data-bt-pct>0%</b>
+          <small><span data-bt-done>0</span> of {steps.length} {phased ? 'modules' : 'steps'} done</small>
+        </span>
+        <button type="button" class="bt-reset" data-bt-reset>reset</button>
+      </div>
+      <div class="bt-bar" role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-bt-bar>
+        <span data-bt-fill></span>
+      </div>
+      <p class="progress-note">
+        {phased
+          ? 'Saved on this device only. Work the steps in order and do not start one until the check above it passes.'
+          : `Saved on this device only. ${shortName}'s prompt has no phases yet, so this is the generic delivery order.`}
+      </p>
+    </section>
+
+    {
+      ruleZero && (
+        <section class="build-callout rule-zero">
+          <span class="microlabel">rule zero</span>
+          <pre>{ruleZero.body}</pre>
+        </section>
+      )
+    }
+
+    {
+      (stack || model || requirements.length > 0) && (
+        <section class="build-brief">
+          <h2 class="section-h">Before step 1</h2>
+          <div class="brief-grid">
+            {stack && (
+              <div class="brief-card">
+                <span class="microlabel">{stack.title.replace(/^Stack\s*/i, 'stack ')}</span>
+                <pre>{stack.body}</pre>
+              </div>
+            )}
+            {model && (
+              <div class="brief-card">
+                <span class="microlabel">data model</span>
+                <pre>{model.body}</pre>
+              </div>
+            )}
+            {requirements.length > 0 && (
+              <div class="brief-card">
+                <span class="microlabel">you will need</span>
+                <ul class="brief-list">
+                  {requirements.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="steps">
+      <h2 class="section-h">{phased ? 'The build, in order' : 'Delivery order'}</h2>
+
+      <ol class="step-list">
+        {steps.map((step, i) => (
+          <li class="step" data-step={i} id={`step-${i + 1}`}>
+            <div class="step-rail" aria-hidden="true">
+              <span class="step-dot">{step.n}</span>
+            </div>
+
+            <div class="step-body">
+              <header class="step-head">
+                <h3>{step.title}</h3>
+                <button type="button" class="step-collapse" data-step-collapse={i} aria-expanded="true">
+                  <span class="off">hide</span>
+                  <span class="on">show</span>
+                </button>
+              </header>
+
+              <div class="step-detail" data-step-detail={i}>
+                {step.build && (
+                  <div class="step-block">
+                    <span class="microlabel">build</span>
+                    <pre>{step.build}</pre>
+                  </div>
+                )}
+
+                {step.doneWhen && (
+                  <div class="step-block done-block">
+                    <span class="microlabel">done when</span>
+                    <p>{step.doneWhen}</p>
+                  </div>
+                )}
+
+                {step.notYet && (
+                  <div class="step-block not-yet">
+                    <span class="microlabel">do not build yet</span>
+                    <p>{step.notYet}</p>
+                  </div>
+                )}
+
+                <div class="step-actions">
+                  <button type="button" class="step-check" data-bt-toggle={i} aria-pressed="false">
+                    <span class="bt-box" aria-hidden="true">
+                      <svg width="11" height="9" viewBox="0 0 11 9" fill="none" aria-hidden="true"><path d="M1 4.5L4 7.5L10 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </span>
+                    <span class="off">mark this step done</span>
+                    <span class="on">done · undo</span>
+                  </button>
+                  {i < steps.length - 1 && (
+                    <a class="step-next" href={`#step-${i + 2}`}>next step</a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="build-done" data-build-done hidden>
+      <b>Every step ticked.</b>
+      <p>
+        That is the whole plan for {shortName}. What it deliberately does not cover is below · check the
+        gaps before you call it a replacement.
+      </p>
+    </section>
+
+    {
+      (outOfScope || losses.length > 0) && (
+        <section class="build-callout limits">
+          <span class="microlabel">what this build does not replace</span>
+          {outOfScope ? (
+            <pre>{outOfScope.body}</pre>
+          ) : (
+            <ul class="brief-list">
+              {losses.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )
+    }
+
+    <p class="build-foot">
+      Need the files? <a href={`/${app.slug}`}>The project pack</a> on the verdict page hands your agent the
+      whole brief · {cat && <a href={`/category/${app.category}`}>more {cat.label.toLowerCase()}</a>}.
+    </p>
+  </main>
+</Base>
