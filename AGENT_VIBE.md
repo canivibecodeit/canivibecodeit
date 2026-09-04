@@ -591,3 +591,35 @@ restarted.
   it is the one case where two controls genuinely occupy the same corner.
 - Commit: `feat: add a back-to-top button` and `style: pin the back-to-top
   button to the corner` (pushed to `origin/monster`).
+
+### 2026-09-04 — Reprice the sponsor slots to a $199 ladder
+
+- Repriced the board to start at $199 and rise $50 a slot in the order it
+  renders: L1 $199, L2 $249, L3 $299, L4 $349, L5 $399, R1 $449, R2 $499,
+  R3 $549, R4 $599, R5 $649. Previously $299 to $1,499.
+- `SLOT_SEED` in `src/lib/db.js` was reordered to match the board's display
+  order (it had been interleaved L1, R1, L2, R2 by price rank) and given a
+  comment explaining that its INSERTs are `ON CONFLICT DO NOTHING`, so it prices
+  a slot exactly once, when the row is first created.
+- That is the important part: **editing the seed does not reprice a board that
+  already exists**, so the live site keeps its old prices until someone acts.
+  Added `scripts/set-slot-prices.mjs`, which applies the ladder to whichever
+  database it is pointed at. Dry run by default, `--apply` writes, and slots
+  with an active purchase against them are skipped unless `--force` · a sponsor
+  who has paid keeps the rate they bought, which is what the sponsor page
+  promises. `SLOT_SEED` is now exported so the script and the seed cannot drift.
+- Verified end to end against a throwaway SQLite board: seeded fresh it comes up
+  on the new ladder; set back to the old prices, the dry run listed all ten
+  changes and wrote nothing, `--apply` wrote all ten, and `/sponsor` then
+  rendered $199 through $649 in order.
+- NOT changed, and it now contradicts the board: the sponsor page still says
+  "$2,500 flat · your rate never rises while you stay" in two places
+  (`src/pages/sponsor/index.astro`, the September block and the slots heading).
+  That figure already did not match the old $299-$1,499 ladder either. Picking a
+  new headline number is a pricing decision, so it is flagged rather than
+  invented.
+- Verification: `node --check` on `db.js` and the new script, `git diff --check`,
+  `npm run validate` (1,123 app files), `npm test` (30 passing), and
+  `npm exec -- astro build` passed.
+- Commit: `feat: reprice sponsor slots to a $199 ladder` (pushed to
+  `origin/monster`).

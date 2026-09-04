@@ -731,21 +731,25 @@ const SCHEMA_PG = `
   CREATE INDEX IF NOT EXISTS model_demos_model ON model_demos (model_slug, status, featured_order);
 `;
 
-/* Six fixed slots, three per rail side. Seed prices only — editable at runtime. */
-const SLOT_SEED = [
-  ['L1', 29900],
-  ['R1', 39900],
-  ['L2', 49900],
-  ['R2', 59900],
-  ['L3', 69900],
-  ['R3', 79900],
-  // Added at 8 slots (2026-08-01, launch night): seeds only apply to NEW rows —
-  // existing slot prices set from the admin are never overwritten.
-  ['L4', 119900],
-  ['R4', 149900],
-  // 10 slots (launch night +2, $999 cleared within the hour):
-  ['L5', 149900],
-  ['R5', 149900],
+/* Ten fixed slots, five per rail side. Seed prices only — editable at runtime.
+   These INSERTs are ON CONFLICT DO NOTHING, so they set the price of a slot
+   exactly once, when its row is first created: an existing board's prices are
+   never overwritten by a deploy. To reprice a live board, use the admin form or
+   `node scripts/set-slot-prices.mjs`.
+
+   Ladder repriced 2026-09-04 (operator): $199 for L1, rising $50 a slot down
+   the board as it renders — the whole left rail, then the whole right. */
+export const SLOT_SEED = [
+  ['L1', 19900],
+  ['L2', 24900],
+  ['L3', 29900],
+  ['L4', 34900],
+  ['L5', 39900],
+  ['R1', 44900],
+  ['R2', 49900],
+  ['R3', 54900],
+  ['R4', 59900],
+  ['R5', 64900],
 ];
 
 // Everything the slot-blocked predicate and the board care about. Anything else
