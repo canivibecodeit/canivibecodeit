@@ -1,0 +1,372 @@
+{
+  "slug": "feedly",
+  "version": 1,
+  "summary": "A personal RSS reader that is polite to the sites it reads: your Feedly OPML imported with folders, conditional fetching so unchanged feeds cost nothing, dedupe that survives rotating GUIDs, sanitized content, a keyboard-driven reader, starred items and full-text search, and optional LLM summaries that only appear when a key exists.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22 with Express and better-sqlite3",
+      "why": "a reader UI and a fetch loop in one process"
+    },
+    {
+      "part": "Parsing",
+      "choice": "rss-parser, node-cron",
+      "why": "battle-tested feed parsing; scheduling without a queue"
+    },
+    {
+      "part": "Search",
+      "choice": "SQLite FTS5",
+      "why": "full text over everything you have read, no service"
+    },
+    {
+      "part": "Hosting",
+      "choice": "localhost, or your own network",
+      "why": "your reading list is nobody's business"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "opml",
+      "kind": "asset",
+      "name": "Your Feedly OPML export",
+      "why": "Phase 1 imports it so nothing is retyped.",
+      "get": "Feedly > Settings (gear) > OPML > Export. Save it as feeds.opml in the project.",
+      "cost": "free"
+    },
+    {
+      "id": "ua",
+      "kind": "decision",
+      "name": "A User-Agent string with a contact URL",
+      "why": "Polite fetching identifies itself. Site owners can reach you if your reader misbehaves.",
+      "get": "Something like MyReader/1.0 (+https://yourdomain.com/reader)",
+      "cost": "free"
+    },
+    {
+      "id": "llm-key",
+      "kind": "key",
+      "name": "An LLM API key (optional)",
+      "why": "Phase 6 adds a per-article summary button; without a key the button does not exist.",
+      "get": "Anthropic or OpenAI console, into .env.",
+      "cost": "pay per use",
+      "optional": true,
+      "url": "https://console.anthropic.com"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "4830",
+      "required": true,
+      "secret": false,
+      "where": "Bound to 127.0.0.1 or your LAN."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/reader.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "OPML_PATH",
+      "example": "./feeds.opml",
+      "required": true,
+      "secret": false,
+      "where": "Your subscription list; the reader exports back to it."
+    },
+    {
+      "name": "USER_AGENT",
+      "example": "MyReader/1.0 (+https://yourdomain.com/reader)",
+      "required": true,
+      "secret": false,
+      "where": "Identifies your fetcher to the sites you read."
+    },
+    {
+      "name": "FETCH_INTERVAL_MINUTES",
+      "example": "30",
+      "required": false,
+      "secret": false,
+      "where": "How often the loop runs."
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "example": "sk-ant-...",
+      "required": false,
+      "secret": true,
+      "where": "Enables summaries. Empty hides the feature entirely."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "OPML and feed list",
+      "goal": "Import with folders, idempotently, and export back.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the tables",
+          "detail": "feeds (id, url, title, folder, site_url, etag, last_modified, last_fetched_at, last_status, consecutive_failures, disabled), items (id, feed_id, guid, link, title, author, published_at, content, read, starred, fetched_at), unique (feed_id, guid).",
+          "commands": [
+            "mkdir reader && cd reader && git init && npm init -y && npm pkg set type=module",
+            "npm install express@4 better-sqlite3@13 rss-parser@3 node-cron@3",
+            "mkdir data && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Import OPML preserving folders; export on demand"
+        }
+      ],
+      "check": [
+        "A real Feedly OPML imports with folders intact",
+        "Re-importing adds nothing",
+        "The export re-imports into an identical tree"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Polite fetching",
+      "goal": "Conditional GETs, a real User-Agent, timeouts, per-host courtesy, backoff.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Send If-None-Match and If-Modified-Since; handle 304 by doing nothing",
+          "detail": "Skipping this re-downloads every feed forever, which is how a reader becomes a nuisance."
+        },
+        {
+          "id": "p2s2",
+          "do": "Set USER_AGENT, a timeout, per-host concurrency of 1 with a delay"
+        },
+        {
+          "id": "p2s3",
+          "do": "Back off failing feeds and disable after enough failures"
+        }
+      ],
+      "check": [
+        "A second fetch of an unchanged feed returns 304 and writes nothing",
+        "A feed returning 500 backs off",
+        "A timeout does not delay the others",
+        "Malformed XML is logged without killing the loop"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Item ingestion",
+      "goal": "Dedupe that survives bad GUIDs, and HTML that cannot hurt you.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Dedupe by guid, fall back to link, treat a rotating guid as absent"
+        },
+        {
+          "id": "p3s2",
+          "do": "Sanitize content against an allowlist, strip tracking pixels, absolutize URLs",
+          "commands": [
+            "npm install sanitize-html@2"
+          ]
+        }
+      ],
+      "check": [
+        "Refetching produces zero new items",
+        "A feed with rotating guids does not duplicate",
+        "A script tag in content is stripped",
+        "A relative image renders correctly"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Reader UI",
+      "goal": "Folders with counts, a list, a reading pane, keyboard everything.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Build the three panes: folder tree with unread counts, article list, reading pane"
+        },
+        {
+          "id": "p4s2",
+          "do": "Add keyboard shortcuts j/k/o/m/s/A and dark mode",
+          "detail": "Mark-as-read on scroll-past is a preference, not the default."
+        }
+      ],
+      "check": [
+        "Unread counts stay correct through every action",
+        "Keyboard focus survives list re-renders",
+        "A 5,000-item list scrolls without lag"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Starred and search",
+      "goal": "Starred forever, FTS5 via triggers.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Add the starred view"
+        },
+        {
+          "id": "p5s2",
+          "do": "Add an FTS5 table over titles and content, synced by triggers"
+        }
+      ],
+      "check": [
+        "Search finds a phrase inside an article body",
+        "Deleting an item removes it from the index"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Optional summaries",
+      "goal": "A button that exists only when a key does, cached per item.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Render the summarize button only when ANTHROPIC_API_KEY is set",
+          "detail": "A dead button is worse than no button."
+        },
+        {
+          "id": "p6s2",
+          "do": "Cache the summary on the item so reopening does not re-bill"
+        }
+      ],
+      "check": [
+        "With no key there is no trace of the feature",
+        "With a key a summary generates once and is reused"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Retention and deploy",
+      "goal": "Prune read items, keep starred, back up, run as a service.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Nightly prune of read items older than 90 days, never starred"
+        },
+        {
+          "id": "p7s2",
+          "do": "Nightly backup, a systemd unit, and the README",
+          "detail": "README: how to add a feed (edit the OPML) and export it back, the polite-fetching behaviour as a promise, where the database lives.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "Pruning never deletes a starred item",
+        "Unread counts survive a restart"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the reader is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p8s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p8s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p8s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A reader you could run for a few people on your network: polite by construction, searchable for years, with summaries as a paid-key extra.",
+    "architecture": [
+      {
+        "module": "Subscriptions",
+        "owns": "feeds table and OPML in/out",
+        "swap": "Any list format producing the same rows"
+      },
+      {
+        "module": "Fetcher",
+        "owns": "conditional GET, backoff, courtesy",
+        "swap": "The politeness contract lives here"
+      },
+      {
+        "module": "Ingest",
+        "owns": "dedupe and sanitizing",
+        "swap": "Stricter allowlists here only"
+      },
+      {
+        "module": "Reader",
+        "owns": "UI, FTS, starred",
+        "swap": "Any UI over items"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly.",
+      "restore": "Copy back; unread counts and stars are in the file.",
+      "monitoring": "Alert if the fetch loop has not run in an hour.",
+      "incident": "If a site complains, disable the feed and check your User-Agent and interval."
+    },
+    "releaseGate": [
+      "304 handling verified against a real feed",
+      "Sanitizer verified against a hostile fixture",
+      "One restore drill performed"
+    ]
+  },
+  "notIncluded": [
+    "Mobile apps; the web UI over your network is the answer.",
+    "Feed discovery and their AI filtering layer, which need a crawl of the web."
+  ],
+  "after": [
+    "A read-later inbox that saves arbitrary URLs into the same reader",
+    "Per-folder digests by email"
+  ]
+}

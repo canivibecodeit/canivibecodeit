@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import VerdictBadge from '../components/VerdictBadge.astro';
+import { allApps } from '../lib/apps.js';
+import { voteCounts } from '../lib/frontend-data.js';
+
+const apps = allApps().sort((a, b) => a.name.localeCompare(b.name));
+const votes = await voteCounts();
+const suggestions = [...apps]
+  .filter((app) => app.verdict === 'yes' && app.priceMonthly != null)
+  .sort((a, b) => votes(b.slug) - votes(a.slug) || (b.pagePriority ?? 3) - (a.pagePriority ?? 3))
+  .slice(0, 3);
+---
+
+<Base title="My stack · Vibecode It?" description="The subscriptions you saved on this device, with no account required." noindex>
+  <main class="wrap local-stack-wrap" data-local-stack-page>
+    <header class="local-stack-head">
+      <span class="microlabel">saved on this device</span>
+      <h1>My stack</h1>
+      <p>Your shortlist lives only in this browser. No account, sync, or signup required.</p>
+    </header>
+
+    <section class="stack-summary" aria-live="polite">
+      <div><strong data-local-stack-count>0</strong><span>saved apps</span></div>
+      <div><strong data-local-stack-monthly>$0</strong><span>monthly subscriptions</span></div>
+      <div><strong data-local-stack-yearly>$0</strong><span>possible yearly savings</span></div>
+    </section>
+
+    <section class="saved-stack" data-local-stack-saved hidden>
+      <div class="stack-rows">
+        {apps.map((app) => (
+          <article class="stack-row" data-local-stack-row={app.slug} data-price={app.priceMonthly ?? 0} hidden>
+            <img src={`/icons/${app.slug}.png`} alt="" width="30" height="30" loading="lazy" />
+            <a class="stack-name" href={`/${app.slug}`}>{app.name}</a>
+            <span class="stack-price">{app.priceMonthly != null ? `$${app.priceMonthly}/mo` : 'varies'}</span>
+            <span class="stack-verdict"><VerdictBadge verdict={app.verdict} /></span>
+            <button class="stack-remove" type="button" data-stack-remove={app.slug}>remove</button>
+          </article>
+        ))}
+      </div>
+      <p class="storage-note">Clearing browser storage removes this list. Export and cross-device sync can be added later.</p>
+    </section>
+
+    <section class="empty-stack" data-local-stack-empty>
+      <p>Nothing saved yet. Start with a popular one-shot replacement or browse the full death list.</p>
+      <div class="stack-rows suggestion-rows">
+        {suggestions.map((app) => (
+          <article class="stack-row">
+            <img src={`/icons/${app.slug}.png`} alt="" width="30" height="30" loading="lazy" />
+            <a class="stack-name" href={`/${app.slug}`}>{app.name}</a>
+            <span class="stack-price">${app.priceMonthly}/mo</span>
+            <span class="stack-verdict"><VerdictBadge verdict={app.verdict} /></span>
+            <button class="stack-add" type="button" data-stack-suggest={app.slug}>+ save</button>
+          </article>
+        ))}
+      </div>
+      <a class="btn primary browse-stack" href="/#death-list">browse all {apps.length} apps →</a>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .local-stack-wrap { padding-top: 52px; padding-bottom: 96px; }
+  .local-stack-head { max-width: 680px; }
+  .local-stack-head h1 { margin-top: 8px; font-family: var(--font-display); font-size: clamp(36px, 7vw, 64px); letter-spacing: -0.04em; }
+  .local-stack-head p { margin-top: 10px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+  .stack-summary { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 32px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .stack-summary div { display: flex; flex-direction: column; gap: 4px; padding: 20px; background: var(--surface); }
+  .stack-summary div + div { border-left: 1px solid var(--border); }
+  .stack-summary strong { color: var(--primary); font: 600 25px/1 var(--font-display); }
+  .stack-summary span { color: var(--muted); font: 11px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
+  .saved-stack, .empty-stack { margin-top: 38px; }
+  .empty-stack > p, .storage-note { color: var(--muted); font-size: 13px; line-height: 1.7; }
+  .stack-rows { margin-top: 14px; border-top: 1px solid var(--border); }
+  .stack-row { display: grid; grid-template-columns: 30px minmax(140px, 1fr) 110px 110px 80px; align-items: center; gap: 14px; min-height: 62px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .stack-row[hidden] { display: none; }
+  .stack-row img { border-radius: 6px; }
+  .stack-name { font-weight: 600; }
+  .stack-name:hover { color: var(--primary); }
+  .stack-price { color: var(--muted); font: 12px var(--font-mono); }
+  .stack-remove, .stack-add { justify-self: end; padding: 7px 9px; border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-size: 11px; }
+  .stack-remove:hover, .stack-add:hover { border-color: var(--primary); color: var(--primary); }
+  .stack-remove.armed { border-color: #d26a5c; color: #d26a5c; }
+  .storage-note { margin-top: 13px; }
+  .browse-stack { margin-top: 22px; }
+  @media (max-width: 680px) {
+    .stack-summary { grid-template-columns: 1fr; }
+    .stack-summary div + div { border-left: 0; border-top: 1px solid var(--border); }
+    .stack-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; }
+    .stack-price, .stack-verdict { display: none; }
+  }
+</style>

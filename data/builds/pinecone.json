@@ -1,0 +1,294 @@
+{
+  "slug": "pinecone",
+  "version": 1,
+  "summary": "Semantic search over your own documents with pgvector in the Postgres you already run: chunked documents with embeddings, cosine search with an HNSW index, hybrid ranking with full-text so exact identifiers still win, a localhost search page, and backups that are just pg_dump.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Database",
+      "choice": "Postgres 16 with pgvector",
+      "why": "rule zero: a vector index is a column type"
+    },
+    {
+      "part": "Embeddings",
+      "choice": "A provider behind an interface",
+      "why": "OpenAI or a local model via Ollama; swappable by env"
+    },
+    {
+      "part": "Runtime",
+      "choice": "Node 22",
+      "why": "the ingest and search scripts"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "postgres",
+      "kind": "tool",
+      "name": "Postgres 16 with the pgvector extension",
+      "why": "The whole store.",
+      "get": "Docker: docker run -d -e POSTGRES_PASSWORD=pw -p 5432:5432 pgvector/pgvector:pg16. Or install pgvector on an existing Postgres.",
+      "verify": "CREATE EXTENSION vector; succeeds",
+      "cost": "free",
+      "url": "https://github.com/pgvector/pgvector"
+    },
+    {
+      "id": "embed-key",
+      "kind": "key",
+      "name": "An embeddings API key, or Ollama locally",
+      "why": "Phase 1 embeds chunks.",
+      "get": "OpenAI: platform.openai.com/api-keys. Local: install Ollama and ollama pull nomic-embed-text.",
+      "cost": "pay per use, or free locally",
+      "url": "https://platform.openai.com/api-keys"
+    },
+    {
+      "id": "docs",
+      "kind": "asset",
+      "name": "The documents to search",
+      "why": "Markdown, PDFs converted to text, or a folder of notes.",
+      "get": "A folder of files.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "DATABASE_URL",
+      "example": "postgres://postgres:pw@localhost:5432/search",
+      "required": true,
+      "secret": true,
+      "where": "Your Postgres."
+    },
+    {
+      "name": "EMBED_PROVIDER",
+      "example": "openai",
+      "required": true,
+      "secret": false,
+      "where": "openai or ollama."
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "example": "sk-...",
+      "required": false,
+      "secret": true,
+      "where": "For the openai provider."
+    },
+    {
+      "name": "EMBED_MODEL",
+      "example": "text-embedding-3-small",
+      "required": true,
+      "secret": false,
+      "where": "Model name; dimension must match the column."
+    },
+    {
+      "name": "DOCS_DIR",
+      "example": "./docs",
+      "required": true,
+      "secret": false,
+      "where": "Where the ingester reads."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Store and embed",
+      "goal": "Chunks with vectors, idempotent on document hash, provider swappable.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the schema",
+          "detail": "documents (id, source, title, url, updated_at, hash), chunks (id, document_id, position, text, embedding vector(N), token_count). N matches EMBED_MODEL's dimension.",
+          "commands": [
+            "mkdir semantic && cd semantic && git init && npm init -y && npm pkg set type=module && npm install pg@8",
+            "mkdir -p docs && cp .env.example .env"
+          ],
+          "files": [
+            "schema.sql"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Chunk by paragraph around 500 tokens with overlap; embed behind an interface; skip unchanged documents by hash"
+        }
+      ],
+      "check": [
+        "Re-ingesting an unchanged document embeds nothing",
+        "A changed one re-embeds only its chunks",
+        "Switching EMBED_PROVIDER works"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Search",
+      "goal": "Top-k by cosine with an HNSW index actually used.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Create the HNSW index and the query function",
+          "commands": [
+            "CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Verify the plan uses the index",
+          "commands": [
+            "EXPLAIN ANALYZE SELECT ... ORDER BY embedding <=> $1 LIMIT 10;"
+          ]
+        }
+      ],
+      "check": [
+        "A known passage returns in the top 3",
+        "EXPLAIN shows the index"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Hybrid",
+      "goal": "Exact identifiers win: fuse vector and full-text ranks.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Add a tsvector column and GIN index"
+        },
+        {
+          "id": "p3s2",
+          "do": "Reciprocal rank fusion of both result lists"
+        }
+      ],
+      "check": [
+        "A query with an exact error code ranks the matching chunk first"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "A page",
+      "goal": "Localhost search with highlighted passages and source links.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "A JSON endpoint and a server-rendered page"
+        },
+        {
+          "id": "p4s2",
+          "do": "Time it on 100k chunks"
+        }
+      ],
+      "check": [
+        "Under 300 ms over 100k chunks"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Operate",
+      "goal": "Migrations, pg_dump, reindex.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Migrations and a reindex command"
+        },
+        {
+          "id": "p5s2",
+          "do": "pg_dump nightly and one restore; README with the chunking rule and provider swap",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A restore searches correctly"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Serve it to others",
+      "productOnly": true,
+      "goal": "Auth, rate limits, and cost visibility.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Token auth and a rate limit on the JSON endpoint"
+        },
+        {
+          "id": "p6s2",
+          "do": "Log embedding calls and estimate monthly cost"
+        }
+      ],
+      "check": [
+        "Unauthenticated calls are refused",
+        "Cost per day is visible"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Semantic search as a column in your database, with exact-match behaviour preserved and backups you already know how to do.",
+    "architecture": [
+      {
+        "module": "Ingest",
+        "owns": "chunking and embedding",
+        "swap": "Any provider"
+      },
+      {
+        "module": "Store",
+        "owns": "Postgres and indexes",
+        "swap": "Qdrant at scale, same chunk shape"
+      },
+      {
+        "module": "Rank",
+        "owns": "hybrid fusion",
+        "swap": "Tune weights"
+      },
+      {
+        "module": "API",
+        "owns": "endpoint and page",
+        "swap": "Any client"
+      }
+    ],
+    "operations": {
+      "backup": "pg_dump nightly.",
+      "restore": "pg_restore.",
+      "monitoring": "Query latency and embedding spend.",
+      "incident": "A leaked key: rotate."
+    },
+    "releaseGate": [
+      "Index use verified with EXPLAIN",
+      "Hybrid verified on identifiers",
+      "Restore verified"
+    ]
+  },
+  "notIncluded": [
+    "Billions of vectors and serverless scale; under a few million this is a column."
+  ],
+  "after": [
+    "Re-ranking with a cross-encoder",
+    "Per-user document permissions"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "slug": "beacons",
+  "name": "Beacons",
+  "domain": "beacons.ai",
+  "category": "link-in-bio",
+  "subcategory": "creator link page with store and email",
+  "tagline": "Link in bio with a storefront, email list and media kit",
+  "priceMonthly": 10,
+  "pricing": {
+    "plan": "Creator Pro",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "10 USD",
+    "source": "https://beacons.ai/i/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "medium",
+    "notes": "The pricing page blocks automated fetches; figures from the official plans URL as reported by 2026 sources. Free plan with a link page and 9% store fee; Creator Pro $10/month ($8.33 annual) removes branding and lowers fees; higher tiers add email and store features.",
+    "freeTier": "The free plan includes the link page and a store with a 9% transaction fee."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The link page is the Linktree build. The extras (a small store, an email capture, a media kit page) are each a sitting on top. What stays theirs is payments and email delivery at scale, and the transaction fee is the price of not touching either.",
+  "coreLoopDIY": "A static link page from JSON with click tracking, plus a Stripe Payment Link storefront and an email signup that stores locally.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small host",
+    "a Stripe account for payment links"
+  ],
+  "whatYouLose": [
+    "hosted checkout with digital delivery done for you",
+    "email sending to your list",
+    "the media kit and brand-deal tooling",
+    "templates and the editor"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "payments plus email plus the page, in one login",
+  "whyPeopleStillPay": "Creators pay to not assemble Stripe, an email tool and a page themselves, and the free tier's fee model means most never see a bill.",
+  "priorArt": [
+    {
+      "name": "LittleLink",
+      "url": "https://github.com/sethcottle/littlelink",
+      "desc": "open-source link-in-bio page"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "linktree",
+    "carrd",
+    "getwaitlist",
+    "gumroad"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Linktree with a till and a mailing list. The build is the Linktree prompt plus two honest bolt-ons.",
+  "prompt": "Build me a creator link page with a small store and an email list like Beacons. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- One Node process with node:http and node:sqlite. Server-rendered HTML, inline CSS. No framework.\n- Stripe Payment Links for anything sold · you never handle card data. SQLite for clicks and signups.\n\n### Data model (create this before Phase 1)\n\n- page.json: profile (name, bio, avatar, accent), links (slug, title, url, emoji, enabled), products (slug, title, price_text, payment_link_url, image)\n- clicks: id, slug, clicked_at, referer, user_agent_class, ip_hash\n- signups: id, email (unique), created_at, ip_hash\n\n### Phase 1 · The page\n\nBuild: render profile, links and products from page.json, mobile-first, with JavaScript disabled everything still works. Validate the JSON at startup and refuse to boot with the bad entry named.\nDone when: the page renders at 375px with JS off and a malformed page.json stops the server with a message naming the entry.\nDo not build yet: tracking, store, signup.\n\n### Phase 2 · Design\n\nBuild: a typographic hierarchy, 44px tap targets, the accent color as a CSS custom property, dark mode, focus-visible rings. No external requests.\nDone when: zero third-party requests, no contrast failures in either scheme, keyboard operable.\n\n### Phase 3 · Click tracking\n\nBuild: /go/:slug records a row and 302s; unknown slugs go home. Bot user agents bucketed separately. /stats behind basic auth from .env with clicks per link over 7 and 30 days as inline SVG.\nDone when: a click lands with one row, an unknown slug lands on the homepage, and totals reconcile with a GROUP BY.\n\n### Phase 4 · The store\n\nBuild: product cards that open the Stripe Payment Link. Digital delivery is Stripe's job: enable the \"send a link\" option on the Payment Link. No cart, no checkout of your own.\nDone when: a test-mode purchase completes and the buyer receives the file link from Stripe.\n\n### Phase 5 · Email capture\n\nBuild: a signup form storing to signups with a honeypot and a per-IP rate limit, and a CSV export behind basic auth. No sending in v1.\nDone when: a duplicate email is a no-op, the sixth signup from one IP in an hour is refused, and the export opens in a spreadsheet.\n\n### Phase 6 · Cards and deploy\n\nBuild: OG meta and a generated OG image, a /healthz endpoint, a systemd unit, a nightly backup and the README.\nDone when: the link previews correctly when shared and a reader goes from clone to live on their domain.\n\n### Out of scope (and why)\n\n- Sending email. Export into a real sender; deliverability is a whole product.\n- The media kit, brand-deal tooling and the editor.\n\n### README must contain\n\n- The page.json reference, and the note that slugs are permanent.\n- The Stripe Payment Link setup including digital delivery.",
+  "promptCurated": true
+}

@@ -1,6 +1,6 @@
 /* Daily challenge-entry recheck: every live and held entry's URL goes back
    through Google Safe Browsing in one batch. A live entry that now matches
-   is held (and Rob pinged once per run); a held entry that comes back clean
+   is held (and Faizan pinged once per run); a held entry that comes back clean
    STAYS held — release is a human decision, this job only ever tightens.
    Every checked entry gets last_checked_at/check_result stamped.
 
@@ -46,7 +46,7 @@ if (USE_SQLITE) {
 
 const { challengeEntriesForCheck, updateChallengeEntry } = await import('../src/lib/db.js');
 const { checkUrls, safeBrowsingOn } = await import('../src/lib/safe-browsing.js');
-const { alertRob, esc } = await import('../src/lib/mail.js');
+const { alertAdmin, esc } = await import('../src/lib/mail.js');
 
 if (!safeBrowsingOn()) {
   console.log('challenge-recheck: GOOGLE_SAFEBROWSING_KEY unset — nothing to check against, exiting clean.');
@@ -109,10 +109,10 @@ if (newlyHeld.length > 0 && !DRY) {
   const rows = newlyHeld
     .map(({ entry, threats }) => `<li><b>${esc(entry.page_title ?? entry.url)}</b> by @${esc(entry.x_handle)} · ${esc(threats.join(', '))}</li>`)
     .join('');
-  await alertRob(
+  await alertAdmin(
     `[cvci] challenge recheck held ${newlyHeld.length} ${newlyHeld.length === 1 ? 'entry' : 'entries'}`,
     `<p>The daily Safe Browsing recheck pulled these out of the gallery:</p><ul>${rows}</ul>
-     <p><a href="https://canivibecodeit.com/admin/challenge">open the queue and paste your token</a></p>`
+     <p><a href="https://vibecodeit.com/admin/challenge">open the queue and paste your token</a></p>`
   ).catch((err) => console.error(`recheck alert failed: ${err.message}`));
 }
 

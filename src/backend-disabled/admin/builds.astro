@@ -1,0 +1,258 @@
+---
+// /admin/builds: the approve queue, phone-first (Faizan approves from a train).
+// One tap = instantly live. Everything the maker submitted is on the card —
+// links open in new tabs so the "does it load?" check is one thumb away.
+// Reachable with the flag off, so the queue never goes dark.
+import Base from '../../layouts/Base.astro';
+import { liveBuilds, pendingBuilds, buildUserNames } from '../../lib/db.js';
+import { getApp } from '../../lib/apps.js';
+import { GOES, ago, buildHref, builderName, goesLabel } from '../../lib/builds.js';
+import { isAdmin } from '../../lib/sponsors.js';
+
+const token = Astro.url.searchParams.get('token') || '';
+// Wrong or missing token looks exactly like a page that doesn't exist.
+if (!isAdmin(token)) return new Response(null, { status: 404 });
+
+const [queue, live] = await Promise.all([pendingBuilds(), liveBuilds()]);
+const names = await buildUserNames([...queue, ...live].map((b) => b.user_id));
+
+const msg = Astro.url.searchParams.get('msg') || '';
+const returnTo = `/admin/builds?token=${encodeURIComponent(token)}`;
+
+const media = (b) => {
+  try {
+    return JSON.parse(b.media || '[]');
+  } catch {
+    return [];
+  }
+};
+const appName = (b) => (b.app_slug ? (getApp(b.app_slug)?.name ?? b.app_slug).split(' / ')[0] : null);
+---
+
+<Base title="builds admin" description="" ogImage="/og/home.png">
+  <main class="wrap admin">
+    <div class="list-head">
+      <h2>Build queue</h2>
+      <span class="note">{queue.length} waiting · approve = instantly live</span>
+    </div>
+
+    {msg && <p class="admin-msg">{msg}</p>}
+
+    {queue.length === 0 && <p class="note" style="padding-top: 14px;">queue's empty. nice.</p>}
+
+    <div class="admin-rows ba-rows">
+      {
+        queue.map((b) => (
+          <div class="admin-card ba-card">
+            <div class="ba-top">
+              <span class="admin-strong">{b.name}</span>
+              <span class="microlabel">{goesLabel(b)}</span>
+              <span class="microlabel">{ago(b.created_at)}</span>
+            </div>
+            <p class="ba-line">{b.one_liner}</p>
+            <p class="admin-sub">
+              by {builderName(names, b)}{b.by_owner === 1 && ' · repo owner ✓'} · {b.tool}
+              {b.model && ` · ${b.model}`}
+              {appName(b) && ` · on ${appName(b)}`}
+            </p>
+            {b.affiliation && <p class="admin-sub ba-affil">affiliation: {b.affiliation}</p>}
+
+            <div class="ba-links">
+              {b.demo_url && (
+                <a href={b.demo_url} target="_blank" rel="ugc nofollow noopener">demo ↗</a>
+              )}
+              {b.repo_url && (
+                <a href={b.repo_url} target="_blank" rel="ugc nofollow noopener">repo ↗</a>
+              )}
+              {b.chat_url && (
+                <a href={b.chat_url} target="_blank" rel="ugc nofollow noopener">chat ↗</a>
+              )}
+            </div>
+
+            {media(b).length > 0 && (
+              <div class="ba-shots">
+                {media(b).map((m) => (
+                  <a href={m} target="_blank"><img src={m} alt="" loading="lazy" /></a>
+                ))}
+              </div>
+            )}
+
+            <p class="ba-broke">broke: {b.where_broke}</p>
+            {b.prompt && (
+              <details class="ba-text">
+                <summary>prompt · {b.prompt.length} chars</summary>
+                <pre>{b.prompt}</pre>
+              </details>
+            )}
+            {b.story && (
+              <details class="ba-text">
+                <summary>what got it done · {b.story.length} chars</summary>
+                <pre>{b.story}</pre>
+              </details>
+            )}
+
+            <div class="admin-actions">
+              <form method="post" action="/api/build/admin" data-astro-reload>
+                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="action" value="approve" />
+                <input type="hidden" name="id" value={b.id} />
+                <button class="btn primary" type="submit">approve · live now</button>
+              </form>
+              <form method="post" action="/api/build/admin" data-astro-reload>
+                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="action" value="reject" />
+                <input type="hidden" name="id" value={b.id} />
+                <button class="btn ghost" type="submit">reject</button>
+              </form>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="list-head" style="padding-top: 36px;">
+      <h2>Live</h2>
+      <span class="note">{live.length} listed · newest first · feature = verdict-page strip</span>
+    </div>
+    <div class="admin-rows ba-rows">
+      {
+        live.slice(0, 30).map((b) => (
+          <div class="admin-card ba-card ba-live">
+            <div class="ba-top">
+              <a class="admin-strong" href={buildHref(names, b)} target="_blank">{b.name} ↗</a>
+              <span class="microlabel">{goesLabel(b)}</span>
+              {b.featured === 1 && <span class="microlabel ba-feat">featured</span>}
+              <span class="microlabel">{ago(b.created_at)}</span>
+            </div>
+            <p class="admin-sub">
+              by {builderName(names, b)} · {b.tool}
+              {appName(b) && ` · on ${appName(b)}`}
+            </p>
+            <div class="admin-actions">
+              {b.featured !== 1 && b.app_slug && (
+                <form method="post" action="/api/build/admin" data-astro-reload>
+                  <input type="hidden" name="token" value={token} />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="action" value="feature" />
+                  <input type="hidden" name="id" value={b.id} />
+                  <button class="btn ghost" type="submit">feature</button>
+                </form>
+              )}
+              {b.featured === 1 && (
+                <form method="post" action="/api/build/admin" data-astro-reload>
+                  <input type="hidden" name="token" value={token} />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="action" value="unfeature" />
+                  <input type="hidden" name="id" value={b.id} />
+                  <button class="btn ghost" type="submit">unfeature</button>
+                </form>
+              )}
+              <form method="post" action="/api/build/admin" data-astro-reload>
+                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="action" value="unpublish" />
+                <input type="hidden" name="id" value={b.id} />
+                <button class="btn ghost" type="submit">unpublish</button>
+              </form>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </main>
+</Base>
+
+<style>
+  .ba-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 16px;
+  }
+
+  .ba-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ba-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ba-top .microlabel:last-child {
+    margin-left: auto;
+  }
+
+  .ba-line {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .ba-affil {
+    color: var(--no-bg);
+  }
+
+  .ba-links {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+
+  .ba-links a {
+    color: var(--primary);
+  }
+
+  .ba-shots {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .ba-shots img {
+    width: 110px;
+    height: 68px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .ba-broke {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .ba-text summary {
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .ba-text pre {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    font-size: 12.5px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .ba-feat {
+    color: var(--primary);
+  }
+
+  .ba-live {
+    gap: 6px;
+  }
+</style>

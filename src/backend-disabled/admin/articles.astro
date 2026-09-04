@@ -1,0 +1,213 @@
+---
+/* /admin/articles: the guide review queue. Token-gated, phone-first like the
+   build queue — the whole draft is on the card so a read-and-decide never needs
+   a second screen. Accept means "goes into a sunday issue", not "appears on the
+   site": nothing in this table is ever rendered publicly. */
+import Base from '../../layouts/Base.astro';
+import { articlesByStatus } from '../../lib/db.js';
+import { wordCount } from '../../lib/articles.js';
+import { isAdmin } from '../../lib/sponsors.js';
+
+const token = Astro.url.searchParams.get('token') || '';
+// Wrong or missing token looks exactly like a page that doesn't exist.
+if (!isAdmin(token)) return new Response(null, { status: 404 });
+
+const [pending, accepted, rejected] = await Promise.all([
+  articlesByStatus('pending'),
+  articlesByStatus('accepted'),
+  articlesByStatus('rejected'),
+]);
+
+const msg = Astro.url.searchParams.get('msg') || '';
+const returnTo = `/admin/articles?token=${encodeURIComponent(token)}`;
+
+const ago = (ts) => {
+  const mins = Math.round((Date.now() - Number(ts)) / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}h ago`;
+  return `${Math.round(mins / 1440)}d ago`;
+};
+---
+
+<Base title="guides admin" description="" ogImage="/og/home.png">
+  <main class="wrap admin">
+    <div class="list-head">
+      <h2>Guide queue</h2>
+      <span class="note">{pending.length} waiting · {accepted.length} accepted · {rejected.length} rejected</span>
+    </div>
+
+    {msg && <p class="admin-msg">{msg}</p>}
+
+    {pending.length === 0 && <p class="note">Nothing waiting.</p>}
+
+    {
+      pending.map((a) => (
+        <article class="ga-card">
+          <header>
+            <h3>{a.title}</h3>
+            <span class="note">
+              {a.author} · <a href={`mailto:${a.email}`}>{a.email}</a>
+              {a.link && (
+                <>
+                  {' · '}
+                  <a href={a.link} target="_blank" rel="noopener noreferrer">
+                    {a.link}
+                  </a>
+                </>
+              )}
+              {' · '}
+              {wordCount(a.body).toLocaleString('en-US')} words · {ago(a.created_at)}
+            </span>
+          </header>
+
+          {a.summary && <p class="ga-summary">{a.summary}</p>}
+
+          <details>
+            <summary>read the draft</summary>
+            <pre class="ga-body">{a.body}</pre>
+          </details>
+
+          <form method="post" action="/api/article/admin" class="ga-actions">
+            <input type="hidden" name="token" value={token} />
+            <input type="hidden" name="id" value={a.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="text" name="note" placeholder="note to self (optional)" maxlength="300" />
+            <button class="btn primary" type="submit" name="action" value="accept">accept</button>
+            <button class="btn ghost" type="submit" name="action" value="reject">reject</button>
+          </form>
+        </article>
+      ))
+    }
+
+    {
+      accepted.length > 0 && (
+        <>
+          <div class="list-head">
+            <h2>Accepted</h2>
+            <span class="note">queued for a sunday issue</span>
+          </div>
+          {accepted.map((a) => (
+            <article class="ga-card slim">
+              <h3>{a.title}</h3>
+              <span class="note">
+                {a.author} · {a.email} · {ago(a.updated_at)}
+                {a.note && ` · ${a.note}`}
+              </span>
+              <form method="post" action="/api/article/admin" class="ga-actions">
+                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="id" value={a.id} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <button class="btn ghost" type="submit" name="action" value="reopen">back to queue</button>
+              </form>
+            </article>
+          ))}
+        </>
+      )
+    }
+
+    {
+      rejected.length > 0 && (
+        <>
+          <div class="list-head">
+            <h2>Rejected</h2>
+            <span class="note">kept so the same draft is not reviewed twice</span>
+          </div>
+          {rejected.map((a) => (
+            <article class="ga-card slim">
+              <h3>{a.title}</h3>
+              <span class="note">
+                {a.author} · {ago(a.updated_at)}
+                {a.note && ` · ${a.note}`}
+              </span>
+            </article>
+          ))}
+        </>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .ga-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+
+  .ga-card h3 {
+    font-size: 17px;
+    line-height: 1.35;
+  }
+
+  .ga-card .note {
+    display: block;
+    padding-top: 6px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .ga-summary {
+    padding-top: 10px;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .ga-card details {
+    padding-top: 12px;
+  }
+
+  .ga-card summary {
+    font-size: 12.5px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .ga-body {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .ga-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 14px;
+  }
+
+  .ga-actions input[type='text'] {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .ga-card.slim {
+    padding: 12px 16px;
+  }
+
+  .admin-msg {
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    font-size: 13px;
+  }
+</style>

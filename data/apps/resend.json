@@ -1,0 +1,61 @@
+{
+  "slug": "resend",
+  "name": "Resend",
+  "domain": "resend.com",
+  "category": "email",
+  "subcategory": "transactional email API",
+  "tagline": "Email API for developers with React templates",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "20 USD",
+    "source": "https://resend.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Free 3,000 emails/month (100/day), 3 domains, 30-day retention. Pro from $20/month for 50,000 emails and 10 domains; Scale from $90. Dedicated IP add-on $30.",
+    "freeTier": "The free plan sends 3,000 emails a month capped at 100 a day from up to 3 domains."
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "Sending email is easy; getting it delivered is not. The product is IP reputation, feedback loops with every major mailbox provider, bounce handling and the DKIM/SPF/DMARC plumbing done right. A self-hosted MTA can work for one careful person, and the first spam-folder week teaches why people pay.",
+  "coreLoopDIY": "Point your app at any SMTP relay through a provider interface, or run Postal on a VPS with a clean IP and spend the first month warming it up.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "a VPS with a clean IP and reverse DNS",
+    "a domain with SPF, DKIM and DMARC records",
+    "patience for reputation warm-up"
+  ],
+  "whatYouLose": [
+    "deliverability built on years of provider relationships",
+    "bounce, complaint and suppression handling",
+    "the dashboard, logs and webhooks",
+    "not being the person who debugs Gmail rejections at 2am"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "IP reputation is earned, not coded",
+  "whyPeopleStillPay": "Because the first time a password reset lands in spam is the last time anyone argues about $20.",
+  "priorArt": [
+    {
+      "name": "Postal",
+      "url": "https://github.com/postalserver/postal",
+      "desc": "open-source mail delivery platform"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "ghost-pro",
+    "getwaitlist",
+    "loops"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A \"no\" with a useful consolation: the provider abstraction, so switching between Resend, Postmark or your own Postal is a config change.",
+  "prompt": "Do not build an email delivery service. Deliverability is reputation and provider relationships, not code. Build the consolation that makes the provider replaceable: a mail module your app talks to, with two implementations. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22. One mail module with an interface: send(to, subject, html, text) returning a message id or a typed error. Two drivers: a hosted provider over HTTP (Resend or Postmark, key in .env) and plain SMTP (nodemailer) for self-hosting.\n\n### Phase 1 · The interface and the SMTP driver\n\nBuild: the interface, the SMTP driver, and a local dev driver that writes every email to a folder as .eml and prints the path. Every email has a text part.\nDone when: sending in development writes a file you can open in a mail client, and a missing text part fails the send.\nDo not build yet: the hosted driver.\n\n### Phase 2 · The hosted driver\n\nBuild: the HTTP driver with a timeout, three retries on 5xx, no retries on 4xx, and the provider's message id recorded.\nDone when: a real send arrives, a 429 is retried, and a rejected address returns a typed error the caller can show.\n\n### Phase 3 · The records\n\nBuild: a script that prints the exact SPF, DKIM and DMARC records for your domain and checks them via DNS, failing loudly on any that are missing.\nDone when: the check passes against your live DNS and a real send scores clean on a mail-tester style check.\n\n### Phase 4 · Bounces and suppression\n\nBuild: a webhook receiver for the provider's bounce and complaint events, a suppression table, and a refusal to send to a suppressed address.\nDone when: a hard bounce suppresses the address and a later send to it is refused before it leaves.\n\n### Phase 5 · Self-host option, honestly\n\nBuild: a docs page on running Postal on a VPS with reverse DNS and a warm-up plan, and the config to point the SMTP driver at it. Do not automate the warm-up; write down what it costs in weeks.\nDone when: the SMTP driver sends through Postal and the README states the warm-up timeline.\n\n### Out of scope (and why)\n\n- Being a mail provider. Inbox placement is earned with volume history you do not have.\n\n### README must contain\n\n- The provider swap: one env var.\n- The plain sentence that self-hosting mail is a second job.",
+  "promptCurated": true
+}

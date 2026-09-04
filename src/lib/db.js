@@ -156,6 +156,26 @@ const SCHEMA_SQLITE = `
   );
   CREATE INDEX IF NOT EXISTS submissions_slug ON submissions (slug, status);
 
+  /* Reader-submitted guides for the sunday newsletter. Content only: the body
+     lands here as Markdown and a human reviews it at /admin/articles. Nothing
+     in this table is ever rendered publicly · approval means it goes into an
+     issue with the writer's byline, not that it appears on the site. */
+  CREATE TABLE IF NOT EXISTS articles (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    author TEXT NOT NULL,
+    email TEXT NOT NULL,
+    link TEXT,
+    summary TEXT,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL,
+    note TEXT,
+    user_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS articles_status ON articles (status, created_at);
+
   /* Community builds: runtime state only, app/verdict content stays JSON in
      the repo. Builds land as status 'pending' and go live on admin approval.
      goes = the self-declared "how many goes?" answer (one|few|weeks|never);
@@ -519,6 +539,23 @@ const SCHEMA_PG = `
   );
   CREATE INDEX IF NOT EXISTS submissions_slug ON submissions (slug, status);
 
+  /* Reader-submitted guides (same notes as the SQLite schema). */
+  CREATE TABLE IF NOT EXISTS articles (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    author TEXT NOT NULL,
+    email TEXT NOT NULL,
+    link TEXT,
+    summary TEXT,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL,
+    note TEXT,
+    user_id TEXT,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS articles_status ON articles (status, created_at);
+
   /* Community builds (same notes as the SQLite schema). */
   CREATE TABLE IF NOT EXISTS builds (
     id TEXT PRIMARY KEY,
@@ -694,21 +731,25 @@ const SCHEMA_PG = `
   CREATE INDEX IF NOT EXISTS model_demos_model ON model_demos (model_slug, status, featured_order);
 `;
 
-/* Six fixed slots, three per rail side. Seed prices only — editable at runtime. */
-const SLOT_SEED = [
-  ['L1', 29900],
-  ['R1', 39900],
-  ['L2', 49900],
-  ['R2', 59900],
-  ['L3', 69900],
-  ['R3', 79900],
-  // Added at 8 slots (2026-08-01, launch night): seeds only apply to NEW rows —
-  // existing slot prices set from the admin are never overwritten.
-  ['L4', 119900],
-  ['R4', 149900],
-  // 10 slots (launch night +2, $999 cleared within the hour):
-  ['L5', 149900],
-  ['R5', 149900],
+/* Ten fixed slots, five per rail side. Seed prices only — editable at runtime.
+   These INSERTs are ON CONFLICT DO NOTHING, so they set the price of a slot
+   exactly once, when its row is first created: an existing board's prices are
+   never overwritten by a deploy. To reprice a live board, use the admin form or
+   `node scripts/set-slot-prices.mjs`.
+
+   Ladder repriced 2026-09-04 (operator): $199 for L1, rising $50 a slot down
+   the board as it renders — the whole left rail, then the whole right. */
+export const SLOT_SEED = [
+  ['L1', 19900],
+  ['L2', 24900],
+  ['L3', 29900],
+  ['L4', 34900],
+  ['L5', 39900],
+  ['R1', 44900],
+  ['R2', 49900],
+  ['R3', 54900],
+  ['R4', 59900],
+  ['R5', 64900],
 ];
 
 // Everything the slot-blocked predicate and the board care about. Anything else
@@ -1169,6 +1210,26 @@ async function pgDriver() {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)`,
         [s.id, s.slug, s.app_name, s.app_url, s.take, s.submitter, s.user_id, s.status, s.created_at]
       );
+    },
+    async insertArticle(a) {
+      await pool.query(
+        `INSERT INTO articles (id, title, author, email, link, summary, body, status, user_id, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
+        [a.id, a.title, a.author, a.email, a.link, a.summary, a.body, a.status, a.user_id, a.created_at]
+      );
+    },
+    async articleById(id) {
+      return (await pool.query('SELECT * FROM articles WHERE id = $1', [id])).rows[0] ?? null;
+    },
+    async articlesByStatus(status) {
+      return (
+        await pool.query('SELECT * FROM articles WHERE status = $1 ORDER BY created_at DESC LIMIT 200', [status])
+      ).rows;
+    },
+    async updateArticle(id, status, note) {
+      await pool.query('UPDATE articles SET status = $2, note = $3, updated_at = $4 WHERE id = $1', [
+        id, status, note ?? null, Date.now(),
+      ]);
     },
     async updateSubmission(id, fields) {
       const keys = submissionParts(fields);
@@ -1930,6 +1991,24 @@ async function sqliteDriver() {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(s.id, s.slug, s.app_name, s.app_url, s.take, s.submitter, s.user_id, s.status, s.created_at, s.created_at);
     },
+    async insertArticle(a) {
+      db.prepare(
+        `INSERT INTO articles (id, title, author, email, link, summary, body, status, user_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(a.id, a.title, a.author, a.email, a.link, a.summary, a.body, a.status, a.user_id, a.created_at, a.created_at);
+    },
+    async articleById(id) {
+      return db.prepare('SELECT * FROM articles WHERE id = ?').get(id) ?? null;
+    },
+    async articlesByStatus(status) {
+      return db
+        .prepare('SELECT * FROM articles WHERE status = ? ORDER BY created_at DESC LIMIT 200')
+        .all(status);
+    },
+    async updateArticle(id, status, note) {
+      db.prepare('UPDATE articles SET status = ?, note = ?, updated_at = ? WHERE id = ?')
+        .run(status, note ?? null, Date.now(), id);
+    },
     async updateSubmission(id, fields) {
       const keys = submissionParts(fields);
       db.prepare(
@@ -2504,6 +2583,24 @@ export async function submissionById(id) {
 
 export async function openSubmissionBySlug(slug) {
   return (await getDriver()).openSubmissionBySlug(slug);
+}
+
+/* ---------- reader-submitted guides ---------- */
+
+export async function insertArticle(a) {
+  return (await getDriver()).insertArticle(a);
+}
+
+export async function articleById(id) {
+  return (await getDriver()).articleById(id);
+}
+
+export async function articlesByStatus(status) {
+  return (await getDriver()).articlesByStatus(status);
+}
+
+export async function updateArticle(id, status, note) {
+  return (await getDriver()).updateArticle(id, status, note);
 }
 
 /* ---------- builds ---------- */

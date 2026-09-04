@@ -1,6 +1,6 @@
-# Can I Vibecode It?
+# Vibecode It?
 
-**[canivibecodeit.com](https://canivibecodeit.com)** — find out which subscriptions are one
+**[vibecodeit.com](https://vibecodeit.com)** — find out which subscriptions are one
 prompt away from free.
 
 For each paid SaaS app: an honest verdict on whether an AI coding agent (Claude Code,
@@ -11,7 +11,15 @@ as important — what you lose by leaving. Think caniuse.com, but for killing yo
 - 🟡 **KINDA** — buildable in a weekend, real gaps remain
 - 🔴 **NOT REALLY** — the value is the network, the data, or the infra. Some things survive.
 
-Yes, [you can vibecode this site too](https://canivibecodeit.com/vibecode-this-site).
+Yes, [you can vibecode this site too](https://vibecodeit.com/vibecode-this-site).
+
+## About
+
+**Vibecode It** is built and maintained by **Faizan Ali** — computer science student and
+lead software engineer. It is a modified fork of the open-source project
+[Can I Vibecode It?](https://canivibecodeit.com) by [Rob Hallam](https://x.com/robj3d3)
+([source](https://github.com/canivibecodeit/canivibecodeit)). Original credit stays with
+Rob; product branding, copy, and ongoing work here are Faizan's.
 
 ## Add an app
 
@@ -29,32 +37,27 @@ Production build:
 
 ```sh
 npm run build      # builds the site + regenerates OG images
-npm start          # node server on 127.0.0.1:8095
+npm start          # previews the static dist/ output on 127.0.0.1:4321
 ```
 
-No environment variables are required for local development. `.env.example` documents
-the optional ones (analytics, sign-in, payments, email, media storage).
+No environment variables are required. The current deployment is frontend-only:
+Astro prerenders the catalog to `dist/`, and Vercel serves those static files. Former
+API, admin, account, Stripe, PostHog, database, submission, sponsor, challenge, and
+community-build routes are preserved under `src/backend-disabled/` but are not built.
 
 ## Stack
 
-- [Astro](https://astro.build) server output + Node adapter — every page is fully
-  rendered HTML, no client framework
-- SQLite ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) for vote
-  counters and the waitlist — set `DATA_DIR` outside the repo in production
-- Vanilla JS + CSS for all interactions; [satori](https://github.com/vercel/satori) +
-  resvg render the OG images at build time
+- [Astro](https://astro.build) static output — every route is prerendered HTML
+- Vanilla JS + CSS for local interactions; no client framework and no API calls
+- [satori](https://github.com/vercel/satori) + resvg for build-time OG images
 
 ## Deploy
 
-Any VPS with a reverse proxy works:
-
-1. `npm run build`, then run `npm start` under a process manager (systemd unit,
-   restart-on-failure) as an unprivileged user.
-2. Point your reverse proxy at `127.0.0.1:8095` and terminate TLS there.
-3. Set `DATA_DIR` to a path outside the repo so user data can never be committed.
-4. Optional analytics: set `POSTHOG_KEY` and have the proxy forward `/ph/*` to your
-   PostHog instance (keeps analytics first-party).
+Import the repository into Vercel. `vercel.json` runs `npm run build` and publishes
+`dist/`; no functions, database, Stripe, PostHog, secrets, or environment variables
+are required.
 
 ## License
 
 [MIT](LICENSE). The prompts are free forever — paywalling them would be brand poison.
+Original copyright Rob Hallam; modifications Faizan Ali.

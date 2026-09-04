@@ -2,7 +2,7 @@
    local SQLite file into the Postgres pointed at by DATABASE_URL.
 
    Run with Railway CLI so DATABASE_URL is injected:
-     SQLITE_PATH=/srv/http/canivibecodeit-data/site.db railway run node scripts/migrate-sqlite-to-pg.mjs
+     SQLITE_PATH=/srv/http/vibecodeit-data/site.db railway run node scripts/migrate-sqlite-to-pg.mjs
 
    Idempotent: votes take the MAX of both sides, emails/sponsors upsert-ignore,
    so running it twice can never lose or double anything. */

@@ -1,0 +1,478 @@
+---
+/* Step-by-step build tracker for one app. Split of intent vs /<slug>: that page
+   answers "can I vibecode it" and hands over the project pack; this one is the
+   workbench you keep open while building it.
+
+   Two renderings share this file. With a build kit (data/builds/<slug>.json)
+   the page is the full beginner path: what to have ready before step one,
+   every environment variable and where its value comes from, and each phase
+   broken into checkable sub-steps with the commands to run. Without a kit it
+   falls back to the phases parsed from the prompt, as before.
+
+   noindex on purpose: the steps are the prompt's own content, so an indexable
+   copy would compete with the verdict page for the same words. */
+import Base from '../../layouts/Base.astro';
+import VerdictBadge from '../../components/VerdictBadge.astro';
+import { allApps, getApp, CATEGORIES, yearlySaving } from '../../lib/apps.js';
+import { buildSteps, promptSection } from '../../lib/build-plan.js';
+import { kitCounts, loadKit } from '../../lib/build-kit.js';
+
+export function getStaticPaths() {
+  return allApps()
+    .filter((app) => loadKit(app.slug) || buildSteps(app).steps.length > 0)
+    .map((app) => ({ params: { slug: app.slug } }));
+}
+
+const { slug } = Astro.params;
+const app = getApp(slug);
+if (!app) return new Response(null, { status: 404 });
+
+const kit = loadKit(slug);
+const { phased, steps } = buildSteps(app);
+// Nothing to track without a prompt or a kit: those pages say "don't build this one".
+if (!kit && !steps.length) return new Response(null, { status: 404 });
+
+const cat = CATEGORIES[app.category];
+const shortName = app.name.split(' / ')[0];
+const saving = yearlySaving(app);
+
+// Progress saved in the browser is keyed by this: a kit bumps its version when
+// the steps change materially, the fallback uses the step count.
+const version = kit ? `kit-${kit.version}` : `steps-${steps.length}`;
+const counts = kit ? { indie: kitCounts(kit, 'indie'), product: kitCounts(kit, 'product') } : null;
+
+// Pulled from the prompt. The data model shows in both renderings: a kit
+// expands the phases but the prompt still holds the tables.
+const stack = !kit && phased ? promptSection(app.prompt, 'Stack') : null;
+const model = phased ? promptSection(app.prompt, 'Data model') : null;
+const ruleZero = !kit && phased ? promptSection(app.prompt, 'Rule zero') : null;
+const outOfScope = !kit && phased ? promptSection(app.prompt, 'Out of scope') : null;
+const requirements = Array.isArray(app.requirements) ? app.requirements : [];
+const losses = Array.isArray(app.whatYouLose) ? app.whatYouLose : [];
+
+const KIND_LABEL = { tool: 'install', account: 'account', key: 'API key', asset: 'have ready', decision: 'decide' };
+
+const title = `Build ${shortName} step by step · Vibecode It?`;
+const description = kit
+  ? `Build your own ${shortName}: what to have ready, every environment variable, and ${counts.indie.steps} steps in dependency order, each with the check that has to pass before the next.`
+  : `Track your ${shortName} replacement build: ${steps.length} ${phased ? 'modules' : 'steps'} in dependency order, each with the check that has to pass before the next one starts.`;
+---
+
+<Base {title} {description} noindex>
+  <main class="wrap build-page" data-build-page data-slug={app.slug} data-version={version} data-kit={kit ? '1' : undefined}>
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/">the death list</a> / <a href={`/${app.slug}`}>{app.slug}</a> / <span class="here">build</span>
+    </nav>
+
+    <div class="build-head">
+      <span class="title">
+        <img src={`/icons/${app.slug}.png`} alt="" width="44" height="44" />
+        <span>
+          <h1>Build {shortName}</h1>
+          <p class="build-sub">
+            <VerdictBadge verdict={app.verdict} />
+            {app.priceMonthly != null && <span>replaces ${app.priceMonthly}/mo</span>}
+            {saving != null && <span>saves ${saving.toLocaleString('en-US')}/yr</span>}
+            <a href={`/${app.slug}`}>back to the verdict</a>
+          </p>
+        </span>
+      </span>
+    </div>
+
+    {
+      kit && (
+        <div class="bk-mode" role="group" aria-label="Choose build depth">
+          <button type="button" class="bk-mode-btn active" data-tracker-mode="indie" aria-pressed="true">
+            <span>indie dev</span>
+            <small>{counts.indie.phases} phases · {counts.indie.steps} steps</small>
+          </button>
+          <button type="button" class="bk-mode-btn" data-tracker-mode="product" aria-pressed="false">
+            <span>product builder</span>
+            <small>{counts.product.phases} phases · {counts.product.steps} steps</small>
+          </button>
+        </div>
+      )
+    }
+
+    {/* Sticky so the number stays visible while you work down the page. */}
+    <section class="progress-bar-wrap" data-progress-sticky>
+      <div class="progress-top">
+        <span class="progress-label">
+          <b data-bt-pct>0%</b>
+          <small><span data-bt-done>0</span> of <span data-bt-total>{kit ? counts.indie.prerequisites + counts.indie.steps : steps.length}</span> {kit ? 'items' : phased ? 'modules' : 'steps'} done</small>
+        </span>
+        <button type="button" class="bt-reset" data-bt-reset>reset</button>
+      </div>
+      <div class="bt-bar" role="progressbar" aria-label="Build progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-bt-bar>
+        <span data-bt-fill></span>
+      </div>
+      <p class="progress-note">
+        {kit
+          ? `Saved on this device only. Tick prerequisites first, then work the phases in order · do not start one until the checks above it pass.`
+          : phased
+            ? 'Saved on this device only. Work the steps in order and do not start one until the check above it passes.'
+            : `Saved on this device only. ${shortName}'s prompt has no phases yet, so this is the generic delivery order.`}
+      </p>
+    </section>
+
+    {
+      kit ? (
+        <>
+          <section class="bk-summary">
+            <p>{kit.summary}</p>
+            <p class="bk-meta">
+              <span>estimated effort <b>{kit.time}</b></span>
+              <span>
+                the files for this build are in <a href={`/${app.slug}#prompt-text`}>the project pack</a>
+              </span>
+            </p>
+            <div class="bk-stack">
+              {kit.stack.map((s) => (
+                <span class="bk-chip" title={s.why}>
+                  <small>{s.part}</small>
+                  {s.choice}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          <section class="bk-section" id="before">
+            <h2 class="section-h">Before step 1</h2>
+            <p class="bk-lead">
+              Everything below is assumed from the first step. Tick each one when you actually have it, not when you plan to.
+            </p>
+            <ol class="bk-list">
+              {kit.prerequisites.map((r) => (
+                <li class="bk-item" data-bt-item>
+                  <div class="bk-row">
+                    <button type="button" class="bk-check" data-bt-toggle={`pre:${r.id}`} aria-pressed="false">
+                      <span class="bt-box" aria-hidden="true">
+                        <svg width="11" height="9" viewBox="0 0 11 9" fill="none" aria-hidden="true"><path d="M1 4.5L4 7.5L10 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                      </span>
+                      <span class="bk-item-title">
+                        {r.name}
+                        {r.optional && <em>optional</em>}
+                      </span>
+                    </button>
+                    <span class={`bk-kind bk-kind-${r.kind}`}>{KIND_LABEL[r.kind]}</span>
+                    <span class="bk-cost">{r.cost}</span>
+                  </div>
+                  <div class="bk-item-body">
+                    <p><b>Why</b> {r.why}</p>
+                    <p>
+                      <b>Get it</b> {r.get}
+                      {r.url && (
+                        <>
+                          {' '}
+                          <a href={r.url} target="_blank" rel="noopener noreferrer">
+                            open ↗
+                          </a>
+                        </>
+                      )}
+                    </p>
+                    {r.verify && (
+                      <p>
+                        <b>Verify</b> <code>{r.verify}</code>
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {model && (
+            <section class="bk-section" id="model">
+              <h2 class="section-h">Data model</h2>
+              <p class="bk-lead">Create these before the first phase that stores anything. Changing a table later is the expensive kind of change.</p>
+              <div class="brief-card">
+                <pre>{model.body}</pre>
+              </div>
+            </section>
+          )}
+
+          {kit.env.length > 0 && (
+            <section class="bk-section" id="env">
+              <h2 class="section-h">Environment variables</h2>
+              <p class="bk-lead">
+                These go in a <code>.env</code> file the app reads at startup. The pack's <code>.env.example</code> is this
+                table as a file · copy it, never commit the filled-in version.
+              </p>
+              <div class="bk-table-wrap">
+                <table class="bk-table">
+                  <thead>
+                    <tr>
+                      <th>Variable</th>
+                      <th>Needed</th>
+                      <th>Example</th>
+                      <th>Where the value comes from</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kit.env.map((e) => (
+                      <tr>
+                        <td>
+                          <code>{e.name}</code>
+                          {e.secret && <span class="bk-secret">secret</span>}
+                        </td>
+                        <td>{e.required ? 'required' : 'optional'}</td>
+                        <td>
+                          <code>{e.example}</code>
+                        </td>
+                        <td>{e.where}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          <section class="steps">
+            <h2 class="section-h">The build, in order</h2>
+            <ol class="step-list">
+              {kit.phases.map((ph, i) => (
+                <li class="step" data-step={ph.id} data-phase id={ph.id} data-product-only={ph.productOnly ? '' : undefined} hidden={ph.productOnly}>
+                  <div class="step-rail" aria-hidden="true">
+                    <span class="step-dot">{i + 1}</span>
+                  </div>
+                  <div class="step-body">
+                    <header class="step-head">
+                      <h3>
+                        {ph.title}
+                        {ph.productOnly && <span class="bk-tag">product builder</span>}
+                      </h3>
+                      <button type="button" class="step-collapse" data-step-collapse={ph.id} aria-expanded="true">
+                        <span class="off">hide</span>
+                        <span class="on">show</span>
+                      </button>
+                    </header>
+                    <div class="step-detail" data-step-detail={ph.id}>
+                      <p class="bk-goal">{ph.goal}</p>
+
+                      <ol class="bk-list bk-steps">
+                        {ph.steps.map((s, j) => (
+                          <li class="bk-item" data-bt-item>
+                            <div class="bk-row">
+                              <button type="button" class="bk-check" data-bt-toggle={s.id} aria-pressed="false">
+                                <span class="bt-box" aria-hidden="true">
+                                  <svg width="11" height="9" viewBox="0 0 11 9" fill="none" aria-hidden="true"><path d="M1 4.5L4 7.5L10 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                </span>
+                                <span class="bk-n">{i + 1}.{j + 1}</span>
+                                <span class="bk-item-title">{s.do}</span>
+                              </button>
+                            </div>
+                            {(s.detail || s.files?.length || s.commands?.length || s.snippet) && (
+                              <div class="bk-item-body">
+                                {s.detail && <p>{s.detail}</p>}
+                                {s.files?.length > 0 && (
+                                  <p class="bk-files">
+                                    <b>Files</b> {s.files.map((f) => <code>{f}</code>)}
+                                  </p>
+                                )}
+                                {s.commands?.length > 0 && (
+                                  <div class="bk-cmd">
+                                    <div class="bk-cmd-head">
+                                      <span>terminal</span>
+                                      <button type="button" data-copy-cmd>copy</button>
+                                    </div>
+                                    <pre>{s.commands.join('\n')}</pre>
+                                  </div>
+                                )}
+                                {s.snippet && <pre class="bk-snippet">{s.snippet}</pre>}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+
+                      <div class="step-block done-block">
+                        <span class="microlabel">done when · tick each as it passes</span>
+                        <ul class="bk-checks">
+                          {ph.check.map((c, k) => (
+                            <li data-bt-item>
+                              <button type="button" class="bk-check small" data-bt-toggle={`${ph.id}:c${k}`} aria-pressed="false">
+                                <span class="bt-box" aria-hidden="true">
+                                  <svg width="11" height="9" viewBox="0 0 11 9" fill="none" aria-hidden="true"><path d="M1 4.5L4 7.5L10 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                </span>
+                                <span>{c}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {ph.traps?.length > 0 && (
+                        <div class="step-block not-yet bk-traps">
+                          <span class="microlabel">watch out</span>
+                          <ul>
+                            {ph.traps.map((t) => (
+                              <li>{t}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {i < kit.phases.length - 1 && (
+                        <div class="step-actions">
+                          <a class="step-next" href={`#${kit.phases[i + 1].id}`}>next phase</a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section class="build-done" data-build-done hidden>
+            <b>Every item ticked.</b>
+            <p>
+              That is the whole plan for {shortName}. What it deliberately does not cover is below · check the gaps
+              before you call it a replacement.
+            </p>
+          </section>
+
+          <section class="build-callout limits">
+            <span class="microlabel">what this build does not replace</span>
+            <ul class="brief-list">
+              {[...new Set([...kit.notIncluded, ...losses])].map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </section>
+
+          {kit.after?.length > 0 && (
+            <section class="build-callout">
+              <span class="microlabel">after v1, if you want it</span>
+              <ul class="brief-list">
+                {kit.after.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      ) : (
+        <>
+          {ruleZero && (
+            <section class="build-callout rule-zero">
+              <span class="microlabel">rule zero</span>
+              <pre>{ruleZero.body}</pre>
+            </section>
+          )}
+
+          {(stack || model || requirements.length > 0) && (
+            <section class="build-brief">
+              <h2 class="section-h">Before step 1</h2>
+              <div class="brief-grid">
+                {stack && (
+                  <div class="brief-card">
+                    <span class="microlabel">{stack.title.replace(/^Stack\s*/i, 'stack ')}</span>
+                    <pre>{stack.body}</pre>
+                  </div>
+                )}
+                {model && (
+                  <div class="brief-card">
+                    <span class="microlabel">data model</span>
+                    <pre>{model.body}</pre>
+                  </div>
+                )}
+                {requirements.length > 0 && (
+                  <div class="brief-card">
+                    <span class="microlabel">you will need</span>
+                    <ul class="brief-list">
+                      {requirements.map((item) => (
+                        <li>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          <section class="steps">
+            <h2 class="section-h">{phased ? 'The build, in order' : 'Delivery order'}</h2>
+            <ol class="step-list">
+              {steps.map((step, i) => (
+                <li class="step" data-step={`s${i}`} data-phase id={`step-${i + 1}`}>
+                  <div class="step-rail" aria-hidden="true">
+                    <span class="step-dot">{step.n}</span>
+                  </div>
+                  <div class="step-body">
+                    <header class="step-head">
+                      <h3>{step.title}</h3>
+                      <button type="button" class="step-collapse" data-step-collapse={`s${i}`} aria-expanded="true">
+                        <span class="off">hide</span>
+                        <span class="on">show</span>
+                      </button>
+                    </header>
+                    <div class="step-detail" data-step-detail={`s${i}`}>
+                      {step.build && (
+                        <div class="step-block">
+                          <span class="microlabel">build</span>
+                          <pre>{step.build}</pre>
+                        </div>
+                      )}
+                      {step.doneWhen && (
+                        <div class="step-block done-block">
+                          <span class="microlabel">done when</span>
+                          <p>{step.doneWhen}</p>
+                        </div>
+                      )}
+                      {step.notYet && (
+                        <div class="step-block not-yet">
+                          <span class="microlabel">do not build yet</span>
+                          <p>{step.notYet}</p>
+                        </div>
+                      )}
+                      <div class="step-actions">
+                        <button type="button" class="step-check" data-bt-toggle={`s${i}`} aria-pressed="false">
+                          <span class="bt-box" aria-hidden="true">
+                            <svg width="11" height="9" viewBox="0 0 11 9" fill="none" aria-hidden="true"><path d="M1 4.5L4 7.5L10 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                          </span>
+                          <span class="off">mark this step done</span>
+                          <span class="on">done · undo</span>
+                        </button>
+                        {i < steps.length - 1 && <a class="step-next" href={`#step-${i + 2}`}>next step</a>}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section class="build-done" data-build-done hidden>
+            <b>Every step ticked.</b>
+            <p>
+              That is the whole plan for {shortName}. What it deliberately does not cover is below · check the gaps
+              before you call it a replacement.
+            </p>
+          </section>
+
+          {(outOfScope || losses.length > 0) && (
+            <section class="build-callout limits">
+              <span class="microlabel">what this build does not replace</span>
+              {outOfScope ? (
+                <pre>{outOfScope.body}</pre>
+              ) : (
+                <ul class="brief-list">
+                  {losses.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </>
+      )
+    }
+
+    <p class="build-foot">
+      Need the files? <a href={`/${app.slug}`}>The project pack</a> on the verdict page hands your agent the whole brief ·{' '}
+      {cat && <a href={`/category/${app.category}`}>more {cat.label.toLowerCase()}</a>}.
+    </p>
+  </main>
+</Base>

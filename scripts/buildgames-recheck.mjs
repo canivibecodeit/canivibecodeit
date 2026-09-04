@@ -34,7 +34,7 @@ else if (!process.env.DATABASE_URL && process.env.DATABASE_PUBLIC_URL) process.e
 
 const { bgSponsorsForRecheck, updateBgSponsor } = await import('../src/lib/db.js');
 const { checkUrls, safeBrowsingOn } = await import('../src/lib/safe-browsing.js');
-const { alertRob, esc } = await import('../src/lib/mail.js');
+const { alertAdmin, esc } = await import('../src/lib/mail.js');
 const { sendSponsorMail } = await import('../src/lib/buildgames-mail.js');
 const { displayName } = await import('../src/lib/buildgames.js');
 
@@ -97,10 +97,10 @@ if (newlyHeld.length > 0 && !DRY) {
   const rows = newlyHeld
     .map(({ s, threats }) => `<li><b>${esc(displayName(s))}</b> (${esc(s.link)}) · ${esc(threats.join(', '))}</li>`)
     .join('');
-  await alertRob(
+  await alertAdmin(
     `[cvci] build games recheck held ${newlyHeld.length}`,
     `<p>The Safe Browsing recheck pulled these off the board (money stays in the pool):</p><ul>${rows}</ul>
-     <p><a href="https://canivibecodeit.com/admin/thebuildgames">open the queue and paste your token</a></p>`
+     <p><a href="https://vibecodeit.com/admin/thebuildgames">open the queue and paste your token</a></p>`
   ).catch((err) => console.error(`recheck alert failed: ${err.message}`));
 }
 

@@ -1,0 +1,613 @@
+---
+import Base from '../../layouts/Base.astro';
+import { impressionRows, purchaseByToken, sponsorClickRows } from '../../lib/db.js';
+import {
+  DEFAULT_TINT, faviconUrl, shortDate, tintChannels, usd, withUtm,
+} from '../../lib/sponsors.js';
+
+/* Private per-sponsor stats. The URL token is the same per-purchase secret the
+   details page uses: random, unguessable, only ever sent to the buyer. Nothing
+   here reveals any other sponsor's numbers — every query is scoped to this
+   purchase's slot and term. */
+
+// Click logging went live the evening of Aug 2, 2026; anything earlier simply
+// wasn't recorded. Shown as an honest undercount, never extrapolated.
+const CLICKS_SINCE = Date.UTC(2026, 7, 2, 18);
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayKey = (ts) => new Date(ts).toISOString().slice(0, 10);
+const MONTHS_SHORT = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const dayLabel = (d) => `${MONTHS_SHORT[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8))}`;
+
+// Two-letter country code → its emoji flag (regional indicators). Anything
+// else — including the '??' bucket — just shows no flag.
+const flag = (cc) =>
+  /^[A-Z]{2}$/.test(cc)
+    ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
+    : '';
+
+const token = Astro.url.searchParams.get('t') || '';
+const purchase = token ? await purchaseByToken(token) : null;
+
+const now = Date.now();
+
+// A paid future run has a page that just hasn't started filling in yet.
+const scheduled = purchase && purchase.status === 'live'
+  && purchase.starts_at && purchase.starts_at > now;
+
+// Stats exist once a placement has run: live now, or finished. A finished
+// placement keeps its page — final numbers are exactly what a renewal
+// decision wants in front of it.
+const hasRun = purchase && purchase.starts_at && !scheduled
+  && ['live', 'expired'].includes(purchase.status);
+
+let stats = null;
+
+if (hasRun) {
+  const from = Number(purchase.starts_at);
+  const to = Math.min(now, Number(purchase.ends_at) || now);
+  const clickFrom = Math.max(from, CLICKS_SINCE);
+
+  const [clickRows, impRows] = await Promise.all([
+    sponsorClickRows(clickFrom),
+    impressionRows(dayKey(from)),
+  ]);
+  const clicks = clickRows.filter(
+    (c) => c.slot_id === purchase.slot_id && c.created_at <= to
+  );
+  /* Impressions are stored per calendar day, so boundary days shared with the
+     slot's previous or next occupant are excluded: a term that started mid-day
+     owns its first FULL day onward, and a finished term that ended mid-day
+     gives up its last partial day. */
+  const endMs = Number(purchase.ends_at) || now;
+  const ended = endMs <= now;
+  const impFromDay = from % DAY_MS === 0 ? dayKey(from) : dayKey(from + DAY_MS);
+  const impToDay = !ended
+    ? dayKey(to)
+    : endMs % DAY_MS === 0 ? dayKey(endMs - 1) : dayKey(endMs - DAY_MS);
+  const imps = impRows.filter(
+    (r) => r.slot_id === purchase.slot_id && r.day >= impFromDay && r.day <= impToDay
+  );
+
+  const countries = new Map();
+  for (const c of clicks) {
+    const co = c.country || '??';
+    countries.set(co, (countries.get(co) ?? 0) + 1);
+  }
+  const ranked = [...countries.entries()].sort((a, b) => b[1] - a[1]);
+  const topCountries = ranked.slice(0, 5);
+  const restCount = ranked.length - topCountries.length;
+  const restClicks = ranked.slice(5).reduce((sum, [, n]) => sum + n, 0);
+  const maxCountry = topCountries[0]?.[1] ?? 1;
+
+  // CTR only over the window where both sides were measured: clicks that
+  // landed on days with impression data, divided by those impressions.
+  const impDays = new Set(imps.map((r) => r.day));
+  const impressions = imps.reduce((sum, r) => sum + r.count, 0);
+  const clicksOnImpDays = clicks.filter((c) => impDays.has(dayKey(c.created_at))).length;
+  const ctr = impressions > 0 ? (clicksOnImpDays / impressions) * 100 : null;
+
+  // Daily trend, last 14 calendar days of the term (or fewer if it's younger).
+  const trendStart = Math.max(clickFrom, to - 13 * DAY_MS);
+  const firstDay = Date.parse(`${dayKey(trendStart)}T00:00:00Z`);
+  const lastDay = Date.parse(`${dayKey(to)}T00:00:00Z`);
+  const trend = [];
+  for (let t = firstDay; t <= lastDay; t += DAY_MS) {
+    const d = dayKey(t);
+    trend.push({ day: d, clicks: clicks.filter((c) => dayKey(c.created_at) === d).length });
+  }
+  const maxClicks = Math.max(1, ...trend.map((p) => p.clicks));
+  const peak = trend.reduce((best, p) => (p.clicks > best.clicks ? p : best), trend[0]);
+
+  // Four sparse tick labels along the baseline; deduped for short terms.
+  const last = trend.length - 1;
+  const tickIdx = [...new Set([0, Math.round(last / 3), Math.round((2 * last) / 3), last])];
+  const ticks = tickIdx.map((i) => dayLabel(trend[i].day));
+
+  const termDays = Math.max(1, Math.round((Number(purchase.ends_at) - from) / DAY_MS));
+
+  stats = {
+    from, to, clickFrom,
+    totalClicks: clicks.length,
+    heroLabel: ended ? `clicks in ${termDays} days.` : 'clicks so far.',
+    weekClicks: clicks.filter((c) => c.created_at >= now - 7 * DAY_MS).length,
+    impressions,
+    ctr,
+    topCountries, restCount, restClicks, maxCountry,
+    countryCount: countries.size,
+    trend, maxClicks, peak, ticks,
+    undercount: from < CLICKS_SINCE,
+  };
+}
+
+const sponsor = hasRun
+  ? {
+      name: purchase.name,
+      tagline: purchase.tagline,
+      url: purchase.url,
+      icon: purchase.logo_url || faviconUrl(purchase.url),
+      tint: purchase.tint || DEFAULT_TINT,
+    }
+  : null;
+
+const fmt = (n) => Number(n ?? 0).toLocaleString('en-US');
+const title = 'Your sponsor stats · vibecodeit';
+const description = 'Private placement stats for your sponsor slot.';
+---
+
+<Base {title} {description}>
+  <main class="wrap sponsor-page sps">
+    {
+      !purchase && (
+        <section class="sp-hero">
+          <h1>That link's no good.</h1>
+          <p class="sub">
+            Check the link in your email, or reply to it and a human will sort it out.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      purchase && scheduled && (
+        <section class="sp-hero">
+          <h1>Locked in.</h1>
+          <p class="sub">
+            Slot {purchase.slot_id} is yours from {shortDate(purchase.starts_at)} to{' '}
+            {shortDate(purchase.ends_at)}. This page starts filling in on day one; keep the
+            link.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      purchase && !hasRun && !scheduled && (
+        <section class="sp-hero">
+          <h1>No numbers yet.</h1>
+          <p class="sub">
+            Stats start the moment your placement goes live. This page fills itself in from
+            day one; keep the link.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      hasRun && (
+        <>
+          <div class="sps-identity">
+            <span class="sps-who">
+              <span class="sps-icon">
+                {sponsor.icon
+                  ? <img src={sponsor.icon} alt="" width="34" height="34" loading="lazy" />
+                  : <b>{(sponsor.name || '?').slice(0, 1)}</b>}
+              </span>
+              <span class="sps-name">{sponsor.name}</span>
+            </span>
+            <span class="sps-term microlabel">
+              slot {purchase.slot_id} · {shortDate(purchase.starts_at)} – {shortDate(purchase.ends_at)} · {usd(purchase.amount_cents)}
+            </span>
+          </div>
+
+          <div class="sps-heroline">
+            <span class="sps-big">{fmt(stats.totalClicks)}</span>
+            <span class="sps-big-side">
+              <span class="sps-big-label">{stats.heroLabel}</span>
+              <span class="sps-big-note">
+                first-party count, bots filtered
+                {stats.undercount && ` · measured since ${shortDate(stats.clickFrom)} · undercounts, if anything`}
+              </span>
+            </span>
+          </div>
+
+          <div class="sps-band">
+            <div class="sps-stat">
+              <span class="sps-stat-label">clicks · 7d</span>
+              <span class="sps-stat-num">{fmt(stats.weekClicks)}</span>
+            </div>
+            <div class="sps-stat">
+              <span class="sps-stat-label">impressions</span>
+              <span class="sps-stat-num">{stats.impressions > 0 ? fmt(stats.impressions) : '—'}</span>
+            </div>
+            <div class="sps-stat">
+              <span class="sps-stat-label">ctr</span>
+              <span class="sps-stat-num">{stats.ctr == null ? '—' : `${stats.ctr.toFixed(2)}%`}</span>
+            </div>
+            <div class="sps-stat">
+              <span class="sps-stat-label">countries</span>
+              <span class="sps-stat-num">{fmt(stats.countryCount)}</span>
+            </div>
+          </div>
+
+          <section class="sps-chart-block">
+            <div class="sps-row-head">
+              <span class="sps-stat-label">clicks per day · UTC</span>
+              <span class="sps-peak">peak {stats.peak.clicks} · {dayLabel(stats.peak.day)}</span>
+            </div>
+            <div class="sps-chart" role="img" aria-label="Daily clicks bar chart">
+              {
+                stats.trend.map((p) => (
+                  <div
+                    class={`sps-bar ${p.day === stats.peak.day ? 'peak' : ''}`}
+                    style={`height: ${Math.max(2, Math.round((p.clicks / stats.maxClicks) * 100))}%`}
+                    title={`${dayLabel(p.day)}: ${p.clicks}`}
+                  />
+                ))
+              }
+            </div>
+            <div class="sps-ticks">
+              {stats.ticks.map((t) => <span>{t}</span>)}
+            </div>
+          </section>
+
+          <div class="sps-bottom">
+            <section class="sps-countries">
+              <span class="sps-stat-label">top countries</span>
+              {
+                stats.topCountries.map(([co, n]) => (
+                  <div class="sps-lane">
+                    <span class="sps-co">
+                      <span class="sps-flag">{flag(co)}</span>
+                      {co}
+                    </span>
+                    <span class="sps-track">
+                      <span
+                        class={`sps-fill ${n === stats.maxCountry ? 'lead' : ''}`}
+                        style={`width: ${Math.max(3, Math.round((n / stats.maxCountry) * 100))}%`}
+                      />
+                    </span>
+                    <span class="sps-n">{fmt(n)}</span>
+                  </div>
+                ))
+              }
+              {
+                stats.restCount > 0 && (
+                  <div class="sps-lane rest">
+                    <span class="sps-co">+{stats.restCount}</span>
+                    <span class="sps-track">
+                      <span
+                        class="sps-fill rest"
+                        style={`width: ${Math.max(3, Math.min(100, Math.round((stats.restClicks / stats.maxCountry) * 100)))}%`}
+                      />
+                    </span>
+                    <span class="sps-n">{fmt(stats.restClicks)}</span>
+                  </div>
+                )
+              }
+            </section>
+
+            <section class="sps-cardcol">
+              <span class="sps-stat-label">your card, on every page</span>
+              <span class="sp-card live sps-card" style={`--tint: ${tintChannels(sponsor.tint)}; --i: 0`}>
+                <span class="sp-icon">
+                  {sponsor.icon && <img src={sponsor.icon} alt="" width="30" height="30" loading="lazy" />}
+                </span>
+                <span class="sp-name">{sponsor.name}</span>
+                <span class="sp-tag">{sponsor.tagline}</span>
+              </span>
+              <p class="sps-note">
+                Clicks are logged first-party when someone follows your card: no cookies, no
+                third parties, only your slot's numbers. Your link is tagged{' '}
+                <code>utm_source=vibecodeit</code>
+                {sponsor.url ? <> (<a href={withUtm(sponsor.url)}>your tagged link</a>)</> : null},
+                so the same traffic shows in your own analytics as vibecodeit / referral.
+                This page is private to you; the link is the key, so don't post it anywhere.
+              </p>
+            </section>
+          </div>
+        </>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .sps :global(.sps-identity) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 14px;
+  }
+
+  .sps-who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sps-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    font-family: var(--font-display);
+    color: var(--primary);
+  }
+
+  .sps-name {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .sps-heroline {
+    display: flex;
+    align-items: flex-end;
+    gap: 26px;
+    padding-top: 40px;
+    flex-wrap: wrap;
+  }
+
+  .sps-big {
+    font-family: var(--font-display);
+    font-size: clamp(72px, 12vw, 132px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 0.85;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sps-big-side {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 6px;
+    min-width: 0;
+  }
+
+  .sps-big-label {
+    font-family: var(--font-display);
+    font-size: clamp(18px, 2.4vw, 24px);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .sps-big-note {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .sps-band {
+    display: flex;
+    margin-top: 44px;
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sps-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    padding: 0 28px;
+    border-left: 1px solid var(--border);
+    min-width: 0;
+  }
+
+  .sps-stat:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .sps-stat:last-child {
+    padding-right: 0;
+  }
+
+  .sps-stat-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sps-stat-num {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 3vw, 32px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sps-chart-block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 40px;
+  }
+
+  .sps-row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .sps-peak {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg);
+  }
+
+  .sps-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 150px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sps-bar {
+    flex: 1;
+    background: var(--primary);
+    opacity: 0.55;
+    border-radius: 2px 2px 0 0;
+  }
+
+  .sps-bar.peak {
+    opacity: 1;
+  }
+
+  .sps-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  .sps-bottom {
+    display: flex;
+    gap: 64px;
+    padding-top: 48px;
+  }
+
+  .sps-countries {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sps-lane {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .sps-co {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--fg);
+    width: 58px;
+    flex-shrink: 0;
+  }
+
+  .sps-lane.rest .sps-co,
+  .sps-lane.rest .sps-n {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .sps-flag {
+    font-size: 14px;
+  }
+
+  .sps-track {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sps-fill {
+    height: 10px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+
+  .sps-fill.lead {
+    background: var(--primary);
+  }
+
+  .sps-fill.rest {
+    background: var(--border);
+  }
+
+  .sps-n {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg);
+    width: 44px;
+    flex-shrink: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sps-cardcol {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 380px;
+    flex-shrink: 0;
+  }
+
+  .sps :global(.sps-card) {
+    width: 220px;
+  }
+
+  .sps-note {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  .sps-note a {
+    color: var(--muted);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 900px) {
+    .sps-bottom {
+      flex-direction: column;
+      gap: 44px;
+    }
+
+    .sps-cardcol {
+      width: auto;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .sps-band {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 0;
+      padding: 24px 0;
+    }
+
+    .sps-stat {
+      padding: 0 20px;
+    }
+
+    /* Two columns: odd items start rows (no left divider), evens keep it. */
+    .sps-stat:nth-child(odd) {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .sps-stat:nth-child(even) {
+      padding-right: 0;
+    }
+
+    .sps-chart {
+      gap: 4px;
+      height: 110px;
+    }
+
+    .sps-heroline {
+      gap: 16px;
+    }
+  }
+</style>

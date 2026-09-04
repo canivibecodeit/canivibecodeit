@@ -1,0 +1,280 @@
+---
+import Base from '../../layouts/Base.astro';
+import { purchasesForAdmin, sponsorClickRows, waitlistEmails } from '../../lib/db.js';
+import { getBoard, isAdmin, shortDate, usd } from '../../lib/sponsors.js';
+
+const token = Astro.url.searchParams.get('token') || '';
+// Wrong or missing token looks exactly like a page that doesn't exist.
+if (!isAdmin(token)) return new Response(null, { status: 404 });
+
+const [board, purchases, clicks, queue] = await Promise.all([
+  getBoard(),
+  purchasesForAdmin(60),
+  sponsorClickRows(0),
+  waitlistEmails('sponsor'),
+]);
+
+// Private placement stats: per-slot clicks (total / 7d) and top countries.
+const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+const clickStats = new Map();
+const countryTotals = new Map();
+for (const c of clicks) {
+  const st = clickStats.get(c.slot_id) ?? { total: 0, week: 0, countries: new Map() };
+  st.total += 1;
+  if (c.created_at >= weekAgo) st.week += 1;
+  const co = c.country || '??';
+  st.countries.set(co, (st.countries.get(co) ?? 0) + 1);
+  clickStats.set(c.slot_id, st);
+  countryTotals.set(co, (countryTotals.get(co) ?? 0) + 1);
+}
+const topCountries = (m, n) =>
+  [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n)
+    .map(([co, k]) => `${co} ${k}`).join(' · ');
+const msg = Astro.url.searchParams.get('msg') || '';
+const returnTo = `/admin/sponsors?token=${encodeURIComponent(token)}`;
+
+const NEXT_STATES = ['pending', 'open', 'reserved'];
+// Default term for a minted link: the first of next month.
+const nowD = new Date();
+const nextTerm = `${nowD.getUTCFullYear() + (nowD.getUTCMonth() === 11 ? 1 : 0)}-${String(((nowD.getUTCMonth() + 1) % 12) + 1).padStart(2, '0')}`;
+
+const ACTIONS = {
+  hold: [['clear_hold', 'clear hold']],
+  paid: [['reject', 'reject + refund']],
+  submitted: [['approve', 'approve'], ['reject', 'reject + refund']],
+  reject_failed: [['retry_refund', 'retry refund']],
+  live: [['expire', 'take down now']],
+};
+---
+
+<Base title="sponsor admin" description="" ogImage="/og/home.png">
+  <main class="wrap admin">
+    <div class="list-head">
+      <h2>Sponsor slots</h2>
+      <span class="note">{board.openCount}/{board.slots.length} open</span>
+    </div>
+
+    {msg && <p class="admin-msg">{msg}</p>}
+
+    <div class="list-head" style="padding-top: 26px;">
+      <h2>Placement clicks</h2>
+      <span class="note">first-party log, private · all-time {clicks.length} · countries: {topCountries(countryTotals, 8) || 'none yet'}</span>
+    </div>
+    <div class="admin-clicks">
+      {
+        board.slots.map((slot) => {
+          const st = clickStats.get(slot.id);
+          return (
+            <span class="microlabel">
+              {slot.id} ({slot.state}): <b>{st?.total ?? 0}</b> clicks · {st?.week ?? 0} in 7d
+              {st ? ` · ${topCountries(st.countries, 3)}` : ''}
+            </span>
+          );
+        })
+      }
+    </div>
+
+    <div class="admin-grid">
+      {
+        board.slots.map((slot) => (
+          <div class="admin-card">
+            <span class="microlabel">
+              {slot.id} · {slot.state}
+              {slot.endsAt ? ` · until ${shortDate(slot.endsAt)}` : ''}
+            </span>
+            <span class="admin-strong">{slot.sponsor?.name ?? usd(slot.priceCents)}</span>
+            <form method="post" action="/api/sponsor/admin" data-astro-reload>
+              <input type="hidden" name="token" value={token} />
+              <input type="hidden" name="return_to" value={returnTo} />
+              <input type="hidden" name="action" value="price" />
+              <input type="hidden" name="slot" value={slot.id} />
+              <input
+                type="number"
+                name="price"
+                min="1"
+                step="1"
+                value={Math.round(slot.priceCents / 100)}
+                aria-label={`Price for slot ${slot.id} in dollars`}
+              />
+              <button class="btn ghost" type="submit">set price</button>
+            </form>
+            <span class="microlabel">next run: {slot.nextTaken ? 'taken' : slot.nextState}</span>
+            {!slot.nextTaken && (
+              <div class="admin-actions">
+                {NEXT_STATES.filter((s) => s !== slot.nextState).map((s) => (
+                  <form method="post" action="/api/sponsor/admin" data-astro-reload>
+                    <input type="hidden" name="token" value={token} />
+                    <input type="hidden" name="return_to" value={returnTo} />
+                    <input type="hidden" name="action" value="next_state" />
+                    <input type="hidden" name="slot" value={slot.id} />
+                    <input type="hidden" name="state" value={s} />
+                    <button class="btn ghost" type="submit">{s}</button>
+                  </form>
+                ))}
+              </div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+    <p class="fine">Keep open-slot prices staggered.</p>
+
+    <div class="list-head" style="padding-top: 36px;">
+      <h2>The queue</h2>
+      <span class="note">{queue.length} waiting · emails everyone who asked for a slot ping · max once per 12h</span>
+    </div>
+    <form
+      method="post"
+      action="/api/sponsor/admin"
+      data-astro-reload
+      data-confirm={`Email all ${queue.length} people in the queue?`}
+    >
+      <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="return_to" value={returnTo} />
+      <input type="hidden" name="action" value="queue_blast" />
+      <button class="btn primary" type="submit">email the queue: slots are open</button>
+    </form>
+
+    <div class="list-head" style="padding-top: 36px;">
+      <h2>Mint a payment link</h2>
+      <span class="note">for a slot's next run · paste the result into a DM</span>
+    </div>
+    <form method="post" action="/api/sponsor/admin" class="admin-mint" data-astro-reload>
+      <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="return_to" value={returnTo} />
+      <input type="hidden" name="action" value="payment_link" />
+      <select name="slot" aria-label="Slot">
+        {board.slots.map((s) => <option value={s.id}>{s.id}</option>)}
+      </select>
+      <select name="kind" aria-label="Kind">
+        <option value="renewal">renewal (card carries over)</option>
+        <option value="public">public (new sponsor)</option>
+      </select>
+      <input type="number" name="price" min="1" step="1" placeholder="total $" aria-label="Total price in dollars" required />
+      <select name="months" aria-label="Runs">
+        <option value="1">1 × 30 days</option>
+        <option value="3">3 × 30 days</option>
+      </select>
+      <input type="text" name="term" value={nextTerm} pattern="\d{4}-\d{2}" aria-label="Term start month (YYYY-MM)" required />
+      <input type="text" name="sponsor" placeholder="sponsor name (optional)" aria-label="Sponsor name" />
+      <button class="btn primary" type="submit">mint link</button>
+    </form>
+    <p class="fine">
+      The price is the TOTAL charged. The link works exactly once and never
+      expires; the term starts on the 1st of the month given.
+    </p>
+
+    <div class="list-head" style="padding-top: 36px;">
+      <h2>Purchases</h2>
+      <span class="note">newest first</span>
+    </div>
+
+    <div class="admin-rows">
+      {
+        purchases.map((p) => (
+          <div class="admin-row" data-status={p.status}>
+            <span class="microlabel">
+              {p.slot_id} · {p.status} · {usd(p.amount_cents)}{Number(p.months) > 1 ? ` · ${Number(p.months)} months` : ''} · {shortDate(p.created_at)}
+            </span>
+            <span class="admin-strong">{p.name ?? '—'}</span>
+            <span class="admin-sub">{p.tagline ?? 'no details submitted yet'}</span>
+            <span class="admin-sub">{p.email ?? 'no email'} · {p.url ?? 'no link'}</span>
+            {p.ends_at && <span class="admin-sub">ends {shortDate(p.ends_at)}</span>}
+
+            <div class="admin-actions">
+              {(ACTIONS[p.status] ?? []).map(([action, label]) => (
+                <form method="post" action="/api/sponsor/admin" data-astro-reload>
+                  <input type="hidden" name="token" value={token} />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="action" value={action} />
+                  <button class={`btn ${action === 'approve' ? 'primary' : 'ghost'}`} type="submit">
+                    {label}
+                  </button>
+                </form>
+              ))}
+            </div>
+
+            {
+              (p.status === 'submitted' || p.status === 'live') && (
+                <form method="post" action="/api/sponsor/admin" class="admin-edit" data-astro-reload>
+                  <input type="hidden" name="token" value={token} />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="action" value="edit" />
+                  <input type="text" name="tint" value={p.tint ?? ''} placeholder="#403d88" aria-label="Tint" />
+                  <input type="url" name="logo_url" value={p.logo_url ?? ''} placeholder="icon url" aria-label="Icon URL" />
+                  <button class="btn ghost" type="submit">save</button>
+                </form>
+              )
+            }
+          </div>
+        ))
+      }
+    </div>
+  </main>
+</Base>
+
+<style>
+  .admin-mint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .admin-mint select,
+  .admin-mint input {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--fg);
+    min-width: 0;
+  }
+
+  .admin-mint input[name='price'] {
+    width: 110px;
+  }
+
+  .admin-mint input[name='term'] {
+    width: 110px;
+  }
+
+  .admin-mint input[name='sponsor'] {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  @media (max-width: 760px) {
+    .admin-mint select,
+    .admin-mint input,
+    .admin-mint button {
+      flex: 1 1 45%;
+    }
+  }
+</style>
+
+<script>
+  // Confirm-before-submit for forms carrying data-confirm. Document-level and
+  // guarded so ClientRouter re-running body scripts on soft navigations can't
+  // stack duplicate listeners. Inline onsubmit= is off the table under CSP.
+  if (!window.__confirmArmed) {
+    window.__confirmArmed = true;
+    document.addEventListener(
+      'submit',
+      (e) => {
+        const form = e.target.closest('form[data-confirm]');
+        if (form && !confirm(form.dataset.confirm)) e.preventDefault();
+      },
+      true
+    );
+  }
+</script>

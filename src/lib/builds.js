@@ -116,7 +116,7 @@ export const HANDLE_RE = /^[a-z0-9][a-z0-9_-]{2,19}$/i;
 
 // Names that would read as the site talking, or collide with our own paths.
 export const RESERVED_HANDLES = new Set([
-  'admin', 'staff', 'mod', 'team', 'official', 'canivibecodeit', 'cvci',
+  'admin', 'staff', 'mod', 'team', 'official', 'vibecodeit', 'cvci',
 ]);
 
 // Build-name -> URL slug. Ascii-only on purpose: names are free text, URLs

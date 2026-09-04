@@ -1,0 +1,58 @@
+{
+  "slug": "webhook-site",
+  "name": "Webhook.site",
+  "domain": "webhook.site",
+  "category": "dev-tools",
+  "subcategory": "webhook inspection and testing",
+  "tagline": "A URL that shows you every request it receives",
+  "priceMonthly": 9,
+  "pricing": {
+    "plan": "Basic",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "9 USD",
+    "source": "https://webhook.site/register",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Free URLs expire after 7 days with a request cap. Basic $9/month ($90/year) for 1 permanent URL, 1,000 request history and custom actions. Pro $27 for 50 URLs, Enterprise $69.",
+    "freeTier": "Free URLs work without an account but expire after 7 days and cap stored requests."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "Catch a request, store it, display it. This is the smallest useful server there is, and the paid tier mostly buys permanence and the workflow actions. One process on any host covers the inspector in a sitting.",
+  "coreLoopDIY": "Mint a unique URL, store every request (method, headers, body) that hits it, show them live on a page, replay to localhost.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small always-on host with a public URL"
+  ],
+  "whatYouLose": [
+    "custom actions and workflow scripting",
+    "email and DNS hooks",
+    "team accounts",
+    "someone else hosting the public endpoint"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": null,
+  "whyPeopleStillPay": "Nine dollars to never think about hosting a public catcher, plus the scripting layer that turns a webhook into a Slack message without code.",
+  "priorArt": [
+    {
+      "name": "smee.io",
+      "url": "https://github.com/probot/smee.io",
+      "desc": "webhook payload delivery service, open source"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "ngrok",
+    "postman",
+    "insomnia"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The developer tool everyone rebuilds by accident. Worth building on purpose once.",
+  "prompt": "Build me a webhook inspector like Webhook.site. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite. No framework. One process behind Caddy on a public host.\n- Server-rendered HTML with a small vanilla-JS poller for live updates. No websockets library.\n\n### Data model (create this before Phase 1)\n\n- bins: id (uuid), created_at, expires_at, note\n- requests: id, bin_id, received_at, method, path, query, headers (JSON), body (text or base64 when binary), content_type, size, ip_hash\n\n### Phase 1 · Catch anything\n\nBuild: any method on /b/:uuid and any subpath stores a row and answers 200 with a tiny JSON body. Cap the body at 1 MB, store binary as base64 with a flag, and never fail because the bin is busy (WAL mode).\nDone when: GET, POST with JSON, POST with form data and a PUT with a binary body all store correctly with headers intact, and a 2 MB body is refused with 413.\nDo not build yet: UI, replay, retention.\n\n### Phase 2 · Inspector\n\nBuild: /b/:uuid/inspect lists requests newest first with method, path, size and time, and a detail view with headers, pretty-printed JSON, raw body and a copy-as-curl button. A vanilla-JS poll every 2 seconds appends new rows without a reload.\nDone when: a request appears in the inspector within 2 seconds, JSON pretty-prints, and copy-as-curl reproduces the request.\n\n### Phase 3 · Replay\n\nBuild: a replay button that re-sends the stored request to a target URL you type (typically your localhost via a tunnel), preserving method, headers and body, and shows the response.\nDone when: a captured Stripe test event replays to a local server and the local server's response is shown.\n\n### Phase 4 · Bins and retention\n\nBuild: a home page that mints a bin, an expiry per bin (default 7 days, extendable behind basic auth), a nightly prune, and a per-IP rate limit on minting.\nDone when: an expired bin returns 410, pruning deletes its requests, and minting is rate limited.\n\n### Phase 5 · Deploy\n\nBuild: a /healthz endpoint, a systemd unit, the Caddy config, the README.\nDone when: state survives a restart and a stranger can mint a bin from the README's URL.\n\n### Out of scope (and why)\n\n- Custom actions, email hooks, DNS hooks, teams. That is the subscription.\n\n### README must contain\n\n- The body cap and the retention default.\n- A note that anyone with the URL can read the bin · do not send secrets to a test catcher.",
+  "promptCurated": true
+}

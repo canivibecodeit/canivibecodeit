@@ -1,0 +1,255 @@
+{
+  "slug": "postman",
+  "version": 1,
+  "summary": "A file-based API client for one developer: requests as YAML in git, environments with secrets from the shell, a runner with assertions that exits non-zero for CI, chaining a token from one call into the next, history with diffs, and an importer for Postman collections. Bruno is the open-source answer; this is the 500-line version you own.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, a CLI",
+      "why": "no GUI, no cloud, no sync problem"
+    },
+    {
+      "part": "Storage",
+      "choice": "YAML files in git plus a SQLite history",
+      "why": "diffs and history for free"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "bruno",
+      "kind": "decision",
+      "name": "Try Bruno first",
+      "why": "If it fits, use it and stop; it is free and file-based. This build is for wanting a version you can read in an afternoon.",
+      "get": "usebruno.com, open your collection folder.",
+      "cost": "free",
+      "url": "https://www.usebruno.com"
+    },
+    {
+      "id": "collection",
+      "kind": "asset",
+      "name": "A Postman collection export and an API to hit",
+      "why": "Phase 5 imports it; every phase needs a real API to test against.",
+      "get": "Postman > Collection > Export (v2.1). Any public API or your own local server for tests.",
+      "cost": "free"
+    },
+    {
+      "id": "secrets",
+      "kind": "decision",
+      "name": "Where secrets live: the shell, never files",
+      "why": "Requests reference {{env.NAME}}; values come from environment variables.",
+      "get": "Export them in your shell profile or a .env you never commit.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "API_HISTORY_DB",
+      "example": "~/.api-cli/history.db",
+      "required": false,
+      "secret": false,
+      "where": "Where runs are recorded."
+    },
+    {
+      "name": "API_TOKEN",
+      "example": "...",
+      "required": false,
+      "secret": true,
+      "where": "An example secret a request references as {{env.API_TOKEN}}."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Run one request",
+      "goal": "YAML in, pretty response out, secrets only from the shell.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the CLI project and the request and environment file formats",
+          "detail": "requests/<name>.yaml: method, url, headers, query, body, auth, asserts. environments/<name>.yaml: key-value pairs referenced as {{name}}.",
+          "commands": [
+            "mkdir api-cli && cd api-cli && git init && npm init -y && npm pkg set type=module && npm install yaml@2",
+            "mkdir -p requests environments && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Implement api run <file> --env <name> with variable substitution and {{env.NAME}} from process.env"
+        }
+      ],
+      "check": [
+        "A GET and a JSON POST print status, headers, pretty JSON and latency",
+        "A missing variable fails naming itself",
+        "No secret can be committed"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Assertions",
+      "goal": "Status and JSON-path asserts with a non-zero exit.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Implement asserts on status and JSON paths"
+        },
+        {
+          "id": "p2s2",
+          "do": "Exit 1 with a readable diff on failure"
+        }
+      ],
+      "check": [
+        "A wrong status exits 1 with a diff",
+        "A passing request exits 0"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Collections and chaining",
+      "goal": "Run a folder in order; capture values between requests.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "api run <folder> in filename order with pass counts"
+        },
+        {
+          "id": "p3s2",
+          "do": "capture: a JSON path into a variable for later requests"
+        }
+      ],
+      "check": [
+        "A login feeds its token to the next request",
+        "The folder run reports pass counts"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "History and diff",
+      "goal": "Every run recorded; diff the last two responses.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Record runs in SQLite: request, environment, status, latency, size, body hash"
+        },
+        {
+          "id": "p4s2",
+          "do": "api history <name> and api diff <name>"
+        }
+      ],
+      "check": [
+        "History shows latency trends",
+        "Diff highlights a changed field"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Import",
+      "goal": "Postman collections become YAML.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Parse Postman v2.1 JSON into requests and environments"
+        },
+        {
+          "id": "p5s2",
+          "do": "Run an imported collection unchanged"
+        }
+      ],
+      "check": [
+        "An exported collection runs after import"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Share with a team",
+      "productOnly": true,
+      "goal": "Only if others use it: publish the CLI and enforce it in CI.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Publish to a private npm registry or as a git dependency"
+        },
+        {
+          "id": "p6s2",
+          "do": "Run the collection in CI on every deploy with secrets from the CI store"
+        }
+      ],
+      "check": [
+        "A teammate installs and runs the collection",
+        "CI fails when an assertion fails"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "API tests that live with the code, run in CI, and never leak a secret through a synced workspace.",
+    "architecture": [
+      {
+        "module": "Runner",
+        "owns": "substitution, fetch, output",
+        "swap": "The core"
+      },
+      {
+        "module": "Asserts",
+        "owns": "status and JSON-path checks",
+        "swap": "Add schema validation"
+      },
+      {
+        "module": "History",
+        "owns": "SQLite runs and diff",
+        "swap": "Optional"
+      },
+      {
+        "module": "Import",
+        "owns": "Postman v2.1",
+        "swap": "Add Insomnia v4"
+      }
+    ],
+    "operations": {
+      "backup": "The repo; history is disposable.",
+      "restore": "Clone.",
+      "monitoring": "CI status.",
+      "incident": "A leaked secret is rotated at its source; files never held it."
+    },
+    "releaseGate": [
+      "Secrets verified absent from every file",
+      "CI run passes on a real collection"
+    ]
+  },
+  "notIncluded": [
+    "Team sync, mock servers, monitors, the visual editor: the seat price."
+  ],
+  "after": [
+    "A local web UI over the same files",
+    "OpenAPI import"
+  ]
+}

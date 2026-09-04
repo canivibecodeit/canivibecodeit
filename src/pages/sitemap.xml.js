@@ -3,7 +3,7 @@ import { buildsLive, challengeLive } from '../lib/flags.js';
 import { SHOWCASE_MODELS } from '../lib/models.js';
 
 export async function GET() {
-  const base = 'https://canivibecodeit.com';
+  const base = 'https://vibecodeit.com';
   const altPages = alternativesSitemapApps();
   const urls = [
     ...(challengeLive() ? [`${base}/challenge`] : []),

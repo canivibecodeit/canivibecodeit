@@ -1,0 +1,65 @@
+{
+  "slug": "doppler",
+  "name": "Doppler",
+  "domain": "doppler.com",
+  "category": "security",
+  "subcategory": "secrets management",
+  "tagline": "Secrets and config synced to every environment and CI",
+  "priceMonthly": 21,
+  "pricing": {
+    "plan": "Team",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "native": "21 USD",
+    "source": "https://www.doppler.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Developer is free for 3 users ($8 per additional) with 10 projects and 3-day logs. Team $21 per user/month with 250 projects, 90-day activity log and 100 syncs. Enterprise custom.",
+    "freeTier": "The free Developer plan covers 3 users, 10 projects and 4 environments."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "For one person, encrypted env files in the repo with sops and age give you versioned secrets with no server, and that is an afternoon. Doppler sells the sync to every platform, rotation, and the audit log across a team, which a repo of encrypted files does not.",
+  "coreLoopDIY": "Encrypt .env files per environment with sops and age keys, commit them, decrypt at runtime in dev and CI, rotate by re-encrypting.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "sops and age",
+    "a place for the private keys (a password manager and CI secrets)"
+  ],
+  "whatYouLose": [
+    "one-click sync into Vercel, AWS, GitHub Actions and the rest",
+    "the audit log and access control per person",
+    "automatic rotation and dynamic secrets",
+    "the dashboard"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration"
+  ],
+  "moatNotes": "the sync targets",
+  "whyPeopleStillPay": "Teams pay so a secret changes in one place and every environment follows, with a record of who did it.",
+  "priorArt": [
+    {
+      "name": "sops",
+      "url": "https://github.com/getsops/sops",
+      "desc": "encrypted files for secrets in git"
+    },
+    {
+      "name": "Infisical",
+      "url": "https://github.com/Infisical/infisical",
+      "desc": "open-source secrets platform"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "1password",
+    "bitwarden",
+    "railway"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rule zero: do not invent a secrets store. Encrypted files with sops are the solo answer; Infisical is the team answer.",
+  "prompt": "Build me secrets management to replace Doppler for one person or a tiny team. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Rule zero\n\nDo not write an encryption scheme or a secrets server. sops with age encrypts files you commit; every decision below is about workflow around it.\n\n### Stack (fixed, do not substitute)\n\n- sops and age. Encrypted .env files per environment in the repo. A small shell or Node wrapper. CI secrets hold only the age private key.\n\n### Phase 1 · Keys and one file\n\nBuild: generate an age key pair per person and one for CI; a .sops.yaml mapping paths to recipients; encrypt secrets/dev.env so plaintext never touches the repo. A pre-commit hook that refuses any unencrypted *.env.\nDone when: the encrypted file is committed, git log shows no plaintext, and the hook blocks a plaintext .env.\nDo not build yet: runtime, CI.\n\n### Phase 2 · Runtime\n\nBuild: a run wrapper: secrets run --env dev -- npm start decrypts into the child process environment only, never to disk.\nDone when: the app starts with its secrets and no decrypted file exists afterward.\n\n### Phase 3 · Environments and CI\n\nBuild: staging.env and prod.env with different recipients (prod excludes dev laptops), and a GitHub Actions job that decrypts with the CI key from repository secrets.\nDone when: a dev key cannot decrypt prod, and CI runs with its secrets without any plaintext in the workflow file.\n\n### Phase 4 · Rotation and audit\n\nBuild: a rotate command that re-encrypts every file for the current recipient list (removing a leaver), and a log command that shows git history of who changed which key when.\nDone when: removing a recipient and rotating leaves them unable to decrypt the new files, and the log names the change.\n\n### Phase 5 · Sync where needed\n\nBuild: a push command that writes selected secrets into one platform (Vercel or Railway) via its CLI, so the platform is a target, not a source.\nDone when: a change in the encrypted file reaches the platform with one command.\n\n### Out of scope (and why)\n\n- Dynamic secrets, sync to every platform, per-person access in a UI, an audit trail beyond git. That is the seat price.\n\n### README must contain\n\n- Where private keys live and what happens if one leaks.\n- The rotate procedure.",
+  "promptCurated": true
+}

@@ -28,7 +28,7 @@ export const REC_SOURCES = new Set([
 export function recHref(src, email) {
   const params = new URLSearchParams();
   if (email) params.set('email', email);
-  params.set('utm_source', 'canivibecodeit');
+  params.set('utm_source', 'vibecodeit');
   params.set('utm_medium', 'rec');
   params.set('utm_campaign', src);
   return `${REC_TARGET}?${params.toString()}`;

@@ -17,7 +17,7 @@ const BOT_UAS = [
 ]
   .map((ua) => `'${ua}'`)
   .join(', ');
-const SITE = `properties.$host = 'canivibecodeit.com'
+const SITE = `properties.$host = 'vibecodeit.com'
   AND coalesce(properties.$raw_user_agent, '') NOT IN (${BOT_UAS})`;
 
 const QUERY = `
@@ -58,7 +58,7 @@ export function captureServer(event, properties = {}, distinctId = 'server') {
       properties: {
         ...properties,
         $process_person_profile: false,
-        $host: 'canivibecodeit.com',
+        $host: 'vibecodeit.com',
         $lib: 'server',
       },
     }),

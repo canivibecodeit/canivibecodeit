@@ -1,4 +1,4 @@
-/* Can I Vibecode It? — interactions. No frameworks, on purpose. */
+/* Vibecode It? — interactions. No frameworks, on purpose. */
 (() => {
   const $ = (sel, el = document) => el.querySelector(sel);
   const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -118,7 +118,7 @@
       placeGlobe();
     };
 
-    /* ---------- category dropdown (list header) ---------- */
+    /* ---------- category dropdown (hero, next to search) ---------- */
     const catDD = $('#cat-dd');
     if (catDD && rows.length) {
       const ddBtn = $('#cat-dd-btn');
@@ -135,10 +135,15 @@
         if (opening) $('.cat-opt.active', ddPanel)?.scrollIntoView({ block: 'nearest' });
       });
       ddPanel.addEventListener('click', (e) => {
-        const opt = e.target.closest('.cat-opt');
+        const link = e.target.closest('a.cat-opt');
+        if (link) {
+          ddClose();
+          return;
+        }
+        const opt = e.target.closest('button.cat-opt');
         if (!opt) return;
         activeCat = opt.dataset.cat || '';
-        $$('.cat-opt', ddPanel).forEach((o) => {
+        $$('button.cat-opt', ddPanel).forEach((o) => {
           o.classList.toggle('active', o === opt);
           o.setAttribute('aria-selected', String(o === opt));
         });
@@ -146,6 +151,9 @@
         ddBtn.classList.toggle('filtering', !!activeCat);
         ddClose();
         applyFilter();
+        if (activeCat) {
+          document.getElementById('death-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         track('category_filter', { category: activeCat || 'all' });
       });
       document.addEventListener('click', (e) => {
@@ -371,13 +379,7 @@
       lastLoggedQuery = q;
       const hits = rowData.filter((r) => r.lower.includes(q)).length;
       track('search', { query: q, hits });
-      // keepalive: the request survives navigating away to a picked result.
-      fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q, hits }),
-        keepalive: true,
-      }).catch(() => {});
+      // Frontend-only deployment: search remains local and sends no telemetry.
     };
     if (search) {
       search.addEventListener('input', () => {
@@ -463,10 +465,7 @@
         });
       } catch {}
     };
-    if ($('#ticker')) {
-      const iv = setInterval(refreshStats, 30000);
-      onLeave(() => clearInterval(iv));
-    }
+    // Frontend-only deployment: the build-time total is authoritative.
 
     /* ---------- public analytics strip ---------- */
     const strip = $('#stats-strip');
@@ -543,6 +542,66 @@
         btn.classList.remove('copied');
       }, 1800);
     };
+
+    /* ---------- project-pack mode + file browser ---------- */
+    const projectPack = $('[data-project-pack]');
+    if (projectPack) {
+      const promptText = $('#prompt-text');
+      const summary = $('[data-pack-summary]', projectPack);
+      // The server writes both summaries onto the element: file counts differ
+      // between generic packs and per-project kits.
+      const summaries = {
+        indie: summary?.dataset.summaryIndie || '',
+        product: summary?.dataset.summaryProduct || '',
+      };
+
+      const selectFile = (workspace, path) => {
+        $$('[data-pack-file]', workspace).forEach((btn) => {
+          const active = btn.dataset.packFile === path;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+        $$('[data-pack-panel]', workspace).forEach((panel) => {
+          panel.hidden = panel.dataset.packPanel !== path;
+        });
+      };
+
+      $$('[data-pack-file]', projectPack).forEach((btn) => {
+        btn.addEventListener('click', () => selectFile(btn.closest('[data-pack-mode]'), btn.dataset.packFile));
+      });
+
+      $$('[data-build-mode]', projectPack).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.buildMode;
+          $$('[data-build-mode]', projectPack).forEach((modeBtn) => {
+            const active = modeBtn === btn;
+            modeBtn.classList.toggle('active', active);
+            modeBtn.setAttribute('aria-pressed', String(active));
+          });
+          $$('[data-pack-mode]', projectPack).forEach((workspace) => {
+            workspace.hidden = workspace.dataset.packMode !== mode;
+          });
+          const bundle = $(`[data-pack-bundle="${mode}"]`, projectPack);
+          if (promptText && bundle) promptText.textContent = bundle.textContent;
+          if (summary) summary.textContent = summaries[mode];
+          track('build_mode_select', { app: projectPack.querySelector('.copy-group')?.dataset.slug, mode });
+        });
+      });
+
+      $$('[data-copy-file]', projectPack).forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const content = $('pre', btn.closest('[data-pack-panel]'))?.textContent || '';
+          const copied = await copyText(content);
+          if (copied) {
+            const original = btn.textContent;
+            btn.textContent = 'copied ✓';
+            setTimeout(() => (btn.textContent = original), 1600);
+          } else {
+            toast('copy failed · select the file manually');
+          }
+        });
+      });
+    }
 
     /* The ask lands after the value: the reveal only appears once the prompt is
        in someone's clipboard, and never again after a signup or a dismissal. */
@@ -640,6 +699,302 @@
       });
     });
 
+    /* ---------- write a guide ----------
+       One form, one POST, a real answer. Unlike /submit there is no async
+       pipeline to poll: /api/article validates and stores in the same request,
+       so the writer either sees the error against their draft or sees it land.
+       The draft is never cleared on failure · losing a long piece of writing to
+       a network blip is the worst thing this page could do. */
+    const articleForm = $('[data-article-form]');
+    if (articleForm) {
+      const bodyField = $('[data-article-body]', articleForm);
+      const count = $('[data-article-count]', articleForm);
+      const countWrap = count?.closest('.wf-count');
+      const msg = $('[data-article-msg]', articleForm);
+      const submitBtn = $('[data-article-submit]', articleForm);
+      const minChars = Number(bodyField?.getAttribute('minlength')) || 0;
+
+      const setMsg = (text, kind) => {
+        if (!msg) return;
+        msg.textContent = text;
+        msg.classList.toggle('err', kind === 'err');
+        msg.classList.toggle('ok', kind === 'ok');
+      };
+
+      const renderCount = () => {
+        if (!bodyField || !count) return;
+        const n = bodyField.value.trim().length;
+        count.textContent = n.toLocaleString('en-US');
+        countWrap?.classList.toggle('short', n > 0 && n < minChars);
+        countWrap?.classList.toggle('ready', n >= minChars);
+      };
+      bodyField?.addEventListener('input', renderCount);
+      renderCount();
+
+      articleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (submitBtn?.disabled) return;
+
+        const data = Object.fromEntries(new FormData(articleForm).entries());
+        // Cheap client-side guard so an obviously short draft never costs a
+        // round trip; the server checks the same rule regardless.
+        if (String(data.body || '').trim().length < minChars) {
+          setMsg(`the draft is too short · ${minChars.toLocaleString('en-US')} characters minimum`, 'err');
+          bodyField?.focus();
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'sending…';
+        }
+        setMsg('sending…');
+
+        try {
+          const res = await fetch('/api/article', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setMsg(out.error || 'that did not send · try again in a moment', 'err');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'send the draft';
+            }
+            return;
+          }
+          articleForm.reset();
+          renderCount();
+          setMsg('sent · a human reads it next, and you get an email either way', 'ok');
+          if (submitBtn) submitBtn.textContent = 'sent ✓';
+          track('article_submit', { ok: true });
+        } catch {
+          setMsg('network trouble · your draft is still here, try again', 'err');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'send the draft';
+          }
+        }
+      });
+    }
+
+    /* ---------- build progress ----------
+       Device-local progress over the items on /<slug>/build, in localStorage
+       under vibecodeit:progress · same contract as my stack, no account and no
+       server round trip. Items are string ids (a prerequisite, a sub-step, a
+       check) and each entry stores the version it was saved against, so a kit
+       that changes its steps invalidates its own stale ticks rather than
+       crossing off the wrong ones. */
+    const PROGRESS_KEY = 'vibecodeit:progress';
+    const MODE_KEY = 'vibecodeit:build-mode';
+    const readProgress = () => {
+      try {
+        const value = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+      } catch {
+        return {};
+      }
+    };
+    const readEntry = (slug, version) => {
+      const entry = readProgress()[slug];
+      if (!entry || entry.version !== version || !Array.isArray(entry.done)) return { done: [], pct: 0 };
+      return { done: entry.done.filter((x) => typeof x === 'string'), pct: Number(entry.pct) || 0 };
+    };
+    const writeEntry = (slug, version, done, pct) => {
+      try {
+        const all = readProgress();
+        if (done.length) all[slug] = { done: [...new Set(done)].sort(), version, pct, updated: Date.now() };
+        else delete all[slug];
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    /* Verdict-page CTA: shows the saved percentage back once there is any, so
+       the button reads as "resume" rather than "start" on a return visit. */
+    const cta = $('[data-track-cta]');
+    if (cta) {
+      const { done, pct } = readEntry(cta.dataset.slug, cta.dataset.version);
+      if (done.length) {
+        const ring = $('[data-track-cta-ring]', cta);
+        const pctEl = $('[data-track-cta-pct]', cta);
+        const sub = $('[data-track-cta-sub]', cta);
+        if (pctEl) pctEl.textContent = `${pct}%`;
+        if (ring) ring.hidden = false;
+        if (sub) sub.textContent = pct >= 100 ? 'every item done' : `resume · ${pct}% done`;
+      }
+      cta.addEventListener('click', () => track('build_track_open', { app: cta.dataset.slug }));
+    }
+
+    /* The tracker itself. */
+    const buildPage = $('[data-build-page]');
+    if (buildPage) {
+      const slug = buildPage.dataset.slug;
+      const version = buildPage.dataset.version;
+      const bar = $('[data-bt-bar]', buildPage);
+      const fill = $('[data-bt-fill]', buildPage);
+      const pctEl = $('[data-bt-pct]', buildPage);
+      const doneCount = $('[data-bt-done]', buildPage);
+      const totalEl = $('[data-bt-total]', buildPage);
+      const finished = $('[data-build-done]', buildPage);
+
+      /* Mode: indie hides production-only phases and takes them out of the
+         total. Remembered per device; the pack on the verdict page has its
+         own toggle and they are independent on purpose. */
+      const modeBtns = $$('[data-tracker-mode]', buildPage);
+      let mode = 'indie';
+      try {
+        if (localStorage.getItem(MODE_KEY) === 'product') mode = 'product';
+      } catch {
+        /* storage blocked: indie */
+      }
+
+      const visibleToggles = () =>
+        $$('[data-bt-toggle]', buildPage).filter((btn) => !btn.closest('[data-product-only][hidden]'));
+
+      let { done } = readEntry(slug, version);
+
+      const render = () => {
+        const set = new Set(done);
+        const toggles = visibleToggles();
+        let n = 0;
+        toggles.forEach((btn) => {
+          const on = set.has(btn.dataset.btToggle);
+          btn.setAttribute('aria-pressed', String(on));
+          btn.closest('[data-bt-item]')?.classList.toggle('done', on);
+          if (on) n += 1;
+        });
+        // A phase card is done when every visible item inside it is.
+        $$('[data-phase]', buildPage).forEach((card) => {
+          const inside = $$('[data-bt-toggle]', card);
+          card.classList.toggle('done', inside.length > 0 && inside.every((b) => set.has(b.dataset.btToggle)));
+        });
+        const total = toggles.length;
+        const percent = total ? Math.round((n / total) * 100) : 0;
+        if (fill) fill.style.width = `${percent}%`;
+        if (pctEl) pctEl.textContent = `${percent}%`;
+        if (doneCount) doneCount.textContent = String(n);
+        if (totalEl) totalEl.textContent = String(total);
+        if (bar) bar.setAttribute('aria-valuenow', String(percent));
+        if (finished) finished.hidden = !(total > 0 && n === total);
+        buildPage.classList.toggle('complete', total > 0 && n === total);
+        return percent;
+      };
+
+      const applyMode = () => {
+        modeBtns.forEach((btn) => {
+          const active = btn.dataset.trackerMode === mode;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+        $$('[data-product-only]', buildPage).forEach((el) => {
+          el.hidden = mode !== 'product';
+        });
+        render();
+      };
+      modeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          mode = btn.dataset.trackerMode === 'product' ? 'product' : 'indie';
+          try {
+            localStorage.setItem(MODE_KEY, mode);
+          } catch {
+            /* fine */
+          }
+          applyMode();
+          track('build_tracker_mode', { app: slug, mode });
+        });
+      });
+      applyMode();
+
+      /* Collapse every phase already complete on arrival: coming back to a
+         half-finished build should open on the one actually being worked. */
+      $$('[data-phase].done', buildPage).forEach((card) => {
+        const id = card.dataset.step;
+        const detail = $(`[data-step-detail="${id}"]`, buildPage);
+        const toggle = $(`[data-step-collapse="${id}"]`, buildPage);
+        if (detail && toggle) {
+          detail.hidden = true;
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      $$('[data-bt-toggle]', buildPage).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.btToggle;
+          const set = new Set(done);
+          const nowDone = !set.has(id);
+          if (nowDone) set.add(id);
+          else set.delete(id);
+          done = [...set];
+          const percent = render();
+          if (!writeEntry(slug, version, done, percent)) {
+            toast('progress needs site data enabled in this browser');
+            ({ done } = readEntry(slug, version));
+            render();
+          }
+          if (nowDone && percent === 100) toast('every item done · nice');
+          track('build_step_toggle', { app: slug, item: id, done: nowDone, pct: percent });
+        });
+      });
+
+      $$('[data-step-collapse]', buildPage).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const detail = $(`[data-step-detail="${btn.dataset.stepCollapse}"]`, buildPage);
+          if (!detail) return;
+          const open = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', String(!open));
+          detail.hidden = open;
+        });
+      });
+
+      /* Copy the commands of a sub-step. Same helper the pack uses. */
+      $$('[data-copy-cmd]', buildPage).forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const pre = btn.closest('.bk-cmd')?.querySelector('pre');
+          const copied = pre ? await copyText(pre.textContent) : false;
+          if (copied) {
+            const original = btn.textContent;
+            btn.textContent = 'copied ✓';
+            setTimeout(() => (btn.textContent = original), 1600);
+          } else {
+            toast('copy failed · select the commands manually');
+          }
+        });
+      });
+
+      /* Reset wipes work someone actually did, so it arms first and disarms on
+         second thoughts, matching the stack's remove control. */
+      const resetBtn = $('[data-bt-reset]', buildPage);
+      if (resetBtn) {
+        const label = resetBtn.textContent;
+        let armTimer = null;
+        const disarm = () => {
+          clearTimeout(armTimer);
+          delete resetBtn.dataset.armed;
+          resetBtn.textContent = label;
+        };
+        resetBtn.addEventListener('click', () => {
+          if (!done.length) return;
+          if (!resetBtn.dataset.armed) {
+            resetBtn.dataset.armed = '1';
+            resetBtn.textContent = 'clear all progress?';
+            armTimer = setTimeout(disarm, 4000);
+            return;
+          }
+          disarm();
+          done = [];
+          writeEntry(slug, version, done, 0);
+          render();
+          track('build_progress_reset', { app: slug });
+        });
+        onLeave(disarm);
+      }
+    }
+
     /* ---------- vote (toggles: click again to take it back) ---------- */
     const voteLabel = (btn, voted) => {
       const text = btn.childNodes[0];
@@ -652,36 +1007,19 @@
       const slug = btn.dataset.vote;
       if (localStorage.getItem(`voted:${slug}`)) voteLabel(btn, true);
 
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const voted = !!localStorage.getItem(`voted:${slug}`);
         btn.classList.remove('voted');
         void btn.offsetWidth; // restart animation
         btn.classList.add('voted');
-        try {
-          const res = await fetch(`/api/vote/${slug}`, { method: voted ? 'DELETE' : 'POST' });
-          if (!voted && res.status === 429) {
-            localStorage.setItem(`voted:${slug}`, '1');
-            voteLabel(btn, true);
-            toast('already counted · one funeral per person');
-            return;
-          }
-          if (!res.ok) throw new Error();
-          const { count } = await res.json();
-          $$(`[data-votes="${slug}"]`).forEach((el) => (el.textContent = count));
-          if (voted) {
-            localStorage.removeItem(`voted:${slug}`);
-            voteLabel(btn, false);
-            toast('vote taken back · resurrection granted');
-            track('unvote', { app: slug });
-          } else {
-            localStorage.setItem(`voted:${slug}`, '1');
-            voteLabel(btn, true);
-            toast('☠ counted. RIP that subscription.');
-            track('vote', { app: slug });
-            showReveal({ source: 'post_vote', head: 'counted. verdicts flip when models improve.' });
-          }
-        } catch {
-          toast('something broke · try again');
+        if (voted) {
+          localStorage.removeItem(`voted:${slug}`);
+          voteLabel(btn, false);
+          toast('saved vote removed from this device');
+        } else {
+          localStorage.setItem(`voted:${slug}`, '1');
+          voteLabel(btn, true);
+          toast('saved on this device');
         }
       });
     });
@@ -691,8 +1029,7 @@
       a.addEventListener('click', () => track('share', { app: a.dataset.share }))
     );
 
-    /* ---------- accounts + my stack ---------- */
-    const authed = document.body.dataset.user === '1';
+    /* ---------- local-only my stack ---------- */
     const jsonPost = (url, method, body) =>
       fetch(url, {
         method,
@@ -700,96 +1037,23 @@
         body: JSON.stringify(body),
       });
 
-    /* Signup modal: stays on the page (converts better than navigating away).
-       The [data-signin] links keep href=/signin so no-JS still works. */
-    const modal = $('#signup-modal');
-    let pendingSlug = null;
-    let modalCloseTimer;
-    const openSignup = (slug, copy) => {
-      pendingSlug = slug || null;
-      if (!modal) {
-        window.location.href = '/signin';
-        return;
-      }
-      /* The title is conditional: "Sign in" from the nav, the save pitch only
-         when a save actually triggered it, and triggers may carry their own
-         pitch (data-signin-title / data-signin-sub, e.g. "post a build"). */
-      const title = $('#signup-title');
-      if (title) title.textContent = copy?.title || (pendingSlug ? 'Save it to your stack' : 'Sign in');
-      const sub = $('#signup-sub');
-      if (sub) {
-        sub.dataset.default ??= sub.textContent;
-        sub.textContent = copy?.sub || sub.dataset.default;
-      }
-      /* Hiding the scrollbar shrinks the viewport and shifts the page; pad the
-         body by exactly the scrollbar width so nothing moves. */
-      const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-      if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
-      document.body.style.overflow = 'hidden';
-      clearTimeout(modalCloseTimer);
-      modal.hidden = false;
-      requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add('open')));
-      track('signup_open', { app: pendingSlug || undefined });
-    };
-    const closeSignup = () => {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-      if (!modal || modal.hidden) return;
-      modal.classList.remove('open');
-      clearTimeout(modalCloseTimer);
-      modalCloseTimer = setTimeout(() => {
-        modal.hidden = true;
-      }, 240);
-    };
-    onLeave(closeSignup);
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal || e.target.closest('[data-signup-close]')) closeSignup();
-    });
-    document.addEventListener(
-      'keydown',
-      (e) => {
-        if (e.key === 'Escape' && modal && !modal.hidden) closeSignup();
-      },
-      { signal: page.signal }
-    );
-    $$('[data-signin]').forEach((a) =>
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        openSignup(null, { title: a.dataset.signinTitle, sub: a.dataset.signinSub });
-      })
-    );
-
-    /* The checkbox value rides inside the signed OAuth state; the pending save
-       comes back as a ?stacksave= param on the callback URL. The callback is
-       pathname-only: Better Auth's trustedOrigins regex rejects several legal
-       query characters, and a rejected callback means sign-in dies with a 403.
-       The checkbox is read from the SAME surface as the clicked button; the
-       hidden modal also has one and must never shadow the /signin page's. */
-    const oauthStart = async (btn) => {
-      const provider = btn.dataset.oauth;
-      const box = btn
-        .closest('.signup-card, .signin-card')
-        ?.querySelector('input[type="checkbox"]');
-      let callbackURL = location.pathname === '/signin' ? '/' : location.pathname;
-      if (pendingSlug) callbackURL += `?stacksave=${encodeURIComponent(pendingSlug)}`;
+    const STACK_KEY = 'vibecodeit:stack';
+    const readStack = () => {
       try {
-        const res = await jsonPost('/api/auth/sign-in/social', 'POST', {
-          provider,
-          callbackURL,
-          additionalData: { newsletter: !!box?.checked },
-        });
-        if (!res.ok) throw new Error();
-        const { url } = await res.json();
-        if (!url) throw new Error();
-        track('signup_start', { provider, digest: !!box?.checked });
-        window.location.href = url;
+        const value = JSON.parse(localStorage.getItem(STACK_KEY) || '[]');
+        return Array.isArray(value) ? [...new Set(value.filter((slug) => typeof slug === 'string'))] : [];
       } catch {
-        toast('sign-in failed to start · try again');
+        return [];
       }
     };
-    $$('[data-oauth]').forEach((btn) =>
-      btn.addEventListener('click', () => oauthStart(btn))
-    );
+    const writeStack = (slugs) => {
+      try {
+        localStorage.setItem(STACK_KEY, JSON.stringify([...new Set(slugs)]));
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
     const markIcons = (slug, saved) =>
       $$(`[data-stack-icon][data-slug="${CSS.escape(slug)}"]`).forEach((el) => {
@@ -846,39 +1110,60 @@
     );
     onLeave(disarm);
 
-    const toggleStack = async (slug, saved) => {
-      const res = await jsonPost('/api/stack', saved ? 'DELETE' : 'POST', { slug });
-      if (!res.ok) throw new Error();
+    const updateStackPage = () => {
+      const slugs = readStack();
+      const saved = new Set(slugs);
+      $$('[data-stack-count]').forEach((el) => {
+        el.textContent = slugs.length;
+        el.hidden = slugs.length === 0;
+      });
+      $$('[data-local-stack-row]').forEach((row) => {
+        row.hidden = !saved.has(row.dataset.localStackRow);
+      });
+      const page = $('[data-local-stack-page]');
+      if (!page) return;
+      const rows = $$('[data-local-stack-row]', page).filter((row) => !row.hidden);
+      const monthly = rows.reduce((sum, row) => sum + Number(row.dataset.price || 0), 0);
+      $('[data-local-stack-count]', page).textContent = rows.length;
+      $('[data-local-stack-monthly]', page).textContent = `$${monthly.toFixed(2).replace(/\.00$/, '')}`;
+      $('[data-local-stack-yearly]', page).textContent = `$${(monthly * 12).toFixed(2).replace(/\.00$/, '')}`;
+      $('[data-local-stack-saved]', page).hidden = rows.length === 0;
+      $('[data-local-stack-empty]', page).hidden = rows.length > 0;
+    };
+
+    const toggleStack = (slug, saved) => {
+      const slugs = readStack();
+      const next = saved ? slugs.filter((item) => item !== slug) : [...slugs, slug];
+      if (!writeStack(next)) throw new Error();
       const btn = $(`[data-stack="${CSS.escape(slug)}"]`);
       if (btn) setStackBtn(btn, !saved);
       markIcons(slug, !saved);
+      updateStackPage();
       toast(saved ? 'removed from your stack' : '✓ saved to your stack');
       track(saved ? 'stack_remove' : 'stack_add', { app: slug });
     };
 
     /* verdict-page button */
     $$('[data-stack]').forEach((btn) =>
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const slug = btn.dataset.stack;
-        if (!authed) return openSignup(slug);
         const saved = btn.dataset.saved === '1';
         if (saved && !armConfirm(btn, 'click again to remove')) return;
         try {
-          await toggleStack(slug, saved);
+          toggleStack(slug, saved);
         } catch {
-          toast('something broke · try again');
+          toast('browser storage is unavailable');
         }
       })
     );
 
     /* death-list quick-save icons (span[role=button] inside the row link) */
-    const iconAct = async (el) => {
+    const iconAct = (el) => {
       const slug = el.dataset.slug;
-      if (!authed) return openSignup(slug);
       try {
-        await toggleStack(slug, el.classList.contains('saved'));
+        toggleStack(slug, el.classList.contains('saved'));
       } catch {
-        toast('something broke · try again');
+        toast('browser storage is unavailable');
       }
     };
     $$('[data-stack-icon]').forEach((el) => {
@@ -895,70 +1180,30 @@
       });
     });
 
-    /* signed-in: paint saved states on the list icons once per page */
-    if (authed && $('[data-stack-icon]')) {
-      fetch('/api/stack')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => d?.slugs?.forEach((s) => markIcons(s, true)))
-        .catch(() => {});
-    }
-
-    /* back from OAuth with a pending save: finish it, clean the URL */
-    const params = new URLSearchParams(location.search);
-    const pendingSave = params.get('stacksave');
-    if (pendingSave) {
-      params.delete('stacksave');
-      history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
-      if (authed) {
-        jsonPost('/api/stack', 'POST', { slug: pendingSave })
-          .then((r) => {
-            if (!r.ok) return;
-            const btn = $(`[data-stack="${CSS.escape(pendingSave)}"]`);
-            if (btn) setStackBtn(btn, true);
-            markIcons(pendingSave, true);
-            toast('✓ saved to your stack');
-          })
-          .catch(() => {});
-      }
-    }
-
-    /* ---------- /account ---------- */
-    $('[data-signout]')?.addEventListener('click', async () => {
-      try {
-        await jsonPost('/api/auth/sign-out', 'POST', {});
-      } catch {}
-      window.location.href = '/';
+    readStack().forEach((slug) => {
+      markIcons(slug, true);
+      const btn = $(`[data-stack="${CSS.escape(slug)}"]`);
+      if (btn) setStackBtn(btn, true);
     });
+    updateStackPage();
 
     $$('[data-stack-remove]').forEach((btn) =>
-      btn.addEventListener('click', async () => {
-        if (!armConfirm(btn, 'confirm?')) return;
+      btn.addEventListener('click', () => {
         try {
-          const res = await jsonPost('/api/stack', 'DELETE', { slug: btn.dataset.stackRemove });
-          if (!res.ok) throw new Error();
-          btn.closest('.stack-row')?.remove();
-          toast('removed from your stack');
+          toggleStack(btn.dataset.stackRemove, true);
         } catch {
-          toast('something broke · try again');
+          toast('browser storage is unavailable');
         }
       })
     );
 
-    /* empty-stack suggestions: save without leaving /account. Reload rather
-       than patch the DOM: the count, the total and the whole section are
-       server-rendered, and this fires at most three times per account. */
     $$('[data-stack-suggest]').forEach((btn) =>
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const slug = btn.dataset.stackSuggest;
-        btn.disabled = true;
         try {
-          const res = await jsonPost('/api/stack', 'POST', { slug });
-          if (!res.ok) throw new Error();
-          track('stack_add', { app: slug });
-          window.location.reload();
+          toggleStack(slug, readStack().includes(slug));
         } catch {
-          btn.disabled = false;
-          toast('something broke · try again');
+          toast('browser storage is unavailable');
         }
       })
     );
@@ -977,7 +1222,7 @@
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || '');
         }
-        toast(next ? 'digest on · see you thursday' : 'digest off');
+        toast(next ? 'digest on · see you sunday' : 'digest off');
       } catch (err) {
         digestToggle.dataset.on = next ? '' : '1';
         digestToggle.classList.toggle('on', !next);
@@ -1163,7 +1408,7 @@
           btn.disabled = true;
           const emailInput = form.querySelector('input[type=email]');
           emailInput.disabled = true;
-          toast('in. see you thursday.');
+          toast('in. see you sunday.');
           // waitlist_signup is captured server-side in /api/waitlist — no
           // client event, or blocked-analytics visitors vanish from the count.
           remember('digest_subscribed');
@@ -1194,7 +1439,7 @@
       const res = await jsonPost('/api/account/digest', 'POST', { on: true, placement }).catch(() => null);
       if (res?.ok) {
         btn.textContent = "you're in ✓";
-        toast('digest on · see you thursday');
+        toast('digest on · see you sunday');
         remember('digest_subscribed');
         setTimeout(() => {
           if (reveal) reveal.hidden = true;
@@ -1241,6 +1486,45 @@
       killBar();
       dismissAsks();
     });
+
+    /* ---------- back to top ----------
+       Shown past roughly one screen. The scroll listener is passive and does
+       nothing but set a flag · the class flip happens in a rAF, so a fast
+       scroll cannot queue a style write per event. The AbortController is what
+       unhooks it on soft navigation, matching the digest bar. */
+    const toTop = $('[data-to-top]');
+    if (toTop) {
+      const toTopScroll = new AbortController();
+      onLeave(() => toTopScroll.abort());
+
+      const THRESHOLD = 600;
+      let ticking = false;
+      const sync = () => {
+        ticking = false;
+        toTop.classList.toggle('show', window.scrollY > THRESHOLD);
+      };
+      addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(sync);
+        },
+        { passive: true, signal: toTopScroll.signal }
+      );
+      sync(); // a reload can restore a scrolled position before any scroll event
+
+      toTop.addEventListener('click', () => {
+        const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+        /* Send focus back to the top too. Without this a keyboard visitor
+           scrolls up but their next Tab resumes wherever they were, which is
+           the bug that makes these buttons useless with a keyboard. */
+        const first = $('.site-header .brand');
+        if (first) first.focus({ preventScroll: true });
+        track('back_to_top');
+      });
+    }
 
     /* ---------- reveal on scroll ---------- */
     const revealables = $$('.reveal');

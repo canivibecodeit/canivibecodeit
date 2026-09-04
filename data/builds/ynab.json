@@ -1,0 +1,396 @@
+{
+  "slug": "ynab",
+  "version": 1,
+  "summary": "A zero-based budget you own: accounts and categories, a monthly grid where every dollar is assigned, a To Be Budgeted figure that turns red when you over-assign, CSV import with remembered column mappings and payee rules, reconciliation against the real bank balance, credit cards handled the way a budget should, and optional bank sync through SimpleFIN for about $15 a year instead of YNAB's price.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22 with Express and better-sqlite3",
+      "why": "many views and forms; the framework earns its place"
+    },
+    {
+      "part": "Money",
+      "choice": "Integer cents, never floats",
+      "why": "a budget that disagrees with the bank by a cent loses all trust"
+    },
+    {
+      "part": "Dates",
+      "choice": "YYYY-MM-DD strings, not timestamps",
+      "why": "a transaction happens on a date; timezone shifts move money between months"
+    },
+    {
+      "part": "Hosting",
+      "choice": "localhost only",
+      "why": "this is your money; it does not need to be on the internet"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "bank-csv",
+      "kind": "asset",
+      "name": "A CSV export from each bank account",
+      "why": "Phase 4 imports real data; you need a file per account to test column mapping and sign conventions.",
+      "get": "In your bank's web app, find Export or Download transactions, choose CSV, last 90 days. Save one per account, including a credit card.",
+      "cost": "free"
+    },
+    {
+      "id": "categories",
+      "kind": "decision",
+      "name": "Your category groups and categories, written down",
+      "why": "The budget grid is built on them. Deciding in a spreadsheet first stops Phase 2 from becoming a planning session.",
+      "get": "Groups like Bills, Everyday, Savings Goals; six to fifteen categories total to start.",
+      "cost": "free"
+    },
+    {
+      "id": "balances",
+      "kind": "asset",
+      "name": "Today's real balance for every account",
+      "why": "Reconciliation in Phase 5 needs the true figure.",
+      "get": "Read them off the bank apps now and note the date.",
+      "cost": "free"
+    },
+    {
+      "id": "simplefin",
+      "kind": "key",
+      "name": "A SimpleFIN Bridge access token (optional)",
+      "why": "Automatic bank sync, the one thing CSV import cannot replace. About $15 a year, and what Actual Budget uses for the same job. You never hold bank credentials; the aggregator does.",
+      "get": "beta-bridge.simplefin.org > sign up > connect your banks > create an access token (a setup token you exchange once for an access URL). Put the access URL in .env.",
+      "cost": "about $15 a year",
+      "optional": true,
+      "url": "https://beta-bridge.simplefin.org"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "4820",
+      "required": true,
+      "secret": false,
+      "where": "Bound to 127.0.0.1 only."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/budget.db",
+      "required": true,
+      "secret": false,
+      "where": "Your money. Back it up."
+    },
+    {
+      "name": "CURRENCY",
+      "example": "USD",
+      "required": true,
+      "secret": false,
+      "where": "ISO code for formatting."
+    },
+    {
+      "name": "DATE_FORMAT_HINT",
+      "example": "MM/DD/YYYY",
+      "required": true,
+      "secret": false,
+      "where": "Your bank's CSV date format, asked once per account on import and stored."
+    },
+    {
+      "name": "SIMPLEFIN_ACCESS_URL",
+      "example": "https://...:...@beta-bridge.simplefin.org/simplefin",
+      "required": false,
+      "secret": true,
+      "where": "From SimpleFIN after exchanging the setup token. Empty disables sync."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Accounts and transactions",
+      "goal": "Fast keyboard entry, balances computed by query, cents stored exactly.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the tables",
+          "detail": "accounts (id, name, kind, on_budget, closed), category_groups, categories, budgets (month, category_id, assigned_cents), transactions (id, account_id, date, payee, category_id, amount_cents signed, memo, cleared, reconciled, transfer_transaction_id), payee_rules.",
+          "commands": [
+            "mkdir budget && cd budget && git init && npm init -y && npm pkg set type=module",
+            "npm install express@4 better-sqlite3@13",
+            "mkdir data && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Build account CRUD and the transaction entry form",
+          "detail": "Keyboard-first: date, payee, category, amount, memo, enter to save. Parse 12.10 into 1210; never store a float."
+        },
+        {
+          "id": "p1s3",
+          "do": "Compute balances by query, not stored",
+          "detail": "A cached balance drifts and you cannot tell which number lies."
+        }
+      ],
+      "check": [
+        "Ten transactions across two accounts yield balances matching a hand sum",
+        "Editing an amount updates the balance; deleting restores it",
+        "Entering 12.10 stores 1210 and renders $12.10 exactly"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Categories and the budget grid",
+      "goal": "Assigned, activity and available per category per month, with rollover.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Build groups and categories from your list"
+        },
+        {
+          "id": "p2s2",
+          "do": "Build the monthly grid",
+          "detail": "activity = sum of the category's transactions that month; available = last month's available + assigned + activity."
+        }
+      ],
+      "check": [
+        "Assign $200 to Groceries, spend $50: assigned 200, activity -50, available 150",
+        "Next month opens with 150 available before anything is assigned",
+        "An overspent -20 carries into the next month rather than resetting"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "To Be Budgeted",
+      "goal": "The header number the whole method rests on.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Compute inflow to on-budget accounts minus everything assigned across all months",
+          "detail": "One query; reconcile it against a hand calculation on a fixture."
+        },
+        {
+          "id": "p3s2",
+          "do": "Show it in the header on every budget page, red when negative",
+          "detail": "This number is the entire method: every dollar has a job, and the app's job is to tell you when one does not."
+        }
+      ],
+      "check": [
+        "Adding $1,000 income raises it by exactly 1000",
+        "Assigning $400 lowers it by 400",
+        "Over-assigning turns it red with the correct negative figure"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "CSV import",
+      "goal": "Import any bank's CSV once you have mapped it, dedupe, and learn payees.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Build the column-mapping step per account",
+          "detail": "Date, payee, amount or debit/credit columns. Ask the date format once and store it; never guess between DD/MM and MM/DD."
+        },
+        {
+          "id": "p4s2",
+          "do": "Dedupe on date, amount and payee and preview what will be skipped"
+        },
+        {
+          "id": "p4s3",
+          "do": "Apply payee_rules and learn a rule when you categorize a new payee"
+        }
+      ],
+      "check": [
+        "Importing the same file twice adds nothing the second time",
+        "An ambiguous date format is asked about rather than assumed",
+        "A credit-card CSV with inverted signs imports with correct polarity",
+        "A known payee arrives pre-categorized"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Reconciliation",
+      "goal": "Match the bank to the cent and lock what matched.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Build the reconcile flow",
+          "detail": "Enter the real balance, see the difference against cleared, tick transactions cleared until zero, lock them reconciled."
+        },
+        {
+          "id": "p5s2",
+          "do": "Offer a balance adjustment transaction for a remaining difference",
+          "detail": "An auditable row rather than a silent edit of history."
+        }
+      ],
+      "check": [
+        "A $3 discrepancy is reported precisely",
+        "Ticking the missing transaction clears it",
+        "Reconciled transactions resist accidental edits",
+        "The adjustment path leaves an auditable row"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Credit cards",
+      "goal": "Spending on a card moves the assigned money to the card's payment category.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Implement the credit-card payment category rule",
+          "detail": "A categorized purchase on a card reduces that category's available and raises the card's payment category by the same amount."
+        },
+        {
+          "id": "p6s2",
+          "do": "Treat paying the card as a transfer that reduces both",
+          "detail": "Show the payment category in the grid so the money set aside for the bill is visible."
+        }
+      ],
+      "check": [
+        "A $50 grocery purchase on a card reduces Groceries by 50 and raises the card payment category by 50",
+        "Paying the card as a transfer reduces both correctly"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Reports and backups",
+      "goal": "Spending by category and net worth, and a backup you have restored.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Build the two reports as inline SVG"
+        },
+        {
+          "id": "p7s2",
+          "do": "Nightly copy of the database to backups/, thirty kept, and one restore performed",
+          "commands": [
+            "sqlite3 data/budget.db \".backup 'backups/budget-$(date +%F).db'\""
+          ]
+        }
+      ],
+      "check": [
+        "Report totals match the transaction table",
+        "A restore has been performed once"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Optional bank sync, honestly priced",
+      "goal": "SimpleFIN behind an interface, with CSV as the other implementation and no bank credentials in your app.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Exchange the setup token for the access URL once",
+          "commands": [
+            "curl -s $(echo $SETUP_TOKEN | base64 -d)  # the decoded setup token is a claim URL; POST to it once to receive the access URL"
+          ]
+        },
+        {
+          "id": "p8s2",
+          "do": "Implement the sync source",
+          "detail": "GET the access URL's /accounts, map transactions to your model, dedupe against manual entries by date, amount and payee."
+        }
+      ],
+      "check": [
+        "A sync pulls new transactions and dedupes against manual entries",
+        "The app works completely with sync disabled and no token present"
+      ]
+    },
+    {
+      "id": "p9",
+      "title": "Run it on a server for two people",
+      "productOnly": true,
+      "goal": "Only if you share the budget: HTTPS, a login, off-box backups.",
+      "steps": [
+        {
+          "id": "p9s1",
+          "do": "Add a single-user login and bind behind Caddy with HTTPS"
+        },
+        {
+          "id": "p9s2",
+          "do": "Nightly off-box encrypted backup with age",
+          "commands": [
+            "age -r $AGE_RECIPIENT -o backups/budget-$(date +%F).db.age data/budget.db"
+          ]
+        },
+        {
+          "id": "p9s3",
+          "do": "Uptime check and structured logs"
+        }
+      ],
+      "check": [
+        "The login is required for every route",
+        "A restore from the encrypted backup opens correctly"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A budget two people can share with confidence: exact money maths, imports that never double, a bank sync you chose knowingly, backups encrypted off the box.",
+    "architecture": [
+      {
+        "module": "Ledger",
+        "owns": "accounts, transactions, transfers, cents",
+        "swap": "The core; everything else reads it"
+      },
+      {
+        "module": "Budget",
+        "owns": "assigned, activity, available, TBB",
+        "swap": "Pure queries over the ledger"
+      },
+      {
+        "module": "Import",
+        "owns": "CSV mapping, dedupe, payee rules, and the SimpleFIN source",
+        "swap": "Add another aggregator as a second source"
+      },
+      {
+        "module": "Reconcile",
+        "owns": "cleared and reconciled state",
+        "swap": "Rules only; no external dependency"
+      }
+    ],
+    "operations": {
+      "backup": "Nightly SQLite backup, encrypted with age when off the box.",
+      "restore": "Decrypt, copy back, open; check TBB matches the last known figure.",
+      "monitoring": "Uptime on /healthz when hosted; a failed sync is shown in the UI.",
+      "incident": "If the SimpleFIN URL leaks, revoke it in SimpleFIN and issue a new token; your app never held bank passwords."
+    },
+    "releaseGate": [
+      "Money maths verified against a hand-built month",
+      "Import dedupe verified on a real bank file twice",
+      "One restore drill performed",
+      "Sync disabled path verified"
+    ]
+  },
+  "notIncluded": [
+    "Mobile apps and family sharing beyond two logins.",
+    "The educational method and habit design, which is a real part of what YNAB sells.",
+    "Polished reports."
+  ],
+  "after": [
+    "Goals per category (save X by month Y) shown in the grid",
+    "A PWA shell so the phone can add a transaction"
+  ]
+}

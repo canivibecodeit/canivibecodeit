@@ -1,0 +1,466 @@
+{
+  "slug": "cronitor",
+  "version": 1,
+  "summary": "A cron-job monitor you run yourself: every scheduled job gets a URL it pings when it finishes, the monitor flips a job to late and then down when the pings stop, one chat message goes out per state change, and a dashboard shows every job with its last ping and a 24-hour histogram. When every item is ticked you have Healthchecks-style monitoring for a few dollars of hosting.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "no framework and no ORM: a ping is one INSERT and the loop is a setInterval"
+    },
+    {
+      "part": "Database",
+      "choice": "SQLite in WAL mode",
+      "why": "one file, survives restarts, fast enough for millions of pings"
+    },
+    {
+      "part": "Alerts",
+      "choice": "One chat webhook",
+      "why": "the channel you already watch, no SMS provider bill"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS that is not the box running your jobs",
+      "why": "a monitor on the same host reports nothing when that host dies"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "webhook",
+      "kind": "key",
+      "name": "A chat webhook URL (Discord, Slack or Telegram)",
+      "why": "Alerts go to a chat channel you already watch. A webhook URL is the only credential this needs.",
+      "get": "Discord: Server settings > Integrations > Webhooks > New Webhook, copy the URL. Slack: create an app at api.slack.com/apps, enable Incoming Webhooks, add to a channel, copy the URL. Telegram: create a bot with @BotFather and use the bot token plus your chat id.",
+      "verify": "curl -X POST -H 'Content-Type: application/json' -d '{\"content\":\"test\"}' <url> posts a message (Discord form; Slack uses a text field)",
+      "cost": "free",
+      "url": "https://api.slack.com/apps"
+    },
+    {
+      "id": "jobs",
+      "kind": "asset",
+      "name": "The list of jobs you want watched",
+      "why": "Each job needs a name, how often it runs, and how late is too late. Deciding this up front is what makes Phase 2 testable.",
+      "get": "Run crontab -l on each machine and write down every job: name, schedule (every 5 minutes, hourly, nightly at 03:00), and a grace period (how long past due before you want to be told).",
+      "cost": "free"
+    },
+    {
+      "id": "curl",
+      "kind": "tool",
+      "name": "curl on the machines running the jobs",
+      "why": "The whole integration is appending && curl -fsS <url> to a crontab line.",
+      "get": "Already present on nearly every Linux and macOS system.",
+      "verify": "curl --version prints a version",
+      "cost": "free"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. The monitor must live somewhere other than the machines it watches.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "A stable address for ping URLs, so a server move does not mean editing every crontab.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port. Caddy proxies to it on the server."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/monitor.db",
+      "required": true,
+      "secret": false,
+      "where": "Where the SQLite file lives. Create the data/ folder; back this file up."
+    },
+    {
+      "name": "ALERT_WEBHOOK_URL",
+      "example": "https://discord.com/api/webhooks/...",
+      "required": true,
+      "secret": true,
+      "where": "The chat webhook from the prerequisites."
+    },
+    {
+      "name": "ALERT_FORMAT",
+      "example": "discord",
+      "required": true,
+      "secret": false,
+      "where": "discord, slack or telegram. Decides the JSON shape of the message."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://ping.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL, used to print the ping URLs in the dashboard."
+    },
+    {
+      "name": "RETENTION_DAYS",
+      "example": "30",
+      "required": false,
+      "secret": false,
+      "where": "How long to keep individual pings. Alerts and checks are kept forever."
+    },
+    {
+      "name": "CHECK_INTERVAL_SECONDS",
+      "example": "30",
+      "required": false,
+      "secret": false,
+      "where": "How often the loop re-evaluates every check. 30 is plenty."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Ping ingestion",
+      "goal": "Accept pings on URLs that match the Healthchecks scheme, store them, and never fail a ping because the database is busy.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project, the database file and the two tables",
+          "detail": "checks (id uuid, name, period_seconds, grace_seconds, status, last_ping_at, last_started_at, last_duration_ms) and pings (id, check_id, received_at, kind, exit_code, body). All timestamps as UTC epoch milliseconds. Open SQLite with WAL mode and a busy timeout.",
+          "commands": [
+            "mkdir cron-monitor && cd cron-monitor && git init && npm init -y && npm pkg set type=module",
+            "mkdir data",
+            "cp .env.example .env"
+          ],
+          "files": [
+            "server.mjs",
+            "db.mjs",
+            ".env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Route /ping/:uuid and its variants",
+          "detail": "GET, POST and HEAD on /ping/:uuid is a success. /ping/:uuid/start records a start, /ping/:uuid/fail a failure, /ping/:uuid/log a log line, and /ping/:uuid/<0-255> treats 0 as success and anything else as failure."
+        },
+        {
+          "id": "p1s3",
+          "do": "Store at most 100 kB of a POST body and always answer OK",
+          "detail": "Read the body up to 100 kB and stop reading. Answer 200 with the plain text OK. An unknown uuid answers 404 with not found and inserts nothing."
+        },
+        {
+          "id": "p1s4",
+          "do": "Add a create-check script for testing",
+          "detail": "A tiny CLI that inserts a check row with a name, period and grace and prints its ping URL, so you can test before the dashboard exists.",
+          "commands": [
+            "node scripts/add-check.mjs \"nightly backup\" 86400 1800"
+          ]
+        }
+      ],
+      "check": [
+        "curl -fsS http://localhost:3000/ping/<uuid> prints OK and one row appears in pings",
+        "Posting a 2 MB body stores exactly 100 kB and still returns 200",
+        "A ping to a random uuid returns 404 and creates nothing",
+        "/ping/<uuid>/7 stores kind fail with exit_code 7"
+      ],
+      "traps": [
+        "Store times as UTC epoch milliseconds, never local-time strings. The late maths breaks across a DST change otherwise.",
+        "Do not validate the body. Jobs post arbitrary output; you store it and show it."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Status state machine",
+      "goal": "A loop that turns pings into up, late and down, alerts exactly once per transition, and never alerts for a check that has not pinged yet.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Write the evaluation function",
+          "detail": "For each check: up while now is within period of last_ping_at; late once past period; down once past period plus grace. A fail ping sets down at once; any success sets up at once. Status new (never pinged) and paused are skipped."
+        },
+        {
+          "id": "p2s2",
+          "do": "Record every transition in an alerts table",
+          "detail": "alerts (id, check_id, from_status, to_status, sent_at, delivered, error). Write a row when status changes and only then."
+        },
+        {
+          "id": "p2s3",
+          "do": "Compute run duration from /start to success",
+          "detail": "When a success follows a start, set last_duration_ms. Show it later so a job that suddenly takes 40 minutes is visible."
+        },
+        {
+          "id": "p2s4",
+          "do": "Run the loop on CHECK_INTERVAL_SECONDS in the same process",
+          "detail": "setInterval, wrapped in try/catch so one bad row cannot stop the loop. Log one line per transition."
+        }
+      ],
+      "check": [
+        "A check with period 60 and grace 30 reads up right after a ping, late at 61 seconds and down at 91",
+        "Exactly one alerts row per transition and none for a repeated loop in the same state",
+        "A fail ping flips a check to down immediately",
+        "A new check with no pings never gets an alerts row"
+      ],
+      "traps": [
+        "Test the state machine with a fake clock before touching the webhook. Waiting real minutes to see a transition is how this phase eats an evening."
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Alerting",
+      "goal": "One chat message when a job goes down, one when it recovers, retries that never stall the loop.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Write a sender for your ALERT_FORMAT",
+          "detail": "Discord wants {content}, Slack wants {text}, Telegram wants chat_id and text on the bot API. Include the check name, the new status, how late in human units (14 min late) and the last failure body if any."
+        },
+        {
+          "id": "p3s2",
+          "do": "Drain undelivered alerts rows after each loop",
+          "detail": "Send, mark delivered on 2xx. On failure retry three times with backoff (2 s, 10 s, 60 s), then record the error on the row and move on."
+        },
+        {
+          "id": "p3s3",
+          "do": "Send a recovery message on the return to up",
+          "detail": "It carries how long the outage lasted, from the down alert's sent_at."
+        }
+      ],
+      "check": [
+        "Taking a check down produces exactly one message in the channel",
+        "Leaving it down produces no further messages",
+        "Recovery produces exactly one message with a duration",
+        "Pointing ALERT_WEBHOOK_URL at a URL that returns 500 leaves an alerts row with an error and the loop still running"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Admin dashboard",
+      "goal": "Create and manage checks in the browser, and see every job's state at a glance.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Add basic auth from ADMIN_USER and ADMIN_PASS",
+          "detail": "Compare with a constant-time function. Everything under /admin requires it; /ping never does."
+        },
+        {
+          "id": "p4s2",
+          "do": "Build the check list",
+          "detail": "One row per check: a green, amber or red dot, name, relative last ping (7 min ago), period and grace, and the ping URL with a copy button plus a ready-to-paste crontab example line."
+        },
+        {
+          "id": "p4s3",
+          "do": "Add create, edit, pause and delete forms",
+          "detail": "Plain HTML forms posting to /admin routes. No JavaScript required for any of them."
+        },
+        {
+          "id": "p4s4",
+          "do": "Draw a 24-hour ping histogram per check as inline SVG",
+          "detail": "One bar per hour from a GROUP BY on received_at. No chart library."
+        }
+      ],
+      "check": [
+        "A check can be created, edited, paused and deleted from the browser",
+        "The page renders correctly with zero checks",
+        "The histogram bars match a count query for the last 24 hours",
+        "The ping URL copied from the dashboard works in curl"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Hardening and deploy",
+      "goal": "Live on your VPS behind HTTPS, surviving restarts, with old pings pruned.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Rate limit /ping per IP, generously",
+          "detail": "A legitimate job may ping every minute; allow 120 per minute per IP in memory and answer 429 beyond that."
+        },
+        {
+          "id": "p5s2",
+          "do": "Add /healthz and a nightly retention job",
+          "detail": "/healthz answers 200 with a quick database read. Retention deletes pings older than RETENTION_DAYS once a day; alerts and checks are never pruned."
+        },
+        {
+          "id": "p5s3",
+          "do": "Install on the VPS with systemd and Caddy",
+          "detail": "Unit with Restart=on-failure, EnvironmentFile=.env, an unprivileged user. Caddyfile: your domain with reverse_proxy localhost:PORT.",
+          "commands": [
+            "sudo cp deploy/monitor.service /etc/systemd/system/ && sudo systemctl enable --now monitor",
+            "sudo systemctl status monitor"
+          ],
+          "files": [
+            "deploy/monitor.service",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p5s4",
+          "do": "Add the ping to one real crontab and write the README",
+          "detail": "README: the one-liner (*/5 * * * * /path/job.sh && curl -fsS <url>), the wrapper form that reports failures with /start and /fail, and the same-host warning.",
+          "commands": [
+            "crontab -e",
+            "# 0 3 * * * /home/you/backup.sh && curl -fsS https://ping.yourdomain.com/ping/<uuid>"
+          ],
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "The service comes back with state intact after sudo reboot",
+        "Retention actually deletes pings older than the window",
+        "A real cron job on another machine shows up as up on the dashboard",
+        "The README takes a reader from clone to a monitored job"
+      ],
+      "traps": [
+        "Put the monitor on a different machine than the jobs. On the same host it dies with the host, which is precisely when it was supposed to speak."
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the monitor itself is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A monitoring service others could rely on: every job watched from a box that is not theirs, alerts that fire once and recover, and the monitor itself monitored and backed up.",
+    "architecture": [
+      {
+        "module": "Ingest",
+        "owns": "the /ping routes and the pings table",
+        "swap": "Any HTTP listener writing the same rows; the scheme is Healthchecks-compatible so clients never change"
+      },
+      {
+        "module": "Evaluator",
+        "owns": "the state machine and the alerts table",
+        "swap": "Pure function over rows; testable with a fake clock, replaceable without touching ingest"
+      },
+      {
+        "module": "Notifier",
+        "owns": "formatting and delivering alerts with retries",
+        "swap": "One function per ALERT_FORMAT; add email or SMS as another adapter"
+      },
+      {
+        "module": "Admin",
+        "owns": "basic-auth dashboard and forms",
+        "swap": "Any UI over the same tables; the ping URLs are the contract"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly to object storage, thirty days kept. The checks table is the valuable part; pings are replaceable.",
+      "restore": "Copy the backup to DATABASE_PATH, start the service, confirm the dashboard lists every check and pings resume.",
+      "monitoring": "An external uptime check on /healthz from a different provider than the VPS. Watch the alerts table for rows with an error: that is the webhook breaking.",
+      "incident": "If the monitor is down, jobs are unwatched but unaffected; restore and re-check the last few hours by hand. If the webhook leaks, rotate it in the chat tool and update .env."
+    },
+    "releaseGate": [
+      "A clean clone reaches a monitored job using only the README",
+      "Every transition alerts exactly once in a soak test of one flapping and one stable check",
+      "One restore drill performed and dated in OPERATIONS.md",
+      "The monitor runs on a different provider than the jobs it watches"
+    ]
+  },
+  "notIncluded": [
+    "SMS, WhatsApp and phone-call alerts. One webhook into a chat app covers the solo case; a provider bill covers the rest.",
+    "Status pages, teams and on-call rotation. That is the paid product.",
+    "Cron-expression parsing and insights. Period plus grace is enough and it is the part you can get right."
+  ],
+  "after": [
+    "A second alert channel (email over SMTP) behind the same Notifier interface",
+    "A public read-only status page rendered from the checks table"
+  ]
+}

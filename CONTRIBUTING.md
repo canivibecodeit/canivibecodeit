@@ -2,7 +2,7 @@
 
 Every app on the death list is one JSON file in `data/apps/<slug>.json`, added by PR.
 The repo is the admin panel. Don't feel like writing JSON? The
-[submit form](https://canivibecodeit.com/submit) drafts the entry and opens the
+[submit form](https://vibecodeit.com/submit) drafts the entry and opens the
 PR for you — this document is the spec either way, and PRs are always welcome
 directly.
 
@@ -206,9 +206,106 @@ The prompt is the product. It must be:
   empty folder and gets a working thing. No hand-waving.
 - **Opinionated about stack** — pick one; don't offer menus.
 - **Explicit about scope** — say what's included AND what's deliberately out.
-- **15–30 lines.** If it needs more, the verdict probably isn't "yes".
 - **Honest** — no accounts/cloud/telemetry unless the app genuinely needs it; secrets
   go in `.env`; include README/permissions notes where relevant.
+- **Phased**, in the house format below. Agents that are handed a whole product in
+  one paragraph build a plausible-looking shell; agents handed one module at a time
+  with a check to pass build something that works.
+
+### The phased format
+
+Prompts are being migrated to a fixed structure, 80–150 lines, ten apps at a batch.
+`AGENT_VIBE.md` tracks which are converted. Use `###` headings — the prompt is
+embedded under an existing `##` heading in the generated project pack, so `##`
+inside a prompt breaks that document's hierarchy.
+
+```
+Build me <thing> to replace <App>. Build it in phases, in the order below. Do not
+write the whole <thing> in one pass. Finish a phase, run its "Done when" check,
+fix what fails, and only then start the next phase.
+
+### Stack (fixed, do not substitute)
+### Data model (create this before Phase 1)
+### Phase 1 · <name>
+Build: ...
+Done when: <a check the builder can actually run or see>
+Do not build yet: <what belongs to a later phase>
+### Phase 2 · ...
+### Out of scope (and why)
+### README must contain
+```
+
+Rules for the phases themselves:
+
+- **Order by dependency, not by importance.** Identity and storage before the
+  features that need them; the thing most likely to kill the project first, while
+  abandoning it is still cheap.
+- **Every phase ends in a check that can fail.** "Done when: it works" is not a
+  check. "Done when: two pageviews 31 minutes apart are two sessions, both
+  bouncing" is.
+- **Name the trap.** Where a phase has one detail that wastes an afternoon — a WAV
+  format, a Safari clipboard quirk, a weighted character count — say it in the
+  phase, with the reason. That sentence is worth more than the rest of the phase.
+- **Verify external facts before writing them in.** API pricing, tiers, model
+  names, library APIs and CLI flags all drift. A confidently wrong version number
+  sends the builder somewhere the docs contradict.
+- **`Out of scope (and why)`** carries the honesty: not just what is missing, but
+  what the vendor's price is actually buying.
+
+## Build kits
+
+A build kit is the beginner-friendly, per-app development guide behind two
+surfaces: the project pack on the verdict page (real per-project Markdown files
+instead of the generic templates) and the step-by-step tracker at `/<slug>/build`.
+One file per app in `data/builds/<slug>.json`; apps without one keep the generic
+pack and the phases parsed from the prompt. `npm run validate` checks every kit.
+
+```jsonc
+{
+  "slug": "carrd", "version": 1,          // bump version when steps change materially
+  "summary": "What you have when every item is ticked.",
+  "time": "one sitting",                    // one sitting | weekend | multi-day
+  "stack": [{ "part": "Runtime", "choice": "Node 22", "why": "..." }],
+  "prerequisites": [{                       // everything to have BEFORE step 1
+    "id": "node", "kind": "tool",           // tool | account | key | asset | decision
+    "name": "Node.js 22 or newer",
+    "why": "what breaks without it",
+    "get": "exactly where and how, for a beginner",
+    "verify": "node --version prints v22+",  // optional
+    "cost": "free",                          // "free" is an answer; API keys say what they cost
+    "optional": false, "url": "https://nodejs.org"
+  }],
+  "env": [{ "name": "PORT", "example": "3000", "required": true, "secret": false, "where": "where the value comes from" }],
+  "phases": [{
+    "id": "p1", "title": "Build pipeline", "goal": "one paragraph",
+    "productOnly": false,                    // true = product-builder mode only
+    "steps": [{ "id": "p1s1", "do": "...", "detail": "...", "commands": ["..."], "files": ["..."], "snippet": "..." }],
+    "check": ["falsifiable, one per line"],   // rendered as tickable items
+    "traps": ["the detail that wastes an afternoon"]
+  }],
+  "product": {                               // product-builder extras
+    "outcome": "...", "architecture": [{ "module": "...", "owns": "...", "swap": "..." }],
+    "operations": { "backup": "...", "restore": "...", "monitoring": "...", "incident": "..." },
+    "releaseGate": ["..."]
+  },
+  "notIncluded": ["what this does not replace, and why"],
+  "after": ["ideas once v1 works"]           // optional
+}
+```
+
+Rules the validator enforces, and why:
+
+- **Every prerequisite says how to get it and what it costs.** The point of the
+  kit is that a beginner is never stuck before step one. "An API key" is not a
+  prerequisite; "Stripe test-mode secret key from dashboard.stripe.com >
+  Developers > API keys, free in test mode" is.
+- **Every phase has at least two steps and at least one check.** One step is not
+  a phase, and a check that cannot fail is a wish.
+- **Ids are stable.** Progress in the tracker is saved against them, so renaming
+  an id resets a visitor's ticks; bumping `version` does that deliberately.
+- **At least one phase is available in indie mode.** `productOnly` phases carry
+  the operations and distribution work a solo builder can skip.
+- **No em dashes**, same as everywhere else on the site.
 
 ## House rules
 

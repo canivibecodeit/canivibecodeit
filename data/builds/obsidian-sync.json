@@ -1,0 +1,330 @@
+{
+  "slug": "obsidian-sync",
+  "version": 1,
+  "summary": "Sync for your Obsidian vault using git: a watcher commits and pushes after you stop typing, pulls with rebase on a timer, never loses either side of a conflict, refuses to push a suspicious mass deletion, and a status command tells you where things stand. Your phone uses a git client against the same repository.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Sync",
+      "choice": "git with a private remote",
+      "why": "history for free; the conflict model is understood"
+    },
+    {
+      "part": "Watcher",
+      "choice": "A bash script on a systemd timer or launchd agent, or Node with chokidar",
+      "why": "the simpler one for your machine"
+    },
+    {
+      "part": "Mobile",
+      "choice": "Working Copy on iOS, a git client on Android",
+      "why": "no mobile code to build"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "vault",
+      "kind": "asset",
+      "name": "Your Obsidian vault folder, backed up once by hand first",
+      "why": "You are about to automate commits in it. Take a plain copy before Phase 1 so nothing is at risk while you learn.",
+      "get": "Copy the vault folder to an external drive or a zip.",
+      "cost": "free"
+    },
+    {
+      "id": "remote",
+      "kind": "account",
+      "name": "A private git repository (GitHub, GitLab or Codeberg)",
+      "why": "The remote is the sync point. Private, because these are your notes.",
+      "get": "Create an empty private repository. For pushing without passwords, add an SSH key: ssh-keygen -t ed25519, then add the public key in the host's SSH keys settings.",
+      "verify": "ssh -T git@github.com greets you",
+      "cost": "free",
+      "url": "https://github.com/new"
+    },
+    {
+      "id": "second",
+      "kind": "asset",
+      "name": "A second machine or a phone",
+      "why": "Every phase is tested across two devices; one machine cannot test sync.",
+      "get": "Another computer, or a phone with a git client.",
+      "cost": "free"
+    },
+    {
+      "id": "mobile-client",
+      "kind": "tool",
+      "name": "A mobile git client (optional)",
+      "why": "Phase 6: the phone reads and writes the same repository.",
+      "get": "Working Copy on iOS (one-time purchase for push), MGit or GitJournal on Android.",
+      "cost": "free to about $20 one-time",
+      "optional": true,
+      "url": "https://workingcopy.app"
+    }
+  ],
+  "env": [
+    {
+      "name": "VAULT_PATH",
+      "example": "/Users/you/Notes",
+      "required": true,
+      "secret": false,
+      "where": "Absolute path to the vault."
+    },
+    {
+      "name": "REMOTE",
+      "example": "origin",
+      "required": true,
+      "secret": false,
+      "where": "Git remote name."
+    },
+    {
+      "name": "DEBOUNCE_SECONDS",
+      "example": "30",
+      "required": false,
+      "secret": false,
+      "where": "Wait this long after the last change before committing."
+    },
+    {
+      "name": "PULL_INTERVAL_MINUTES",
+      "example": "5",
+      "required": false,
+      "secret": false,
+      "where": "How often to pull with rebase."
+    },
+    {
+      "name": "MAX_CHANGED_FILES",
+      "example": "100",
+      "required": false,
+      "secret": false,
+      "where": "Refuse to auto-commit a change touching more files than this."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Repository hygiene",
+      "goal": "A vault that does not produce a diff just from being opened.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "git init in the vault and write .gitignore",
+          "detail": ".obsidian/workspace*, .obsidian/cache, .trash/, .DS_Store. Keep the rest of .obsidian if you want settings to travel.",
+          "commands": [
+            "cd $VAULT_PATH && git init && git remote add origin git@github.com:you/notes.git"
+          ],
+          "files": [
+            ".gitignore"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Open and close Obsidian and check git status is clean"
+        }
+      ],
+      "check": [
+        "git status is clean after launching and closing Obsidian without editing",
+        "Opening the vault on the second machine produces no diff"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Manual round trip",
+      "goal": "Do the loop by hand before automating it.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "On machine A: edit a note, commit, push",
+          "commands": [
+            "git add -A && git commit -m 'notes' && git push -u origin main"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "On machine B: pull, edit the same note elsewhere, push; then pull on A and watch the merge",
+          "commands": [
+            "git pull --rebase"
+          ]
+        }
+      ],
+      "check": [
+        "A note written on A appears on B and back",
+        "You have seen one real merge succeed"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "The watcher",
+      "goal": "Debounced commits, timed pulls, one git operation at a time.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Write vaultsync.sh (or the Node equivalent)",
+          "detail": "Debounce DEBOUNCE_SECONDS after the last change, git add -A, commit with the changed-file count, push. Pull --rebase on start and every PULL_INTERVAL_MINUTES. Take a lock file so a commit never races a rebase.",
+          "files": [
+            "vaultsync.sh"
+          ]
+        },
+        {
+          "id": "p3s2",
+          "do": "Install it as a systemd user timer or a launchd agent",
+          "commands": [
+            "systemctl --user enable --now vaultsync.timer"
+          ]
+        }
+      ],
+      "check": [
+        "Editing a note results in a commit and push within a minute",
+        "Ten quick edits produce one commit",
+        "A network outage is caught up when the network returns",
+        "A manual git command while idle is not clobbered"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Conflicts, without data loss",
+      "goal": "Both versions survive, the vault is never left mid-rebase, the daemon keeps running.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "On rebase conflict, keep local, write the incoming version as <name>.conflict-YYYY-MM-DD-HHMM.md, commit, log loudly"
+        },
+        {
+          "id": "p4s2",
+          "do": "Create a conflict deliberately with both machines offline and bring them back"
+        }
+      ],
+      "check": [
+        "Both versions survive as files",
+        "The vault is not left mid-rebase",
+        "The daemon keeps running"
+      ],
+      "traps": [
+        "Test this before trusting the sync with anything you care about."
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Status and safety",
+      "goal": "Know the state, and never propagate a mass deletion.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Write vaultsync status: last push, last pull, pending, conflict files, daemon alive"
+        },
+        {
+          "id": "p5s2",
+          "do": "Add the MAX_CHANGED_FILES guard that asks instead of committing"
+        }
+      ],
+      "check": [
+        "Deleting a folder of 200 notes triggers the guard",
+        "status reports an unresolved conflict file"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Mobile and second machine",
+      "goal": "Documentation only: a phone and another computer set up from the README.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Write the README: second-machine setup, the conflict-file convention, the size-guard override",
+          "files": [
+            "README.md"
+          ]
+        },
+        {
+          "id": "p6s2",
+          "do": "Set up the phone client against the same repository and write one note from it",
+          "detail": "Working Copy on iOS, MGit or GitJournal on Android."
+        }
+      ],
+      "check": [
+        "A second machine is set up from the README alone",
+        "A note written on the phone reaches the desktop"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Operate it",
+      "productOnly": true,
+      "goal": "Only for the careful path: know when sync stops, keep an off-git backup, encrypt if the remote should not read your notes.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Alert when the last successful push is older than a day",
+          "detail": "A cron job that checks and posts to ntfy or a webhook."
+        },
+        {
+          "id": "p7s2",
+          "do": "Nightly tarball of the vault to a second place, independent of git"
+        },
+        {
+          "id": "p7s3",
+          "do": "If the remote must be zero-knowledge, use git-crypt or a full-vault age-encrypted archive instead, and accept the mobile cost",
+          "detail": "Decide this consciously; do not half-build encryption."
+        }
+      ],
+      "check": [
+        "Stopping the daemon produces an alert the next day",
+        "The tarball restores to a readable vault"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Sync you understand completely: every change in history, conflicts that never lose a word, and a warning before a mistake spreads.",
+    "architecture": [
+      {
+        "module": "Watcher",
+        "owns": "debounce, commit, push, lock",
+        "swap": "Node or bash; same behaviour"
+      },
+      {
+        "module": "Puller",
+        "owns": "timed rebase and conflict policy",
+        "swap": "The conflict-file convention is the contract"
+      },
+      {
+        "module": "Guard",
+        "owns": "mass-change refusal and status",
+        "swap": "Tune the threshold"
+      }
+    ],
+    "operations": {
+      "backup": "git is history, not backup: a nightly tarball to a second place.",
+      "restore": "git clone, or extract the tarball.",
+      "monitoring": "Alert when the last push is stale.",
+      "incident": "A bad commit is reverted with git; a conflict file is resolved by reading both versions."
+    },
+    "releaseGate": [
+      "Conflict drill performed on two offline machines",
+      "Mass-deletion guard verified",
+      "Second machine set up from the README"
+    ]
+  },
+  "notIncluded": [
+    "An encrypted-vault workflow by default; it is a different design with mobile costs.",
+    "A version-history UI; git log is the history.",
+    "Mobile beyond configuring an existing client."
+  ],
+  "after": [
+    "A small web viewer of the repository for read-only access anywhere",
+    "Scheduled snapshots tagged by week"
+  ]
+}

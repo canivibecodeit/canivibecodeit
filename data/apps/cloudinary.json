@@ -1,0 +1,66 @@
+{
+  "slug": "cloudinary",
+  "name": "Cloudinary",
+  "domain": "cloudinary.com",
+  "category": "hosting",
+  "subcategory": "image and video CDN with transformations",
+  "tagline": "Upload once, serve any size and format from a URL",
+  "priceMonthly": 99,
+  "pricing": {
+    "plan": "Plus",
+    "basis": "monthly flat, credit-based",
+    "unit": "usage",
+    "native": "99 USD",
+    "source": "https://cloudinary.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Free 25 credits/month where a credit is 1,000 transformations, 1 GB storage or 1 GB bandwidth. Plus $99/month ($89 annual) for 225 credits, Advanced $249 for 600.",
+    "freeTier": "The free plan includes 25 monthly credits covering transformations, storage and bandwidth."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "On-the-fly resizing and format negotiation is imgproxy or a sharp service in front of object storage, and a weekend gets you there. The global CDN, video transcoding and the media library UI are what $99 buys, and the CDN is not something you run.",
+  "coreLoopDIY": "Object storage for originals, imgproxy or a sharp service that resizes and converts on request by signed URL, a CDN in front for caching.",
+  "diyTimeEstimate": "weekend",
+  "requirements": [
+    "object storage (S3-compatible)",
+    "a VPS or container for the transformer",
+    "a CDN or Cloudflare in front"
+  ],
+  "whatYouLose": [
+    "video transcoding and adaptive streaming",
+    "the media library and AI tagging",
+    "global edge delivery you do not operate",
+    "upload widgets and SDKs for every platform"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "video and the edge",
+  "whyPeopleStillPay": "Images are solved; video is not. Teams with video, or with designers who need a library, pay.",
+  "priorArt": [
+    {
+      "name": "imgproxy",
+      "url": "https://github.com/imgproxy/imgproxy",
+      "desc": "fast and secure image processing server"
+    },
+    {
+      "name": "sharp",
+      "url": "https://github.com/lovell/sharp",
+      "desc": "high-performance Node image processing"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "cloudflare-workers",
+    "fly-io",
+    "remove-bg"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rule zero: do not write an image processor. imgproxy is one binary.",
+  "prompt": "Build me an image CDN like Cloudinary for images only. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Rule zero\n\nDo not write an image processor. imgproxy is one binary that resizes, crops and converts safely; you build the storage and the caching around it.\n\n### Stack (fixed, do not substitute)\n\n- S3-compatible object storage for originals (Cloudflare R2, Backblaze B2 or MinIO). imgproxy in Docker. Caddy or Cloudflare in front for caching. A small Node upload service.\n\n### Phase 1 · Originals\n\nBuild: an upload endpoint behind a token that stores the original in the bucket under a content hash, sniffs the type, caps the size, strips EXIF, and returns the key. Nothing is ever overwritten.\nDone when: two uploads of the same file store once, a renamed executable is refused, and the stored file has no GPS EXIF.\nDo not build yet: transforms.\n\n### Phase 2 · Transforms\n\nBuild: imgproxy configured with the bucket as source, signed URLs with a key and salt from .env, and a helper that builds img(key, width, height, format) URLs. Auto WebP and AVIF by Accept header.\nDone when: one original serves at three widths in the format the browser prefers and an unsigned URL is refused.\n\n### Phase 3 · Cache\n\nBuild: long cache headers on transformed responses, a CDN or Caddy cache in front, and a purge command by key.\nDone when: the second request for a transform is served by the cache and purge makes the next one miss.\n\n### Phase 4 · Responsive helper\n\nBuild: a function producing a srcset and sizes for a key, and a build-time step that replaces plain img tags in your site with it.\nDone when: a page loads the smallest sufficient image on a phone and the largest on a desktop.\n\n### Phase 5 · Operate\n\nBuild: bucket lifecycle rules, imgproxy memory limits, /healthz, backups of the key index, the README.\nDone when: imgproxy survives a 50 MB hostile image without falling over and the README goes from zero to a served image.\n\n### Out of scope (and why)\n\n- Video, the media library, AI tagging, upload widgets. That is the $99.\n\n### README must contain\n\n- The signing scheme and what happens without it.\n- Where originals live and how to restore them.",
+  "promptCurated": true
+}

@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const STATE_DIR = process.env.SEARCH_STATE_DIR || '/srv/http/canivibecodeit-data/searches';
+const STATE_DIR = process.env.SEARCH_STATE_DIR || '/srv/http/vibecodeit-data/searches';
 const AUDIT_FILE = path.join(STATE_DIR, 'search-audit.txt');
 const STATE_FILE = path.join(STATE_DIR, '.last-id');
 const BATCH = 5000;

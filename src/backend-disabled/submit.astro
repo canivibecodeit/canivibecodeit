@@ -1,0 +1,298 @@
+---
+// Submit an app: the no-git path onto the death list. The form feeds
+// /api/submit, which drafts the entry with AI and opens a public PR from the
+// bot's fork. GitHub stays the moderation layer; this page just removes the
+// git knowledge requirement.
+import Base from '../layouts/Base.astro';
+import DigestReveal from '../components/DigestReveal.astro';
+
+const user = Astro.locals.user ?? null;
+---
+
+<Base
+  title="Submit an app · vibecodeit"
+  description="Name a paid app and the bot drafts its verdict, prompt and all, as a public pull request. No git knowledge required."
+>
+  <main class="wrap submit-wrap">
+    <div class="submit-card">
+      <h1>Submit an app</h1>
+      {/* the whole pitch in one breadcrumb; steps stay unbroken and the row
+          wraps at step boundaries on narrow screens */}
+      <p class="pipeline" aria-label="How submitting works">
+        <span>name it</span>
+        <span class="arrow" aria-hidden="true">→</span>
+        <span>bot drafts the verdict</span>
+        <span class="arrow" aria-hidden="true">→</span>
+        <span>PR opens</span>
+        <span class="arrow" aria-hidden="true">→</span>
+        <span>human merges</span>
+      </p>
+
+      <form id="submit-form" novalidate>
+        <div class="field">
+          <label for="sub-name">app name</label>
+          <input id="sub-name" name="name" type="text" required maxlength="80" placeholder="e.g. Calendly" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="sub-url">website</label>
+          <input id="sub-url" name="url" type="url" required maxlength="300" placeholder="calendly.com" autocomplete="off" inputmode="url" />
+        </div>
+        <div class="field">
+          <label for="sub-take">your take <span class="opt">optional</span></label>
+          <textarea id="sub-take" name="take" maxlength="1000" rows="3" placeholder="yes / kinda / no, and why"></textarea>
+        </div>
+        <div class="field">
+          <div class="label-row">
+            <label for="sub-submitter">credit <span class="opt">optional</span></label>
+          </div>
+          <input id="sub-submitter" name="submitter" type="text" maxlength="60" placeholder="name or handle for the PR" value={user?.name ?? ''} autocomplete="off" />
+        </div>
+        {/* honeypot: invisible to people, irresistible to bots */}
+        <div class="hp" aria-hidden="true">
+          <label for="sub-website">leave this empty</label>
+          <input id="sub-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <div class="submit-row">
+          <button class="btn primary" type="submit" id="submit-go">draft the entry →</button>
+          <p class="submit-fine">
+            human-reviewed · <a href="https://github.com/vibecodeit/vibecodeit/blob/main/CONTRIBUTING.md">prefer git?</a>
+          </p>
+        </div>
+      </form>
+
+      <div class="submit-status" id="submit-status" role="status" aria-live="polite" hidden>
+        <span class="pulse" aria-hidden="true"></span>
+        <span class="status-text" id="submit-status-text"></span>
+      </div>
+
+      <div class="submit-result" id="submit-result" hidden>
+        <p class="result-line" id="submit-result-text"></p>
+        <a class="btn ghost" id="submit-result-link" target="_blank" rel="noopener" hidden>view the pull request ↗</a>
+        <a class="result-app" id="submit-result-app" hidden></a>
+      </div>
+
+      <DigestReveal
+        source="post_submit"
+        head="submitted. a human reviews it next."
+        sub="a new guide to technology every sunday. free, one-click out."
+      />
+
+      <noscript>
+        <p class="submit-fine">the form needs JavaScript to talk to the drafting bot. without it, <a href="https://github.com/vibecodeit/vibecodeit/blob/main/CONTRIBUTING.md">the PR route</a> works fine.</p>
+      </noscript>
+    </div>
+  </main>
+</Base>
+
+<script is:inline src={`/js/submit.js?v=${__BUILD_ID__}`} defer></script>
+
+<style>
+  /* display classes below would otherwise beat the UA's [hidden] rule */
+  [hidden] {
+    display: none !important;
+  }
+  .submit-wrap {
+    display: flex;
+    justify-content: center;
+    padding-top: 56px;
+    padding-bottom: 96px;
+  }
+  .submit-card {
+    width: min(560px, 100%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 36px 36px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .submit-card h1 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .pipeline {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .pipeline span {
+    white-space: nowrap;
+  }
+  .pipeline .arrow {
+    color: var(--primary);
+  }
+  .label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .signin-hint {
+    font-size: 11px;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+  .signin-hint:hover {
+    text-decoration: underline;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .field label {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field .opt {
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.7;
+  }
+  .field input,
+  .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 12px 14px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 15px;
+    transition: border-color 0.15s ease;
+  }
+  .field textarea {
+    resize: vertical;
+    min-height: 72px;
+    line-height: 1.55;
+  }
+  .field input:focus,
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .field input::placeholder,
+  .field textarea::placeholder {
+    color: var(--muted);
+    opacity: 0.65;
+  }
+  /* honeypot lives off-canvas, not display:none — some bots skip hidden fields */
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    flex-wrap: wrap;
+  }
+  #submit-go {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #submit-go:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
+  }
+  .submit-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .pulse {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: submit-pulse 1.1s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes submit-pulse {
+    50% {
+      opacity: 0.25;
+    }
+  }
+  .submit-result {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg);
+    padding: 16px 18px;
+  }
+  .submit-result[data-tone='bad'] {
+    border-color: color-mix(in srgb, #ff4444 35%, transparent);
+  }
+  .result-line {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .submit-result[data-tone='bad'] .result-line {
+    color: #ff4444;
+  }
+  #submit-result-link {
+    align-self: flex-start;
+  }
+  .result-app {
+    font-size: 13.5px;
+    color: var(--primary);
+    align-self: flex-start;
+  }
+  .submit-fine {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  /* same treatment as .site-footer a: links read as links */
+  .submit-fine a {
+    color: var(--primary);
+  }
+  .submit-fine a:hover {
+    text-decoration: underline;
+  }
+  @media (max-width: 640px) {
+    .field input,
+    .field textarea {
+      font-size: 16px;
+    }
+  }
+  @media (max-width: 480px) {
+    .submit-card {
+      padding: 24px 20px;
+    }
+    .submit-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    #submit-go {
+      justify-content: center;
+    }
+  }
+</style>

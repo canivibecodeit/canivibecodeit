@@ -1,0 +1,286 @@
+{
+  "slug": "resend",
+  "version": 1,
+  "summary": "Not an email provider: deliverability is reputation, not code. This is the mail module that makes the provider replaceable: one interface, an SMTP driver, a hosted-API driver, a dev driver that writes .eml files, DNS records checked, bounces suppressed, and an honest page on self-hosting Postal if you insist.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22",
+      "why": "one module your app imports"
+    },
+    {
+      "part": "Drivers",
+      "choice": "nodemailer for SMTP, fetch for a hosted API",
+      "why": "the swap is an env var"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A sending domain you control DNS for",
+      "why": "SPF, DKIM and DMARC records are what make mail deliverable.",
+      "get": "Use a subdomain like mail.yourdomain.com so experiments never hurt your main domain's reputation.",
+      "cost": "free on a domain you own"
+    },
+    {
+      "id": "provider",
+      "kind": "key",
+      "name": "A hosted provider key (Resend, Postmark or similar)",
+      "why": "The hosted driver. Free tiers cover thousands of emails a month.",
+      "get": "Resend: resend.com > API Keys > Create; add and verify your domain. Postmark: account > Servers > API Tokens.",
+      "cost": "free tier; then usage-based",
+      "url": "https://resend.com/api-keys"
+    },
+    {
+      "id": "smtp",
+      "kind": "key",
+      "name": "SMTP credentials (optional)",
+      "why": "The SMTP driver, for self-hosting or another provider.",
+      "get": "From any mail host.",
+      "cost": "varies",
+      "optional": true
+    },
+    {
+      "id": "inbox",
+      "kind": "asset",
+      "name": "Test inboxes at Gmail and Outlook",
+      "why": "Deliverability is judged by real providers.",
+      "get": "Free accounts.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "MAIL_DRIVER",
+      "example": "dev",
+      "required": true,
+      "secret": false,
+      "where": "dev, smtp or resend."
+    },
+    {
+      "name": "MAIL_FROM",
+      "example": "'Your App' <hello@mail.yourdomain.com>",
+      "required": true,
+      "secret": false,
+      "where": "From address on your verified domain."
+    },
+    {
+      "name": "RESEND_API_KEY",
+      "example": "re_...",
+      "required": false,
+      "secret": true,
+      "where": "Resend dashboard."
+    },
+    {
+      "name": "SMTP_URL",
+      "example": "smtps://user:pass@host:465",
+      "required": false,
+      "secret": true,
+      "where": "For the SMTP driver."
+    },
+    {
+      "name": "MAIL_DEV_DIR",
+      "example": "./mail-out",
+      "required": false,
+      "secret": false,
+      "where": "Where the dev driver writes .eml files."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The interface and two local drivers",
+      "goal": "send() with a typed result; dev writes files; SMTP sends for real.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Define send(to, subject, html, text) returning an id or a typed error; require a text part",
+          "commands": [
+            "mkdir mail && cd mail && git init && npm init -y && npm pkg set type=module && npm install nodemailer@6",
+            "mkdir -p mail-out && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Dev driver writing .eml files; SMTP driver over SMTP_URL"
+        }
+      ],
+      "check": [
+        "Sending in dev writes a file that opens in a mail client",
+        "A missing text part fails the send"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The hosted driver",
+      "goal": "HTTP with timeout and correct retry rules.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Resend driver: POST with a timeout, three retries on 5xx and 429, none on 4xx"
+        },
+        {
+          "id": "p2s2",
+          "do": "Record the provider message id"
+        }
+      ],
+      "check": [
+        "A real send arrives",
+        "A 429 is retried",
+        "A rejected address returns a typed error"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "The records",
+      "goal": "SPF, DKIM, DMARC printed and verified against live DNS.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "A script that prints the exact records for your domain from the provider's requirements"
+        },
+        {
+          "id": "p3s2",
+          "do": "Check them via DNS and fail loudly on any missing"
+        }
+      ],
+      "check": [
+        "The check passes against live DNS",
+        "A real send scores clean on a mail-tester style check"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Bounces and suppression",
+      "goal": "Never send again to an address that hard-bounced.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "A webhook receiver for bounce and complaint events, verified by the provider's signature"
+        },
+        {
+          "id": "p4s2",
+          "do": "A suppression table checked before every send"
+        }
+      ],
+      "check": [
+        "A hard bounce suppresses the address",
+        "A later send to it is refused before leaving"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Self-host option, honestly",
+      "goal": "A documented Postal path with the warm-up cost stated.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Write the docs page on running Postal with reverse DNS and a warm-up plan"
+        },
+        {
+          "id": "p5s2",
+          "do": "Point the SMTP driver at it and send one test"
+        }
+      ],
+      "check": [
+        "The SMTP driver sends through Postal",
+        "The README states the warm-up timeline in weeks"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate",
+      "productOnly": true,
+      "goal": "Watch bounces and complaints like a provider would.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Log every send with provider id and outcome; a daily bounce and complaint rate"
+        },
+        {
+          "id": "p6s2",
+          "do": "Alert when the complaint rate exceeds 0.1 percent"
+        }
+      ],
+      "check": [
+        "Rates are visible per day",
+        "A synthetic complaint spike triggers the alert"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Email your app can send through any provider, with the reputation work owned by whoever you pay.",
+    "architecture": [
+      {
+        "module": "Interface",
+        "owns": "send() and errors",
+        "swap": "The contract"
+      },
+      {
+        "module": "Drivers",
+        "owns": "dev, smtp, resend",
+        "swap": "Add Postmark or SES"
+      },
+      {
+        "module": "Suppression",
+        "owns": "bounces and the table",
+        "swap": "Provider-managed lists later"
+      },
+      {
+        "module": "DNS check",
+        "owns": "records verification",
+        "swap": "Provider-specific requirements"
+      }
+    ],
+    "operations": {
+      "backup": "The suppression table nightly.",
+      "restore": "Copy back before sending anything.",
+      "monitoring": "Bounce and complaint rates daily.",
+      "incident": "A complaint spike: pause sending, find the list source, clean it."
+    },
+    "releaseGate": [
+      "DNS check passes",
+      "Mail-tester clean",
+      "Suppression verified"
+    ]
+  },
+  "notIncluded": [
+    "Being a mail provider. Inbox placement is earned with volume history you do not have."
+  ],
+  "after": [
+    "Templates with a preview page",
+    "A Postmark driver"
+  ]
+}

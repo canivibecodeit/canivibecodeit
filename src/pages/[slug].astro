@@ -6,15 +6,18 @@ import DigestReveal from '../components/DigestReveal.astro';
 import AltCard from '../components/AltCard.astro';
 import RecModule from '../components/RecModule.astro';
 import BuildsSection from '../components/BuildsSection.astro';
-import { getApp, relatedApps, yearlySaving, sortedAlternatives, ALTERNATIVES_PAGE_MIN, CATEGORIES, VERDICTS, MOAT_TAGS, MOAT_TAG_EMOJI, VIBE_CODING_TOOL_SLUGS } from '../lib/apps.js';
-import { stackSlugs, voteCount, voteCounts } from '../lib/db.js';
+import { allApps, getApp, relatedApps, yearlySaving, sortedAlternatives, ALTERNATIVES_PAGE_MIN, CATEGORIES, VERDICTS, MOAT_TAGS, MOAT_TAG_EMOJI, VIBE_CODING_TOOL_SLUGS } from '../lib/apps.js';
+import { voteCount, voteCounts } from '../lib/frontend-data.js';
+import { buildSteps } from '../lib/build-plan.js';
+import { kitCounts, loadKit, makeBundle, packFiles } from '../lib/build-kit.js';
+
+export function getStaticPaths() {
+  return allApps().map((app) => ({ params: { slug: app.slug } }));
+}
 
 const { slug } = Astro.params;
 const app = getApp(slug);
 if (!app) return new Response(null, { status: 404 });
-
-const user = Astro.locals.user ?? null;
-const inStack = user ? (await stackSlugs(user.id)).includes(app.slug) : false;
 
 const votes = await voteCount(app.slug);
 const related = relatedApps(app, await voteCounts());
@@ -27,6 +30,18 @@ const moats = (app.moatTags ?? [])
   .map((t) => ({ tag: t, label: MOAT_TAGS[t], emoji: MOAT_TAG_EMOJI[t] }));
 
 const alternatives = sortedAlternatives(app);
+
+// Step count for the tracker button; the steps themselves live on /<slug>/build.
+const { phased, steps } = buildSteps(app);
+const kit = loadKit(app.slug);
+const kitIndie = kit ? kitCounts(kit, 'indie') : null;
+// What the CTA quotes, and the key the saved progress is filed under (must
+// match /<slug>/build exactly or a return visit reads as a fresh start).
+const trackerTotal = kit ? kitIndie.prerequisites + kitIndie.steps : steps.length;
+const trackerVersion = kit ? `kit-${kit.version}` : `steps-${steps.length}`;
+const trackerSub = kit
+  ? `${kitIndie.phases} phases, ${kitIndie.steps} steps, beginner friendly`
+  : `${steps.length} ${phased ? 'modules' : 'steps'}, step by step`;
 const hasAltPage = alternatives.length >= ALTERNATIVES_PAGE_MIN;
 
 const verdictWord = { yes: 'YES', kinda: 'KINDA', no: 'NOT REALLY' }[app.verdict];
@@ -36,7 +51,7 @@ const baseName = app.name.split(' / ')[0];
 const discontinued = typeof app.discontinued === 'string' ? app.discontinued : null;
 const priceLine =
   app.priceMonthly != null ? `costs $${app.priceMonthly}/mo ($${saving}/yr)` : 'has usage-based pricing';
-const brandTitle = `Can I vibecode ${app.name}? ${verdictWord} · replace it with one AI prompt`;
+const brandTitle = `Vibecode ${app.name} · ${verdictWord} · replace it with one AI prompt`;
 const brandDescription = discontinued
   ? `${app.name} ${discontinued}. ${verdictWord} on vibecoding a replacement: what an AI agent can rebuild today, and the exact prompt.`
   : `${verdictWord}: ${app.name} ${priceLine}. ${
@@ -78,7 +93,7 @@ const faq = [
       ]
     : []),
   {
-    q: `Can I vibecode ${app.name}?`,
+    q: `Vibecode ${app.name}`,
     a:
       app.verdict === 'yes'
         ? `Yes. A competent AI coding agent (Claude Code, Codex, Cursor) can build a usable personal ${app.name} replacement in one session with the prompt on this page. It runs on your own machine or server with no subscription.`
@@ -115,7 +130,7 @@ const faq = [
     a:
       alternatives.length > 0
         ? `Yes: ${alternatives.slice(0, 3).map((p) => `${p.name} (${p.desc})`).join(' ')} ${
-            hasAltPage ? `All ${alternatives.length} curated free alternatives are at canivibecodeit.com/${app.slug}/alternatives.` : ''
+            hasAltPage ? `All ${alternatives.length} curated free alternatives are at vibecodeit.com/${app.slug}/alternatives.` : ''
           } The prompt is for when you want it exactly your way.`
         : app.priorArt.length > 0
           ? `Yes: ${app.priorArt.map((p) => `${p.name} (${p.desc})`).join(', ')}. Using prior art is also vibecoding; the prompt is for when you want it exactly your way.`
@@ -137,16 +152,31 @@ const jsonld = [
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'The Death List', item: 'https://canivibecodeit.com/' },
-      { '@type': 'ListItem', position: 2, name: cat.label, item: `https://canivibecodeit.com/category/${app.category}` },
-      { '@type': 'ListItem', position: 3, name: app.name, item: `https://canivibecodeit.com/${app.slug}` },
+      { '@type': 'ListItem', position: 1, name: 'The Death List', item: 'https://vibecodeit.com/' },
+      { '@type': 'ListItem', position: 2, name: cat.label, item: `https://vibecodeit.com/category/${app.category}` },
+      { '@type': 'ListItem', position: 3, name: app.name, item: `https://vibecodeit.com/${app.slug}` },
     ],
   },
 ];
 
+// The pack: real per-project files when a build kit exists, the generic
+// templates otherwise. Both generators live in src/lib/build-kit.js.
+const indieFiles = packFiles(app, kit, 'indie');
+const productFiles = packFiles(app, kit, 'product');
+const indieBundle = makeBundle(baseName, 'lean indie', indieFiles);
+const productBundle = makeBundle(baseName, 'production product', productFiles);
+const packSummary = {
+  indie: kit
+    ? `${indieFiles.length} files · written for this build, step by step`
+    : `${indieFiles.length} files · fastest path to a working personal build`,
+  product: kit
+    ? `${productFiles.length} files · architecture, milestones and operations for this build`
+    : `${productFiles.length} files · architecture, delivery, and operations included`,
+};
+
 const priceTag = app.priceMonthly != null ? ` ($${app.priceMonthly}/mo)` : '';
 const tweet = encodeURIComponent(
-  `I just replaced ${app.name}${priceTag} with one prompt → canivibecodeit.com/${app.slug}`
+  `I just replaced ${app.name}${priceTag} with one prompt → vibecodeit.com/${app.slug}`
 );
 ---
 
@@ -160,21 +190,34 @@ const tweet = encodeURIComponent(
     <div class="app-head">
       <span class="title">
         <img src={`/icons/${app.slug}.png`} alt="" width="48" height="48" />
-        <h1>Can I vibecode {app.name.split(' / ')[0]}?</h1>
+        <h1>Vibecode {app.name.split(' / ')[0]}</h1>
       </span>
-      <span class="verdict-side">
-        <VerdictBadge verdict={app.verdict} big />
-        <button
-          class:list={['head-save', { saved: inStack }]}
-          data-stack-icon
-          data-slug={app.slug}
-          aria-pressed={inStack ? 'true' : 'false'}
-        >
-          <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
-          <span class="off">save to my stack</span>
-          <span class="on">in your stack</span>
-        </button>
-      </span>
+      {(kit || steps.length > 0) && (
+        <a class="track-cta" href={`/${app.slug}/build`} data-track-cta data-slug={app.slug} data-total={trackerTotal} data-version={trackerVersion}>
+          <span class="track-cta-main">
+            <b>track this build</b>
+            <small data-track-cta-sub>{trackerSub}</small>
+          </span>
+          <span class="track-cta-ring" data-track-cta-ring hidden>
+            <b data-track-cta-pct>0%</b>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      )}
+    </div>
+
+    <div class="verdict-row">
+      <VerdictBadge verdict={app.verdict} big />
+      <button
+        class="head-save"
+        data-stack-icon
+        data-slug={app.slug}
+        aria-pressed="false"
+      >
+        <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+        <span class="off">save to my stack</span>
+        <span class="on">in your stack</span>
+      </button>
     </div>
 
     {
@@ -241,13 +284,26 @@ const tweet = encodeURIComponent(
       )
     }
 
-    <section class="prompt-box" style={!app.prompt ? 'display:none' : undefined}>
+    <section class="prompt-box project-pack" data-project-pack style={!app.prompt ? 'display:none' : undefined}>
+      <div class="build-mode" role="group" aria-label="Choose build depth">
+        <button class="build-mode-btn active" type="button" data-build-mode="indie" aria-pressed="true">
+          <span>indie dev</span>
+          <small>lean weekend build</small>
+        </button>
+        <button class="build-mode-btn" type="button" data-build-mode="product" aria-pressed="false">
+          <span>product builder</span>
+          <small>production foundation</small>
+        </button>
+      </div>
       <div class="prompt-head">
-        <span class="microlabel">the prompt</span>
+        <span>
+          <span class="microlabel">the project pack</span>
+          <span class="pack-summary" data-pack-summary data-summary-indie={packSummary.indie} data-summary-product={packSummary.product}>{packSummary.indie}</span>
+        </span>
         <div class="copy-group" data-slug={app.slug}>
           <button class="copy-btn" data-agent="raw">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            <span>copy prompt</span>
+            <span>copy all files</span>
           </button>
           <button class="copy-btn" data-agent="claude-code">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="#D97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1215-.5707-.1214L0 11.7855l.0547-.3521.4796-.3218.686.0608 1.5178.1032 2.2767.1578 1.6514.0972 2.4468.2549h.3886l.0546-.1578-.1335-.0972-.1032-.0971-2.3557-1.5967-2.5501-1.688-1.3356-.9714-.7225-.4917-.3643-.4614-.1578-1.0078.6557-.7225.8804.0607.2246.0607.8926.686 1.9064 1.4753 2.4893 1.8335.3643.3035.1457-.1032.0182-.0728-.1639-.2732-1.3538-2.4467-1.4449-2.4893-.6435-1.0321-.17-.6193a2.9691 2.9691 0 0 1-.1032-.7286l.7468-1.0139L4.4837 0l.9957.1336.4189.3642.6192 1.4145 1.0018 2.2282 1.5542 3.0296.4553.8986.2428.8318.0911.2549h.1578v-.1457l.1275-1.706.2367-2.0946.2306-2.6957.0789-.7589.3764-.9107.7468-.4917.5828.2793.4796.686-.0668.4431-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2428-.2428.9835-1.3052 1.6514-2.0642.7286-.8197.8501-.9047.5464-.4309h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3477-.8804 1.1414-1.2627 1.7-.7893 1.3599.0729.1093.1882-.0182 2.8535-.6071 1.5421-.2793 1.8396-.3157.8319.3886.0911.3946-.3279.8076-1.9672.4857-2.3072.4614-3.436.8137-.0425.0303.0486.0607 1.5482.1457.6618.0364h1.6211l3.0175.2247.7893.5221.4736.6375-.079.4857-1.2141.6193-1.6393-.3886-3.8246-.9107-1.3113-.3278h-.1822v.1093l1.0929 1.0686 2.0034 1.8092 2.5076 2.3314.1275.5768-.3218.4553-.34-.0486-2.2038-1.6575-.8501-.7468-1.9246-1.6211h-.1275v.17l.4432.6496 2.3436 3.5209.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9247-1.4145-2.1674-1.1414-1.9429-.1397.0789-.674 7.2583-.3157.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.5299.2853-1.9004.17-.6314-.0121-.0425-.1396.0182-1.4327 1.9672-2.1795 2.9445-1.724 1.845-.4128.1639-.7164-.3702.0668-.6618.4006-.5889 2.386-3.0357 1.4388-1.8821.929-1.0868-.0061-.1578h-.0546l-6.3383 4.1161-1.129.1457-.4857-.4553.0607-.7468.2307-.2428 1.9064-1.3113Z"/></svg>
@@ -263,15 +319,49 @@ const tweet = encodeURIComponent(
           </button>
         </div>
       </div>
-      <div class="prompt-body">
-        <pre id="prompt-text">{app.prompt}</pre>
+      <pre id="prompt-text" hidden>{indieBundle}</pre>
+      <pre data-pack-bundle="indie" hidden>{indieBundle}</pre>
+      <pre data-pack-bundle="product" hidden>{productBundle}</pre>
+      <div class="pack-workspace" data-pack-mode="indie">
+        <nav class="pack-files" aria-label="Indie project files">
+          {indieFiles.map((file, index) => (
+            <button type="button" class:list={['pack-file', { active: index === 0 }]} data-pack-file={file.path} aria-pressed={index === 0 ? 'true' : 'false'}>
+              <span class="file-icon">{file.path.startsWith('.') ? '⚙' : '#'}</span>{file.path}
+            </button>
+          ))}
+        </nav>
+        <div class="pack-editor">
+          {indieFiles.map((file, index) => (
+            <section class="pack-panel" data-pack-panel={file.path} hidden={index !== 0}>
+              <div class="pack-panel-head"><span>{file.path}</span><button type="button" data-copy-file>copy file</button></div>
+              <pre>{file.content}</pre>
+            </section>
+          ))}
+        </div>
+      </div>
+      <div class="pack-workspace" data-pack-mode="product" hidden>
+        <nav class="pack-files" aria-label="Product project files">
+          {productFiles.map((file, index) => (
+            <button type="button" class:list={['pack-file', { active: index === 0 }]} data-pack-file={file.path} aria-pressed={index === 0 ? 'true' : 'false'}>
+              <span class="file-icon">{file.path.startsWith('.') ? '⚙' : '#'}</span>{file.path}
+            </button>
+          ))}
+        </nav>
+        <div class="pack-editor">
+          {productFiles.map((file, index) => (
+            <section class="pack-panel" data-pack-panel={file.path} hidden={index !== 0}>
+              <div class="pack-panel-head"><span>{file.path}</span><button type="button" data-copy-file>copy file</button></div>
+              <pre>{file.content}</pre>
+            </section>
+          ))}
+        </div>
       </div>
       <p class="prompt-hint">
-        $ open in your agent (prompt prefilled, you press enter) or copy it raw{
+        $ choose a build depth, inspect the files, then open the complete pack in your agent{
           !app.promptCurated && (
             <>
               {' '}· this prompt is generated from the build plan ·{' '}
-              <a href="https://github.com/canivibecodeit/canivibecodeit/blob/main/CONTRIBUTING.md" style="color: var(--primary);">improve it via PR</a>
+              <a href="https://github.com/vibecodeit/vibecodeit/blob/main/CONTRIBUTING.md" style="color: var(--primary);">improve it via PR</a>
             </>
           )
         }
@@ -334,10 +424,9 @@ const tweet = encodeURIComponent(
         data-share={app.slug}
       >share on X ↗</a>
       <button
-        class:list={['btn', 'ghost', 'stack-btn', { 'in-stack': inStack }]}
+        class="btn ghost stack-btn"
         data-stack={app.slug}
-        data-saved={inStack ? '1' : null}
-      >{inStack ? '✓ in your stack' : '+ save to my stack'}</button>
+      >+ save to my stack</button>
       <span class="tweet">"I just replaced {app.name.split(' / ')[0]}{app.priceMonthly != null ? ` ($${app.priceMonthly}/mo)` : ''} with one prompt"</span>
     </div>
 
@@ -495,6 +584,186 @@ const tweet = encodeURIComponent(
 </Base>
 
 <style>
+  .build-mode {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-width: 560px;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+  }
+
+  .build-mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 13px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: var(--muted);
+    text-align: left;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .build-mode-btn span {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .build-mode-btn small {
+    font-size: 12px;
+  }
+
+  .build-mode-btn:hover {
+    color: var(--fg);
+  }
+
+  .build-mode-btn.active {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+    color: var(--fg);
+    background: var(--bg);
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+
+  .prompt-head > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .pack-summary {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .pack-workspace {
+    display: grid;
+    grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+    min-height: 470px;
+    border: 1px solid var(--border);
+    border-radius: 0 0 10px 10px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .pack-workspace[hidden],
+  .pack-panel[hidden] {
+    display: none;
+  }
+
+  .pack-files {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 8px;
+    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .pack-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: 6px;
+    color: var(--muted);
+    font: 12px/1.3 var(--font-mono);
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .pack-file:hover {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 4%, transparent);
+  }
+
+  .pack-file.active {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  .file-icon {
+    width: 14px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .pack-editor,
+  .pack-panel {
+    min-width: 0;
+    height: 100%;
+  }
+
+  .pack-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 43px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font: 12px/1.4 var(--font-mono);
+  }
+
+  .pack-panel-head button {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .pack-panel-head button:hover {
+    border-color: var(--muted);
+    color: var(--fg);
+  }
+
+  .pack-panel pre {
+    max-height: 560px;
+    padding: 22px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--fg);
+    font: 13px/1.7 var(--font-mono);
+  }
+
+  @media (max-width: 700px) {
+    .build-mode {
+      max-width: none;
+    }
+
+    .pack-workspace {
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+
+    .pack-files {
+      flex-direction: row;
+      overflow-x: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pack-file {
+      width: auto;
+      flex: 0 0 auto;
+    }
+
+    .pack-panel pre {
+      max-height: 520px;
+    }
+  }
+
   .moat-chips {
     justify-content: flex-start;
     align-items: center;

@@ -22,7 +22,7 @@
 import { betterAuth } from 'better-auth';
 import { getOAuthState } from 'better-auth/api';
 import { addToWaitlist, authDatabase, removeFromWaitlist, stackClear } from './db.js';
-import { alertRob, deleteResendContact, esc, mirrorToResend, unmailable } from './mail.js';
+import { alertAdmin, deleteResendContact, esc, mirrorToResend, unmailable } from './mail.js';
 
 const BASE_URL = process.env.BETTER_AUTH_URL || 'http://localhost:8095';
 
@@ -98,7 +98,7 @@ async function buildAuth() {
             const gone = await deleteResendContact(email);
             if (!gone) {
               // The account rows still get deleted; a human sweeps the mirror.
-              alertRob('account delete: Resend contact removal failed', `<p>${esc(email)}</p>`);
+              alertAdmin('account delete: Resend contact removal failed', `<p>${esc(email)}</p>`);
             }
           }
         },

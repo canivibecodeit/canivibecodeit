@@ -1,0 +1,65 @@
+{
+  "slug": "onesignal",
+  "name": "OneSignal",
+  "domain": "onesignal.com",
+  "category": "dev-tools",
+  "subcategory": "push notifications",
+  "tagline": "Push, in-app, email and SMS messaging from one dashboard",
+  "priceMonthly": 19,
+  "pricing": {
+    "plan": "Growth",
+    "basis": "monthly from, usage-based",
+    "unit": "usage",
+    "native": "19 USD",
+    "source": "https://onesignal.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Free: unlimited mobile push for 1,000 monthly active users, 10,000 emails and web push capped per send. Growth from $19/month with $0.012 per mobile MAU and $0.004 per web push subscriber; Professional and Enterprise custom.",
+    "freeTier": "The free plan covers unlimited mobile push for up to 1,000 monthly active users and 10,000 emails a month."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "Web push is an open standard: a service worker, VAPID keys and a POST to the browser push service, which web-push libraries make a sitting. Mobile push means APNs and FCM credentials and a device token table, a weekend. Segments, A/B tests and the dashboard are the product.",
+  "coreLoopDIY": "Web push with VAPID and a subscriptions table, plus a send endpoint; add FCM and APNs adapters for mobile behind one interface.",
+  "diyTimeEstimate": "weekend",
+  "requirements": [
+    "HTTPS",
+    "VAPID keys",
+    "APNs and FCM credentials for mobile"
+  ],
+  "whatYouLose": [
+    "segmentation, journeys and A/B testing",
+    "delivery analytics across channels",
+    "SDKs for every platform maintained for you",
+    "email and SMS in the same tool"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": null,
+  "whyPeopleStillPay": "Marketing teams pay to target and measure without engineers; the free tier covers most side projects entirely.",
+  "priorArt": [
+    {
+      "name": "web-push",
+      "url": "https://github.com/web-push-libs/web-push",
+      "desc": "Web Push protocol library for Node"
+    },
+    {
+      "name": "ntfy",
+      "url": "https://github.com/binwiederhier/ntfy",
+      "desc": "simple pub-sub push notifications, self-hostable"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "todoist",
+    "cronitor"
+  ],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The free tier is generous; the DIY is for owning the subscriber table. Web push first, mobile only if you truly need it.",
+  "prompt": "Build me web push notifications to replace OneSignal. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase. Mobile push is a later phase and only if you have a native app; most side projects stop after Phase 4.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite. The web-push library. A service worker on your site. HTTPS everywhere, which push requires.\n\n### Data model (create this before Phase 1)\n\n- subscriptions: id, endpoint (unique), keys_p256dh, keys_auth, user_id (nullable), created_at, last_seen_at, failed_count\n- sends: id, title, body, url, created_at, targeted, delivered, failed\n\n### Phase 1 · Keys and subscribe\n\nBuild: generate VAPID keys once into .env. A service worker that handles push and notificationclick. A subscribe button that asks permission only after a click (never on load), posts the subscription to POST /api/subscribe, and an unsubscribe path.\nDone when: clicking subscribe stores one row, reloading does not duplicate it, and unsubscribe removes it.\nDo not build yet: sending.\n\n### Phase 2 · Send\n\nBuild: a send(title, body, url, filter) function that posts to every matching subscription with a TTL, deletes subscriptions that return 404 or 410, and increments failed_count on other errors.\nDone when: a test send arrives on a desktop and a phone browser, clicking opens the URL, and a revoked subscription is removed on the next send.\n\n### Phase 3 · Admin\n\nBuild: /admin behind basic auth from .env: compose a notification with a preview, a subscriber count, send history with delivered and failed counts.\nDone when: a send from the form arrives and the history row matches the counts.\n\n### Phase 4 · Scheduling and segments\n\nBuild: schedule a send for a time, and simple segments by a tag stored on the subscription (set from your app).\nDone when: a scheduled send fires within a minute of its time to only the tagged subscribers.\n\n### Phase 5 · Mobile, only if needed\n\nBuild: an interface with FCM and APNs adapters and a device_tokens table, sharing the send history.\nDone when: a test message arrives on both platforms from the same admin form.\n\n### Out of scope (and why)\n\n- Journeys, A/B tests, cross-channel analytics, email and SMS. That is the dashboard product.\n\n### README must contain\n\n- The permission-on-click rule and why browsers punish the alternative.\n- Key rotation: changing VAPID keys invalidates every subscription.",
+  "promptCurated": true
+}

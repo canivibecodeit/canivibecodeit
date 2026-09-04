@@ -1,0 +1,349 @@
+---
+/* /built-with/<model>: the model showcase. Curated demos pulled from X
+   (self-rendered, self-hosted media), then the community builds posted with
+   this model, then the invitation to post yours. Flag-gated with the builds
+   vertical. Unknown model slugs 404; a non-canonical spelling redirects. */
+import Base from '../../layouts/Base.astro';
+import BuildRow from '../../components/BuildRow.astro';
+import DemoCard from '../../components/DemoCard.astro';
+import RecModule from '../../components/RecModule.astro';
+import { buildsLive } from '../../lib/flags.js';
+import { buildUserNames, liveBuilds, modelDemos } from '../../lib/db.js';
+import { getApp } from '../../lib/apps.js';
+import { modelSlug, showcaseModel } from '../../lib/models.js';
+
+if (!buildsLive()) return new Response(null, { status: 404 });
+
+const model = showcaseModel(Astro.params.model);
+if (!model) return new Response(null, { status: 404 });
+if (Astro.params.model !== model.slug) return Astro.redirect(`/built-with/${model.slug}`, 301);
+
+const [demos, allBuilds] = await Promise.all([modelDemos(model.slug, ['live']), liveBuilds()]);
+const builds = allBuilds.filter((b) => modelSlug(b.model_norm ?? b.model) === model.slug);
+const shown = builds.slice(0, 8);
+const names = await buildUserNames(shown.map((b) => b.user_id));
+
+const updatedAt = demos.reduce((m, d) => Math.max(m, d.fetched_at ?? d.updated_at ?? 0), 0) || Date.now();
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const upd = new Date(updatedAt);
+const updated = `${upd.getUTCDate()} ${MONTHS[upd.getUTCMonth()]} ${upd.getUTCFullYear()}`;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+const superx = 'https://superx.so/?utm_source=vibecodeit&utm_medium=showcase&utm_campaign=' + model.slug;
+const postHref = `/post-a-build?model=${encodeURIComponent(model.label)}`;
+const allHref = `/builds?model=${encodeURIComponent(model.label)}`;
+
+const title = `built with ${model.name} · vibecodeit`;
+const description = `What people one-shotted with ${model.label} on day one, pulled from X, then what the community built with it, prompts included.`;
+---
+
+<Base {title} {description} ogImage={model.ogImage ?? `/og/built-with-${model.slug}.png`}>
+  <main class="wrap bw">
+    <div class="bw-eyebrow">
+      <span class="microlabel">model showcase</span>
+      <a href="/built-with">all showcases →</a>
+    </div>
+    <h1>built with {model.name}</h1>
+    <p class="bw-sub">
+      {builds.length > 0
+        ? 'what people one-shotted with it on day one, pulled from X. then what you built with it, prompts included.'
+        : 'what people one-shotted with it on day one, hand-picked from X. post yours below.'}
+    </p>
+    <p class="bw-meta">
+      <span>{plural(demos.length, 'demo from X', 'demos from X')}</span>
+      {builds.length > 0 && (
+        <>
+          <span>·</span>
+          <span>{plural(builds.length, 'build submitted', 'builds submitted')}</span>
+        </>
+      )}
+      <span>·</span>
+      <span>updated {updated}</span>
+    </p>
+
+    <section class="bw-section" aria-label="Demos from X">
+      <div class="bw-head">
+        <div class="bw-head-l">
+          <h2>from X</h2>
+          <span class="bw-note">hand-picked · the ones that made us look twice · tap through for the post</span>
+        </div>
+        <a class="bw-superx" href={superx} target="_blank" rel="sponsored noopener">
+          <span class="bw-superx-mark"><img src="/icons/superx.webp" alt="" width="16" height="16" loading="lazy" /></span>
+          <span>powered by <b>SuperX</b> ↗</span>
+        </a>
+      </div>
+      {demos.length > 0 ? (
+        <div class="bw-grid">
+          {demos.map((d) => <DemoCard demo={d} />)}
+        </div>
+      ) : (
+        <p class="bw-empty">nothing curated yet. the first posts land within the day.</p>
+      )}
+    </section>
+
+    <section class="bw-section" aria-label="Community builds">
+      <div class="bw-head">
+        <div class="bw-head-l">
+          <h2>submit yours</h2>
+          <span class="bw-note">posted here with this model · a human screened them, links checked</span>
+        </div>
+        {builds.length > 0 && <a class="bw-all" href={allHref}>all {builds.length} {builds.length === 1 ? 'build' : 'builds'} with {model.name} →</a>}
+      </div>
+      <div class="bd-rows bw-rows">
+        {shown.map((b) => <BuildRow build={b} {names} app={b.app_slug ? getApp(b.app_slug) : null} />)}
+        {shown.length === 0 && <p class="bd-empty">no builds posted with {model.name} yet. <a href={postHref}>yours would be first →</a></p>}
+      </div>
+
+      <div class="bw-cta">
+        <div class="bw-cta-text">
+          <b>built something with {model.name}? post it with the prompt that made it.</b>
+          <span>opens the usual form with the model filled in · failures welcome</span>
+        </div>
+        <a class="btn primary" href={postHref}>submit your build →</a>
+      </div>
+      <p class="bw-honesty">every build here is what its maker told us · we check that the links load, that is all.</p>
+    </section>
+
+    {/* How to AI placement: last thing on the page, after the CTA block */}
+    <RecModule src="showcase" />
+  </main>
+</Base>
+
+<script is:inline src={`/js/showcase.js?v=${__BUILD_ID__}`} defer></script>
+
+<style>
+  .bw {
+    padding-top: 48px;
+    padding-bottom: 72px;
+  }
+
+  .bw-eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .bw-eyebrow a {
+    font: 12px var(--font-mono);
+    color: var(--primary);
+  }
+
+  .bw h1 {
+    padding-top: 14px;
+    font-size: clamp(36px, 5vw, 52px);
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+
+  .bw-sub {
+    padding-top: 12px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+
+  .bw-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding-top: 18px;
+    font: 13px var(--font-mono);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bw-section {
+    padding-top: 44px;
+  }
+
+  .bw-section + .bw-section {
+    padding-top: 56px;
+  }
+
+  .bw-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 20px;
+  }
+
+  .bw-head-l {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .bw-head h2 {
+    font-size: 28px;
+    letter-spacing: -0.5px;
+  }
+
+  .bw-note {
+    font: 12px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .bw-superx {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .bw-superx b {
+    color: var(--fg);
+  }
+
+  .bw-superx:hover b {
+    color: var(--primary);
+  }
+
+  .bw-superx-mark {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(247, 125, 67, 0.18);
+  }
+
+  .bw-superx-mark img {
+    display: block;
+  }
+
+  /* masonry: 3 columns, 2 on tablet, 1 on a phone */
+  .bw-grid {
+    columns: 3;
+    column-gap: 20px;
+  }
+
+  @media (max-width: 1024px) {
+    .bw-grid {
+      columns: 2;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .bw-grid {
+      columns: 1;
+    }
+  }
+
+  .bw-empty {
+    padding: 24px 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .bw-all {
+    font: 13px var(--font-mono);
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  /* The feed's rows pull 14px into the gutter on /builds; here the divider
+     sits flush with the heading and the empty line sits on the grid. */
+  .bw-rows {
+    margin-inline: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .bw-rows .bd-empty {
+    padding: 22px 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .bw-rows .bd-empty a {
+    color: var(--primary);
+  }
+
+  .bw-cta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 22px;
+    padding: 16px 18px;
+    border-radius: 6px;
+    background: var(--surface);
+    border-left: 2px solid var(--primary);
+  }
+
+  .bw-cta-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .bw-cta-text b {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .bw-cta-text span {
+    font: 12px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .bw-cta .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .bw-honesty {
+    padding-top: 12px;
+    font: 12px var(--font-mono);
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    .bw {
+      padding-top: 32px;
+    }
+
+    .bw-section {
+      padding-top: 36px;
+    }
+
+    .bw-head {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bw-head-l {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bw-head h2 {
+      font-size: 24px;
+    }
+
+    .bw-cta {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .bw-cta .btn {
+      justify-content: center;
+    }
+
+    .bw-sub,
+    .bw-cta-text b {
+      font-size: 15px;
+    }
+  }
+</style>

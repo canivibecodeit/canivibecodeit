@@ -1,0 +1,64 @@
+{
+  "slug": "dub",
+  "name": "Dub",
+  "domain": "dub.co",
+  "category": "seo-marketing",
+  "subcategory": "link shortener with analytics",
+  "tagline": "Short links on your domain with click analytics and partner payouts",
+  "priceMonthly": 90,
+  "pricing": {
+    "plan": "Business",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "90 USD",
+    "source": "https://dub.co/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "No free plan; 14-day trial. Business $90/month ($108/mo equivalent shown as 10% off annual on the page) for 10K links/month, 250K tracked events, 100 domains, 10 seats. Advanced $300, Enterprise custom."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "A short link is a row and a 302. Click analytics is the Linktree /go pattern with a country and referrer column. Dub is also open source, so the honest ceiling is self-hosting it; the DIY is for when you want the 200-line version on your own domain.",
+  "coreLoopDIY": "Create slugs pointing at URLs on your domain, 302 on hit, log the click with coarse device, referrer and country, show per-link totals.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a domain you will keep forever",
+    "a small always-on host"
+  ],
+  "whatYouLose": [
+    "partner and affiliate payouts",
+    "conversion tracking through to revenue",
+    "team workspaces and folders",
+    "the polished analytics dashboard and API"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "the conversion and payout layer around the links",
+  "whyPeopleStillPay": "Nobody pays $90 for short links. They pay for attributing signups and revenue to links and paying partners from that data, which is a finance product wearing a shortener.",
+  "priorArt": [
+    {
+      "name": "Dub",
+      "url": "https://github.com/dubinc/dub",
+      "desc": "the product itself is open source"
+    },
+    {
+      "name": "Shlink",
+      "url": "https://github.com/shlinkio/shlink",
+      "desc": "self-hosted URL shortener"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "bitly",
+    "linktree",
+    "plausible"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Open source, so self-hosting is the fuller answer. The prompt is the small version for one person and one domain.",
+  "prompt": "Build me a link shortener with click analytics like Dub, for one person and one domain. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite. No framework. One process.\n- Your own domain. A printed or shared short link outlives the tool, so this domain is forever.\n\n### Data model (create this before Phase 1)\n\n- links: id, slug (unique, unambiguous alphabet), url, title, created_at, expires_at, active\n- clicks: id, link_id, clicked_at, referer_host, country, device_class, ip_hash\nNever store the raw IP or user agent; hash with a daily salt and bucket the device.\n\n### Phase 1 · Redirects\n\nBuild: GET /:slug issues a 302 to url; unknown or inactive slugs go to a configurable fallback page. Slugs are 6+ characters from an alphabet without 0/O/1/l/I, CSPRNG-generated, or custom when supplied. Reserved paths (admin, api, healthz) can never become slugs.\nDone when: a created slug redirects, an unknown one lands on the fallback, and creating a slug named admin is refused.\nDo not build yet: analytics, UI.\n\n### Phase 2 · Click logging\n\nBuild: after issuing the redirect, log the click (never before · a click must not wait on the database). Country from a cf-ipcountry style header when present. Bot user agents bucketed separately so link previews do not inflate counts.\nDone when: a click adds one row, a Slack preview fetch is bucketed as bot, and the redirect still works with the database stopped.\n\n### Phase 3 · Admin and analytics\n\nBuild: /admin behind basic auth from .env: create with optional custom slug and expiry, edit the target without changing the slug, deactivate; per link totals over 7 and 30 days, top referrers and countries, a clicks-per-day bar as inline SVG.\nDone when: editing a target keeps the slug, an expired link falls back, and totals reconcile with GROUP BY queries.\n\n### Phase 4 · API and QR\n\nBuild: a token-protected POST /api/links for scripts, and a QR image per link generated server-side.\nDone when: a curl with the token creates a link and the QR scans to it.\n\n### Phase 5 · Deploy\n\nBuild: /healthz, a nightly backup, a systemd unit, the README.\nDone when: state survives a reboot and the README goes from clone to a live short domain.\n\n### Out of scope (and why)\n\n- Conversion tracking, partner payouts, workspaces. That is the $90 product.\n\n### README must contain\n\n- The domain-is-forever warning.\n- The reserved-path list.",
+  "promptCurated": true
+}

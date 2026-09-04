@@ -1,0 +1,395 @@
+{
+  "slug": "linktree",
+  "version": 1,
+  "summary": "A link-in-bio page on your own domain: your links live in one JSON file, every button routes through a redirect that counts the click without a third party, and a private stats page shows what people actually press. Fast, dark-mode aware, and yours.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "the page is server-rendered HTML and the redirect is one INSERT and a 302"
+    },
+    {
+      "part": "Content",
+      "choice": "links.json",
+      "why": "editing a file and redeploying is the CMS; git is the history"
+    },
+    {
+      "part": "Database",
+      "choice": "SQLite for clicks only",
+      "why": "content is a file; only the counters need a database"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A small VPS behind Caddy",
+      "why": "the redirect needs a process; the rest is static"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "links",
+      "kind": "asset",
+      "name": "Your links, title and bio, written down",
+      "why": "The page renders links.json exactly. Decide the order and titles first so Phase 1 is about rendering, not editing.",
+      "get": "A list of up to ten links with a short title each, a one-line bio, and a square avatar image (at least 400x400).",
+      "cost": "free"
+    },
+    {
+      "id": "ipsalt",
+      "kind": "decision",
+      "name": "A random salt for hashing IPs",
+      "why": "Click rows store a daily-salted hash, never the raw address.",
+      "get": "openssl rand -hex 32 into .env as IP_SALT.",
+      "cost": "free"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "The entire upgrade over Linktree is that the page lives on your domain.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port; Caddy proxies to it."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/clicks.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file for click rows."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://links.yourname.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL for OG tags."
+    },
+    {
+      "name": "IP_SALT",
+      "example": "hex-from-openssl-rand",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32, once."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The page",
+      "goal": "Render the profile and links from links.json, mobile-first, working with JavaScript disabled, and refuse to boot on a broken file.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and links.json",
+          "detail": "profile (name, bio, avatar, accent) and links: array of {slug, title, url, emoji, enabled}. The slug is the permanent click-tracking key; changing a title must never change a slug.",
+          "commands": [
+            "mkdir links && cd links && git init && npm init -y && npm pkg set type=module",
+            "mkdir data public && cp .env.example .env"
+          ],
+          "files": [
+            "links.json",
+            "server.mjs"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Validate links.json at startup",
+          "detail": "Every url starts with http, every slug is unique and lowercase, avatar exists in public/. On failure exit with the bad entry named. A broken page is worse than a refused start."
+        },
+        {
+          "id": "p1s3",
+          "do": "Render the page server-side",
+          "detail": "Avatar, name, bio, then enabled links as a vertical stack of buttons. Disabled links do not render at all."
+        }
+      ],
+      "check": [
+        "The page renders at 375px with JavaScript disabled and every link navigates",
+        "A malformed links.json stops the server with a message naming the bad entry",
+        "A link with enabled false is absent from the HTML"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Design",
+      "goal": "Comfortable, accessible, no external requests.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Set the typographic hierarchy and 44px tap targets",
+          "detail": "System font stack; buttons at least 44px tall with generous horizontal padding."
+        },
+        {
+          "id": "p2s2",
+          "do": "Read the accent into a CSS custom property and add dark mode",
+          "detail": "prefers-color-scheme with the same custom properties overridden. Check contrast in both schemes."
+        },
+        {
+          "id": "p2s3",
+          "do": "Add hover, active and focus-visible states",
+          "detail": "Keyboard visitors must see where they are."
+        }
+      ],
+      "check": [
+        "Zero third-party network requests on load",
+        "No contrast failures in either color scheme in an accessibility audit",
+        "Every button is reachable and operable by keyboard"
+      ],
+      "traps": [
+        "No web fonts from a CDN. A fonts request is a third-party call and a performance deduction."
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Click tracking",
+      "goal": "Every button goes through /go/:slug, which records a row and redirects, and the redirect never waits on the database.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Create the clicks table",
+          "detail": "clicks (id, slug, clicked_at, referer_host, user_agent_class, ip_hash). Classify the user agent into mobile, desktop or bot at write time and store the bucket, not the string."
+        },
+        {
+          "id": "p3s2",
+          "do": "Implement GET /go/:slug",
+          "detail": "Look up the slug in links.json, send the 302 first, then insert the row. Unknown slugs redirect to / rather than erroring."
+        },
+        {
+          "id": "p3s3",
+          "do": "Hash the IP with a daily salt",
+          "detail": "sha256(IP_SALT + today's date + ip). The same visitor is one hash today and a different one tomorrow."
+        },
+        {
+          "id": "p3s4",
+          "do": "Add rel=\"noopener noreferrer\" to outbound links"
+        }
+      ],
+      "check": [
+        "Clicking a link lands on the target and adds one row",
+        "An unknown slug lands on the homepage",
+        "Stopping SQLite mid-test still redirects correctly and drops the row"
+      ],
+      "traps": [
+        "Send the redirect before writing. A click must never wait on the database."
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Bot filtering and stats",
+      "goal": "A private stats page whose numbers you can explain.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Bucket bot user agents at write time",
+          "detail": "A short list (bot, crawler, spider, preview, slackbot, twitterbot, facebookexternalhit). Count them separately rather than deleting them."
+        },
+        {
+          "id": "p4s2",
+          "do": "Build /stats behind basic auth",
+          "detail": "Clicks per link over today, 7 and 30 days excluding bots, a clicks-per-day bar chart as inline SVG, top referrers, and the bot count shown separately."
+        }
+      ],
+      "check": [
+        "Totals reconcile with a GROUP BY slug query",
+        "A curl with a bot user agent is bucketed as bot and excluded from the headline number",
+        "The page renders with zero clicks recorded"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Share cards and deploy",
+      "goal": "Previews correctly when shared, live on your domain, documented.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Add OG and Twitter meta plus a generated 1200x630 OG image",
+          "detail": "satori and @resvg/resvg-js at startup or build time, rendering your name on your accent.",
+          "commands": [
+            "npm install satori@0.29.0 @resvg/resvg-js@2.6.2"
+          ]
+        },
+        {
+          "id": "p5s2",
+          "do": "Add /healthz, a nightly backup command, and the systemd unit",
+          "commands": [
+            "sqlite3 data/clicks.db \".backup '/tmp/clicks-$(date +%F).db'\""
+          ],
+          "files": [
+            "deploy/links.service",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p5s3",
+          "do": "Point the domain, deploy, write the README",
+          "detail": "README: the links.json reference, the warning that slugs are permanent, how to add a link without breaking stats, and a note that owning the domain is the actual upgrade.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "The link previews correctly in a card validator",
+        "A reader goes from clone to a live page on their own domain using only the README"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the redirect is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A link page you could run for a small roster of people or brands: content as files, click data you own, a domain that never changes hands.",
+    "architecture": [
+      {
+        "module": "Content",
+        "owns": "links.json and startup validation",
+        "swap": "Any source yielding the same object; a small admin UI could write the file"
+      },
+      {
+        "module": "Renderer",
+        "owns": "the server-rendered page and OG image",
+        "swap": "Could be a static build; the /go routes are the only dynamic part"
+      },
+      {
+        "module": "Redirector",
+        "owns": "/go/:slug, bucketing, hashing",
+        "swap": "A serverless function writing the same rows"
+      },
+      {
+        "module": "Stats",
+        "owns": "basic-auth reporting",
+        "swap": "Any UI over the clicks table"
+      }
+    ],
+    "operations": {
+      "backup": "links.json is in git. SQLite .backup nightly for clicks, thirty days kept.",
+      "restore": "Deploy from git; copy the clicks backup into place. Nothing else exists.",
+      "monitoring": "Uptime check on /healthz. A sudden zero in clicks per day during normal traffic means the redirect is broken.",
+      "incident": "A hijacked link in links.json is fixed by a commit and redeploy; the history shows when it changed."
+    },
+    "releaseGate": [
+      "A clean clone reaches a live page using only the README",
+      "Bot traffic verified excluded from headline numbers with a seeded fixture",
+      "One restore drill performed and dated",
+      "Lighthouse 100 on Performance and Accessibility"
+    ]
+  },
+  "notIncluded": [
+    "The drag-and-drop editor. Editing links.json is the trade for owning it.",
+    "Their analytics beyond clicks per link. At this scale the only question is which link people press.",
+    "Payments, link scheduling, and the integrations you were not using."
+  ],
+  "after": [
+    "A tiny basic-auth editor that writes links.json and commits it",
+    "Per-link QR codes for print"
+  ]
+}

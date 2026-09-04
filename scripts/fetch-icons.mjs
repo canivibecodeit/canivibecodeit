@@ -2,9 +2,10 @@
    Sources tried in order: Google s2 favicon service (64px), then the site's
    /favicon.ico. Flags tiny/placeholder results so they can be hunted manually. */
 import { readdirSync, readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appsDir = path.join(root, 'data/apps');
 const iconsDir = path.join(root, 'public/icons');
 const force = process.argv.includes('--force');
@@ -17,7 +18,7 @@ const fetchBuf = async (url) => {
   const res = await fetch(url, {
     redirect: 'follow',
     signal: AbortSignal.timeout(15000),
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; canivibecodeit-icons)' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; vibecodeit-icons)' },
   });
   if (!res.ok) return null;
   return Buffer.from(await res.arrayBuffer());

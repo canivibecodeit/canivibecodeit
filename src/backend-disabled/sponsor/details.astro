@@ -1,0 +1,210 @@
+---
+import Base from '../../layouts/Base.astro';
+import { purchaseByToken } from '../../lib/db.js';
+import IconUpload from '../../components/IconUpload.astro';
+import { DEFAULT_TINT, LIMITS, RUN_DAYS, faviconUrl, shortDate, tintChannels, usd } from '../../lib/sponsors.js';
+import { hostedIconUrl } from '../../lib/sponsor-icon.js';
+import { getSession } from '../../lib/stripe.js';
+import { promoteFromSession } from '../api/sponsor/webhook.js';
+
+const token = Astro.url.searchParams.get('t') || '';
+const sessionId = Astro.url.searchParams.get('session_id') || '';
+let purchase = token ? await purchaseByToken(token) : null;
+
+/* The webhook and this redirect race each other, and locally there is no webhook
+   at all. Asking Stripe directly settles it: same conditional update, so whoever
+   gets here second changes nothing. */
+if (purchase && (purchase.status === 'hold' || purchase.status === 'expired_hold') && sessionId) {
+  try {
+    const promoted = await promoteFromSession(await getSession(sessionId));
+    if (promoted && promoted.id === purchase.id) purchase = promoted;
+  } catch (err) {
+    console.error(`sponsor details session lookup failed: ${err?.message || err}`);
+  }
+}
+
+const status = purchase?.status ?? 'missing';
+const editable = status === 'paid' || status === 'submitted';
+const tint = purchase?.tint || DEFAULT_TINT;
+// Only an icon WE host counts as uploaded; a favicon or a pasted URL from
+// before the upload flow is treated as the default.
+const iconUploaded = !!purchase && hostedIconUrl(purchase.logo_url, 'sponsor-icons');
+
+const title = 'Your sponsor slot · vibecodeit';
+const description = 'Finish setting up your sponsor placement.';
+---
+
+<Base {title} {description}>
+  <main class="wrap sponsor-page">
+    {
+      !purchase && (
+        <section class="sp-hero">
+          <h1>That link's no good.</h1>
+          <p class="sub">
+            Check the link in your receipt email, or reply to it and a human will sort it out.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      purchase && status === 'hold' && (
+        <section class="sp-hero">
+          <h1>Still waiting on the payment.</h1>
+          <p class="sub">
+            Stripe hasn't confirmed this one yet. Give it a minute and reload. If it never
+            confirms, nothing was charged and the slot goes back on sale.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      purchase && status === 'live' && (
+        <section class="sp-hero">
+          <h1>You're live.</h1>
+          <p class="sub">
+            <b>{purchase.name}</b> is running in slot {purchase.slot_id} until{' '}
+            {shortDate(purchase.ends_at)}. Reply to your approval email if anything needs changing.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      purchase && !editable && status !== 'hold' && status !== 'live' && (
+        <section class="sp-hero">
+          <h1>Nothing to do here.</h1>
+          <p class="sub">
+            This slot isn't editable any more.
+            Email <a href="mailto:hello@vibecodeit.com">hello@vibecodeit.com</a> if that's a surprise.
+          </p>
+        </section>
+      )
+    }
+
+    {
+      editable && (
+        <>
+          <section class="sp-hero">
+            <h1>{status === 'submitted' ? 'Got it. Waiting on approval.' : "Paid. Now, who are you?"}</h1>
+            <p class="sub">
+              Slot {purchase.slot_id} · {usd(purchase.amount_cents)} · {RUN_DAYS * (Number(purchase.months) || 1)} days from the moment
+              it's approved.{' '}
+              {status === 'submitted'
+                ? "We've got it. You can still change anything below until it goes live."
+                : 'Three fields, then we review it, usually within a few hours.'}
+            </p>
+          </section>
+
+          <section class="sp-form-wrap">
+            <form
+              class="sp-form"
+              method="post"
+              action="/api/sponsor/details"
+              data-sponsor-details
+              data-default-tint={DEFAULT_TINT}
+              data-max-tag={LIMITS.tagline}
+            >
+              <input type="hidden" name="t" value={token} />
+
+              <label>
+                <span class="microlabel">product name</span>
+                <input
+                  type="text"
+                  name="name"
+                  autocomplete="off"
+                  id="sp-name"
+                  maxlength={LIMITS.name}
+                  required
+                  placeholder="Acme"
+                  value={purchase.name ?? ''}
+                />
+              </label>
+
+              <label>
+                <span class="microlabel">
+                  one line <b class="sp-count" id="sp-tag-count" />
+                </span>
+                <input
+                  type="text"
+                  name="tagline"
+                  autocomplete="off"
+                  id="sp-tagline"
+                  maxlength={LIMITS.tagline}
+                  required
+                  placeholder="the thing you do, in six words"
+                  value={purchase.tagline ?? ''}
+                />
+              </label>
+
+              <label>
+                <span class="microlabel">where it links</span>
+                {/* text, not url: type="url" refuses to submit "acme.com" at all,
+                    and the scheme gets filled in on blur anyway. */}
+                <input
+                  type="text"
+                  inputmode="url"
+                  name="url"
+                  autocomplete="off"
+                  id="sp-url"
+                  required
+                  placeholder="acme.com"
+                  value={purchase.url ?? ''}
+                />
+              </label>
+
+              {/* The hosted icon URL rides into the save in this hidden field;
+                  the upload block below writes it. An empty value means
+                  "use the favicon", which the server derives from the URL. */}
+              <input type="hidden" name="logo_url" id="sp-logo" value={iconUploaded ? purchase.logo_url : ''} />
+              <IconUpload
+                endpoint="/api/sponsor/icon"
+                token={token}
+                current={iconUploaded ? purchase.logo_url : ''}
+                fallback={purchase.url ? faviconUrl(purchase.url) : ''}
+                uploaded={iconUploaded}
+                targets="#sp-preview-icon"
+                hidden="#sp-logo"
+              />
+
+              <label class="sp-color">
+                <span class="microlabel">card color</span>
+                <span class="sp-color-row">
+                  <input type="color" name="tint" id="sp-tint" value={tint} />
+                  <span class="sp-color-hint">defaults to your icon's color; change it if you'd rather stand out</span>
+                </span>
+              </label>
+
+              <div class="sp-preview-wrap">
+                <span class="microlabel">this is the card</span>
+                <div class="sp-preview">
+                  <span
+                    class="sp-card live"
+                    id="sp-preview-card"
+                    style={`--tint: ${tintChannels(tint)}; --i: 0`}
+                  >
+                    <span class="sp-icon"><img id="sp-preview-icon" src="" alt="" width="26" height="26" /></span>
+                    <span class="sp-name" id="sp-preview-name">{purchase.name ?? 'your product'}</span>
+                    <span class="sp-tag" id="sp-preview-tag">{purchase.tagline ?? 'your one line here'}</span>
+                  </span>
+                </div>
+              </div>
+
+              <p class="sp-form-msg" id="sp-msg" role="status"></p>
+              <button class="btn primary" type="submit">
+                {status === 'submitted' ? 'update it' : 'send it for approval'}
+              </button>
+              <p class="fine">
+                We approve every placement by hand. If it isn't a fit you get a full refund, no argument.
+              </p>
+            </form>
+          </section>
+        </>
+      )
+    }
+  </main>
+</Base>
+
+<script is:inline src={`/js/sponsor-details.js?v=${__BUILD_ID__}`} defer></script>
+<script is:inline src={`/js/icon-upload.js?v=${__BUILD_ID__}`} defer></script>

@@ -1,0 +1,221 @@
+{
+  "slug": "snappify",
+  "version": 1,
+  "summary": "A code screenshot tool as one static page: paste code, Shiki highlights it, frame it with padding, corners, shadow and a background, export a sharp PNG or SVG, copy to clipboard in Safari and Chromium alike, and share a snap by URL with no server.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Highlighting",
+      "choice": "Shiki as an ES module",
+      "why": "TextMate grammars, accurate colours"
+    },
+    {
+      "part": "Everything else",
+      "choice": "One HTML file, vanilla JS, Canvas 2D",
+      "why": "no server, nothing uploaded"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "browsers",
+      "kind": "tool",
+      "name": "A Chromium browser and Safari",
+      "why": "Clipboard image copy differs; Phase 3 tests both.",
+      "get": "Chrome or Edge plus Safari on a Mac.",
+      "cost": "free"
+    },
+    {
+      "id": "host",
+      "kind": "account",
+      "name": "A static host (optional)",
+      "why": "To share it.",
+      "get": "Cloudflare Pages, Netlify or GitHub Pages.",
+      "cost": "free",
+      "optional": true,
+      "url": "https://pages.cloudflare.com"
+    }
+  ],
+  "env": [],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Highlight",
+      "goal": "Textarea in, highlighted code out, live.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create index.html loading Shiki from a pinned ES module CDN or a vendored bundle",
+          "detail": "Vendor it into the repo so the page works offline later.",
+          "files": [
+            "index.html"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "A language selector, a theme selector and a debounced re-render"
+        }
+      ],
+      "check": [
+        "JavaScript, Python and JSON highlight correctly",
+        "Switching themes updates live"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The frame",
+      "goal": "Padding, radius, shadow, window chrome, line numbers, ten backgrounds, one render().",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "One state object and one render function drawing to the canvas"
+        },
+        {
+          "id": "p2s2",
+          "do": "Controls for each property, live"
+        }
+      ],
+      "check": [
+        "Every control updates within a frame",
+        "The preview matches what will export"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Export",
+      "goal": "PNG at 1x and 2x, SVG, and clipboard in both engines.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Offscreen canvas at the target scale for PNG; an SVG serializer"
+        },
+        {
+          "id": "p3s2",
+          "do": "ClipboardItem with a Promise-of-Blob inside the click handler",
+          "detail": "Safari requires the promise form; Chromium accepts it."
+        }
+      ],
+      "check": [
+        "2x is exactly twice the pixels and sharp",
+        "SVG opens in a vector editor",
+        "Paste works in Safari and Chromium"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Share by URL",
+      "goal": "Code and settings compressed into the hash.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Encode state with CompressionStream into the URL fragment"
+        },
+        {
+          "id": "p4s2",
+          "do": "Restore from the fragment on load"
+        }
+      ],
+      "check": [
+        "A shared link restores code, language, theme and frame exactly"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Polish",
+      "goal": "Shortcuts, memory, empty state, offline.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Keyboard shortcuts and localStorage settings in try/catch"
+        },
+        {
+          "id": "p5s2",
+          "do": "Verify zero network requests after load with Shiki vendored"
+        }
+      ],
+      "check": [
+        "Works with the network off",
+        "A first-time user knows what to do"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Ship it as an app",
+      "productOnly": true,
+      "goal": "Installable and offline with a privacy line.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Manifest and a service worker caching the files",
+          "files": [
+            "manifest.webmanifest",
+            "sw.js"
+          ]
+        },
+        {
+          "id": "p6s2",
+          "do": "Deploy on a custom domain with the nothing-is-uploaded note"
+        }
+      ],
+      "check": [
+        "Installs as an app and opens offline"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A code image tool that is private by construction and shareable by URL.",
+    "architecture": [
+      {
+        "module": "Highlighter",
+        "owns": "Shiki",
+        "swap": "Prism, with lower fidelity"
+      },
+      {
+        "module": "Frame",
+        "owns": "state and render()",
+        "swap": "Keep it one file"
+      },
+      {
+        "module": "Share",
+        "owns": "hash encoding",
+        "swap": "Optional server-side short links"
+      }
+    ],
+    "operations": {
+      "backup": "The repo.",
+      "restore": "Redeploy.",
+      "monitoring": "Uptime.",
+      "incident": "Revert."
+    },
+    "releaseGate": [
+      "Zero network requests after load",
+      "Clipboard verified in both engines"
+    ]
+  },
+  "notIncluded": [
+    "Animated transitions between code states and video export: the paid product, and hard."
+  ],
+  "after": [
+    "Diff highlighting between two snippets",
+    "A VS Code extension that opens the page with the selection"
+  ]
+}

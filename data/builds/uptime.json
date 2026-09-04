@@ -1,0 +1,419 @@
+{
+  "slug": "uptime",
+  "version": 1,
+  "summary": "An uptime monitor you run yourself: a fetch on an interval with a real timeout, a state machine that only calls a site down after two consecutive failures, one chat message on down and one on recovery, and a public status page with uptime percentages, a latency sparkline and an RSS feed of incidents. Honest about the one thing a single box cannot do: tell your outage from your own network's.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22 with node:http, node:sqlite and global fetch",
+      "why": "the check is a fetch; the page is a few indexed queries"
+    },
+    {
+      "part": "Database",
+      "choice": "SQLite in WAL mode",
+      "why": "checks, incidents and monitors in one file"
+    },
+    {
+      "part": "Alerts",
+      "choice": "One chat webhook",
+      "why": "the channel you already watch"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS on a different provider than the sites it watches",
+      "why": "otherwise it goes down with them"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "webhook",
+      "kind": "key",
+      "name": "A chat webhook URL (Discord, Slack or Telegram)",
+      "why": "Alerts go to a chat channel you already watch. A webhook URL is the only credential this needs.",
+      "get": "Discord: Server settings > Integrations > Webhooks > New Webhook, copy the URL. Slack: create an app at api.slack.com/apps, enable Incoming Webhooks, add to a channel, copy the URL. Telegram: create a bot with @BotFather and use the bot token plus your chat id.",
+      "verify": "curl -X POST -H 'Content-Type: application/json' -d '{\"content\":\"test\"}' <url> posts a message (Discord form; Slack uses a text field)",
+      "cost": "free",
+      "url": "https://api.slack.com/apps"
+    },
+    {
+      "id": "targets",
+      "kind": "asset",
+      "name": "The URLs to watch, with what healthy means for each",
+      "why": "Each monitor needs a URL, an interval, an expected status and optionally a keyword the body must contain.",
+      "get": "List every site or endpoint. For each decide: check every 60 seconds or 300, expect 200, and a word that only appears when the page really works.",
+      "cost": "free"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small VPS on a different provider than your sites",
+      "why": "A monitor hosted next to what it watches reports nothing when that host dies. Different provider, ideally a different region.",
+      "get": "Hetzner if your sites are elsewhere, or vice versa. Smallest Ubuntu 24.04 instance with SSH.",
+      "cost": "about $5 a month",
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "A status page address you can give people, e.g. status.yourdomain.com.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port; Caddy proxies to it."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/uptime.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "ALERT_WEBHOOK_URL",
+      "example": "https://hooks.slack.com/services/...",
+      "required": true,
+      "secret": true,
+      "where": "The chat webhook from the prerequisites."
+    },
+    {
+      "name": "ALERT_FORMAT",
+      "example": "slack",
+      "required": true,
+      "secret": false,
+      "where": "discord, slack or telegram."
+    },
+    {
+      "name": "FAILURES_BEFORE_DOWN",
+      "example": "2",
+      "required": false,
+      "secret": false,
+      "where": "Consecutive failures before a monitor is called down."
+    },
+    {
+      "name": "RETENTION_DAYS",
+      "example": "90",
+      "required": false,
+      "secret": false,
+      "where": "Days of raw checks to keep. Incidents are kept forever."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://status.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL for the status page and RSS feed."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The check",
+      "goal": "One function from a monitor to a result, with a timeout that actually fires and distinct error kinds.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the three tables",
+          "detail": "monitors (id, name, url, interval_seconds, timeout_ms, expected_status, keyword, enabled, status, consecutive_failures, last_checked_at, last_change_at), checks (id, monitor_id, checked_at, ok, status_code, latency_ms, error), incidents (id, monitor_id, started_at, ended_at, cause). Index checks(monitor_id, checked_at).",
+          "commands": [
+            "mkdir uptime && cd uptime && git init && npm init -y && npm pkg set type=module",
+            "mkdir data && cp .env.example .env"
+          ],
+          "files": [
+            "server.mjs",
+            "db.mjs",
+            "check.mjs"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Write check(monitor)",
+          "detail": "fetch with an AbortController timeout, follow redirects, read at most 64 kB of body for the keyword, record latency. Return ok plus one of: dns, tls, timeout, status, keyword, as the error."
+        },
+        {
+          "id": "p1s3",
+          "do": "Add a CLI to run one check by hand",
+          "commands": [
+            "node scripts/check.mjs https://example.com 200 \"Example Domain\""
+          ]
+        }
+      ],
+      "check": [
+        "A good URL records ok with a sane latency",
+        "A URL that never responds fails at the timeout, not later",
+        "A 404 against expected 200 fails with the code recorded",
+        "A keyword monitor fails when the word is absent from a 200 body"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Scheduler",
+      "goal": "Each monitor on its own interval, concurrently with a cap, and one bad monitor never stops the loop.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Write the loop",
+          "detail": "Every 5 seconds find monitors due (last_checked_at plus interval before now), run up to 10 concurrently, catch every exception per monitor. On boot treat every monitor as due."
+        },
+        {
+          "id": "p2s2",
+          "do": "Store a checks row per run and update the monitor's last_checked_at"
+        }
+      ],
+      "check": [
+        "Monitors at 30, 60 and 300 seconds keep their cadence over ten minutes",
+        "A monitor pointed at a hanging host does not delay the others",
+        "A thrown exception inside one check leaves the loop running"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Transitions and incidents",
+      "goal": "Down only after N consecutive failures, up on the first success, one incident per outage.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Implement the transition rule",
+          "detail": "Increment consecutive_failures on a failed check; at FAILURES_BEFORE_DOWN flip to down. Any success resets the counter and flips to up."
+        },
+        {
+          "id": "p3s2",
+          "do": "Open and close incidents on the transitions",
+          "detail": "Open a row on the flip to down with the first failure's error as cause; set ended_at on recovery. Incidents, not checks, are what people read later."
+        }
+      ],
+      "check": [
+        "A single blip opens no incident",
+        "Two consecutive failures open one",
+        "Recovery closes it with a correct duration",
+        "Flapping up/down/up/down produces one incident, not four"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Alerting",
+      "goal": "One message down, one up, retries that never stall the loop.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Write the sender for ALERT_FORMAT",
+          "detail": "Down: monitor name and the error. Three retries with backoff, then record the failure and move on."
+        },
+        {
+          "id": "p4s2",
+          "do": "Send the recovery message with the outage duration",
+          "detail": "Duration comes from the incident row's started_at and ended_at."
+        }
+      ],
+      "check": [
+        "Taking a site down produces exactly one message",
+        "Keeping it down produces none",
+        "Recovery produces exactly one with the duration",
+        "A webhook URL that 500s does not stall checking"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Status page",
+      "goal": "A public page whose numbers can be argued with, and a feed people can subscribe to.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Build /status",
+          "detail": "One row per monitor: dot, state, uptime over 24 h, 7 d and 30 d with the denominator printed (over 2,880 checks), a latency sparkline as inline SVG, recent incidents with durations. Meta refresh every 30 seconds."
+        },
+        {
+          "id": "p5s2",
+          "do": "Add /status.rss with one item per incident",
+          "detail": "Subscription without accounts."
+        },
+        {
+          "id": "p5s3",
+          "do": "Seed 90 days of checks and time the page",
+          "commands": [
+            "node scripts/seed.mjs 90"
+          ]
+        }
+      ],
+      "check": [
+        "Percentages match a hand-written query",
+        "The page renders with zero history on a fresh install",
+        "It loads in under 200 ms with 90 days of checks",
+        "The RSS feed validates"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Retention and deploy",
+      "goal": "Old checks pruned, incidents kept, live behind HTTPS on the other provider.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Nightly prune of checks older than RETENTION_DAYS, never incidents"
+        },
+        {
+          "id": "p6s2",
+          "do": "Add /healthz, systemd with restart-on-failure, Caddy, and the README",
+          "detail": "README: the single-region caveat stated plainly, the instruction to host on a different provider than the things watched, and the RSS URL.",
+          "files": [
+            "deploy/uptime.service",
+            "Caddyfile",
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "Pruning does not distort the 30-day figure",
+        "The service survives a reboot with state intact",
+        "The status page states the single-region caveat"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the monitor is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p7s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p7s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p7s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A status page you could show customers: honest percentages, incident history, a feed, and a monitor that is itself monitored from a third place.",
+    "architecture": [
+      {
+        "module": "Checker",
+        "owns": "check(monitor) and its error taxonomy",
+        "swap": "Add a TCP or DNS checker as another function with the same result shape"
+      },
+      {
+        "module": "Scheduler",
+        "owns": "the due loop and concurrency cap",
+        "swap": "Pure orchestration; unchanged by new checker types"
+      },
+      {
+        "module": "State",
+        "owns": "transitions and incidents",
+        "swap": "Tunable by FAILURES_BEFORE_DOWN; testable with a fake clock"
+      },
+      {
+        "module": "Status",
+        "owns": "the page and RSS",
+        "swap": "Any UI over checks and incidents"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly. Incidents are the history worth keeping.",
+      "restore": "Copy back, start, confirm monitors resume and the incident list is intact.",
+      "monitoring": "Watch the watcher: an external check from a third provider on /healthz.",
+      "incident": "If the monitor is down the sites are unwatched, not down. Restore, then review the gap by hand."
+    },
+    "releaseGate": [
+      "Runs on a different provider than any monitored site",
+      "Flap test produces one incident",
+      "One restore drill performed and dated",
+      "Status page loads under 200 ms with 90 days of data"
+    ]
+  },
+  "notIncluded": [
+    "Multi-region probes. One box cannot tell an outage from its own bad network; the status page says so.",
+    "Subscriber email notifications, incident templates, on-call."
+  ],
+  "after": [
+    "A second probe location that must agree before an incident opens",
+    "Maintenance windows that suppress alerts"
+  ]
+}

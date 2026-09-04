@@ -3,22 +3,12 @@ import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/jetbrains-mono';
 import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
-import DigestBar from '../components/DigestBar.astro';
 import Radio from '../components/Radio.astro';
-import SignupModal from '../components/SignupModal.astro';
-import SponsorRails from '../components/SponsorRails.astro';
-import SponsorTape from '../components/SponsorTape.astro';
-import { buildGamesLive, buildsLive } from '../lib/flags.js';
-import { getBoard, nextRunMonthName } from '../lib/sponsors.js';
 import { scriptJson } from '../lib/request.js';
 import { REC_HIDE_SCRIPT, THEME_SCRIPT } from '../lib/csp.js';
 
 // Next-month pre-book count for the footer link. Board is cached, so this
 // costs the layout nothing extra; the month names itself.
-const septBoard = await getBoard();
-const septLeft = septBoard.slots.length - septBoard.prebookedCount;
-const prebookLabel = nextRunMonthName();
-
 // socialTitle lets a page rank under one <title> while share cards keep
 // another (og/twitter). Defaults to the same string.
 const {
@@ -35,10 +25,7 @@ const {
   hideDigest = false,
 } = Astro.props;
 
-const user = Astro.locals.user ?? null;
-const userInitial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
-
-const canonical = new URL(Astro.url.pathname, 'https://canivibecodeit.com').href;
+const canonical = new URL(Astro.url.pathname, 'https://vibecodeit.com').href;
 // Pages whose URL carries a token: they stay out of the index, and out of
 // analytics, because $current_url would otherwise record the token. Any URL
 // carrying a token counts, including the 404s a case-variant path produces.
@@ -54,14 +41,14 @@ const isPrivate =
 const { noindex = false } = Astro.props;
 // Version query = cache-buster: OG images are regenerated in place, and a
 // cached miss (or stale card) at any edge must never outlive a deploy.
-const ogUrl = new URL(`${ogImage}?v=${__BUILD_ID__}`, 'https://canivibecodeit.com').href;
+const ogUrl = new URL(`${ogImage}?v=${__BUILD_ID__}`, 'https://vibecodeit.com').href;
 
 const orgLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Can I Vibecode It?',
-  url: 'https://canivibecodeit.com',
-  logo: 'https://canivibecodeit.com/logo-512.png',
+  name: 'Vibecode It?',
+  url: 'https://vibecodeit.com',
+  logo: 'https://vibecodeit.com/logo-512.png',
 };
 
 const blocks = [orgLd, ...jsonld];
@@ -76,13 +63,7 @@ const blocks = [orgLd, ...jsonld];
 // nav for the games launch (operator brief, Aug 31) — accent-highlighted.
 const SECTIONS = [
   { href: '/#death-list', label: 'the death list', top: true },
-  { href: '/thebuildgames', label: 'the build games', top: true, cls: 'nav-games', show: buildGamesLive() },
   { href: '/alternatives', label: 'alternatives', top: true },
-  { href: '/builds', label: 'builds', top: false, show: buildsLive() },
-  { href: '/stats', label: 'stats', top: false },
-  { href: '/newsletter', label: 'newsletter', top: false, footerLabel: 'the newsletter' },
-  { href: '/submit', label: 'submit an app', top: true, cls: 'nav-submit' },
-  { href: '/sponsor', label: 'sponsor', top: true },
 ];
 const navSections = SECTIONS.filter((s) => s.show !== false);
 const headerLinks = navSections.filter((s) => s.top);
@@ -104,7 +85,7 @@ const headerLinks = navSections.filter((s) => s.top);
     <meta name="theme-color" content="#0b0d0b" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Can I Vibecode It?" />
+    <meta property="og:site_name" content="Vibecode It?" />
     <meta property="og:title" content={socialTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
@@ -123,35 +104,28 @@ const headerLinks = navSections.filter((s) => s.top);
     {/* Referrer-aware hide for the How to AI placements; text lives in
         lib/csp.js next to its hash, same rule as the theme script. */}
     <script is:inline set:html={REC_HIDE_SCRIPT} />
-    {!isPrivate && <script is:inline src="/analytics.js" defer></script>}
     <ClientRouter />
   </head>
-  <body data-user={user ? '1' : undefined} class:list={[{ 'no-tape': hideSponsors }]}>
-    {!hideSponsors && <SponsorTape side="left" />}
+  <body class:list={[{ 'no-tape': hideSponsors }]}>
     <header class="site-header">
       <div class="inner">
-        <a class="brand" href="/" aria-label="Can I Vibecode It? home">
+        <a class="brand" href="/" aria-label="Vibecode It? home">
           <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
             <rect x="3" y="3" width="58" height="58" rx="13" fill="none" stroke="var(--primary)" stroke-width="5"></rect>
             <text x="21" y="45" font-family="JetBrains Mono Variable, monospace" font-size="34" font-weight="700" fill="var(--primary)" text-anchor="middle">?</text>
             <rect x="34" y="20" width="9" height="25" fill="var(--primary)"></rect>
           </svg>
-          <span class="word">can<b>i</b>vibecode<b>it</b></span>
+          <span class="word">vibecode<b>it</b></span>
         </a>
         <nav class="site-nav">
           {headerLinks.map((s) => <a class={s.cls} href={s.href}>{s.label}</a>)}
-          {
-            user ? (
-              <a class="avatar-chip" href="/account" aria-label="your account" title="your account">{userInitial}</a>
-            ) : (
-              <>
-                <a class="signin" href="/signin" data-signin>sign in</a>
-                <a class="signin-chip" href="/signin" data-signin aria-label="sign in">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="4" r="2.2" stroke="currentColor" stroke-width="1.3"></circle><path d="M1.8 10.6C2.4 8.7 4 7.6 6 7.6C8 7.6 9.6 8.7 10.2 10.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
-                </a>
-              </>
-            )
-          }
+          <a class="signin stack-nav" href="/stack">
+            my stack <span class="stack-nav-count" data-stack-count hidden></span>
+          </a>
+          <a class="signin-chip stack-nav-chip" href="/stack" aria-label="my stack">
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+            <span class="stack-nav-count" data-stack-count hidden></span>
+          </a>
           <button
             class="theme-toggle"
             aria-label="Toggle light or dark theme"
@@ -167,7 +141,6 @@ const headerLinks = navSections.filter((s) => s.top);
 
     <slot />
 
-    {!hideSponsors && <SponsorRails />}
 
     <footer class="site-footer">
       {/* Sitewide section links. The header hides most of these on narrow
@@ -178,14 +151,14 @@ const headerLinks = navSections.filter((s) => s.top);
       </nav>
       <div class="inner">
       <span>
-        Yes, you can vibecode this site too.&ensp;<a href="/vibecode-this-site">Here's the prompt</a>&ensp;·&ensp;<a href="https://github.com/canivibecodeit/canivibecodeit">Source on GitHub</a>
+        Yes, you can vibecode this site too.&ensp;<a href="/vibecode-this-site">Here's the prompt</a>&ensp;·&ensp;<a href="https://github.com/vibecodeit/vibecodeit">Source on GitHub</a>
       </span>
       <span class="built-by">
-        <img src="/robj3d3.png" alt="" width="20" height="20" loading="lazy" />
-        built by <a href="https://x.com/robj3d3">@robj3d3</a>
+        by <a href="mailto:hello@vibecodeit.com">Faizan Ali</a>
+        · based on <a href="https://canivibecodeit.com">Can I Vibecode It?</a> by <a href="https://x.com/robj3d3">Rob Hallam</a>
       </span>
       <span>
-        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a> · <a href="/sponsor">pre-book {prebookLabel}{septBoard.prebookedCount > 0 ? ` · ${septLeft} of ${septBoard.slots.length} left` : ''}</a>
+        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a>
       </span>
       </div>
     </footer>
@@ -193,29 +166,16 @@ const headerLinks = navSections.filter((s) => s.top);
     {!hideSponsors && (
       <>
         <div class="sp-tape-spacer"></div>
-        <SponsorTape side="right" />
       </>
     )}
-    {!hideDigest && <DigestBar />}
 
-    {!user && <SignupModal />}
-
-    {/* Co-reg card shown after a successful newsletter signup (cloned by
-        app.js). No checkbox, nothing automatic: one button, one no-thanks. */}
-    <template id="rec-coreg-tpl">
-      <aside class="rec-coreg" data-hide-for-ruben data-rec-coreg>
-        <img class="rec-coreg-img" src="/thebuildgames/howtoai-grid.webp" alt="How to AI post grid" width="640" height="490" loading="lazy" />
-        <div class="rec-coreg-body">
-          <span class="rec-eyebrow">one more, free</span>
-          <b class="rec-coreg-title">How to AI by Ruben Hassid</b>
-          <p class="rec-coreg-text">the newsletter 890k people use to get better at AI. one tap, your email is already filled in.</p>
-          <div class="rec-coreg-actions">
-            <a class="btn primary rec-coreg-go" href="/api/rec/howtoai?src=coreg_digest" target="_blank" rel="sponsored nofollow noopener" data-rec-coreg-go>get How to AI</a>
-            <button class="rec-coreg-no" type="button" data-rec-coreg-no>no thanks</button>
-          </div>
-        </div>
-      </aside>
-    </template>
+    {/* Back to top. Rendered after the digest bar on purpose: the bar slides
+        into the same corner on narrow viewports, and a general-sibling rule in
+        the stylesheet stands this down while it is up. Invisible until app.js
+        arms it, so it never appears without its behaviour. */}
+    <button class="to-top" type="button" data-to-top aria-label="Back to top">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+    </button>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src={`/js/app.js?v=${__BUILD_ID__}`} defer></script>

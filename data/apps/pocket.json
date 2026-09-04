@@ -1,0 +1,64 @@
+{
+  "slug": "pocket",
+  "name": "Pocket",
+  "domain": "getpocket.com",
+  "category": "read-it-later",
+  "subcategory": "read-it-later service",
+  "tagline": "Save articles to read later, synced everywhere",
+  "priceMonthly": 4.99,
+  "discontinued": "shut down on July 8, 2025",
+  "pricing": {
+    "plan": "Premium",
+    "basis": "monthly flat, historical",
+    "unit": "flat",
+    "native": "4.99 USD",
+    "source": "https://www.ghacks.net/2025/05/23/mozilla-to-shut-down-pocket-in-july-2025-fakespot-is-closing-too/",
+    "checkedOn": "2026-09-04",
+    "confidence": "medium",
+    "notes": "Historical price. Mozilla shut Pocket down on July 8, 2025 with exports available until November 6, 2025; Premium had been $4.99/month or $44.99/year. Refunds were prorated."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "Save a URL, fetch and clean the article, store it, sync a list. Readability parsing is a solved library problem and the rest is a table. Pocket dying is the argument for owning this: the code was never the hard part, keeping the service alive was.",
+  "coreLoopDIY": "A bookmarklet or share target posts a URL; the server fetches the page, extracts the article with Readability, stores it with tags; a reader UI lists, searches and archives.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small always-on host",
+    "a browser bookmarklet or PWA share target"
+  ],
+  "whatYouLose": [
+    "the mobile apps with offline sync",
+    "the recommendation feed",
+    "text-to-speech",
+    "someone keeping it online (though that turned out not to be guaranteed)"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "the apps",
+  "whyPeopleStillPay": "They no longer can. Wallabag, Readwise Reader and self-hosted options absorbed the users; the lesson is that a reading list is a file you should own.",
+  "priorArt": [
+    {
+      "name": "wallabag",
+      "url": "https://github.com/wallabag/wallabag",
+      "desc": "self-hosted read-it-later, imports Pocket exports"
+    },
+    {
+      "name": "Readability",
+      "url": "https://github.com/mozilla/readability",
+      "desc": "article extraction library from Firefox Reader View"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "readwise-reader",
+    "feedly",
+    "raindrop-io"
+  ],
+  "pagePriority": 4,
+  "verifiedOneShot": false,
+  "notes": "A post-mortem page: the verdict is yes, and the product is gone. Import the export you hopefully made before November 2025.",
+  "prompt": "Build me a read-it-later service to replace Pocket, which no longer exists. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite. @mozilla/readability with jsdom for extraction. Server-rendered HTML, a PWA manifest so a phone can share to it. No framework.\n\n### Data model (create this before Phase 1)\n\n- articles: id, url (unique), title, site, author, published_at, content_html, excerpt, word_count, saved_at, read_at, archived, favorite\n- tags and article_tags\n- FTS5 index over title, excerpt and content.\n\n### Phase 1 · Save and extract\n\nBuild: POST /save with a URL fetches the page with a timeout and a size cap, refuses private addresses, extracts the article with Readability, sanitizes the HTML against an allowlist, rewrites relative URLs, and stores it. Duplicate URLs update rather than duplicate.\nDone when: a news article saves with clean readable HTML and no scripts, a paywalled page saves whatever is public with a note, and saving the same URL twice yields one row.\nDo not build yet: UI, import.\n\n### Phase 2 · Capture from anywhere\n\nBuild: a bookmarklet, a PWA share target so a phone's share sheet posts to /save, and an email-in address if you have one. Auth is a token in the bookmarklet and a session cookie for the PWA.\nDone when: a page saves from a desktop bookmarklet and from a phone share sheet.\n\n### Phase 3 · Read\n\nBuild: a list with unread, archive and favorites views, a reading page with a measured line length, dark mode, font size controls, and keyboard shortcuts. Mark read on open.\nDone when: a long article reads comfortably on a phone and the list updates without a reload after archiving.\n\n### Phase 4 · Search and tags\n\nBuild: FTS5 search over saved content, tags with autocomplete, and a tag view.\nDone when: a phrase inside an article body is found and tagging updates the view.\n\n### Phase 5 · Import and export\n\nBuild: import the Pocket CSV export (url, title, time_added, tags, status) re-fetching each article with a polite delay, and a full JSON export of everything you own.\nDone when: a real Pocket export imports with tags and read state and the JSON export round-trips.\n\n### Phase 6 · Offline and deploy\n\nBuild: a service worker caching the last 50 unread articles for offline reading, a nightly backup, a systemd unit, the README.\nDone when: airplane mode still opens recent articles.\n\n### Out of scope (and why)\n\n- Native apps, the recommendation feed, text-to-speech.\n\n### README must contain\n\n- The import path from the Pocket export, and the reminder that the export window has closed for anyone who did not act.\n- Where the database lives · this time the reading list is yours.",
+  "promptCurated": true
+}

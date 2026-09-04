@@ -4,8 +4,8 @@ import Ticker from '../components/Ticker.astro';
 import AppRow from '../components/AppRow.astro';
 import VisitorGlobe from '../components/VisitorGlobe.astro';
 import DigestCard from '../components/DigestCard.astro';
-import { allApps, appsWithAlternativesPage, topCategories, categoriesInUse } from '../lib/apps.js';
-import { bgPotCents, liveBuilds, modelDemos, voteCounts } from '../lib/db.js';
+import { allApps, appsWithAlternativesPage, categoriesInUse } from '../lib/apps.js';
+import { bgPotCents, liveBuilds, modelDemos, voteCounts } from '../lib/frontend-data.js';
 import { buildGamesLive, buildsLive } from '../lib/flags.js';
 import { usd } from '../lib/buildgames.js';
 import { SHOWCASE_MODELS, modelSlug } from '../lib/models.js';
@@ -42,29 +42,27 @@ const apps = allApps().sort(
     (b.pagePriority ?? 3) - (a.pagePriority ?? 3) ||
     a.name.localeCompare(b.name)
 );
-const cats = topCategories();
-// Every category with apps, biggest first, for the list-header dropdown filter.
 const ddCats = categoriesInUse().sort((a, b) => b.count - a.count);
 
-// Strip under the chips: numbers computed from the same source as the
+// Strip under the hero: numbers computed from the same source as the
 // /alternatives hub, so the claim can never drift from the pages.
 const altApps = appsWithAlternativesPage();
 const totalAlts = altApps.reduce((s, a) => s + a.alternatives.length, 0);
 
-const title = 'Can I Vibecode It? · what AI can rebuild, what survives';
+const title = 'Vibecode It? · what AI can rebuild, what survives';
 const description = `The live scoreboard of what AI can and can't replace, and which moats actually hold. Honest verdicts on ${apps.length} apps, the exact prompt to run, free.`;
 
 const jsonld = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Can I Vibecode It?',
-    url: 'https://canivibecodeit.com',
+    name: 'Vibecode It?',
+    url: 'https://vibecodeit.com',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://canivibecodeit.com/?q={search_term_string}',
+        urlTemplate: 'https://vibecodeit.com/?q={search_term_string}',
       },
       'query-input': 'required name=search_term_string',
     },
@@ -77,7 +75,7 @@ const jsonld = [
       '@type': 'ListItem',
       position: i + 1,
       name: a.name,
-      url: `https://canivibecodeit.com/${a.slug}`,
+      url: `https://vibecodeit.com/${a.slug}`,
     })),
   },
 ];
@@ -85,69 +83,81 @@ const jsonld = [
 
 <Base {title} {description} {jsonld}>
   <section class="hero">
-    <h1>Can I vibecode <span class="blank">___</span>?</h1>
+    <h1><span class="struck">Can I</span> vibecode <span class="blank">it</span><span class="struck">?</span></h1>
     <p class="sub">
-      {apps.length.toLocaleString('en-US')} apps. One question each: can AI build you a replacement today, or is it
-      still worth paying for?
+      {apps.length.toLocaleString('en-US')} apps. One question each: vibecode it
+      today, or keep paying?
     </p>
-    <div class="search-wrap">
-      <div class="search">
-        <span class="chevron">&gt;</span>
-        {/* Placeholder stays short on purpose: mobile bumps this input to 16px
-            (the iOS zoom guard), which clipped the old "(N on the list)" at
-            390px and narrower, and would clip harder once the count goes four
-            digits. The full count is in the line right above the box. */}
-        <input
-          type="search"
-          id="search"
-          placeholder={`type an app… (${apps.length.toLocaleString('en-US')})`}
-          autocomplete="off"
-          aria-label="Search apps"
-          role="combobox"
-          aria-expanded="false"
-          aria-controls="search-results"
-        />
-        <span class="cursor" aria-hidden="true"></span>
+    <div class="search-row">
+      <div class="search-wrap">
+        <div class="search">
+          <span class="chevron">&gt;</span>
+          {/* Placeholder stays short on purpose: mobile bumps this input to 16px
+              (the iOS zoom guard), which clipped the old "(N on the list)" at
+              390px and narrower, and would clip harder once the count goes four
+              digits. The full count is in the line right above the box. */}
+          <input
+            type="search"
+            id="search"
+            placeholder={`type an app… (${apps.length.toLocaleString('en-US')})`}
+            autocomplete="off"
+            aria-label="Search apps"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="search-results"
+          />
+          <span class="cursor" aria-hidden="true"></span>
+        </div>
+        <div class="search-results" id="search-results" role="listbox"></div>
       </div>
-      <div class="search-results" id="search-results" role="listbox"></div>
+      <span class="cat-dd" id="cat-dd">
+        <button type="button" class="cat-dd-btn" id="cat-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="cat-dd-panel">
+          <span id="cat-dd-label">⚡ all categories</span>
+          <span class="dd-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="cat-dd-panel" id="cat-dd-panel" role="listbox" aria-label="Filter by category" hidden>
+          <button type="button" class="cat-opt active" role="option" aria-selected="true" data-cat="" data-label="⚡ all categories">
+            <span class="co-label">⚡ all categories</span>
+            <span class="co-count">{apps.length}</span>
+          </button>
+          {
+            ddCats.map((c) => (
+              <button
+                type="button"
+                class="cat-opt"
+                role="option"
+                aria-selected="false"
+                data-cat={c.slug}
+                data-label={`${c.emoji} ${c.label.toLowerCase()}`}
+              >
+                <span class="co-label">{c.emoji} {c.label.toLowerCase()}</span>
+                <span class="co-count">{c.count}</span>
+              </button>
+            ))
+          }
+          <div class="cat-dd-sep" aria-hidden="true"></div>
+          <a class="cat-opt cat-link" href="/alternatives">
+            <span class="co-label">🚪 escape hatches <span class="new-tag">NEW</span></span>
+          </a>
+          <a class="cat-opt cat-link" href="/moats">
+            <span class="co-label">🏰 moats</span>
+          </a>
+          <a class="cat-opt cat-link" href="/categories">
+            <span class="co-label">all categories →</span>
+          </a>
+        </div>
+      </span>
     </div>
     <div class="search-miss" id="no-results" role="status">
       <span class="badge kinda" style="font-size: 10px;">NOT LISTED YET</span>
       <a href="/submit">submit it → the bot drafts the verdict</a>
       <span class="miss-note">verdicts are added daily · thousands more on the way</span>
-      {/* 32% of searches end here — the honest ask is the cadence, never a
-          promise to email this specific verdict when it lands */}
-      <span class="miss-note miss-hook">five vibe-coding tips + new verdicts, every thursday:</span>
-      <form method="post" action="/api/waitlist" data-digest class="miss-form">
-        <label class="hp" aria-hidden="true">
-          Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off" />
-        </label>
-        <input type="hidden" name="source" value="search_miss" />
-        <input
-          type="email"
-          name="email"
-          required
-          placeholder="you@wherever.com"
-          aria-label="Email address"
-        />
-        <button class="btn primary" type="submit">get thursday's</button>
-      </form>
     </div>
-    <nav class="chips" aria-label="Categories">
-      {/* Plain navigation: each chip goes to its category page. In-place list
-          filtering happens in the dropdown next to the list header instead —
-          up here the list isn't even on screen on small viewports. */}
-      {
-        cats.map((c) => (
-          <a class="chip" href={`/category/${c.slug}`}>
-            {c.emoji} {c.label.toLowerCase()}
-          </a>
-        ))
-      }
-      <a class="chip chip-new" href="/alternatives">🚪 escape hatches <span class="new-tag">NEW</span></a>
-      <a class="chip" href="/moats">🏰 moats</a>
-      <a class="chip" href="/categories">all categories →</a>
-    </nav>
+  </section>
+
+  <Ticker />
+
+  <div class="promo-strips">
     {
       buildGamesLive() ? (
         <a class="hatch-strip games-strip" href="/thebuildgames">
@@ -174,9 +184,6 @@ const jsonld = [
         </a>
       )
     }
-    {/* A structural twin of the games strip above: same classes, same box,
-        one centred line with the link inline at the end. The builds count
-        only appears once there is one. */}
     {
       showcase && buildsLive() && (
         <a class="hatch-strip games-strip" href={`/built-with/${showcase.slug}`}>
@@ -189,9 +196,7 @@ const jsonld = [
         </a>
       )
     }
-  </section>
-
-  <Ticker />
+  </div>
 
   <main class="wrap" id="death-list">
     <div class="list-head">
@@ -199,33 +204,6 @@ const jsonld = [
       <span class="note">ranked by "I replaced this" votes</span>
     </div>
     <div class="verdict-filter" id="verdict-filter" role="group" aria-label="Filter the list">
-      <span class="cat-dd" id="cat-dd">
-        <button type="button" class="cat-dd-btn" id="cat-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="cat-dd-panel">
-          <span id="cat-dd-label">⚡ all categories</span>
-          <span class="dd-caret" aria-hidden="true">▾</span>
-        </button>
-        <div class="cat-dd-panel" id="cat-dd-panel" role="listbox" aria-label="Filter by category" hidden>
-          <button type="button" class="cat-opt active" role="option" aria-selected="true" data-cat="" data-label="⚡ all categories">
-            <span class="co-label">⚡ all categories</span>
-            <span class="co-count">{apps.length}</span>
-          </button>
-          {
-            ddCats.map((c) => (
-              <button
-                type="button"
-                class="cat-opt"
-                role="option"
-                aria-selected="false"
-                data-cat={c.slug}
-                data-label={`${c.emoji} ${c.label.toLowerCase()}`}
-              >
-                <span class="co-label">{c.emoji} {c.label.toLowerCase()}</span>
-                <span class="co-count">{c.count}</span>
-              </button>
-            ))
-          }
-        </div>
-      </span>
       <span class="microlabel">verdict</span>
       <button class="vchip all active" data-verdict="">all</button>
       <button class="vchip yes" data-verdict="yes">YES</button>
@@ -277,6 +255,14 @@ const jsonld = [
 </Base>
 
 <style>
+  .promo-strips {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px 8px;
+  }
+
   .list-tail {
     margin: 0;
     padding: 20px 10px 4px;
@@ -291,8 +277,54 @@ const jsonld = [
     text-decoration: underline;
   }
 
-  /* Category dropdown: the site's own take on a select, sitting where the
-     filtering actually happens (next to the list), not up in the hero. */
+  /* Category dropdown beside the hero search. */
+  .search-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    width: min(760px, 100%);
+  }
+
+  .search-row .search-wrap {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  .search-row .cat-dd {
+    flex-shrink: 0;
+  }
+
+  .search-row .cat-dd-btn {
+    height: 100%;
+    min-height: 54px;
+    padding: 0 14px;
+    font-size: 13px;
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .search-row .cat-dd-panel {
+    right: 0;
+    left: auto;
+    min-width: 280px;
+  }
+
+  .cat-dd-sep {
+    height: 1px;
+    margin: 5px 6px;
+    background: var(--border);
+  }
+
+  .cat-opt.cat-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .cat-opt.cat-link:hover {
+    color: var(--primary);
+  }
+
   .cat-dd {
     position: relative;
     display: inline-flex;
@@ -375,9 +407,22 @@ const jsonld = [
   }
 
   @media (max-width: 760px) {
-    .cat-dd-panel {
+    .search-row {
+      flex-direction: column;
+      width: min(640px, 100%);
+    }
+
+    .search-row .cat-dd-btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: space-between;
+    }
+
+    .search-row .cat-dd-panel {
+      left: 0;
+      right: 0;
+      min-width: 0;
       max-height: 300px;
-      min-width: min(280px, calc(100vw - 48px));
     }
   }
 

@@ -45,7 +45,7 @@ export function nextRunMonthName(now = Date.now()) {
 
 // Used until a real icon colour is extracted, and when the sponsor's favicon is
 // CORS-tainted so the browser can't sample it.
-export const DEFAULT_TINT = '#33e667';
+export const DEFAULT_TINT = '#403d88';
 
 const BOARD_TTL_MS = 60 * 1000;
 
@@ -318,7 +318,7 @@ export function withUtm(raw, campaign = 'sponsor_card') {
   for (const key of u.searchParams.keys()) {
     if (key.toLowerCase().startsWith('utm_')) return u.href;
   }
-  u.searchParams.set('utm_source', 'canivibecodeit');
+  u.searchParams.set('utm_source', 'vibecodeit');
   u.searchParams.set('utm_medium', 'referral');
   u.searchParams.set('utm_campaign', campaign);
   return u.href;
@@ -356,7 +356,7 @@ export function faviconUrl(raw) {
 }
 
 export function siteUrl(pathname = '/') {
-  const base = (process.env.SITE_URL || 'https://canivibecodeit.com').replace(/\/+$/, '');
+  const base = (process.env.SITE_URL || 'https://vibecodeit.com').replace(/\/+$/, '');
   return `${base}${pathname}`;
 }
 

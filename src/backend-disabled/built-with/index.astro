@@ -1,0 +1,104 @@
+---
+/* /built-with: the tiny index of model showcases. */
+import Base from '../../layouts/Base.astro';
+import { buildsLive } from '../../lib/flags.js';
+import { liveBuilds, modelDemos } from '../../lib/db.js';
+import { SHOWCASE_MODELS, modelSlug } from '../../lib/models.js';
+
+if (!buildsLive()) return new Response(null, { status: 404 });
+
+const all = await liveBuilds();
+const rows = await Promise.all(
+  SHOWCASE_MODELS.map(async (m) => ({
+    ...m,
+    demos: (await modelDemos(m.slug, ['live'])).length,
+    builds: all.filter((b) => modelSlug(b.model_norm ?? b.model) === m.slug).length,
+  }))
+);
+---
+
+<Base title="Model showcases · vibecodeit" description="What people build with each new model on day one, pulled from X, plus the community builds and their prompts.">
+  <main class="wrap bwi">
+    <span class="microlabel">model showcases</span>
+    <h1>built with</h1>
+    <p class="bwi-sub">one page per model: the day-one demos from X, then what the community built with it, prompts included.</p>
+    <ul class="bwi-list">
+      {rows.map((m) => (
+        <li>
+          <a class="bwi-row" href={`/built-with/${m.slug}`}>
+            <span class="bwi-name">built with {m.name}</span>
+            <span class="bwi-meta">{m.vendor} · {m.demos} {m.demos === 1 ? 'demo' : 'demos'} · {m.builds} {m.builds === 1 ? 'build' : 'builds'}</span>
+            <span class="bwi-go">→</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+</Base>
+
+<style>
+  .bwi {
+    padding-top: 48px;
+    padding-bottom: 72px;
+  }
+
+  .bwi h1 {
+    padding-top: 14px;
+    font-size: clamp(36px, 5vw, 52px);
+    letter-spacing: -1px;
+  }
+
+  .bwi-sub {
+    padding-top: 12px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+
+  .bwi-list {
+    list-style: none;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+
+  .bwi-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .bwi-name {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .bwi-meta {
+    font: 13px var(--font-mono);
+    color: var(--muted);
+  }
+
+  .bwi-go {
+    color: var(--primary);
+  }
+
+  .bwi-row:hover .bwi-name {
+    color: var(--primary);
+  }
+
+  @media (max-width: 640px) {
+    .bwi-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .bwi-meta {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

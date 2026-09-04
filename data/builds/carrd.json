@@ -1,0 +1,417 @@
+{
+  "slug": "carrd",
+  "version": 1,
+  "summary": "A one-page personal site you own: content lives in one JSON file, a build script renders it to fast static HTML, and a tiny Node server handles the contact form with no third-party service. When every item is ticked you have a live site on your own domain that scores 100 on Lighthouse and costs nothing to run beyond the domain.",
+  "time": "one sitting",
+  "stack": [
+    { "part": "Runtime", "choice": "Node 22", "why": "one runtime for the build script and the form server, nothing else to install" },
+    { "part": "Rendering", "choice": "Static HTML from a build script", "why": "no framework means no dependency to break and a perfect performance score by default" },
+    { "part": "Styling", "choice": "One inlined stylesheet", "why": "a single file with no build step is the whole reason this stays fast" },
+    { "part": "Form server", "choice": "node:http, no Express", "why": "one file that appends a line to a log is not worth a framework" },
+    { "part": "Hosting", "choice": "Any static host plus one small server", "why": "the HTML is static; only the form needs a process" }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "It runs the build script that turns content.json into HTML and the small server that receives the contact form.",
+      "get": "Download the LTS installer from nodejs.org, or use your package manager (brew install node, or nvm install 22). Restart your terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "terminal-editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit. VS Code, Cursor or Zed all work; the built-in terminal in any of them is enough.",
+      "get": "Install VS Code from code.visualstudio.com if you have nothing yet. Open a folder for this project and use its terminal (View > Terminal).",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "Your content.json is your CMS. Git is how you keep its history and how a static host deploys the site.",
+      "get": "Install from git-scm.com, or with your package manager. Run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "content",
+      "kind": "asset",
+      "name": "Your content, written down",
+      "why": "The build renders exactly what content.json says. Writing the words first stops the layout phase from turning into a writing session.",
+      "get": "In a plain text file, draft: your name, a one-line headline, a short about paragraph (three to five sentences), your social links, and up to six projects with a title, one sentence and a URL. Have a square avatar image (at least 400x400, JPG or PNG) ready.",
+      "cost": "free"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain name",
+      "why": "The whole point of leaving Carrd is that the site is yours. It is only needed in the last phase, so you can start without it.",
+      "get": "Register one at Cloudflare Registrar, Porkbun or Namecheap. You will add one DNS record in the final phase; the host tells you what.",
+      "cost": "roughly $10 a year",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "host",
+      "kind": "account",
+      "name": "Somewhere to host it",
+      "why": "The HTML is static and can live on any free static host. The form server needs one small always-on process: a $5 VPS, or a serverless function on the same host.",
+      "get": "Pick one before the final phase: Cloudflare Pages or Netlify (free, static, with functions for the form) or a small VPS from Hetzner or DigitalOcean if you want one box for everything.",
+      "cost": "free to $5 a month",
+      "optional": true
+    },
+    {
+      "id": "lighthouse",
+      "kind": "tool",
+      "name": "Chrome with DevTools",
+      "why": "Phase 5 requires a Lighthouse score of 100, and Lighthouse ships inside Chrome's DevTools.",
+      "get": "Any Chromium browser. Open DevTools (F12), find the Lighthouse tab.",
+      "verify": "The Lighthouse tab is visible in DevTools",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    { "name": "PORT", "example": "3000", "required": true, "secret": false, "where": "Any free port for the form server. Behind Caddy or nginx this stays internal." },
+    { "name": "SITE_URL", "example": "https://yourname.com", "required": true, "secret": false, "where": "Your public address. Used to build absolute Open Graph URLs at build time." },
+    { "name": "MESSAGES_LOG", "example": "./messages.log", "required": true, "secret": false, "where": "A path the form server can write to. This file is your inbox; back it up." },
+    { "name": "FORM_RATE_LIMIT", "example": "5", "required": false, "secret": false, "where": "Max form submissions per IP per hour. Defaults to 5 when unset." },
+    { "name": "FORM_MIN_SECONDS", "example": "2", "required": false, "secret": false, "where": "Submissions faster than this are treated as bots. Defaults to 2." }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Build pipeline",
+      "goal": "Prove the whole idea in the smallest form: content.json goes in, an HTML page comes out, and a mistake in the JSON fails loudly instead of rendering a half-empty page.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project folder and initialise it",
+          "detail": "Everything lives in one folder. The type: module line lets you use import syntax in the build script.",
+          "commands": [
+            "mkdir my-site && cd my-site",
+            "git init",
+            "npm init -y",
+            "npm pkg set type=module",
+            "mkdir public"
+          ],
+          "files": ["package.json"]
+        },
+        {
+          "id": "p1s2",
+          "do": "Write content.json with every key the site will use",
+          "detail": "Fill it with your real content from the prerequisites. Keep projects and socials as arrays even if you only have one.",
+          "snippet": "{\n  \"name\": \"Ada Lovelace\",\n  \"headline\": \"I write software that explains itself.\",\n  \"about\": \"Three to five sentences about you.\",\n  \"avatar\": \"/avatar.jpg\",\n  \"accent\": \"#5b8def\",\n  \"email\": \"you@example.com\",\n  \"socials\": [{ \"label\": \"GitHub\", \"url\": \"https://github.com/you\", \"icon\": \"github\" }],\n  \"projects\": [{ \"title\": \"A project\", \"description\": \"One sentence.\", \"url\": \"https://example.com\" }],\n  \"seo\": { \"title\": \"Ada Lovelace\", \"description\": \"One line for search results.\" }\n}",
+          "files": ["content.json"]
+        },
+        {
+          "id": "p1s3",
+          "do": "Write build.mjs: read the JSON, render index.html, copy public/",
+          "detail": "Use a template literal for the HTML. Escape every value from the JSON before inserting it (replace &, <, > with their entities) so a stray character in your bio cannot break the page. Write to dist/index.html and copy public/ into dist/.",
+          "files": ["build.mjs"]
+        },
+        {
+          "id": "p1s4",
+          "do": "Validate content.json before rendering",
+          "detail": "At the top of build.mjs, check that name, headline, about, avatar, email and seo exist and that every url starts with http. On failure, print which key is wrong and exit with code 1. A build that renders a page with a missing name is the failure this step prevents.",
+          "files": ["build.mjs"]
+        },
+        {
+          "id": "p1s5",
+          "do": "Add the build script and run it",
+          "commands": [
+            "npm pkg set scripts.build=\"node build.mjs\"",
+            "npm run build",
+            "npx serve dist"
+          ]
+        }
+      ],
+      "check": [
+        "npm run build creates dist/index.html and the page opens in a browser at the URL serve prints",
+        "Changing name in content.json and running the build again changes the heading on the page",
+        "Deleting the headline key from content.json makes the build exit with an error naming headline",
+        "A project description containing a < character renders as text, not as broken markup"
+      ],
+      "traps": [
+        "Do not reach for a framework or a bundler here. The output is one HTML file; a build tool would be the heaviest part of the project.",
+        "Escape JSON values on the way into the HTML. This is the one place the page can be broken by its own content."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Design layer",
+      "goal": "Make it look designed rather than templated, with one inlined stylesheet, and prove it on three screen widths.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Create styles.css and inline it into the HTML at build time",
+          "detail": "Read the file in build.mjs and place its contents inside a style tag in the head. One request fewer, and the page paints with its styles on the first byte.",
+          "files": ["styles.css", "build.mjs"]
+        },
+        {
+          "id": "p2s2",
+          "do": "Set the typographic scale with clamp() and a system font stack",
+          "detail": "Headline around clamp(2rem, 6vw, 4rem), body 1.05rem with line-height 1.65, a measure of about 60 characters for paragraphs. No web fonts: they cost a request and Lighthouse points, and the system stack looks native everywhere."
+        },
+        {
+          "id": "p2s3",
+          "do": "Read the accent color from content.json into a CSS custom property",
+          "detail": "In build.mjs, write :root { --accent: <value> } into the inlined stylesheet. Use var(--accent) for links, focus rings and one decorative element. Changing the hex in content.json is the only way the theme changes."
+        },
+        {
+          "id": "p2s4",
+          "do": "Add dark mode with prefers-color-scheme",
+          "detail": "Define the light palette on :root and override the same custom properties inside @media (prefers-color-scheme: dark). Check contrast in both: the accent on both backgrounds must pass 4.5:1 for text."
+        },
+        {
+          "id": "p2s5",
+          "do": "Add hover and focus-visible states to every link and button",
+          "detail": "A visible focus ring on every interactive element, using the accent. Keyboard visitors must be able to see where they are."
+        }
+      ],
+      "check": [
+        "The page looks intentional at 375px, 768px and 1440px wide with no horizontal scrollbar at any of them",
+        "Switching the operating system to dark mode changes the page and every piece of text still reads clearly",
+        "Tabbing through the page shows a visible focus ring on every link",
+        "The built page makes zero requests for fonts or stylesheets: everything is in the one HTML file"
+      ],
+      "traps": [
+        "Self-host or skip web fonts entirely. A fonts.googleapis.com request is a third-party call, a privacy question and a Lighthouse deduction all at once."
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Content blocks",
+      "goal": "Render the socials and projects from their arrays, and make an empty array disappear completely instead of leaving a stray heading.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Build an inline SVG sprite for social icons",
+          "detail": "One svg element with a symbol per icon (github, x, linkedin, mastodon, email, website), hidden at the top of the body. Each social link uses a use element pointing at its symbol. No icon font, no external request.",
+          "files": ["icons.svg", "build.mjs"]
+        },
+        {
+          "id": "p3s2",
+          "do": "Render the socials row from content.json",
+          "detail": "Map socials to links with the icon and an aria-label of the label. If the array is empty, render nothing at all: no wrapper, no heading."
+        },
+        {
+          "id": "p3s3",
+          "do": "Render the projects grid from content.json",
+          "detail": "A responsive grid (auto-fit, minmax(240px, 1fr)) of cards with title, description and the link. Same rule: empty array, no section."
+        },
+        {
+          "id": "p3s4",
+          "do": "Add rel=\"noopener noreferrer\" and target=\"_blank\" to outbound links",
+          "detail": "Every URL in content.json points off your site. Opening in a new tab is the expected behaviour for a link page; noopener is the security half of that."
+        }
+      ],
+      "check": [
+        "With three socials and two projects in content.json both sections render with the right icons and links",
+        "Setting projects to [] and rebuilding leaves no trace of the section: no heading, no empty grid, no extra spacing",
+        "Every outbound link opens in a new tab and carries rel=\"noopener noreferrer\" in the built HTML"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Contact form",
+      "goal": "A working contact form with no third-party service: the small server appends each message to a log file and shows an inline thank-you, and it turns away the obvious bots.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Write server.mjs with node:http that serves dist/ and handles POST /contact",
+          "detail": "Serve files from dist/ for GET requests. For POST /contact, read the body (cap it at 4 KB), parse the form fields, and append one JSON line with a timestamp to the file named in MESSAGES_LOG. Respond by redirecting back to /#thanks so the page shows the inline thank-you.",
+          "commands": ["npm pkg set scripts.start=\"node --env-file=.env server.mjs\""],
+          "files": ["server.mjs"]
+        },
+        {
+          "id": "p4s2",
+          "do": "Create .env from .env.example and start the server",
+          "detail": "Node 22 reads .env with the --env-file flag, so no dotenv dependency is needed.",
+          "commands": ["cp .env.example .env", "npm start"],
+          "files": [".env"]
+        },
+        {
+          "id": "p4s3",
+          "do": "Add the form to the page with a honeypot field",
+          "detail": "Fields: name, email, message, plus a text input named website that is hidden with CSS (position absolute, left -9999px), not type=hidden. Real people never see it; bots fill it. The form must work as a plain HTML POST with JavaScript disabled."
+        },
+        {
+          "id": "p4s4",
+          "do": "Reject bots: honeypot, minimum fill time, size cap",
+          "detail": "If website is filled, respond with the same thank-you but write nothing. Put a hidden timestamp in the form and reject submissions arriving faster than FORM_MIN_SECONDS. Reject bodies over 4 KB with a 413."
+        },
+        {
+          "id": "p4s5",
+          "do": "Rate limit by IP in memory",
+          "detail": "A Map of IP to an array of timestamps; allow FORM_RATE_LIMIT submissions per rolling hour, respond 429 beyond that. In-memory is fine: a restart resetting the counters costs nothing here."
+        },
+        {
+          "id": "p4s6",
+          "do": "Render the inline thank-you",
+          "detail": "A #thanks element hidden by default; the :target CSS pseudo-class shows it when the redirect lands on /#thanks. No JavaScript required."
+        }
+      ],
+      "check": [
+        "Submitting the form appends exactly one JSON line to messages.log and the page shows the thank-you",
+        "Filling the hidden website field shows the same thank-you and appends nothing",
+        "A submission sent within one second of the page loading is rejected",
+        "The sixth submission from the same address inside an hour gets a 429",
+        "The form still submits and shows the thank-you with JavaScript disabled in the browser"
+      ],
+      "traps": [
+        "Do not use type=hidden for the honeypot: bots know to skip those. Hide it with CSS so it looks like a real field to a script.",
+        "Never write the raw request body to the log. Parse the fields, then write only the fields you expect."
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Share cards and performance",
+      "goal": "The page previews properly when shared, and scores 100 on Lighthouse for Performance, Accessibility and Best Practices.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Add Open Graph and Twitter meta tags from seo in content.json",
+          "detail": "og:title, og:description, og:image, og:url (built from SITE_URL), twitter:card summary_large_image. Absolute URLs only: relative ones do not work in share previews."
+        },
+        {
+          "id": "p5s2",
+          "do": "Generate a 1200x630 OG image at build time",
+          "detail": "Install satori and @resvg/resvg-js, render your name and headline on your accent color to SVG then PNG, write dist/og.png. Pin the versions in package.json.",
+          "commands": ["npm install satori@0.29.0 @resvg/resvg-js@2.6.2"],
+          "files": ["build.mjs", "dist/og.png"]
+        },
+        {
+          "id": "p5s3",
+          "do": "Run Lighthouse and fix what it names",
+          "detail": "DevTools > Lighthouse > Analyze page load, on the built page served by npm start. Typical fixes: an image without width and height attributes, a contrast miss, a missing lang attribute on html."
+        },
+        {
+          "id": "p5s4",
+          "do": "Set width and height on the avatar and compress it",
+          "detail": "Resize the avatar to 320x320 and save as WebP with a JPG fallback. Explicit dimensions stop layout shift, which is a Performance deduction."
+        }
+      ],
+      "check": [
+        "Lighthouse reports 100 for Performance, Accessibility and Best Practices on the built page",
+        "Pasting the page URL into a card validator (or a Slack message) shows the generated OG image and the right title",
+        "The built HTML is under 30 KB and makes no third-party requests"
+      ],
+      "traps": [
+        "Run Lighthouse against the built site served by your server, not against a file:// URL or the dev preview. The scores differ."
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Deploy and document",
+      "goal": "The site is live on your domain with a working form, and the README lets someone else run it without asking you anything.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Choose the deploy path and write it down",
+          "detail": "Path A, one VPS: Caddy serves dist/ and proxies /contact to the Node server, with a systemd unit for the server. Path B, static host plus function: dist/ on Cloudflare Pages or Netlify, and the form handler as a function writing to a KV store or emailing you. Pick one; the README documents that one."
+        },
+        {
+          "id": "p6s2",
+          "do": "Path A: add the Caddyfile and the systemd unit",
+          "detail": "Caddyfile: your domain, file_server on dist, reverse_proxy /contact to localhost:PORT. Unit: Restart=on-failure, EnvironmentFile pointing at .env, running as an unprivileged user.",
+          "files": ["Caddyfile", "deploy/site.service"]
+        },
+        {
+          "id": "p6s3",
+          "do": "Point the domain at the host",
+          "detail": "One A record (VPS) or the CNAME the static host gives you. Wait for it to resolve, then load the site over https."
+        },
+        {
+          "id": "p6s4",
+          "do": "Write the README",
+          "detail": "Sections: what this is, the content.json key reference with which keys are required, how to build and run, where messages land and how to read them, the deploy path you chose, and one line stating this replaces Carrd's output rather than Carrd's editor.",
+          "files": ["README.md"]
+        },
+        {
+          "id": "p6s5",
+          "do": "Do a clean-clone test",
+          "detail": "Clone the repo into a fresh folder, follow only the README, and get to a running site with a working form. Fix every step the README skipped.",
+          "commands": ["git clone <your-repo-url> /tmp/site-test && cd /tmp/site-test", "npm install && npm run build && cp .env.example .env && npm start"]
+        }
+      ],
+      "check": [
+        "The site loads over https on your domain and the form appends a line to messages.log on the server",
+        "Someone who has never seen the repo follows the README from clone to a working site without asking a question",
+        "The README states which keys in content.json are required"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Operate it like a product",
+      "goal": "Only for the product-builder path: know when the form server is down, never lose a message, and keep the box patched.",
+      "productOnly": true,
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Add a /healthz endpoint and an uptime check against it",
+          "detail": "The server answers 200 with the build id. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so a dead form server is noticed before a visitor notices."
+        },
+        {
+          "id": "p7s2",
+          "do": "Log structured lines and rotate them",
+          "detail": "One JSON line per request with method, path, status and duration; no IPs stored beyond the rate limiter's memory. Rotate messages.log and the request log with logrotate weekly, keeping eight."
+        },
+        {
+          "id": "p7s3",
+          "do": "Back up messages.log off the box nightly",
+          "detail": "A cron job that copies the log to object storage or another machine. The log is your inbox; a lost disk must not mean lost messages.",
+          "commands": ["crontab -e", "# 0 3 * * * rclone copy /srv/site/messages.log remote:site-backups/$(date +\\%F)/"]
+        },
+        {
+          "id": "p7s4",
+          "do": "Enable unattended security updates and a firewall",
+          "detail": "Only 22, 80 and 443 open. Automatic security updates on. This is the whole cost of owning a box instead of renting Carrd: say so in OPERATIONS.md."
+        }
+      ],
+      "check": [
+        "Stopping the server triggers an alert from the uptime monitor within a few minutes",
+        "A restore from last night's backup contains yesterday's messages",
+        "The firewall shows only 22, 80 and 443 open from outside"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A personal site and contact inbox you fully own, deployable by anyone from the README, monitored so a dead form is noticed, and with its messages backed up off the machine.",
+    "architecture": [
+      { "module": "Content", "owns": "content.json and its validation rules", "swap": "Point build.mjs at a different source (a Markdown file, a headless CMS) that yields the same object" },
+      { "module": "Renderer", "owns": "build.mjs: HTML, inlined CSS, OG image, dist/", "swap": "Any static generator that consumes the same content object; the deploy does not change" },
+      { "module": "Form server", "owns": "server.mjs: POST /contact, bot checks, rate limit, messages.log", "swap": "A serverless function with the same fields and the same log line format" },
+      { "module": "Delivery", "owns": "Caddy or the static host, TLS, the domain", "swap": "Any reverse proxy or static host; dist/ is plain files" }
+    ],
+    "operations": {
+      "backup": "messages.log is the only state. Copy it off the box nightly with rclone or scp to object storage or a second machine, keeping thirty days.",
+      "restore": "Copy the newest backup back to the path in MESSAGES_LOG and restart the server. Read the last line to confirm it is yesterday's.",
+      "monitoring": "An external uptime check against /healthz every five minutes, alerting to a chat webhook. Watch the 429 count in the request log for a bot flood.",
+      "incident": "If spam floods the log: lower FORM_RATE_LIMIT, restart, and add the offending pattern to the honeypot logic. If the box is compromised: rebuild from the repo, restore messages.log from backup, rotate the SSH key."
+    },
+    "releaseGate": [
+      "A clean clone reaches a working site with a working form using only the README",
+      "Lighthouse reports 100 for Performance, Accessibility and Best Practices on the live URL",
+      "The uptime check alerts when the server is stopped",
+      "One restore drill of messages.log has been performed and dated in OPERATIONS.md",
+      "The README states plainly that this replaces Carrd's output, not its editor"
+    ]
+  },
+  "notIncluded": [
+    "A visual drag-and-drop editor. That is most of what Carrd's price buys and it is a multi-month product on its own; editing content.json is the trade.",
+    "Hosted form storage and spam filtering as a service. messages.log and a honeypot are honest for one person's inbox.",
+    "Multi-page sites. If you need pages, you have outgrown a one-page tool."
+  ],
+  "after": [
+    "Email yourself each message with a small SMTP step in the form server, once messages.log has proven itself for a few weeks",
+    "A second content.json and build target for a project landing page, reusing the same renderer"
+  ]
+}

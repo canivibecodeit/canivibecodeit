@@ -2,7 +2,7 @@
    full JSON entry with AI (validated against the same rules as CI), fetches
    the favicon, and opens a PR on the public repo FROM THE BOT'S FORK — the
    server token has zero write access to the real repo, so a leak can at worst
-   vandalize the fork. Rob reviews and merges from his phone.
+   vandalize the fork. Faizan reviews and merges from his phone.
 
    Env (Railway + local .env):
      GITHUB_BOT_USER   — the bot account's login (owns the fork)
@@ -17,10 +17,10 @@
 import { CATEGORIES, MOAT_TAGS, allApps } from './apps.js';
 import { validateApp, SLUG_RE } from './validate-app.js';
 import { updateSubmission } from './db.js';
-import { alertRob, esc } from './mail.js';
+import { alertAdmin, esc } from './mail.js';
 
 const MODEL = 'anthropic/claude-opus-5';
-const UPSTREAM = 'canivibecodeit/canivibecodeit';
+const UPSTREAM = 'vibecodeit/vibecodeit';
 const GH = 'https://api.github.com';
 
 export function slugify(name) {
@@ -58,7 +58,7 @@ function buildPrompt({ name, url, take, slug }) {
   const tags = Object.entries(MOAT_TAGS)
     .map(([k, label]) => `${k} (${label})`)
     .join('; ');
-  return `You draft entries for canivibecodeit.com, a public directory that answers one question per paid app: can an AI coding agent one-shot a personal replacement? Tone: honest, dry, a bit irreverent. Never marketing-speak. No em dashes anywhere; use commas, colons, or " · ".
+  return `You draft entries for vibecodeit.com, a public directory that answers one question per paid app: can an AI coding agent one-shot a personal replacement? Tone: honest, dry, a bit irreverent. Never marketing-speak. No em dashes anywhere; use commas, colons, or " · ".
 
 A visitor submitted this app through the site form:
 - App name: ${JSON.stringify(name)}
@@ -195,7 +195,7 @@ async function fetchIcon(domain) {
     const res = await fetch(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`, {
       redirect: 'follow',
       signal: AbortSignal.timeout(15000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; canivibecodeit-icons)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; vibecodeit-icons)' },
     });
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
@@ -215,7 +215,7 @@ async function gh(path, { method = 'GET', body, ok } = {}) {
       Authorization: `Bearer ${process.env.GITHUB_BOT_TOKEN}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'canivibecodeit-submit-bot',
+      'User-Agent': 'vibecodeit-submit-bot',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -248,7 +248,7 @@ export async function findOpenPr(slug) {
 
 async function openPr({ entry, icon, submitter, take }) {
   const bot = process.env.GITHUB_BOT_USER;
-  const fork = `${bot}/canivibecodeit`;
+  const fork = `${bot}/vibecodeit`;
   const slug = entry.slug;
   const branch = `submit-${slug}`;
 
@@ -304,7 +304,7 @@ async function openPr({ entry, icon, submitter, take }) {
 
   const who = submitter ? `**${prSafe(submitter, 60)}** via the site form` : 'the site form (anonymous)';
   const body = [
-    `AI-drafted entry from a [site form](https://canivibecodeit.com/submit) submission by ${who}.`,
+    `AI-drafted entry from a [site form](https://vibecodeit.com/submit) submission by ${who}.`,
     '',
     `- Verdict: **${entry.verdict}** (confidence: ${entry.verdictConfidence})`,
     `- Category: ${entry.category} · moat: ${entry.moatTags.join(', ')}`,
@@ -368,9 +368,9 @@ export async function processSubmission(id, input) {
     const prUrl = await openPr({ entry, icon, submitter, take });
     await updateSubmission(id, { status: 'done', pr_url: prUrl });
 
-    // Per-PR email to Rob disabled on his ask (2026-08-18): too noisy — the
+    // Per-PR email to Faizan disabled on his ask (2026-08-18): too noisy — the
     // GitHub PR notification already covers it. Re-enable by uncommenting.
-    // alertRob(
+    // alertAdmin(
     //   `[cvci] submission PR: ${entry.name} (${entry.verdict})`,
     //   `<p>New app submission turned into a PR:</p>
     //    <p><a href="${esc(prUrl)}">${esc(prUrl)}</a></p>

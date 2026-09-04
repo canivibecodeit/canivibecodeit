@@ -1,0 +1,346 @@
+{
+  "slug": "cloudinary",
+  "version": 1,
+  "summary": "An image CDN for your own sites without writing an image processor: originals in S3-compatible storage, imgproxy resizing and converting on request by signed URL, a cache in front, and a helper that emits srcset for every image. Video and the media library stay with the vendor.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Processor",
+      "choice": "imgproxy in Docker",
+      "why": "rule zero: do not write an image processor"
+    },
+    {
+      "part": "Storage",
+      "choice": "Cloudflare R2, Backblaze B2 or MinIO",
+      "why": "originals as objects, keyed by content hash"
+    },
+    {
+      "part": "Cache",
+      "choice": "Cloudflare or Caddy",
+      "why": "transforms are cheap once, expensive always"
+    },
+    {
+      "part": "Upload service",
+      "choice": "A small Node endpoint",
+      "why": "sniff, cap, strip, store"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "bucket",
+      "kind": "key",
+      "name": "An S3-compatible bucket with access keys",
+      "why": "Where originals live.",
+      "get": "Cloudflare R2: dashboard > R2 > Create bucket > Manage R2 API Tokens. Backblaze B2: Buckets > Create, then App Keys. Note endpoint, bucket, key id and secret.",
+      "cost": "cents to a few dollars a month",
+      "url": "https://developers.cloudflare.com/r2/"
+    },
+    {
+      "id": "docker",
+      "kind": "tool",
+      "name": "Docker on a VPS",
+      "why": "imgproxy runs as a container.",
+      "get": "docs.docker.com/engine/install/ubuntu",
+      "verify": "docker compose version prints",
+      "cost": "free",
+      "url": "https://docs.docker.com/engine/install/ubuntu/"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. imgproxy needs a box; 2 GB of RAM is comfortable.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "img.yourdomain.com",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    },
+    {
+      "id": "keys",
+      "kind": "decision",
+      "name": "imgproxy signing key and salt",
+      "why": "Unsigned URLs would let anyone resize anything through your box.",
+      "get": "openssl rand -hex 32 twice, into .env.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "S3_ENDPOINT",
+      "example": "https://<account>.r2.cloudflarestorage.com",
+      "required": true,
+      "secret": false,
+      "where": "From the bucket provider."
+    },
+    {
+      "name": "S3_BUCKET",
+      "example": "images",
+      "required": true,
+      "secret": false,
+      "where": "Bucket name."
+    },
+    {
+      "name": "S3_ACCESS_KEY_ID",
+      "example": "...",
+      "required": true,
+      "secret": true,
+      "where": "Bucket access key."
+    },
+    {
+      "name": "S3_SECRET_ACCESS_KEY",
+      "example": "...",
+      "required": true,
+      "secret": true,
+      "where": "Bucket secret."
+    },
+    {
+      "name": "IMGPROXY_KEY",
+      "example": "hex",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32."
+    },
+    {
+      "name": "IMGPROXY_SALT",
+      "example": "hex",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32."
+    },
+    {
+      "name": "UPLOAD_TOKEN",
+      "example": "base64",
+      "required": true,
+      "secret": true,
+      "where": "Bearer token for the upload endpoint."
+    },
+    {
+      "name": "IMG_URL",
+      "example": "https://img.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base of the image domain."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Originals",
+      "goal": "Upload behind a token, content-hash keys, sniffed, capped, EXIF stripped, never overwritten.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "The upload endpoint with sharp for sniffing and EXIF stripping",
+          "commands": [
+            "mkdir imgcdn && cd imgcdn && git init && npm init -y && npm pkg set type=module && npm install @aws-sdk/client-s3@3 sharp@0.35.3",
+            "mkdir -p data && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Store under sha256 of the bytes; refuse non-images and files over the cap"
+        }
+      ],
+      "check": [
+        "Two uploads of the same file store once",
+        "A renamed executable is refused",
+        "The stored file has no GPS EXIF"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Transforms",
+      "goal": "imgproxy with the bucket as source, signed URLs, auto WebP and AVIF.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "docker-compose.yml for imgproxy with S3 source and signing enabled",
+          "files": [
+            "docker-compose.yml"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "A helper img(key, width, height, format) building signed URLs"
+        }
+      ],
+      "check": [
+        "One original serves at three widths in the browser's preferred format",
+        "An unsigned URL is refused"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Cache",
+      "goal": "Long cache headers, a cache in front, purge by key.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Cache-Control on transforms; Cloudflare or Caddy cache"
+        },
+        {
+          "id": "p3s2",
+          "do": "A purge command by key"
+        }
+      ],
+      "check": [
+        "The second request is served by the cache",
+        "Purge makes the next request miss"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Responsive helper",
+      "goal": "srcset and sizes for every image in your site.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "A function producing srcset and sizes"
+        },
+        {
+          "id": "p4s2",
+          "do": "A build step replacing plain img tags in your site"
+        }
+      ],
+      "check": [
+        "A phone loads the smallest sufficient image; a desktop the largest"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Operate",
+      "goal": "Lifecycle rules, memory limits, healthz, backups of the key index.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "imgproxy memory limits and /healthz; bucket lifecycle rules"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with the signing scheme and where originals live",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "imgproxy survives a 50 MB hostile image",
+        "The README reaches a served image"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Serve several sites",
+      "productOnly": true,
+      "goal": "Per-site prefixes, tokens and metrics.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Per-site key prefixes and upload tokens"
+        },
+        {
+          "id": "p6s2",
+          "do": "Bandwidth and transform counts per site from the cache logs"
+        }
+      ],
+      "check": [
+        "Two sites upload to separate prefixes",
+        "Per-site usage is visible"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Image delivery for all your sites at object-storage prices, with video honestly left out.",
+    "architecture": [
+      {
+        "module": "Upload",
+        "owns": "the endpoint and originals",
+        "swap": "Direct presigned uploads later"
+      },
+      {
+        "module": "Processor",
+        "owns": "imgproxy",
+        "swap": "Thumbor or a sharp service"
+      },
+      {
+        "module": "Cache",
+        "owns": "headers and purge",
+        "swap": "Any CDN"
+      },
+      {
+        "module": "Helper",
+        "owns": "srcset generation",
+        "swap": "A framework image component"
+      }
+    ],
+    "operations": {
+      "backup": "Originals are the asset: enable bucket versioning or replicate to a second bucket.",
+      "restore": "Point imgproxy at the copy.",
+      "monitoring": "Uptime on img domain and imgproxy memory.",
+      "incident": "Rotate IMGPROXY_KEY; all old URLs stop, so regenerate."
+    },
+    "releaseGate": [
+      "Signing verified",
+      "Hostile image test passes",
+      "Bucket versioning or replication on"
+    ]
+  },
+  "notIncluded": [
+    "Video, the media library, AI tagging, upload widgets: the $99."
+  ],
+  "after": [
+    "Direct-to-bucket presigned uploads from the browser",
+    "Focal-point cropping metadata"
+  ]
+}

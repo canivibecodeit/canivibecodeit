@@ -1,0 +1,623 @@
+---
+// /post-a-build: one form, no gates. A build is what the maker tells us:
+// name, one line, links, screenshots, tool, and the "how many goes?" answer
+// that decides what else is owed (near one-shot -> the exact prompt; weeks
+// -> what actually got it done; never got there -> just where it broke).
+// Posts land in the approve queue; Faizan taps them live from /admin/builds.
+import Base from '../layouts/Base.astro';
+import { buildsLive } from '../lib/flags.js';
+import { allApps } from '../lib/apps.js';
+import { githubAccountOf, userHandle } from '../lib/db.js';
+import { modelNames } from '../lib/models.js';
+import { TOOLS } from '../lib/builds.js';
+import { r2Configured } from '../lib/r2.js';
+import { scriptJson } from '../lib/request.js';
+
+if (!buildsLive()) return new Response(null, { status: 404 });
+
+const user = Astro.locals.user ?? null;
+const models = await modelNames();
+
+// Google-only accounts can earn the "posted by the repo owner" line by
+// explicitly connecting GitHub; anyone already signed in via GitHub has it.
+const hasGithub = user ? Boolean(await githubAccountOf(user.id)) : false;
+
+// First post claims a maker handle (named + linked on every build); after
+// that the field never renders again.
+const myHandle = user ? await userHandle(user.id) : null;
+
+// Compact catalog for the typeahead picker (name, price, category label).
+const catalog = allApps().map((a) => ({
+  slug: a.slug,
+  name: a.name.split(' / ')[0],
+  price: a.priceMonthly ?? null,
+  cat: a.subcategory || a.category || '',
+}));
+
+const q = Astro.url.searchParams;
+const preApp = catalog.find((a) => a.slug === q.get('app'))?.slug ?? '';
+// ?model= prefills the model field (the showcase CTA links here with it).
+const preModel = (q.get('model') ?? '').replace(/[<>]/g, '').trim().slice(0, 60);
+const mediaOn = r2Configured();
+---
+
+<Base
+  title="Post a build · vibecodeit"
+  description="Post what you vibe coded, with the exact prompts that made it. Free, listed forever."
+  noindex
+>
+  <main
+    class="wrap bp-wrap"
+    data-preselect-app={preApp || null}
+    data-preselect-model={preModel || null}
+    data-signed-in={user ? '1' : null}
+  >
+    <div class="bp-head">
+      <h1>post a build</h1>
+      <p class="bp-sub">what you built, with the prompts that made it. failures welcome.</p>
+    </div>
+
+    <section class="bp-card" id="bp-form-card">
+      <form id="bp-form" novalidate>
+        <div class="bp-field">
+          <label class="bp-flabel" for="bp-name">what did you build?</label>
+          <input id="bp-name" name="name" type="text" maxlength="80" placeholder="Lift Log" autocomplete="off" />
+        </div>
+
+        <div class="bp-field">
+          <label class="bp-flabel" for="bp-oneliner">one line on what it does</label>
+          <input id="bp-oneliner" name="one_liner" type="text" maxlength="140" placeholder="tracks my gym lifts and nags me on rest days" autocomplete="off" />
+        </div>
+
+        <div class="bp-field">
+          <span class="bp-flabel">how many goes did it take?</span>
+          <div class="bp-chips" data-bd-goes>
+            <button class="bp-chip" data-goes="one" type="button">one shot</button>
+            <button class="bp-chip" data-goes="few" type="button">a few goes</button>
+            <button class="bp-chip" data-goes="weeks" type="button">weeks</button>
+            <button class="bp-chip" data-goes="never" type="button">never got there</button>
+          </div>
+          <p class="bp-hint">your word, shown on the build.</p>
+        </div>
+
+        <div class="bp-field" data-bd-promptfield hidden>
+          <label class="bp-flabel" for="bp-prompt" data-bd-promptlabel>the prompt · posted exactly as sent, free forever</label>
+          <textarea id="bp-prompt" name="prompt" rows="8" maxlength="20000" placeholder="paste the exact prompt(s) you sent"></textarea>
+        </div>
+
+        <div class="bp-field" data-bd-storyfield hidden>
+          <label class="bp-flabel" for="bp-story">what actually got it done</label>
+          <textarea id="bp-story" name="story" rows="5" maxlength="5000" placeholder="the approach that worked after the prompt above didn't: how you split it up, what you fed the model, what you gave up on"></textarea>
+        </div>
+
+        <div class="bp-field" data-bd-brokefield hidden>
+          <label class="bp-flabel" for="bp-broke" data-bd-brokelabel>what broke, or still bugs you? · one line</label>
+          <input id="bp-broke" name="where_broke" type="text" maxlength="300" placeholder='"auth, twice" · "nothing yet" counts' autocomplete="off" />
+        </div>
+
+        <div class="bp-two">
+          <div class="bp-field">
+            <label class="bp-flabel" for="bp-tool">built with</label>
+            <div class="bp-combo" data-bd-combo="tools">
+              <input id="bp-tool" name="tool" type="text" maxlength="60" placeholder="Claude Code" autocomplete="off" />
+              <div class="bp-results" hidden></div>
+            </div>
+          </div>
+          <div class="bp-field">
+            <label class="bp-flabel" for="bp-model">model · optional</label>
+            <div class="bp-combo" data-bd-combo="models">
+              <input id="bp-model" name="model" type="text" maxlength="60" placeholder="Claude Opus 5" autocomplete="off" value={preModel} />
+              <div class="bp-results" hidden></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bp-two">
+          <div class="bp-field">
+            <label class="bp-flabel" for="bp-demo">live demo URL</label>
+            <input id="bp-demo" name="demo_url" type="url" maxlength="300" placeholder="https://" autocomplete="off" inputmode="url" />
+          </div>
+          <div class="bp-field">
+            <label class="bp-flabel" for="bp-repo">public repo</label>
+            <input id="bp-repo" name="repo_url" type="url" maxlength="300" placeholder="github.com/…" autocomplete="off" inputmode="url" />
+          </div>
+        </div>
+        <p class="bp-hint" data-bd-linkhint>one of the two at minimum, ideally both</p>
+        {
+          user && !hasGithub && (
+            <p class="bp-hint bp-ghlink">
+              posting your own repo? <button type="button" class="bp-linkbtn" data-bd-linkgh>connect GitHub</button>{' '}and the build carries "posted by the repo owner".
+            </p>
+          )
+        }
+
+        <div class="bp-field">
+          <label class="bp-flabel" for="bp-chat">chat link · optional, if your tool makes one</label>
+          <input id="bp-chat" name="chat_url" type="url" maxlength="300" placeholder="https://claude.ai/share/…" autocomplete="off" inputmode="url" />
+        </div>
+
+        <div class="bp-field">
+          <span class="bp-flabel">screenshots · 1-3, the thing itself</span>
+          {
+            mediaOn ? (
+              <>
+                <label class="bp-drop" for="bp-files">
+                  <span data-bd-dropline>add 1-3 screenshots of what you built</span>
+                </label>
+                <input id="bp-files" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="bp-fileinput" />
+                <div class="bp-thumbs" data-bd-thumbs></div>
+              </>
+            ) : (
+              <p class="bp-hint">uploads are down right now · try again in a bit</p>
+            )
+          }
+        </div>
+
+        <div class="bp-field">
+          <span class="bp-flabel">did you take on an app we list? · optional</span>
+          <div class="bp-appsearch" id="bp-search">
+            <div class="bp-searchbox">
+              <svg class="bp-mag" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle><path d="M9.5 9.5 L13 13" stroke="currentColor" stroke-width="1.5"></path></svg>
+              <img class="bp-searchglyph" alt="" width="20" height="20" hidden />
+              <input type="text" placeholder="search the death list" autocomplete="off" aria-label="search the death list" />
+            </div>
+            <div class="bp-results" hidden></div>
+          </div>
+          <p class="bp-hint">attached builds sit on that app's page, permanently</p>
+        </div>
+
+        <div class="bp-field">
+          <label class="bp-flabel" for="bp-affiliation">affiliation · optional, but say so</label>
+          <input id="bp-affiliation" name="affiliation" type="text" maxlength="200" placeholder="work on this app, or on the tool it's built with?" autocomplete="off" />
+        </div>
+
+        {
+          user && !myHandle && (
+            <div class="bp-field">
+              <label class="bp-flabel" for="bp-handle">claim your maker handle · once, yours forever</label>
+              <input id="bp-handle" name="handle" type="text" maxlength="20" placeholder="mattko" autocomplete="off" autocapitalize="off" spellcheck="false" />
+              <p class="bp-hint">3-20 letters, numbers, dashes · it names you on every build and your builds live at /builds/&lt;handle&gt;/…</p>
+            </div>
+          )
+        }
+
+        {/* honeypot: invisible to people, irresistible to bots */}
+        <div class="hp" aria-hidden="true">
+          <label for="bp-website">leave this empty</label>
+          <input id="bp-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <div class="bp-submitrow">
+          <button
+            class="btn primary"
+            type="submit"
+            id="bp-go"
+            data-signin={user ? null : ''}
+            data-signin-title={user ? null : 'Sign in to post a build'}
+            data-signin-sub={user ? null : 'your builds live on your account. free, obviously.'}
+          >post it</button>
+          <span class="bp-hint">we look at every build before it lists · usually quick</span>
+        </div>
+        <p class="bp-error" data-bd-post-error hidden></p>
+      </form>
+    </section>
+  </main>
+
+  <script type="application/json" id="bp-catalog" set:html={scriptJson(catalog)} />
+  <script type="application/json" id="bp-lists" set:html={scriptJson({ models, tools: TOOLS })} />
+</Base>
+
+<script is:inline src={`/js/builds.js?v=${__BUILD_ID__}`} defer></script>
+
+<style>
+  [hidden] {
+    display: none !important;
+  }
+
+  .bp-wrap {
+    padding-top: 48px;
+    padding-bottom: 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 720px;
+  }
+
+  .bp-head h1 {
+    font-size: clamp(26px, 4vw, 34px);
+  }
+
+  .bp-sub {
+    padding-top: 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .bp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    /* Clears the sticky header when a scroll brings the card into view. */
+    scroll-margin-top: 76px;
+  }
+
+  .bp-quiet {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .bp-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .bp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .bp-flabel {
+    font-size: 13px;
+    color: var(--fg);
+  }
+
+  .bp-flabel-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bp-hint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .bp-two {
+    display: flex;
+    gap: 14px;
+  }
+
+  .bp-two .bp-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* The bordered-box styles hit only fields that ARE the box: the inputs
+     nested inside .bp-searchbox / .bp-combo get their frame from the wrapper
+     (a second border here is the "double search bar" bug). */
+  .bp-field > input[type='text'],
+  .bp-field > input[type='url'],
+  .bp-field > textarea,
+  .bp-combo > input,
+  .bp-searchbox {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 11px 14px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 14px;
+    transition: border-color 0.15s ease;
+    width: 100%;
+  }
+
+  .bp-field > textarea {
+    resize: vertical;
+    min-height: 176px;
+    line-height: 1.55;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* The weeks-path story box: shorter by default, still resizable. */
+  #bp-story {
+    min-height: 120px;
+  }
+
+  .bp-field > textarea::-webkit-scrollbar {
+    width: 9px;
+  }
+
+  .bp-field > textarea::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+  }
+
+  .bp-field > input:focus,
+  .bp-combo > input:focus,
+  .bp-field > textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .bp-field input::placeholder,
+  .bp-field textarea::placeholder {
+    color: var(--muted);
+    opacity: 0.65;
+  }
+
+  .bp-chips {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    /* Chip rows sit between a label and another control; a touch of extra
+       air keeps the three from reading as one clump. */
+    margin-block: 3px;
+  }
+
+  .bp-chip {
+    font: 13px var(--font-mono);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 6px 12px;
+    background: var(--card);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .bp-chip:hover {
+    border-color: var(--muted);
+    color: var(--fg);
+  }
+
+  .bp-chip.active {
+    border-color: var(--primary);
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+
+  .bp-appsearch,
+  .bp-combo {
+    position: relative;
+  }
+
+  .bp-searchbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+  }
+
+  .bp-searchbox svg {
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .bp-searchglyph {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+
+  .bp-searchglyph[hidden] {
+    display: none;
+  }
+
+  .bp-searchbox input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--fg);
+    font: inherit;
+    font-size: 14px;
+    padding: 11px 0;
+  }
+
+  .bp-appsearch.picked .bp-searchbox {
+    border-color: var(--primary);
+  }
+
+  .bp-results {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    max-height: 240px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .bp-results::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .bp-results::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+  }
+
+  .bp-searchbox:focus-within {
+    border-color: var(--primary);
+  }
+
+  .bp-results :global(.bp-result) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 14px;
+    font: 13px var(--font-mono);
+    color: var(--fg);
+    text-align: left;
+    cursor: pointer;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bp-results :global(.bp-result:last-child) {
+    border-bottom: none;
+  }
+
+  .bp-results :global(.bp-result:hover) {
+    background: var(--surface-2);
+  }
+
+  .bp-results :global(.bp-result img) {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+
+  .bp-results :global(.bp-result b) {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bp-results :global(.bp-result span) {
+    color: var(--muted);
+    font-size: 12px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .bp-drop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 74px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+
+  .bp-drop:hover {
+    border-color: var(--muted);
+  }
+
+  .bp-drop.dragging {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+  }
+
+  .bp-fileinput {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+  }
+
+  .bp-thumbs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .bp-thumbs:empty {
+    display: none;
+  }
+
+  .bp-thumbs :global(.bp-thumb-wrap) {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .bp-thumbs :global(img) {
+    width: 92px;
+    height: 58px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .bp-thumbs :global(.bp-thumb-x) {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .bp-thumbs :global(.bp-thumb-x:hover) {
+    color: var(--no-bg);
+    border-color: var(--no-bg);
+  }
+
+  .bp-submitrow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+
+  #bp-go {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+  }
+
+  #bp-go:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
+  }
+
+  .bp-error {
+    font-size: 13px;
+    color: var(--no-bg);
+  }
+
+  .bp-linkbtn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--primary);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  @media (max-width: 640px) {
+    .bp-two {
+      flex-direction: column;
+    }
+
+    .bp-card {
+      padding: 22px 18px;
+    }
+
+    .bp-field input,
+    .bp-field textarea,
+    .bp-searchbox input {
+      font-size: 16px;
+    }
+  }
+</style>

@@ -1,0 +1,368 @@
+{
+  "slug": "bitwarden",
+  "version": 1,
+  "summary": "Your own password server without writing a password manager: vaultwarden in Docker behind Caddy on HTTPS, the official Bitwarden apps and extensions pointed at it, signups closed after your account exists, an admin token done the way current vaultwarden requires, encrypted nightly backups off the box, and a restore you have actually performed before trusting it.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Server",
+      "choice": "vaultwarden/server in Docker",
+      "why": "rule zero: do not write a password manager"
+    },
+    {
+      "part": "TLS",
+      "choice": "Caddy",
+      "why": "the clients refuse non-HTTPS servers"
+    },
+    {
+      "part": "Clients",
+      "choice": "The official Bitwarden apps and extensions",
+      "why": "autofill, mobile and passkeys keep working because you did not rebuild them"
+    },
+    {
+      "part": "Backups",
+      "choice": "tar plus age encryption, off the box",
+      "why": "a backup of every credential you own must be encrypted"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. The vault must be reachable from your phone and laptops.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "docker",
+      "kind": "tool",
+      "name": "Docker Engine and Compose on the VPS",
+      "why": "vaultwarden runs as a container.",
+      "get": "docs.docker.com/engine/install/ubuntu, then add your user to the docker group.",
+      "verify": "docker compose version prints",
+      "cost": "free",
+      "url": "https://docs.docker.com/engine/install/ubuntu/"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A subdomain for the vault",
+      "why": "The browser extensions and mobile apps refuse to talk to a non-HTTPS server; a domain is how you get a certificate.",
+      "get": "vault.yourdomain.com, one A record to the VPS.",
+      "cost": "free on a domain you own"
+    },
+    {
+      "id": "age",
+      "kind": "tool",
+      "name": "age for backup encryption",
+      "why": "Backups of your entire credential set must be encrypted at rest wherever they go.",
+      "get": "apt install age, or from the releases page. Generate a key pair with age-keygen and keep the private key in your existing password manager.",
+      "verify": "age --version prints",
+      "cost": "free",
+      "url": "https://github.com/FiloSottile/age"
+    },
+    {
+      "id": "export",
+      "kind": "asset",
+      "name": "An export of your current vault",
+      "why": "Phase 5 imports it. Bitwarden exports are unencrypted by default; you will delete the file securely afterwards.",
+      "get": "In your current manager: Export vault, JSON or CSV. Keep it only until import.",
+      "cost": "free"
+    },
+    {
+      "id": "offbox",
+      "kind": "account",
+      "name": "Off-box storage for backups",
+      "why": "A backup on the server being backed up is not a backup.",
+      "get": "Backblaze B2 or Cloudflare R2 plus rclone on the VPS.",
+      "cost": "cents a month",
+      "url": "https://rclone.org"
+    }
+  ],
+  "env": [
+    {
+      "name": "DOMAIN",
+      "example": "https://vault.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "The exact public address; vaultwarden needs it for WebAuthn and links."
+    },
+    {
+      "name": "ADMIN_TOKEN",
+      "example": "'$argon2id$v=19$...'",
+      "required": true,
+      "secret": true,
+      "where": "An Argon2 PHC hash from docker run --rm -it vaultwarden/server:latest /vaultwarden hash. In a Compose .env either single-quote the whole value or escape every $ as $$."
+    },
+    {
+      "name": "SIGNUPS_ALLOWED",
+      "example": "true",
+      "required": true,
+      "secret": false,
+      "where": "true until your account exists, then false."
+    },
+    {
+      "name": "AGE_RECIPIENT",
+      "example": "age1...",
+      "required": true,
+      "secret": false,
+      "where": "Your age public key, for encrypting backups."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Bring it up behind HTTPS",
+      "goal": "The web vault over a valid certificate, data surviving a restart. Never run it on plain HTTP even briefly.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Write docker-compose.yml with vaultwarden/server and a ./vw-data volume, port published on 127.0.0.1 only",
+          "files": [
+            "docker-compose.yml",
+            ".env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Write the Caddyfile and point DNS",
+          "detail": "vault.yourdomain.com with reverse_proxy localhost:80 (the container's port).",
+          "files": [
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p1s3",
+          "do": "Start and verify",
+          "commands": [
+            "docker compose up -d",
+            "curl -I https://vault.yourdomain.com"
+          ]
+        }
+      ],
+      "check": [
+        "The web vault loads over HTTPS with a valid certificate",
+        "docker compose down && up keeps the data"
+      ],
+      "traps": [
+        "The clients will not connect over HTTP and you will spend the time debugging the wrong layer."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The admin token",
+      "goal": "The step that wastes an evening, done right.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Generate the Argon2 hash",
+          "commands": [
+            "docker run --rm -it vaultwarden/server:latest /vaultwarden hash"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Put it in .env correctly",
+          "detail": "Single-quote the whole value, or escape each $ as $$; Compose otherwise interprets them as variables."
+        },
+        {
+          "id": "p2s3",
+          "do": "Log in at /admin with the original password you typed, not the hash"
+        }
+      ],
+      "check": [
+        "/admin accepts the original password and rejects a wrong one",
+        "The value survives docker compose up without Compose mangling it"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Lock it down",
+      "goal": "One account, signups closed, nothing else exposed.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Register your account, then set SIGNUPS_ALLOWED=false and restart"
+        },
+        {
+          "id": "p3s2",
+          "do": "Confirm only 80 and 443 are reachable from outside",
+          "commands": [
+            "nmap -p- vault.yourdomain.com"
+          ]
+        }
+      ],
+      "check": [
+        "A fresh browser cannot reach a registration form",
+        "The invitation flow from /admin works",
+        "A port scan shows only 80 and 443"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Clients",
+      "goal": "Extension, desktop and mobile all logged in to your server.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Log in the browser extension and the desktop app, choosing self-hosted and entering your server URL before login"
+        },
+        {
+          "id": "p4s2",
+          "do": "Log in the mobile app and test a passkey and autofill end to end"
+        }
+      ],
+      "check": [
+        "All three log in",
+        "Autofill works on a real site",
+        "A passkey saves and authenticates",
+        "An item created on the phone appears in the extension"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Import",
+      "goal": "Everything moved, and the plaintext export gone.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Import through Tools > Import in the web vault"
+        },
+        {
+          "id": "p5s2",
+          "do": "Securely delete the export file and empty the trash"
+        }
+      ],
+      "check": [
+        "Item counts match before and after",
+        "TOTP seeds still generate correct codes",
+        "The export file is gone from disk and trash"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Backup, and a restore drill",
+      "goal": "Encrypted nightly backup off the box, and a restore you performed.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Write backup.sh: stop or snapshot, tar vw-data, encrypt with age, copy off",
+          "commands": [
+            "docker compose stop && tar czf - vw-data | age -r $AGE_RECIPIENT -o /tmp/vw-$(date +%F).tgz.age && docker compose start",
+            "rclone copy /tmp/vw-$(date +%F).tgz.age remote:vault-backups/"
+          ],
+          "files": [
+            "backup.sh",
+            "restore.sh"
+          ]
+        },
+        {
+          "id": "p6s2",
+          "do": "Restore into a throwaway instance and unlock the restored vault with a client"
+        }
+      ],
+      "check": [
+        "Last night's encrypted backup exists off the box",
+        "A restore into a clean environment unlocks with a client",
+        "The restore date is written in the README"
+      ],
+      "traps": [
+        "Until the restore drill is done, keep the hosted subscription."
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Updates and the honest handover",
+      "goal": "A repeatable update and the trade written down.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Write update.sh: backup, pull, up -d, verify login",
+          "files": [
+            "update.sh"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Write the README",
+          "detail": "The admin-token command and the $$ trap, the restore date, and the reassurance plus warning: clients cache the vault so a dead server locks you out of nothing, but an unpatched server holding every credential is a risk you took on.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "One upgrade cycle run and all three clients still log in",
+        "The README carries the token trap and the restore date"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A credential server you operate responsibly: closed signups, encrypted off-box backups with a proven restore, and a monthly patch routine.",
+    "architecture": [
+      {
+        "module": "vaultwarden",
+        "owns": "the vault, sync, WebAuthn",
+        "swap": "It is the product"
+      },
+      {
+        "module": "Caddy",
+        "owns": "TLS",
+        "swap": "Any reverse proxy with automatic certificates"
+      },
+      {
+        "module": "Backup",
+        "owns": "tar, age, rclone, restore.sh",
+        "swap": "Any storage rclone speaks"
+      },
+      {
+        "module": "Clients",
+        "owns": "nothing you built",
+        "swap": "Never fork them"
+      }
+    ],
+    "operations": {
+      "backup": "Nightly encrypted tar off the box, thirty kept.",
+      "restore": "restore.sh into a clean stack; unlock with a client.",
+      "monitoring": "Uptime on the domain; a monthly reminder to run update.sh.",
+      "incident": "Suspected compromise: rebuild the VPS from compose, restore the last known-good backup, rotate every credential in the vault starting with email."
+    },
+    "releaseGate": [
+      "Restore drill performed and dated",
+      "Port scan shows only 80 and 443",
+      "SIGNUPS_ALLOWED=false confirmed",
+      "update.sh run once"
+    ]
+  },
+  "notIncluded": [
+    "Emergency access, organizations and family sharing.",
+    "Pretending you have a security team."
+  ],
+  "after": [
+    "A second admin device with hardware-key 2FA on your account",
+    "Fail2ban in front of the login endpoint"
+  ]
+}

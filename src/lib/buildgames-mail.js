@@ -11,7 +11,7 @@
       and 3 per day per address — regardless of how many cleared payments an
       attacker burns, the address sees at most 3 mails a day, ever.
 
-   All Build Games sponsor-facing mail goes through here. alertRob and the
+   All Build Games sponsor-facing mail goes through here. alertAdmin and the
    opt-in LIST path (waitlist + Resend, its own unsubscribe) are separate. */
 import { rateLimit } from './db.js';
 import { brandShell, esc, recPs, sendMail, unmailable } from './mail.js';
@@ -43,10 +43,10 @@ async function suppressed(email) {
 export function bgReceiptHtml({ capturedCents, ref }) {
   return brandShell(
     `<p>Payment received: <b>${usd(capturedCents)}</b> for a sponsored placement on the`
-    + ` canivibecodeit.com board.</p>`
+    + ` vibecodeit.com board.</p>`
     + `<p>Your placement is live and ranks by cumulative sponsorship. You keep your spot`
     + ` until another sponsor's total passes yours.</p>`
-    + `<p><a href="https://canivibecodeit.com/thebuildgames">see the board</a></p>`
+    + `<p><a href="https://vibecodeit.com/thebuildgames">see the board</a></p>`
     + `<p style="color:#6e6e67; font-size:12px;">Reference: ${esc(String(ref))}. Stripe also`
     + ` emails an invoice for your records. Questions? Reply to this email.</p>`
     + recPs('email_sponsor')
@@ -57,7 +57,7 @@ export function sendBgReceipt({ to, capturedCents, ref }) {
   if (!to) return;
   sendMail({
     to,
-    subject: `receipt · ${usd(capturedCents)} sponsored placement — canivibecodeit.com`,
+    subject: `receipt · ${usd(capturedCents)} sponsored placement — vibecodeit.com`,
     html: bgReceiptHtml({ capturedCents, ref }),
   }).catch((err) => console.error(`bg receipt mail failed: ${err.message}`));
 }

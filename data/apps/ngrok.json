@@ -1,0 +1,65 @@
+{
+  "slug": "ngrok",
+  "name": "ngrok",
+  "domain": "ngrok.com",
+  "category": "dev-tools",
+  "subcategory": "tunnels to localhost",
+  "tagline": "Public URL for a local port, with auth and inspection",
+  "priceMonthly": 10,
+  "pricing": {
+    "plan": "Hobbyist",
+    "basis": "monthly flat with included credit",
+    "unit": "flat",
+    "native": "10 USD",
+    "source": "https://ngrok.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Free: 3 endpoints, 1 GB, 20k requests, ngrok domains only. Hobbyist $10 with 5 GB and 100k requests, still ngrok domains. Pay-as-you-go $20 base plus usage for custom domains and unlimited endpoints.",
+    "freeTier": "The free plan gives 3 online endpoints, 1 GB of transfer and 20k HTTP requests a month on ngrok-branded domains."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "A tunnel is an SSH reverse forward or a WireGuard peer plus a reverse proxy on a $5 VPS; that is a sitting. What you do not get is the global edge, the request inspector, and OAuth in front of the tunnel in one flag. cloudflared does most of it free.",
+  "coreLoopDIY": "A VPS with Caddy and a reverse SSH tunnel (or frp) exposing a local port on a subdomain you own, with basic auth and a request log.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a $5 VPS with a public IP",
+    "a domain with a wildcard record"
+  ],
+  "whatYouLose": [
+    "the request inspector and replay",
+    "OAuth and IP policies in front of the tunnel with one flag",
+    "the global edge and its latency",
+    "TCP and TLS tunnels without setup"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "the edge and the inspector",
+  "whyPeopleStillPay": "Because ngrok http 3000 is one command and the inspector shows every webhook body. Ten dollars for zero setup is a fair trade when a demo is in five minutes.",
+  "priorArt": [
+    {
+      "name": "frp",
+      "url": "https://github.com/fatedier/frp",
+      "desc": "fast reverse proxy for exposing local servers"
+    },
+    {
+      "name": "cloudflared",
+      "url": "https://github.com/cloudflare/cloudflared",
+      "desc": "Cloudflare Tunnel client, free tier covers most hobby use"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "tailscale",
+    "webhook-site",
+    "fly-io"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Two honest shortcuts: cloudflared for free, or a VPS you already have. The prompt is the VPS route.",
+  "prompt": "Build me a tunnel to localhost like ngrok, on a VPS I already have. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase. Two shortcuts first: cloudflared is free and covers most hobby use; Tailscale Funnel covers the rest. This is for when you want the plumbing on your own box.\n\n### Stack (fixed, do not substitute)\n\n- A Linux VPS with a public IP, Caddy for TLS, and frp (server on the VPS, client locally). Not a hand-rolled TCP proxy.\n- A domain with a wildcard A record to the VPS.\n\n### Phase 1 · The server\n\nBuild: frps on the VPS bound to localhost ports only, with a strong token in its config, and Caddy in front terminating TLS for *.tunnel.yourdomain with automatic certificates.\nDone when: the VPS exposes only 80, 443 and SSH from outside, and a certificate issues for a test subdomain.\nDo not build yet: the client, auth.\n\n### Phase 2 · The client\n\nBuild: a tunnel <port> <name> wrapper around frpc that maps a local port to name.tunnel.yourdomain, prints the URL, and cleans up on exit.\nDone when: a local server on 3000 is reachable at its subdomain over HTTPS, and Ctrl-C removes the route.\n\n### Phase 3 · Protection\n\nBuild: basic auth per tunnel via Caddy, and an IP allowlist flag, so a tunnel is never public by accident. Default to protected.\nDone when: an unauthenticated request to a protected tunnel gets 401 and the allowlist blocks a foreign IP.\n\n### Phase 4 · Inspection\n\nBuild: a local request log · Caddy access logs shipped to the client and pretty-printed with method, path, status and latency, plus a replay command that re-sends the last request body to localhost.\nDone when: a webhook hitting the tunnel appears in the local log within a second and replays correctly.\n\n### Phase 5 · Service and README\n\nBuild: systemd units for frps and Caddy, a config template, and the README.\nDone when: the VPS reboots and tunnels resume without a manual step.\n\n### Out of scope (and why)\n\n- The global edge, OAuth-in-front with one flag, TCP and TLS tunnels. That is what ten dollars buys.\n\n### README must contain\n\n- The default-protected rule and how to open a tunnel deliberately.\n- The cloudflared alternative, stated as the free path.",
+  "promptCurated": true
+}

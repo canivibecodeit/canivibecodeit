@@ -1,0 +1,59 @@
+{
+  "slug": "urlbox",
+  "name": "Urlbox",
+  "domain": "urlbox.com",
+  "category": "screenshots",
+  "subcategory": "screenshot API",
+  "tagline": "Render any URL to an image or PDF via an API",
+  "priceMonthly": 19,
+  "pricing": {
+    "plan": "Lo-Fi",
+    "basis": "monthly flat",
+    "unit": "usage",
+    "native": "19 USD",
+    "source": "https://urlbox.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "7-day trial. Lo-Fi $19/month for 2,000 renders at 30 requests a minute. Hi-Fi $49 for 5,000, Ultra $99 for 15,000, Business $498 base plus $3 per 1,000."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "Playwright renders any page to a PNG or PDF in one call. A queue and a cache around it is a sitting. The hard parts the service sells are blocking cookie banners and ads reliably, scale, and not babysitting a browser fleet.",
+  "coreLoopDIY": "A Node service that drives Playwright with a page pool, renders URL to PNG or PDF with viewport and full-page options, caches by hash, and signs requests.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a VPS with 2 GB of RAM for Chromium",
+    "Node 22"
+  ],
+  "whatYouLose": [
+    "reliable cookie-banner and ad blocking across the web",
+    "scale and concurrency without managing browsers",
+    "the CDN and retina rendering polish",
+    "the SLA"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "running browsers at scale is unglamorous work",
+  "whyPeopleStillPay": "A headless browser fleet is a pet that bites at 3am. Paying to never own one is rational above a few thousand renders.",
+  "priorArt": [
+    {
+      "name": "Playwright",
+      "url": "https://github.com/microsoft/playwright",
+      "desc": "browser automation, renders pages to images and PDFs"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "shots",
+    "shotomatic",
+    "bannerbear"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The screenshot API is Playwright with a queue. Say so and build the queue well.",
+  "prompt": "Build me a screenshot API like Urlbox. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http, Playwright with Chromium, sharp for post-processing. One process with a small browser page pool. Disk cache.\n\n### Phase 1 · Render one URL\n\nBuild: a render(url, options) function using one persistent browser and a fresh context per render: viewport, full page, device scale factor, delay, PNG or JPEG or PDF. Hard timeout, and the context always closed even on failure.\nDone when: a public page renders to a crisp PNG, a full-page render captures below the fold, a PDF opens correctly, and a page that never loads fails at the timeout without leaking a context.\nDo not build yet: HTTP, cache.\n\n### Phase 2 · Safety\n\nBuild: refuse private and internal addresses (RFC 1918, localhost, link-local, .internal), resolve DNS before connecting and re-check, block file: and data: schemes. This is the vulnerability every screenshot service has shipped once.\nDone when: http://127.0.0.1, http://169.254.169.254 and a hostname resolving to a private IP are all refused before any request leaves.\n\n### Phase 3 · The endpoint and cache\n\nBuild: GET /render?url=&width=&full=&format= with HMAC-signed requests, a cache keyed by the option hash with a TTL, and a concurrency limit with a queue so ten requests share the pool rather than spawning ten browsers.\nDone when: a tampered signature is refused, a repeat request is served from cache, and 20 concurrent requests complete without the process exceeding its memory cap.\n\n### Phase 4 · Cleaner pages\n\nBuild: options to hide selectors, inject CSS, block ad and tracker hosts from a list, dismiss common cookie banners by selector, and wait for a selector before capture.\nDone when: a news page renders without its cookie banner and a hidden selector is absent.\n\n### Phase 5 · Operate\n\nBuild: cache eviction, a browser restart on a leak threshold, /healthz, a systemd unit with a memory limit, and the README.\nDone when: the service runs 1,000 renders without memory growth and recovers from a browser crash.\n\n### Out of scope (and why)\n\n- Web-scale reliability against every cookie banner and anti-bot wall. That is the fee.\n\n### README must contain\n\n- The private-address rule and why it exists.\n- Memory sizing for Chromium.",
+  "promptCurated": true
+}

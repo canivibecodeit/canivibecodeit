@@ -1,0 +1,419 @@
+{
+  "slug": "qr",
+  "version": 1,
+  "summary": "A QR code generator you host: live preview, colours, dot styles and a centre logo, PNG and SVG export, plus dynamic codes on your own domain that redirect through /r/:slug so a printed code can be repointed later, with per-code scan counts. The domain is the one thing you must keep forever.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Rendering",
+      "choice": "qr-code-styling 1.5.x, vendored",
+      "why": "handles dots, corners and logos; pinned and served by you, not a CDN"
+    },
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "a redirect is one lookup and a 302"
+    },
+    {
+      "part": "Database",
+      "choice": "SQLite",
+      "why": "codes and scans in one file"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS behind Caddy on a domain you will keep",
+      "why": "a printed code outlives the tool that made it"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "phone",
+      "kind": "tool",
+      "name": "A phone with a camera",
+      "why": "Every check in Phases 1 to 3 is scanning the code with a real camera. Emulators do not count.",
+      "get": "Any modern phone; the stock camera app scans QR codes.",
+      "cost": "free"
+    },
+    {
+      "id": "logo",
+      "kind": "asset",
+      "name": "A square logo file (optional)",
+      "why": "Phase 3 tests the centre-logo feature; a real logo shows whether it still scans.",
+      "get": "Your logo as PNG or SVG, at least 256x256, ideally with transparent background.",
+      "cost": "free",
+      "optional": true
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain you will keep for years",
+      "why": "Dynamic codes redirect through your domain. If the domain lapses, every printed code becomes dead paper. Do not use a domain you might drop.",
+      "get": "Register a short one at Porkbun or Cloudflare Registrar and turn on auto-renew. A subdomain of a domain you already keep is fine.",
+      "cost": "roughly $10 a year",
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port; Caddy proxies to it."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/qr.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file for codes and scans."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://go.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base of the redirect domain. Baked into every dynamic code."
+    },
+    {
+      "name": "FALLBACK_URL",
+      "example": "https://yourdomain.com/this-code-is-inactive",
+      "required": true,
+      "secret": false,
+      "where": "Where a deactivated or unknown code lands. A dead printed code should explain itself."
+    },
+    {
+      "name": "IP_SALT",
+      "example": "hex-from-openssl-rand",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32, once. For hashing scanner IPs."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Static generator",
+      "goal": "Type text, see a code, scan it.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and vendor qr-code-styling",
+          "detail": "Install the pinned version and copy its browser bundle into public/vendor so nothing loads from a CDN at runtime.",
+          "commands": [
+            "mkdir qr && cd qr && git init && npm init -y && npm pkg set type=module",
+            "npm install qr-code-styling@1.5.0",
+            "mkdir -p public/vendor data && cp node_modules/qr-code-styling/lib/qr-code-styling.js public/vendor/"
+          ],
+          "files": [
+            "public/index.html",
+            "public/app.js"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Build the page: a text field and a live preview",
+          "detail": "new QRCodeStyling({ width: 300, height: 300, type: 'canvas', data }) then .append(container). Re-render on input with a 150 ms debounce."
+        }
+      ],
+      "check": [
+        "Typing a URL produces a code a phone camera resolves to exactly that URL",
+        "Clearing the field leaves no broken canvas behind"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Customization",
+      "goal": "Colours and styles that update live, with a warning when the result would not scan.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Add colour, dot style, corner style and margin controls",
+          "detail": "dotsOptions.color and type (square, rounded, classy), cornersSquareOptions, backgroundOptions.color, margin. Every control re-renders immediately; no Apply button."
+        },
+        {
+          "id": "p2s2",
+          "do": "Warn on low contrast",
+          "detail": "Compute the contrast ratio between foreground and background; below roughly 3:1 show a warning while still rendering. A beautiful unscannable code is the failure users ship."
+        }
+      ],
+      "check": [
+        "Every control visibly changes the preview",
+        "A low-contrast pair shows the warning and the code still renders",
+        "A rounded-dots code still scans"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Centre logo",
+      "goal": "A logo in the middle that does not break scanning.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Wire an image upload to image and imageOptions",
+          "detail": "imageSize around 0.3, margin, hideBackgroundDots true. Read the file locally with FileReader; nothing is uploaded."
+        },
+        {
+          "id": "p3s2",
+          "do": "Raise error correction to H whenever a logo is present",
+          "detail": "qrOptions.errorCorrectionLevel = 'H' with a logo, back to M without. Cap the logo at roughly a quarter of the code."
+        }
+      ],
+      "check": [
+        "A code with a logo at maximum size scans from 30 cm",
+        "Removing the logo restores the previous error-correction level"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Export",
+      "goal": "PNG and SVG that reopen correctly, and copy to clipboard that works in Safari too.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Add download buttons with a size selector",
+          "detail": "download({ name, extension: 'png' | 'svg' }) at 512, 1024 or 2048 by re-instantiating at that size."
+        },
+        {
+          "id": "p4s2",
+          "do": "Add copy to clipboard",
+          "detail": "Always pass a Promise resolving to a Blob into ClipboardItem: Safari requires the promise form and Chromium accepts it, so one code path works everywhere. Call navigator.clipboard.write inside the click handler or the user gesture is lost."
+        }
+      ],
+      "check": [
+        "PNG and SVG both download and reopen correctly",
+        "The 2048px export is sharp",
+        "Copy pastes an image in both Safari and a Chromium browser"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Dynamic codes",
+      "goal": "Codes that point at /r/:slug so the target can change after printing.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Create the codes table and the server",
+          "detail": "codes (id, slug unique, target_url, label, created_at, updated_at, active). Slugs 6+ characters from an alphabet without 0/O/1/l/I, CSPRNG-generated, or custom.",
+          "files": [
+            "server.mjs"
+          ]
+        },
+        {
+          "id": "p5s2",
+          "do": "Implement GET /r/:slug",
+          "detail": "302 to target_url. Unknown or inactive slugs redirect to FALLBACK_URL rather than 404ing."
+        },
+        {
+          "id": "p5s3",
+          "do": "Build /admin behind basic auth with CRUD",
+          "detail": "Editing a target must never change the slug. Deactivating keeps the row. Each row shows its code image and a download button."
+        }
+      ],
+      "check": [
+        "A printed code for /r/:slug scans, then after editing the target scans to the new destination with no regeneration",
+        "A deactivated code lands on the fallback page",
+        "Creating a slug named admin or r is refused"
+      ],
+      "traps": [
+        "A slug is permanent. Rewriting one invalidates every printed code that uses it, which is the one unrecoverable mistake this tool can make."
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Scan analytics",
+      "goal": "Counts you can explain, written after the redirect.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Log scans after issuing the redirect",
+          "detail": "scans (id, code_id, scanned_at, referer, user_agent_class, ip_hash). Never before the 302."
+        },
+        {
+          "id": "p6s2",
+          "do": "Bucket bots and show totals plus a 30-day sparkline per code",
+          "detail": "Link scanners and chat previewers inflate counts otherwise."
+        }
+      ],
+      "check": [
+        "A scan increments the count",
+        "A Slack link preview is bucketed as bot and excluded",
+        "The redirect still works with the database stopped"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Deploy",
+      "goal": "Live on the domain you will keep, backed up, documented.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Add /healthz, systemd, Caddy and a nightly backup",
+          "files": [
+            "deploy/qr.service",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Turn on domain auto-renew and write the README",
+          "detail": "README: the domain-is-forever warning stated once plainly, which error-correction level is used and why it changes with a logo, and when to use static instead of dynamic.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A reader goes from clone to a working dynamic code on their own domain using only the README",
+        "Auto-renew is confirmed on at the registrar"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the redirect is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p8s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p8s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p8s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A QR service you could run for a small business: static codes for free, dynamic codes on a domain with auto-renew and backups, and scan counts that separate people from bots.",
+    "architecture": [
+      {
+        "module": "Generator",
+        "owns": "the browser page and vendored library",
+        "swap": "Any renderer producing the same PNG/SVG; the server does not know about it"
+      },
+      {
+        "module": "Redirector",
+        "owns": "/r/:slug and the codes table",
+        "swap": "A serverless function reading the same table"
+      },
+      {
+        "module": "Analytics",
+        "owns": "scans and bucketing",
+        "swap": "Drop or replace without touching redirects"
+      },
+      {
+        "module": "Admin",
+        "owns": "CRUD and code images",
+        "swap": "Any UI; slugs are the contract"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly. The codes table is the asset: without it every printed code is dead.",
+      "restore": "Copy back and start; verify one known slug redirects correctly.",
+      "monitoring": "Uptime on /healthz and on one known /r/ slug from an external checker, since a dead redirect is invisible from inside.",
+      "incident": "If the domain expires, renew immediately: registrars hold a grace period. If the database is lost without backup, printed codes cannot be recovered; this is why backups are not optional."
+    },
+    "releaseGate": [
+      "Domain auto-renew on, with a calendar reminder a month before expiry",
+      "One restore drill performed and dated",
+      "External check on a live /r/ slug passing",
+      "README warns about domain permanence"
+    ]
+  },
+  "notIncluded": [
+    "Hosted redirects on someone else's short domain. Yours must be a domain you will keep.",
+    "Their scan-analytics product and bulk generation UI."
+  ],
+  "after": [
+    "Bulk creation from a CSV with a ZIP of PNGs",
+    "Per-code UTM parameters appended on redirect"
+  ]
+}

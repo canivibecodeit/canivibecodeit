@@ -126,7 +126,7 @@ export const biddingOpen = () => ['1', 'true'].includes(process.env.BUILDGAMES_B
    has already cleared. Raising ENTRY isn't just pricing: everything below
    ~$1000 is also the report-bomb (H5) and small-payment (M4/chargeback)
    surface, so a high entry floor deletes those classes outright. Launch
-   defaults: $500 entry / $250 top-up / $15k per payment (Rob may still move
+   defaults: $500 entry / $250 top-up / $15k per payment (Faizan may still move
    entry to $1000 — that's the env, not code). */
 const envCents = (name, fallback) => {
   const v = Math.round(Number(process.env[name]));

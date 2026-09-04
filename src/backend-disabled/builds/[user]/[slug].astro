@@ -1,0 +1,591 @@
+---
+// /builds/<handle>/<slug>: one build, told the way the maker told it — the
+// canonical URL, GitHub-style owner/thing. The "how many goes?" answer
+// decides the hero: near one-shot the prompt is the content; weeks in,
+// "what actually got it done" is; never-got-there leads with where it
+// broke. Nothing here is checked beyond the links loading, and the page
+// says so. Flag-gated like the rest of the vertical. Pending builds render
+// for their owner only (with a note), so the post-submit redirect works.
+import Base from '../../../layouts/Base.astro';
+import CopyGroup from '../../../components/CopyGroup.astro';
+import MakerIcon from '../../../components/MakerIcon.astro';
+import VerdictBadge from '../../../components/VerdictBadge.astro';
+import { buildsLive } from '../../../lib/flags.js';
+import { buildByUserSlug, buildUserNames, liveBuilds, userByHandle } from '../../../lib/db.js';
+import { getApp, CATEGORIES } from '../../../lib/apps.js';
+import {
+  builderName,
+  chatFactLine,
+  goesLabel,
+  promptRequired,
+  shortDate,
+} from '../../../lib/builds.js';
+import { generateBuildOg } from '../../../lib/build-og.js';
+
+if (!buildsLive()) return new Response(null, { status: 404 });
+
+const params = Astro.params;
+if (!/^[a-z0-9][a-z0-9_-]{2,19}$/i.test(params.user ?? '')) {
+  return new Response(null, { status: 404 });
+}
+const maker = await userByHandle(params.user);
+if (!maker) return new Response(null, { status: 404 });
+const build = await buildByUserSlug(maker.id, params.slug ?? '');
+const user = Astro.locals.user ?? null;
+const ownerPreview = build?.status === 'pending' && user?.id === build.user_id;
+if (!build || (build.status !== 'live' && !ownerPreview)) {
+  return new Response(null, { status: 404 });
+}
+
+const app = build.app_slug ? getApp(build.app_slug) : null;
+const names = await buildUserNames([build.user_id]);
+const builder = builderName(names, build);
+
+const title = `${build.name}, built by ${builder}`;
+
+// Builder stat for the card, computed from the (small) live set.
+const mine = (await liveBuilds()).filter((b) => b.user_id === build.user_id);
+
+let media = [];
+try {
+  media = JSON.parse(build.media || '[]');
+} catch {}
+
+// The main column leads with whatever the goes answer makes the content:
+// the prompt (one/few), the story (weeks), or where it broke (never).
+const promptIsHero = promptRequired(build.goes) && build.prompt;
+const chatLine = chatFactLine(build);
+
+// Self-heal: live builds approved before share cards existed grow one on
+// first view (fire-and-forget; this render still uses the default card).
+if (build.status === 'live' && !build.og_image) {
+  generateBuildOg(build.id).catch((err) => console.error(`build og ${build.id}: ${err.message}`));
+}
+---
+
+<Base
+  {title}
+  description={`${build.one_liner} · ${goesLabel(build)} · built with ${build.tool}.`}
+  ogImage={build.og_image ?? '/og/home.png'}
+  noindex={ownerPreview}
+>
+  <main class="wrap bd-page" data-build={build.id}>
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/builds">builds</a> / {app ? <a href={`/${app.slug}`}>{app.slug}</a> : <span class="here">{build.name}</span>}
+    </nav>
+
+    {
+      ownerPreview && (
+        <p class="bd-pendingnote">
+          in the queue · we look at every build before it lists, usually quick. only you can see
+          this page until then.
+        </p>
+      )
+    }
+
+    <div class="bd-head">
+      <div class="bd-h1">
+        {app && <img class="bd-tile lg" src={`/icons/${app.slug}.png`} alt="" width="44" height="44" />}
+        <h1>{build.name}</h1>
+      </div>
+      <span class="bd-goes big">{goesLabel(build)} · their word</span>
+    </div>
+
+    <p class="bd-oneliner">{build.one_liner}</p>
+    <p class="bd-headmeta">
+      built with {build.tool}{build.model && ` · ${build.model}`} · by {builder} · {shortDate(build.created_at)}
+      {build.by_owner === 1 && <span class="bd-owner"> · posted by the repo owner</span>}
+    </p>
+
+    {
+      media.length === 1 && (
+        <figure class="bd-hero">
+          <img src={media[0]} alt={`screenshot of ${build.name}`} loading="lazy" />
+        </figure>
+      )
+    }
+    {
+      media.length > 1 && (
+        <div class="bd-carwrap" data-bd-carwrap>
+          <button class="bd-car-arrow prev" data-car-prev type="button" hidden aria-label="previous screenshot">‹</button>
+          <div class="bd-carousel" tabindex="0" aria-label={`${media.length} screenshots, scrollable`}>
+            {media.map((m, i) => (
+              <img src={m} alt={i === 0 ? `screenshot of ${build.name}` : ''} loading="lazy" draggable="false" />
+            ))}
+          </div>
+          <button class="bd-car-arrow next" data-car-next type="button" hidden aria-label="next screenshot">›</button>
+        </div>
+      )
+    }
+
+    <div class="bd-actions">
+      {
+        build.demo_url && (
+          <a class="btn primary" href={build.demo_url} target="_blank" rel="ugc nofollow noopener">
+            open live demo ↗
+          </a>
+        )
+      }
+      {
+        build.repo_url && (
+          <a class="btn ghost" href={build.repo_url} target="_blank" rel="ugc nofollow noopener">
+            repo ↗
+          </a>
+        )
+      }
+      <span class="bd-actions-note">demos open in a new tab · never embedded here</span>
+    </div>
+
+    <div class="bd-grid">
+      <div class="bd-maincol">
+        {
+          promptIsHero && (
+            <section class="prompt-box bd-prompt">
+              <div class="prompt-head">
+                <span class="microlabel">the prompt · exactly as sent</span>
+                <CopyGroup id={build.id} />
+              </div>
+              <div class="prompt-body">
+                <pre id="prompt-text">{build.prompt}</pre>
+              </div>
+              <p class="prompt-hint">$ open in your agent (prompt prefilled, you press enter) or copy it raw · free forever</p>
+            </section>
+          )
+        }
+
+        {
+          build.story && (
+            <section class="prompt-box bd-prompt">
+              <div class="prompt-head">
+                <span class="microlabel">what actually got it done</span>
+                <span class="bd-exact">weeks of goes, in their words</span>
+              </div>
+              <div class="prompt-body">
+                <pre class="bd-storytext">{build.story}</pre>
+              </div>
+            </section>
+          )
+        }
+
+        {
+          !promptIsHero && build.prompt && (
+            <section class="prompt-box bd-prompt bd-prompt-demoted">
+              <div class="prompt-head">
+                <span class="microlabel">{build.goes === 'never' ? 'the prompt they tried' : 'what they started with'}</span>
+                <CopyGroup id={build.id} />
+              </div>
+              <div class="prompt-body">
+                <pre id="prompt-text">{build.prompt}</pre>
+              </div>
+              <p class="prompt-hint">for the record, not the recipe · open in your agent or copy it raw</p>
+            </section>
+          )
+        }
+
+        <div class="bd-broke">
+          <span class="bd-label">where it broke</span>
+          <p>{build.where_broke}</p>
+        </div>
+      </div>
+
+      <div class="bd-rail">
+        <div class="bd-card">
+          <div class="bd-card-head">
+            <span class="bd-label">the facts</span>
+          </div>
+          <div class="bd-facts-rows">
+            <p class="bd-fact">
+              <span class="k">goes</span>
+              <span class="v">{goesLabel(build)} · self-declared</span>
+            </p>
+            <p class="bd-fact">
+              <span class="k">built with</span>
+              <span class="v">{build.tool}{build.model && ` · ${build.model}`}</span>
+            </p>
+            <p class="bd-fact">
+              <span class="k">listed</span>
+              <span class="v">{shortDate(build.created_at)}</span>
+            </p>
+            <p class="bd-fact">
+              <span class="k">chat</span>
+              {
+                build.chat_url ? (
+                  <span class="v">
+                    <a href={build.chat_url} target="_blank" rel="ugc nofollow noopener">
+                      {new URL(build.chat_url).hostname} ↗
+                    </a>
+                  </span>
+                ) : (
+                  <span class="v green">{chatLine}</span>
+                )
+              }
+            </p>
+            {
+              build.affiliation && (
+                <p class="bd-fact">
+                  <span class="k">affiliation</span>
+                  <span class="v">{build.affiliation}</span>
+                </p>
+              )
+            }
+          </div>
+          <p class="bd-fine">
+            this is what the maker told us. we check that the link loads. that's all.
+          </p>
+        </div>
+
+        <div class="bd-card">
+          <span class="bd-label">maker</span>
+          <a class="bd-builder" href={`/builds/${maker.handle}`}>
+            <MakerIcon handle={maker.handle} size={36} />
+            <span class="bd-builder-txt">
+              <b>{builder}</b>
+              <span>{mine.length || 1} build{(mine.length || 1) === 1 ? '' : 's'}{build.by_owner === 1 && ' · posted by the repo owner'}</span>
+            </span>
+            <span class="bd-builder-go">all their builds →</span>
+          </a>
+        </div>
+
+        {
+          app && (
+            <div class="bd-card">
+              <span class="bd-label">takes on</span>
+              <a class="bd-replaces" href={`/${app.slug}`}>
+                <img class="bd-tile" src={`/icons/${app.slug}.png`} alt="" width="22" height="22" style="width: 32px; height: 32px; border-radius: 6px;" />
+                <b>{app.name.split(' / ')[0]}</b>
+                <span>
+                  {app.priceMonthly != null ? `$${app.priceMonthly}/mo` : 'varies'}
+                  {CATEGORIES[app.category] && ` · ${CATEGORIES[app.category].label.toLowerCase()}`}
+                </span>
+                <span class="bd-replaces-gap"></span>
+                <VerdictBadge verdict={app.verdict} />
+              </a>
+            </div>
+          )
+        }
+
+        <p class="bd-report">
+          <a href={`mailto:hello@vibecodeit.com?subject=${encodeURIComponent(`report a build: ${build.id}`)}`}>
+            something off about this build? tell us →
+          </a>
+        </p>
+      </div>
+    </div>
+  </main>
+</Base>
+
+<script is:inline src={`/js/builds.js?v=${__BUILD_ID__}`} defer></script>
+
+<style>
+  .bd-page {
+    padding-bottom: 60px;
+  }
+
+  .bd-pendingnote {
+    margin-top: 18px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .bd-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px 24px;
+    flex-wrap: wrap;
+    padding-top: 20px;
+  }
+
+  .bd-h1 {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .bd-h1 h1 {
+    font-size: clamp(26px, 4.5vw, 44px);
+  }
+
+  .bd-oneliner {
+    padding-top: 12px;
+    font-size: 16px;
+    line-height: 1.5;
+    max-width: 70ch;
+  }
+
+  .bd-headmeta {
+    padding-top: 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .bd-owner {
+    color: var(--primary);
+  }
+
+  .bd-hero {
+    margin-top: 26px;
+  }
+
+  .bd-hero img {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+  }
+
+  .bd-hero figcaption {
+    padding-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Multi-shot: one horizontal scroll-snap strip. Each slide takes most of
+     the column so the next screenshot peeks in from the right; JS adds
+     arrows and mouse drag on top, touch scrolls natively either way. */
+  .bd-carwrap {
+    position: relative;
+    margin-top: 26px;
+  }
+
+  .bd-car-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 22px;
+    line-height: 1;
+    padding: 0 0 3px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+
+  .bd-car-arrow:hover {
+    border-color: var(--muted);
+  }
+
+  .bd-car-arrow.prev {
+    left: 12px;
+  }
+
+  .bd-car-arrow.next {
+    right: 12px;
+  }
+
+  .bd-car-arrow[hidden] {
+    display: none;
+  }
+
+  .bd-carousel {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    cursor: grab;
+  }
+
+  .bd-carousel.dragging {
+    scroll-snap-type: none;
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .bd-carousel::-webkit-scrollbar {
+    height: 9px;
+  }
+
+  .bd-carousel::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+  }
+
+  .bd-carousel img {
+    width: 86%;
+    max-width: 780px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    object-fit: contain;
+  }
+
+  .bd-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-top: 24px;
+  }
+
+  .bd-actions-note {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .bd-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 30px;
+    align-items: start;
+    padding-top: 28px;
+  }
+
+  .bd-maincol {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+
+  .bd-prompt {
+    margin-top: 0;
+  }
+
+  .bd-prompt-demoted {
+    opacity: 0.85;
+  }
+
+  .bd-exact {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .bd-storytext {
+    white-space: pre-wrap;
+  }
+
+  .bd-broke {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bd-broke p {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .bd-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .bd-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bd-builder {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .bd-builder :global(.maker-icon) {
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .bd-builder-go {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  a.bd-builder:hover .bd-builder-go,
+  a.bd-builder:hover b {
+    color: var(--primary);
+  }
+
+  .bd-builder-txt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+  }
+
+  .bd-builder-txt b {
+    font-weight: 700;
+  }
+
+  .bd-builder-txt span:last-child {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .bd-replaces {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  .bd-replaces:hover b {
+    color: var(--primary);
+  }
+
+  .bd-replaces span {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bd-replaces-gap {
+    flex: 1;
+  }
+
+  .bd-report {
+    font-size: 12px;
+  }
+
+  .bd-report a {
+    color: var(--muted);
+  }
+
+  .bd-report a:hover {
+    color: var(--fg);
+  }
+
+  @media (max-width: 900px) {
+    .bd-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .bd-actions-note {
+      margin-left: 0;
+      flex-basis: 100%;
+    }
+  }
+</style>
