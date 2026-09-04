@@ -1,0 +1,51 @@
+{
+  "slug": "get-mcp",
+  "name": "Get MCP",
+  "domain": "getmcp.com",
+  "category": "dev-tools",
+  "subcategory": "MCP server discovery and setup",
+  "tagline": "A catalog and setup layer for Model Context Protocol servers, so agents can be wired to tools without hand-editing JSON config.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getmcp.com/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of this is genuinely small: MCP servers are mostly npx or uvx commands plus a few env vars, and the client config files are plain JSON in known locations. An agent can build you a local manager that reads a catalog, installs a server, does the initialize handshake to confirm it responds, and patches your Claude Desktop or Cursor config in one sitting. What you cannot one-shot is the catalog itself: knowing which of the thousands of MCP servers are maintained, safe, and not quietly exfiltrating your tokens is curation work, not code. If the product also hosts remote servers with managed OAuth, that is infrastructure you are not replicating on a laptop. So: build the wiring, keep borrowing someone else's judgment about what to wire.",
+  "coreLoopDIY": "A local CLI plus small web UI that installs MCP servers from a catalog file, verifies them with a real initialize handshake, and writes them into your MCP client config with env vars kept in .env.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and pnpm, plus uv if you want Python servers",
+    "An MCP client installed locally (Claude Desktop, Cursor, or similar) whose config file you are willing to let a script edit",
+    "API keys for whatever servers you install, kept in .env"
+  ],
+  "whatYouLose": [
+    "A curated, maintained list of servers that actually work, versus a JSON file you have to keep updating yourself",
+    "Any security review of third-party servers before you point them at your filesystem and tokens",
+    "Hosted remote servers and managed OAuth, if the paid product offers that",
+    "Cross-machine sync of your server setup",
+    "Someone else noticing when an upstream server changes its package name or breaks its schema"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "integrations"
+  ],
+  "moatNotes": "The defensible asset is the catalog and its freshness, not the installer. Directories in a fast-moving ecosystem live or die on whether the entries still work this week.",
+  "whyPeopleStillPay": "Because MCP config is a small annoyance and server discovery is a large one. Nobody pays to avoid writing forty lines of JSON; they pay because there are thousands of servers of wildly varying quality, half the READMEs are stale, and a bad one gets shell-adjacent access to your machine. A directory that has already sorted the working from the abandoned saves an afternoon per integration, and if it also hosts the awkward OAuth ones for you, that is real infrastructure you would otherwise be standing up yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The installer is a one-sitting build; keeping a catalog honest is a subscription to someone else's attention.",
+  "prompt": "Build a local MCP server manager called mcpkit. Single repo, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable: TypeScript, Node 20+, pnpm. CLI via commander. Local web UI via a tiny Hono server rendering server-side HTML plus htmx, no React, no build step for the UI. SQLite via better-sqlite3 for local state. Zod for validating everything read from disk.\n\nData model: a catalog.json in the repo root, an array of entries with id, name, description, transport (\"stdio\" or \"http\"), command, args, requiredEnv (array of key names), homepage, tags. Seed it with 8 well-known stdio servers you are confident about (filesystem, git, sqlite, fetch, memory, time, and two others), each with realistic npx or uvx invocations. Mark the seed file clearly as user-maintained.\n\nCore commands:\n- mcpkit list: print catalog entries with install status.\n- mcpkit install <id>: prompt for any requiredEnv values, append them to .env (never to catalog.json, never to git), record the install in SQLite.\n- mcpkit check <id>: actually spawn the server over stdio, send a JSON-RPC initialize request with protocolVersion and clientInfo, wait up to 10s for a valid result, print the server's advertised tools from tools/list. This handshake is the point of the tool, implement it for real, do not stub it.\n- mcpkit apply: write installed servers into a target client config file. Support Claude Desktop and Cursor paths, resolve per-platform, back up the existing file with a timestamp suffix before every write, and merge rather than overwrite unknown keys.\n- mcpkit remove <id>: reverse the above.\n\nWeb UI at localhost:4321: one page listing catalog entries with install, check, and remove buttons, and a panel showing the last handshake result and discovered tools per server. htmx partial swaps only.\n\nIn scope: stdio servers, env var handling, config merge with backups, handshake verification, catalog editing by hand.\nOut of scope, do not build: remote server hosting, OAuth flows, a hosted catalog API, auth, multi-user anything, publishing to npm.\n\nSecrets: all env values live in .env, gitignored. Print a warning before installing any server whose command is not from the seed catalog, saying it will run arbitrary code locally.\n\nDeliver a README with install steps, the exact config file paths per OS, and a short section on how to add your own catalog entry. Include vitest tests for the config merge logic and the initialize handshake against a fake stdio server you write yourself.",
+  "promptCurated": false
+}
