@@ -5,10 +5,11 @@ import { Resvg } from '@resvg/resvg-js';
 import sharp from 'sharp';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { SHOWCASE_MODELS } from '../src/lib/models.js';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(root, 'public/og');
 mkdirSync(outDir, { recursive: true });
 
@@ -290,7 +291,7 @@ if (range) {
   }
   saveCache(cache);
   const { spawnSync } = await import('node:child_process');
-  const self = new URL(import.meta.url).pathname;
+  const self = fileURLToPath(import.meta.url);
   const CHUNK = 100;
   for (let i = 0; i < apps.length; i += CHUNK) {
     const r = spawnSync(process.execPath, [self], {

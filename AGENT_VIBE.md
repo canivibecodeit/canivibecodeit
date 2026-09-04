@@ -686,3 +686,18 @@ restarted.
   served markup rather than clicked.
 - Commit: `feat: build kits with beginner-friendly plans for all 50 phased apps`
   (pushed to `origin/monster`).
+
+### 2026-09-04 — Make repository scripts portable on Windows and start locally
+
+- Fixed six repository scripts that derived the project root from the raw
+  `import.meta.url` pathname, which produced paths such as `D:\\D:\\Development`
+  on Windows. They now use Node's `fileURLToPath` conversion consistently.
+- Covered the validation, build, icon-fetching, OG-generation, and seed-import
+  scripts so the same platform bug does not recur in adjacent workflows.
+- Installed dependencies with the bundled Node.js runtime and explicitly allowed
+  the declared native build steps for `better-sqlite3` and `esbuild`.
+- Verification: 1,123 app files and 50 build kits pass validation; all 37 tests
+  pass; all 1,125 OG images generated; the Astro production server build passed.
+- Runtime check: the built server started at `http://127.0.0.1:8095/`; `/`,
+  `/granola`, and `/granola/build` each returned HTTP 200.
+- Commit: `fix: make repository scripts portable on Windows`.

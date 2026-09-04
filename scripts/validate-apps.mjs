@@ -3,10 +3,11 @@
    src/lib/validate-app.js (shared with the submission pipeline); this script
    adds the file-level check the API caller can't have: slug matches filename. */
 import { readdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { validateApp } from '../src/lib/validate-app.js';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'data/apps');
 
 const files = readdirSync(dir).filter((f) => f.endsWith('.json'));

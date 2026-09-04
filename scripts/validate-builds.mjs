@@ -4,10 +4,11 @@
    checks a single kit cannot make: the slug matches the filename and names an
    app that exists. */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { validateKit } from '../src/lib/build-kit.js';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'data/builds');
 const appsDir = path.join(root, 'data/apps');
 
