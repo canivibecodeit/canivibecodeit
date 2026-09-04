@@ -258,4 +258,10 @@ two of a cluster in the same batch.
 - Not verified: no headless browser is installed in this environment, so the
   visual result was checked structurally rather than rendered and looked at. Worth
   a human glance on a phone width before this is considered done.
-- Commit: `feat: track build progress per module on verdict pages`.
+- Follow-up: rounded the big verdict badge to a pill (`border-radius: 999px`) so
+  its shape matches the save-to-my-stack control beside it. Only the radius
+  changed · the verdict colors stay in `.badge.yes` / `.badge.kinda` / `.badge.no`,
+  untouched.
+- Commit: `feat: track build progress per module on verdict pages` and
+  `style: round the verdict badge to match the save control` (pushed to
+  `origin/monster`).
