@@ -1,0 +1,51 @@
+{
+  "slug": "serpapi",
+  "name": "SerpApi",
+  "domain": "serpapi.com",
+  "category": "dev-tools",
+  "subcategory": "search results API",
+  "tagline": "An API that returns structured JSON for Google, Bing, Maps, Shopping and other search engine result pages.",
+  "priceMonthly": 75,
+  "pricing": {
+    "plan": "Developer",
+    "basis": "monthly, search-quota based",
+    "unit": "usage",
+    "source": "https://serpapi.com/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Writing an HTML parser for a search results page is a two-hour job. Keeping it working is the actual product: Google reshuffles markup constantly, blocks datacenter IPs, throws CAPTCHAs, and geo-varies results, so your scraper dies quietly and returns empty arrays instead of errors. SerpApi is a residential proxy pool, a CAPTCHA-solving pipeline, a parser fleet across dozens of engines, and a legal posture, none of which an agent can conjure in a session. You can absolutely build a local search fetcher, and it will work great for about a week at low volume. The consolation build below is a normalized layer over legitimate search APIs, which is the honest version of this rather than a scraper that pretends to be a browser.",
+  "coreLoopDIY": "A local HTTP service that queries a permitted search API, normalizes results into a stable JSON shape, and caches responses to disk so repeat queries cost nothing.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a search provider that actually allows programmatic access (Brave Search API or Bing-style equivalent)",
+    "Node 20+",
+    "Somewhere to keep the disk cache"
+  ],
+  "whatYouLose": [
+    "Residential proxy rotation and CAPTCHA solving, which is most of what you are paying for",
+    "Parsers for dozens of engines and verticals: Maps, Shopping, News, Images, Scholar, Trends, plus the hundreds of structured fields inside them",
+    "Someone else absorbing the legal risk and the maintenance when a SERP layout changes overnight",
+    "Reliable geo and device targeting: results from a specific city on a specific locale",
+    "Concurrency and success-rate guarantees; your box hitting one endpoint from one IP is not the same product"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The technical moat is boring and expensive: IPs, solvers, and a team that fixes broken parsers before you notice.",
+  "whyPeopleStillPay": "Because scraping search engines is an arms race you did not sign up to fight. Teams pay so that a rank tracker, a lead enrichment job, or an AI agent's retrieval step keeps returning data on a Tuesday morning without anyone waking up to a 429 storm. The per-search price looks silly until you price your own proxy bill, your CAPTCHA credits, and the hours spent re-reading Google's HTML. It is also a liability transfer, which is worth real money to anyone with a legal department.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A parser is a one-shot build; staying unblocked is not. The moat is a residential proxy fleet, a CAPTCHA pipeline, and someone else's name on the scraping lawsuit.",
+  "prompt": "Build a local \"search results API\" service in an empty folder. This is a consolation build for SerpApi: it does NOT scrape Google, it normalizes a permitted search API into a stable JSON shape so calling code does not care which provider is underneath.\n\nStack, no substitutions:\n- Node 20 + TypeScript, Fastify, zod for validation, undici for HTTP.\n- No database. Disk cache under ./cache as JSON files keyed by a hash of (provider, query, params).\n- Vitest for tests.\n\nEndpoints:\n- GET /search?q=...&count=10&country=us&lang=en&freshness=... returns { query, provider, cachedAt, fromCache, results: [{ position, title, url, displayUrl, snippet, siteName }], answer, related }.\n- GET /health returns provider name and cache stats.\n\nRules:\n- Provider layer is an interface with one real implementation: Brave Search API, key from BRAVE_API_KEY in .env. Add a second stub implementation that throws \"not implemented\" so the seam is obvious.\n- Cache TTL from CACHE_TTL_HOURS, default 24. Serve stale on provider error and mark stale: true rather than failing.\n- Global rate limit: max 1 provider request per second, queued, plus a daily cap from DAILY_QUERY_CAP. Return 429 with a clear message when capped.\n- Retry provider calls twice with jittered backoff. Never retry a 4xx other than 429.\n- Log one line per request: query, cache hit or miss, provider latency, result count. No telemetry, no analytics, no accounts.\n- Ship a CLI: npm run q -- \"some query\" prints a readable table.\n\nExplicitly out of scope, do not build: HTML scraping, headless browsers, proxy rotation, CAPTCHA handling, Maps or Shopping or Scholar parsers, ad-block detection, auth, multi-tenancy, a web UI.\n\nDeliver: package.json, tsconfig.json, src/, tests for the cache key and the normalizer, .env.example, and a README with a one-paragraph section titled \"Why this is not SerpApi\" that says plainly that unblocked scraping at scale is infrastructure, not code.",
+  "promptCurated": false
+}
