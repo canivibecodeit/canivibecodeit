@@ -52,6 +52,38 @@ Every module ships with a short Markdown guide explaining what it does, why its 
 
 The v1 backend stack is not yet selected. The current candidates are Node/Express and Go. Do not choose or implement either stack without a later product decision.
 
+## Phased build prompts
+
+Every app's `prompt` is being rewritten from a one-shot paragraph into a phased,
+module-by-module build guide, ten apps per batch. The format spec lives in
+`CONTRIBUTING.md` under "The phased format". Facts that drift (API pricing, model
+names, library APIs, CLI flags) are verified against primary sources before they
+go into a prompt, and the check date belongs in the entry.
+
+Progress: **10 of 1,093 converted.**
+
+### Batch 1 — flagship YES verdicts (2026-09-04)
+
+| App | Category | Phases | Researched fact that changed the prompt |
+| --- | --- | --- | --- |
+| `carrd` | website-builder | 6 | — |
+| `cronitor` | cron | 5 | Healthchecks ping scheme: `/start`, `/fail`, `/<exit code>`, `/log`; 100 kB body cap; returns `OK` |
+| `getwaitlist` | waitlists | 6 | — |
+| `granola` | meeting-notes | 6 | ScreenCaptureKit needs no virtual audio driver; audio-only needs a screen output with a large `minimumFrameInterval` (or Core Audio process taps on 14.2+); `whisper-cli` accepts 16-bit WAV only |
+| `linktree` | link-in-bio | 5 | — |
+| `plausible` | analytics | 7 | Visitor hash is `hash(daily_salt + domain + ip + user_agent)`, and the salt is deleted on rotation |
+| `qr` | qr-codes | 7 | `qr-code-styling` v1.5.x API: `download({name, extension})`, `imageOptions`, corner options |
+| `shots` | screenshots | 6 | Safari requires a `Promise<Blob>` in `ClipboardItem`; Chromium accepts it, so one code path serves both |
+| `testimonial-to` | testimonials | 6 | — |
+| `typefully` | social-media | 6 | X killed the free API tier: new developers get pay-per-use at ~$0.015/post and ~$0.20/post with a link. The old prompt's "free tier is read-only" was wrong |
+
+### Batches still to run
+
+The remaining 1,083 entries keep their one-shot prompts until converted. Priority
+order: the rest of `pagePriority: 5` with a `yes` verdict, then `kinda` verdicts
+(where the phase that states the unclosable gap matters most), then the long tail.
+`no` verdicts render no prompt at all and need no conversion.
+
 ## Task log
 
 ### 2026-09-04 — Create and publish the feature branch
@@ -104,3 +136,34 @@ The v1 backend stack is not yet selected. The current candidates are Node/Expres
 - Verification: `node --check public/js/app.js`, `git diff --check`, `npm run validate` (1,093 app files), `npm test`, and `npm exec -- astro build` passed.
 - Browser QA: saved 1Password locally, confirmed the nav count and both save controls updated, navigated to `/stack`, verified persistence and totals, removed the item, saved an empty-state suggestion, and confirmed the empty state returned after cleanup.
 - Commit: `feat: move my stack to local storage` (pushed to `origin/monster`).
+
+### 2026-09-04 — Rewrite batch 1 prompts as phased build guides
+
+- Replaced the one-shot `prompt` on ten flagship apps with phased build guides of
+  87 to 122 lines each: a fixed stack, a data model defined before Phase 1, five to
+  seven dependency-ordered phases each carrying `Build:`, a falsifiable `Done when:`
+  check and a `Do not build yet:` boundary, then `Out of scope (and why)` and
+  `README must contain`.
+- Apps converted: `carrd`, `cronitor`, `getwaitlist`, `granola`, `linktree`,
+  `plausible`, `qr`, `shots`, `testimonial-to`, `typefully`.
+- Verified drifting external facts against primary sources rather than memory, and
+  corrected one outright error: the `typefully` prompt claimed X's free API tier is
+  read-only, when as of 2026 there is no free tier for new developers at all
+  (pay-per-use, ~$0.015 per post, ~$0.20 per post containing a link). See the batch
+  table above for the rest.
+- Used `###` headings inside prompts so they nest correctly under the `## Original
+  build brief` and `## Starting brief` headings of the generated project pack;
+  confirmed the rendered bundles carry a clean `#` / `##` / `###` hierarchy.
+- Kept the house rule of `·` over em dashes: zero em dashes across all ten.
+- Updated `CONTRIBUTING.md`: dropped the "15–30 lines" cap, which the phased format
+  contradicts, and documented the format, the phase-ordering rules, and the
+  requirement to verify external facts before writing them into a prompt.
+- Added the conversion tracker above and the batch list to `CLAUDE.md`.
+- Verification: `git diff --check`, `npm run validate` (1,093 app files),
+  `npm test` (13 passing), and `npm exec -- astro build` all passed. Confirmed the
+  patch touched only the `prompt` field on each of the ten entries.
+- Runtime check: served the production build on port 8099 (a dev server predating
+  this task held 8095 and was deliberately left running) and confirmed all ten
+  pages return HTTP 200 with the phased prompt present in both the indie and
+  product bundles and in the visible per-file panes.
+- Commit: `feat: rewrite batch 1 prompts as phased build guides` (pushed to `origin/monster`).

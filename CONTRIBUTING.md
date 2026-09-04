@@ -206,9 +206,51 @@ The prompt is the product. It must be:
   empty folder and gets a working thing. No hand-waving.
 - **Opinionated about stack** — pick one; don't offer menus.
 - **Explicit about scope** — say what's included AND what's deliberately out.
-- **15–30 lines.** If it needs more, the verdict probably isn't "yes".
 - **Honest** — no accounts/cloud/telemetry unless the app genuinely needs it; secrets
   go in `.env`; include README/permissions notes where relevant.
+- **Phased**, in the house format below. Agents that are handed a whole product in
+  one paragraph build a plausible-looking shell; agents handed one module at a time
+  with a check to pass build something that works.
+
+### The phased format
+
+Prompts are being migrated to a fixed structure, 80–150 lines, ten apps at a batch.
+`AGENT_VIBE.md` tracks which are converted. Use `###` headings — the prompt is
+embedded under an existing `##` heading in the generated project pack, so `##`
+inside a prompt breaks that document's hierarchy.
+
+```
+Build me <thing> to replace <App>. Build it in phases, in the order below. Do not
+write the whole <thing> in one pass. Finish a phase, run its "Done when" check,
+fix what fails, and only then start the next phase.
+
+### Stack (fixed, do not substitute)
+### Data model (create this before Phase 1)
+### Phase 1 · <name>
+Build: ...
+Done when: <a check the builder can actually run or see>
+Do not build yet: <what belongs to a later phase>
+### Phase 2 · ...
+### Out of scope (and why)
+### README must contain
+```
+
+Rules for the phases themselves:
+
+- **Order by dependency, not by importance.** Identity and storage before the
+  features that need them; the thing most likely to kill the project first, while
+  abandoning it is still cheap.
+- **Every phase ends in a check that can fail.** "Done when: it works" is not a
+  check. "Done when: two pageviews 31 minutes apart are two sessions, both
+  bouncing" is.
+- **Name the trap.** Where a phase has one detail that wastes an afternoon — a WAV
+  format, a Safari clipboard quirk, a weighted character count — say it in the
+  phase, with the reason. That sentence is worth more than the rest of the phase.
+- **Verify external facts before writing them in.** API pricing, tiers, model
+  names, library APIs and CLI flags all drift. A confidently wrong version number
+  sends the builder somewhere the docs contradict.
+- **`Out of scope (and why)`** carries the honesty: not just what is missing, but
+  what the vendor's price is actually buying.
 
 ## House rules
 
