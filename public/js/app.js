@@ -757,8 +757,7 @@
       a.addEventListener('click', () => track('share', { app: a.dataset.share }))
     );
 
-    /* ---------- accounts + my stack ---------- */
-    const authed = document.body.dataset.user === '1';
+    /* ---------- local-only my stack ---------- */
     const jsonPost = (url, method, body) =>
       fetch(url, {
         method,
@@ -766,96 +765,23 @@
         body: JSON.stringify(body),
       });
 
-    /* Signup modal: stays on the page (converts better than navigating away).
-       The [data-signin] links keep href=/signin so no-JS still works. */
-    const modal = $('#signup-modal');
-    let pendingSlug = null;
-    let modalCloseTimer;
-    const openSignup = (slug, copy) => {
-      pendingSlug = slug || null;
-      if (!modal) {
-        window.location.href = '/signin';
-        return;
-      }
-      /* The title is conditional: "Sign in" from the nav, the save pitch only
-         when a save actually triggered it, and triggers may carry their own
-         pitch (data-signin-title / data-signin-sub, e.g. "post a build"). */
-      const title = $('#signup-title');
-      if (title) title.textContent = copy?.title || (pendingSlug ? 'Save it to your stack' : 'Sign in');
-      const sub = $('#signup-sub');
-      if (sub) {
-        sub.dataset.default ??= sub.textContent;
-        sub.textContent = copy?.sub || sub.dataset.default;
-      }
-      /* Hiding the scrollbar shrinks the viewport and shifts the page; pad the
-         body by exactly the scrollbar width so nothing moves. */
-      const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-      if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
-      document.body.style.overflow = 'hidden';
-      clearTimeout(modalCloseTimer);
-      modal.hidden = false;
-      requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add('open')));
-      track('signup_open', { app: pendingSlug || undefined });
-    };
-    const closeSignup = () => {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-      if (!modal || modal.hidden) return;
-      modal.classList.remove('open');
-      clearTimeout(modalCloseTimer);
-      modalCloseTimer = setTimeout(() => {
-        modal.hidden = true;
-      }, 240);
-    };
-    onLeave(closeSignup);
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal || e.target.closest('[data-signup-close]')) closeSignup();
-    });
-    document.addEventListener(
-      'keydown',
-      (e) => {
-        if (e.key === 'Escape' && modal && !modal.hidden) closeSignup();
-      },
-      { signal: page.signal }
-    );
-    $$('[data-signin]').forEach((a) =>
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        openSignup(null, { title: a.dataset.signinTitle, sub: a.dataset.signinSub });
-      })
-    );
-
-    /* The checkbox value rides inside the signed OAuth state; the pending save
-       comes back as a ?stacksave= param on the callback URL. The callback is
-       pathname-only: Better Auth's trustedOrigins regex rejects several legal
-       query characters, and a rejected callback means sign-in dies with a 403.
-       The checkbox is read from the SAME surface as the clicked button; the
-       hidden modal also has one and must never shadow the /signin page's. */
-    const oauthStart = async (btn) => {
-      const provider = btn.dataset.oauth;
-      const box = btn
-        .closest('.signup-card, .signin-card')
-        ?.querySelector('input[type="checkbox"]');
-      let callbackURL = location.pathname === '/signin' ? '/' : location.pathname;
-      if (pendingSlug) callbackURL += `?stacksave=${encodeURIComponent(pendingSlug)}`;
+    const STACK_KEY = 'vibecodeit:stack';
+    const readStack = () => {
       try {
-        const res = await jsonPost('/api/auth/sign-in/social', 'POST', {
-          provider,
-          callbackURL,
-          additionalData: { newsletter: !!box?.checked },
-        });
-        if (!res.ok) throw new Error();
-        const { url } = await res.json();
-        if (!url) throw new Error();
-        track('signup_start', { provider, digest: !!box?.checked });
-        window.location.href = url;
+        const value = JSON.parse(localStorage.getItem(STACK_KEY) || '[]');
+        return Array.isArray(value) ? [...new Set(value.filter((slug) => typeof slug === 'string'))] : [];
       } catch {
-        toast('sign-in failed to start · try again');
+        return [];
       }
     };
-    $$('[data-oauth]').forEach((btn) =>
-      btn.addEventListener('click', () => oauthStart(btn))
-    );
+    const writeStack = (slugs) => {
+      try {
+        localStorage.setItem(STACK_KEY, JSON.stringify([...new Set(slugs)]));
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
     const markIcons = (slug, saved) =>
       $$(`[data-stack-icon][data-slug="${CSS.escape(slug)}"]`).forEach((el) => {
@@ -912,39 +838,60 @@
     );
     onLeave(disarm);
 
-    const toggleStack = async (slug, saved) => {
-      const res = await jsonPost('/api/stack', saved ? 'DELETE' : 'POST', { slug });
-      if (!res.ok) throw new Error();
+    const updateStackPage = () => {
+      const slugs = readStack();
+      const saved = new Set(slugs);
+      $$('[data-stack-count]').forEach((el) => {
+        el.textContent = slugs.length;
+        el.hidden = slugs.length === 0;
+      });
+      $$('[data-local-stack-row]').forEach((row) => {
+        row.hidden = !saved.has(row.dataset.localStackRow);
+      });
+      const page = $('[data-local-stack-page]');
+      if (!page) return;
+      const rows = $$('[data-local-stack-row]', page).filter((row) => !row.hidden);
+      const monthly = rows.reduce((sum, row) => sum + Number(row.dataset.price || 0), 0);
+      $('[data-local-stack-count]', page).textContent = rows.length;
+      $('[data-local-stack-monthly]', page).textContent = `$${monthly.toFixed(2).replace(/\.00$/, '')}`;
+      $('[data-local-stack-yearly]', page).textContent = `$${(monthly * 12).toFixed(2).replace(/\.00$/, '')}`;
+      $('[data-local-stack-saved]', page).hidden = rows.length === 0;
+      $('[data-local-stack-empty]', page).hidden = rows.length > 0;
+    };
+
+    const toggleStack = (slug, saved) => {
+      const slugs = readStack();
+      const next = saved ? slugs.filter((item) => item !== slug) : [...slugs, slug];
+      if (!writeStack(next)) throw new Error();
       const btn = $(`[data-stack="${CSS.escape(slug)}"]`);
       if (btn) setStackBtn(btn, !saved);
       markIcons(slug, !saved);
+      updateStackPage();
       toast(saved ? 'removed from your stack' : '✓ saved to your stack');
       track(saved ? 'stack_remove' : 'stack_add', { app: slug });
     };
 
     /* verdict-page button */
     $$('[data-stack]').forEach((btn) =>
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const slug = btn.dataset.stack;
-        if (!authed) return openSignup(slug);
         const saved = btn.dataset.saved === '1';
         if (saved && !armConfirm(btn, 'click again to remove')) return;
         try {
-          await toggleStack(slug, saved);
+          toggleStack(slug, saved);
         } catch {
-          toast('something broke · try again');
+          toast('browser storage is unavailable');
         }
       })
     );
 
     /* death-list quick-save icons (span[role=button] inside the row link) */
-    const iconAct = async (el) => {
+    const iconAct = (el) => {
       const slug = el.dataset.slug;
-      if (!authed) return openSignup(slug);
       try {
-        await toggleStack(slug, el.classList.contains('saved'));
+        toggleStack(slug, el.classList.contains('saved'));
       } catch {
-        toast('something broke · try again');
+        toast('browser storage is unavailable');
       }
     };
     $$('[data-stack-icon]').forEach((el) => {
@@ -961,70 +908,30 @@
       });
     });
 
-    /* signed-in: paint saved states on the list icons once per page */
-    if (authed && $('[data-stack-icon]')) {
-      fetch('/api/stack')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => d?.slugs?.forEach((s) => markIcons(s, true)))
-        .catch(() => {});
-    }
-
-    /* back from OAuth with a pending save: finish it, clean the URL */
-    const params = new URLSearchParams(location.search);
-    const pendingSave = params.get('stacksave');
-    if (pendingSave) {
-      params.delete('stacksave');
-      history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
-      if (authed) {
-        jsonPost('/api/stack', 'POST', { slug: pendingSave })
-          .then((r) => {
-            if (!r.ok) return;
-            const btn = $(`[data-stack="${CSS.escape(pendingSave)}"]`);
-            if (btn) setStackBtn(btn, true);
-            markIcons(pendingSave, true);
-            toast('✓ saved to your stack');
-          })
-          .catch(() => {});
-      }
-    }
-
-    /* ---------- /account ---------- */
-    $('[data-signout]')?.addEventListener('click', async () => {
-      try {
-        await jsonPost('/api/auth/sign-out', 'POST', {});
-      } catch {}
-      window.location.href = '/';
+    readStack().forEach((slug) => {
+      markIcons(slug, true);
+      const btn = $(`[data-stack="${CSS.escape(slug)}"]`);
+      if (btn) setStackBtn(btn, true);
     });
+    updateStackPage();
 
     $$('[data-stack-remove]').forEach((btn) =>
-      btn.addEventListener('click', async () => {
-        if (!armConfirm(btn, 'confirm?')) return;
+      btn.addEventListener('click', () => {
         try {
-          const res = await jsonPost('/api/stack', 'DELETE', { slug: btn.dataset.stackRemove });
-          if (!res.ok) throw new Error();
-          btn.closest('.stack-row')?.remove();
-          toast('removed from your stack');
+          toggleStack(btn.dataset.stackRemove, true);
         } catch {
-          toast('something broke · try again');
+          toast('browser storage is unavailable');
         }
       })
     );
 
-    /* empty-stack suggestions: save without leaving /account. Reload rather
-       than patch the DOM: the count, the total and the whole section are
-       server-rendered, and this fires at most three times per account. */
     $$('[data-stack-suggest]').forEach((btn) =>
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const slug = btn.dataset.stackSuggest;
-        btn.disabled = true;
         try {
-          const res = await jsonPost('/api/stack', 'POST', { slug });
-          if (!res.ok) throw new Error();
-          track('stack_add', { app: slug });
-          window.location.reload();
+          toggleStack(slug, readStack().includes(slug));
         } catch {
-          btn.disabled = false;
-          toast('something broke · try again');
+          toast('browser storage is unavailable');
         }
       })
     );

@@ -91,3 +91,16 @@ The v1 backend stack is not yet selected. The current candidates are Node/Expres
 - Verification: `git diff --check`, `npm run validate` (1,093 app files), `npm test`, and `npm exec -- astro build` all passed.
 - Visual QA: confirmed the 1Password page in the local browser, switched between both modes, navigated project files, and verified complete-pack copying.
 - Commit: `feat: add multi-file project packs` (pushed to `origin/monster`).
+
+### 2026-09-04 — Replace account-backed stacks with local storage
+
+- Removed the sign-in/account control and signup modal from the global navigation experience.
+- Replaced the navigation action with `my stack`, including a device-local saved-item count and compact mobile bookmark control.
+- Moved verdict-page and death-list saves from the authenticated `/api/stack` flow to the `vibecodeit:stack` browser local-storage key.
+- Added `/stack`, a noindex device-local stack page with saved projects, monthly subscription totals, possible yearly savings, removal controls, and popular empty-state suggestions.
+- Removed server-side stack lookups from verdict pages so saves no longer require a session or account.
+- Removed the sign-in auto-credit prompt from app submissions and updated privacy and terms copy to accurately describe local-only stack storage.
+- Left dormant backend authentication and account code intact so authentication can be restored later without destructive migration work.
+- Verification: `node --check public/js/app.js`, `git diff --check`, `npm run validate` (1,093 app files), `npm test`, and `npm exec -- astro build` passed.
+- Browser QA: saved 1Password locally, confirmed the nav count and both save controls updated, navigated to `/stack`, verified persistence and totals, removed the item, saved an empty-state suggestion, and confirmed the empty state returned after cleanup.
+- Commit: `feat: move my stack to local storage` (pushed to `origin/monster`).

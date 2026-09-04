@@ -7,14 +7,11 @@ import AltCard from '../components/AltCard.astro';
 import RecModule from '../components/RecModule.astro';
 import BuildsSection from '../components/BuildsSection.astro';
 import { getApp, relatedApps, yearlySaving, sortedAlternatives, ALTERNATIVES_PAGE_MIN, CATEGORIES, VERDICTS, MOAT_TAGS, MOAT_TAG_EMOJI, VIBE_CODING_TOOL_SLUGS } from '../lib/apps.js';
-import { stackSlugs, voteCount, voteCounts } from '../lib/db.js';
+import { voteCount, voteCounts } from '../lib/db.js';
 
 const { slug } = Astro.params;
 const app = getApp(slug);
 if (!app) return new Response(null, { status: 404 });
-
-const user = Astro.locals.user ?? null;
-const inStack = user ? (await stackSlugs(user.id)).includes(app.slug) : false;
 
 const votes = await voteCount(app.slug);
 const related = relatedApps(app, await voteCounts());
@@ -375,10 +372,10 @@ const tweet = encodeURIComponent(
       <span class="verdict-side">
         <VerdictBadge verdict={app.verdict} big />
         <button
-          class:list={['head-save', { saved: inStack }]}
+          class="head-save"
           data-stack-icon
           data-slug={app.slug}
-          aria-pressed={inStack ? 'true' : 'false'}
+          aria-pressed="false"
         >
           <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path d="M1 1.5H11V13L6 9.8L1 13V1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
           <span class="off">save to my stack</span>
@@ -591,10 +588,9 @@ const tweet = encodeURIComponent(
         data-share={app.slug}
       >share on X ↗</a>
       <button
-        class:list={['btn', 'ghost', 'stack-btn', { 'in-stack': inStack }]}
+        class="btn ghost stack-btn"
         data-stack={app.slug}
-        data-saved={inStack ? '1' : null}
-      >{inStack ? '✓ in your stack' : '+ save to my stack'}</button>
+      >+ save to my stack</button>
       <span class="tweet">"I just replaced {app.name.split(' / ')[0]}{app.priceMonthly != null ? ` ($${app.priceMonthly}/mo)` : ''} with one prompt"</span>
     </div>
 
