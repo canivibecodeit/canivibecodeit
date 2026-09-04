@@ -557,9 +557,11 @@
     if (projectPack) {
       const promptText = $('#prompt-text');
       const summary = $('[data-pack-summary]', projectPack);
+      // The server writes both summaries onto the element: file counts differ
+      // between generic packs and per-project kits.
       const summaries = {
-        indie: '4 files · fastest path to a working personal build',
-        product: '5 files · architecture, delivery, and operations included',
+        indie: summary?.dataset.summaryIndie || '',
+        product: summary?.dataset.summaryProduct || '',
       };
 
       const selectFile = (workspace, path) => {
@@ -788,12 +790,14 @@
     }
 
     /* ---------- build progress ----------
-       Device-local progress over the steps on /<slug>/build, in localStorage
+       Device-local progress over the items on /<slug>/build, in localStorage
        under vibecodeit:progress · same contract as my stack, no account and no
-       server round trip. Each entry stores the step count it was saved against,
-       so a prompt that later gains or loses phases invalidates its own stale
-       ticks instead of crossing off the wrong steps. */
+       server round trip. Items are string ids (a prerequisite, a sub-step, a
+       check) and each entry stores the version it was saved against, so a kit
+       that changes its steps invalidates its own stale ticks rather than
+       crossing off the wrong ones. */
     const PROGRESS_KEY = 'vibecodeit:progress';
+    const MODE_KEY = 'vibecodeit:build-mode';
     const readProgress = () => {
       try {
         const value = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
@@ -802,15 +806,15 @@
         return {};
       }
     };
-    const readSteps = (slug, total) => {
+    const readEntry = (slug, version) => {
       const entry = readProgress()[slug];
-      if (!entry || !Array.isArray(entry.done) || entry.total !== total) return [];
-      return entry.done.filter((i) => Number.isInteger(i) && i >= 0 && i < total);
+      if (!entry || entry.version !== version || !Array.isArray(entry.done)) return { done: [], pct: 0 };
+      return { done: entry.done.filter((x) => typeof x === 'string'), pct: Number(entry.pct) || 0 };
     };
-    const writeSteps = (slug, total, done) => {
+    const writeEntry = (slug, version, done, pct) => {
       try {
         const all = readProgress();
-        if (done.length) all[slug] = { done: [...done].sort((a, b) => a - b), total, updated: Date.now() };
+        if (done.length) all[slug] = { done: [...new Set(done)].sort(), version, pct, updated: Date.now() };
         else delete all[slug];
         localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
         return true;
@@ -819,22 +823,18 @@
       }
     };
 
-    /* Verdict-page CTA: shows the percentage back once there is any, so the
-       button reads as "resume" rather than "start" on a return visit. */
+    /* Verdict-page CTA: shows the saved percentage back once there is any, so
+       the button reads as "resume" rather than "start" on a return visit. */
     const cta = $('[data-track-cta]');
     if (cta) {
-      const total = Number(cta.dataset.total) || 0;
-      const done = readSteps(cta.dataset.slug, total);
+      const { done, pct } = readEntry(cta.dataset.slug, cta.dataset.version);
       if (done.length) {
         const ring = $('[data-track-cta-ring]', cta);
-        const pct = $('[data-track-cta-pct]', cta);
+        const pctEl = $('[data-track-cta-pct]', cta);
         const sub = $('[data-track-cta-sub]', cta);
-        const percent = total ? Math.round((done.length / total) * 100) : 0;
-        if (pct) pct.textContent = `${percent}%`;
+        if (pctEl) pctEl.textContent = `${pct}%`;
         if (ring) ring.hidden = false;
-        if (sub) sub.textContent = done.length === total
-          ? 'every step done'
-          : `${total - done.length} of ${total} left`;
+        if (sub) sub.textContent = pct >= 100 ? 'every item done' : `resume · ${pct}% done`;
       }
       cta.addEventListener('click', () => track('build_track_open', { app: cta.dataset.slug }));
     }
@@ -843,38 +843,88 @@
     const buildPage = $('[data-build-page]');
     if (buildPage) {
       const slug = buildPage.dataset.slug;
-      const total = Number(buildPage.dataset.total) || 0;
+      const version = buildPage.dataset.version;
       const bar = $('[data-bt-bar]', buildPage);
       const fill = $('[data-bt-fill]', buildPage);
-      const pct = $('[data-bt-pct]', buildPage);
+      const pctEl = $('[data-bt-pct]', buildPage);
       const doneCount = $('[data-bt-done]', buildPage);
+      const totalEl = $('[data-bt-total]', buildPage);
       const finished = $('[data-build-done]', buildPage);
 
-      const render = (done) => {
+      /* Mode: indie hides production-only phases and takes them out of the
+         total. Remembered per device; the pack on the verdict page has its
+         own toggle and they are independent on purpose. */
+      const modeBtns = $$('[data-tracker-mode]', buildPage);
+      let mode = 'indie';
+      try {
+        if (localStorage.getItem(MODE_KEY) === 'product') mode = 'product';
+      } catch {
+        /* storage blocked: indie */
+      }
+
+      const visibleToggles = () =>
+        $$('[data-bt-toggle]', buildPage).filter((btn) => !btn.closest('[data-product-only][hidden]'));
+
+      let { done } = readEntry(slug, version);
+
+      const render = () => {
         const set = new Set(done);
-        $$('[data-bt-toggle]', buildPage).forEach((btn) => {
-          const i = Number(btn.dataset.btToggle);
-          const isDone = set.has(i);
-          btn.setAttribute('aria-pressed', String(isDone));
-          btn.closest('.step')?.classList.toggle('done', isDone);
+        const toggles = visibleToggles();
+        let n = 0;
+        toggles.forEach((btn) => {
+          const on = set.has(btn.dataset.btToggle);
+          btn.setAttribute('aria-pressed', String(on));
+          btn.closest('[data-bt-item]')?.classList.toggle('done', on);
+          if (on) n += 1;
         });
-        const percent = total ? Math.round((set.size / total) * 100) : 0;
+        // A phase card is done when every visible item inside it is.
+        $$('[data-phase]', buildPage).forEach((card) => {
+          const inside = $$('[data-bt-toggle]', card);
+          card.classList.toggle('done', inside.length > 0 && inside.every((b) => set.has(b.dataset.btToggle)));
+        });
+        const total = toggles.length;
+        const percent = total ? Math.round((n / total) * 100) : 0;
         if (fill) fill.style.width = `${percent}%`;
-        if (pct) pct.textContent = `${percent}%`;
-        if (doneCount) doneCount.textContent = String(set.size);
+        if (pctEl) pctEl.textContent = `${percent}%`;
+        if (doneCount) doneCount.textContent = String(n);
+        if (totalEl) totalEl.textContent = String(total);
         if (bar) bar.setAttribute('aria-valuenow', String(percent));
-        if (finished) finished.hidden = !(total > 0 && set.size === total);
-        buildPage.classList.toggle('complete', total > 0 && set.size === total);
+        if (finished) finished.hidden = !(total > 0 && n === total);
+        buildPage.classList.toggle('complete', total > 0 && n === total);
+        return percent;
       };
 
-      let done = readSteps(slug, total);
-      render(done);
+      const applyMode = () => {
+        modeBtns.forEach((btn) => {
+          const active = btn.dataset.trackerMode === mode;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-pressed', String(active));
+        });
+        $$('[data-product-only]', buildPage).forEach((el) => {
+          el.hidden = mode !== 'product';
+        });
+        render();
+      };
+      modeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          mode = btn.dataset.trackerMode === 'product' ? 'product' : 'indie';
+          try {
+            localStorage.setItem(MODE_KEY, mode);
+          } catch {
+            /* fine */
+          }
+          applyMode();
+          track('build_tracker_mode', { app: slug, mode });
+        });
+      });
+      applyMode();
 
-      /* Collapse everything already ticked on arrival: coming back to a
-         half-finished build should open on the step actually being worked. */
-      done.forEach((i) => {
-        const detail = $(`[data-step-detail="${i}"]`, buildPage);
-        const toggle = $(`[data-step-collapse="${i}"]`, buildPage);
+      /* Collapse every phase already complete on arrival: coming back to a
+         half-finished build should open on the one actually being worked. */
+      $$('[data-phase].done', buildPage).forEach((card) => {
+        const id = card.dataset.step;
+        const detail = $(`[data-step-detail="${id}"]`, buildPage);
+        const toggle = $(`[data-step-collapse="${id}"]`, buildPage);
         if (detail && toggle) {
           detail.hidden = true;
           toggle.setAttribute('aria-expanded', 'false');
@@ -883,19 +933,20 @@
 
       $$('[data-bt-toggle]', buildPage).forEach((btn) => {
         btn.addEventListener('click', () => {
-          const i = Number(btn.dataset.btToggle);
+          const id = btn.dataset.btToggle;
           const set = new Set(done);
-          const nowDone = !set.has(i);
-          if (nowDone) set.add(i);
-          else set.delete(i);
+          const nowDone = !set.has(id);
+          if (nowDone) set.add(id);
+          else set.delete(id);
           done = [...set];
-          if (!writeSteps(slug, total, done)) {
+          const percent = render();
+          if (!writeEntry(slug, version, done, percent)) {
             toast('progress needs site data enabled in this browser');
-            done = readSteps(slug, total);
+            ({ done } = readEntry(slug, version));
+            render();
           }
-          render(done);
-          if (nowDone && done.length === total) toast('every step done · nice');
-          track('build_step_toggle', { app: slug, step: i, done: nowDone, completed: done.length, total });
+          if (nowDone && percent === 100) toast('every item done · nice');
+          track('build_step_toggle', { app: slug, item: id, done: nowDone, pct: percent });
         });
       });
 
@@ -906,6 +957,21 @@
           const open = btn.getAttribute('aria-expanded') === 'true';
           btn.setAttribute('aria-expanded', String(!open));
           detail.hidden = open;
+        });
+      });
+
+      /* Copy the commands of a sub-step. Same helper the pack uses. */
+      $$('[data-copy-cmd]', buildPage).forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const pre = btn.closest('.bk-cmd')?.querySelector('pre');
+          const copied = pre ? await copyText(pre.textContent) : false;
+          if (copied) {
+            const original = btn.textContent;
+            btn.textContent = 'copied ✓';
+            setTimeout(() => (btn.textContent = original), 1600);
+          } else {
+            toast('copy failed · select the commands manually');
+          }
         });
       });
 
@@ -930,8 +996,8 @@
           }
           disarm();
           done = [];
-          writeSteps(slug, total, done);
-          render(done);
+          writeEntry(slug, version, done, 0);
+          render();
           track('build_progress_reset', { app: slug });
         });
         onLeave(disarm);

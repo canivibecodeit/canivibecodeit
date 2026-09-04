@@ -1,0 +1,433 @@
+{
+  "slug": "invoice-ninja",
+  "version": 1,
+  "summary": "A small invoicing app for one freelancer: clients, invoices with line items and tax, numbers that never repeat, a snapshot frozen at send time so a sent invoice can never silently change, a clean PDF, email delivery, optional Stripe payment links, and a CSV your accountant can use. If you want the whole platform, Invoice Ninja itself is open source; this is the lighter option.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22 with Express and better-sqlite3",
+      "why": "forms, PDFs, mail: the framework earns its place"
+    },
+    {
+      "part": "Money",
+      "choice": "Integer cents",
+      "why": "an invoice that rounds differently from your books is a conversation you do not want"
+    },
+    {
+      "part": "PDF",
+      "choice": "Puppeteer rendering an HTML template",
+      "why": "your own template, exact layout; a full browser is the cost"
+    },
+    {
+      "part": "Hosting",
+      "choice": "localhost, or a VPS behind Caddy",
+      "why": "invoices are private; localhost is enough for one person"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "business",
+      "kind": "asset",
+      "name": "Your business details and a logo",
+      "why": "Every PDF carries them: legal name, address, tax id if any, bank or payment details, payment terms, and a logo file.",
+      "get": "Write them into config/business.json; a PNG or SVG logo at least 400px wide.",
+      "cost": "free"
+    },
+    {
+      "id": "chromium",
+      "kind": "tool",
+      "name": "Puppeteer's Chromium download (about 170 MB)",
+      "why": "PDF rendering needs a browser. npm install puppeteer downloads it; on a small server you may need extra system libraries.",
+      "get": "npm install puppeteer downloads Chromium. On Ubuntu servers install the libraries Puppeteer's troubleshooting page lists.",
+      "verify": "node -e \"require('puppeteer').launch().then(b=>b.close())\" exits without error",
+      "cost": "free, 170 MB of disk",
+      "url": "https://pptr.dev/troubleshooting"
+    },
+    {
+      "id": "smtp",
+      "kind": "key",
+      "name": "SMTP credentials to send invoices",
+      "why": "Phase 5 emails the PDF to clients.",
+      "get": "Fastmail, Postmark or your mail host: host, port, user, password as an app password.",
+      "cost": "free tiers exist"
+    },
+    {
+      "id": "stripe",
+      "kind": "key",
+      "name": "A Stripe account for payment links (optional)",
+      "why": "Phase 6 puts a pay-online link on each invoice.",
+      "get": "dashboard.stripe.com > Developers > API keys. Use test mode until the flow works.",
+      "cost": "free; fees per payment",
+      "optional": true,
+      "url": "https://dashboard.stripe.com/test/apikeys"
+    },
+    {
+      "id": "tax",
+      "kind": "decision",
+      "name": "Your tax rates and numbering rule",
+      "why": "This app does arithmetic on rates you type in; it does not know your jurisdiction. Decide the rates and the invoice number format now.",
+      "get": "Write down the VAT or sales tax rates you charge and the prefix format, e.g. INV-2026-001.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "4840",
+      "required": true,
+      "secret": false,
+      "where": "Bound to 127.0.0.1."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/invoices.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "PDF_DIR",
+      "example": "./data/pdf",
+      "required": true,
+      "secret": false,
+      "where": "Generated PDFs, kept forever."
+    },
+    {
+      "name": "SMTP_URL",
+      "example": "smtps://user:pass@smtp.fastmail.com:465",
+      "required": true,
+      "secret": true,
+      "where": "From your SMTP provider."
+    },
+    {
+      "name": "MAIL_FROM",
+      "example": "'You' <billing@yourdomain.com>",
+      "required": true,
+      "secret": false,
+      "where": "From address on invoice emails."
+    },
+    {
+      "name": "STRIPE_SECRET_KEY",
+      "example": "sk_test_...",
+      "required": false,
+      "secret": true,
+      "where": "Stripe dashboard, test mode first. Empty disables payment links."
+    },
+    {
+      "name": "INVOICE_PREFIX",
+      "example": "INV",
+      "required": true,
+      "secret": false,
+      "where": "Prefix for numbers: INV-2026-001."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Clients",
+      "goal": "Clients with currency and rate, and a delete that refuses to orphan invoices.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the tables",
+          "detail": "clients (id, name, email, address, currency, default_rate_cents, notes), invoices (id, number unique, client_id, issue_date, due_date, currency, status, notes, terms, sent_at, paid_at, stripe_link, snapshot JSON), line_items (id, invoice_id, position, description, quantity, unit_price_cents, tax_rate).",
+          "commands": [
+            "mkdir invoices && cd invoices && git init && npm init -y && npm pkg set type=module",
+            "npm install express@4 better-sqlite3@13",
+            "mkdir -p data/pdf config && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Build client CRUD"
+        }
+      ],
+      "check": [
+        "A client saves and reloads with the currency intact",
+        "Deleting a client with invoices is refused"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Invoices and line items",
+      "goal": "Totals to the cent and numbers that never collide or reuse.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Build invoice creation with line items",
+          "detail": "Subtotal, tax and total in integer cents, rounding once at the end."
+        },
+        {
+          "id": "p2s2",
+          "do": "Allocate numbers inside a transaction",
+          "detail": "INV-2026-001 style, never reused after a delete; gaps are fine, duplicates are not."
+        }
+      ],
+      "check": [
+        "A three-line invoice with mixed tax rates totals correctly to the cent",
+        "Two invoices created concurrently get distinct numbers",
+        "Deleting the latest invoice does not cause the next to reuse its number"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Status and the snapshot",
+      "goal": "Sending freezes the document; editing after requires a revision.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Implement draft, sent, paid and void with the snapshot frozen on send",
+          "detail": "Copy the client's name, address and every line into snapshot; render sent invoices from it only."
+        },
+        {
+          "id": "p3s2",
+          "do": "Add a revise action that voids and reissues under a new number",
+          "detail": "The only way to change a sent invoice."
+        }
+      ],
+      "check": [
+        "Changing a client's address after sending leaves the sent invoice's PDF and HTML unchanged",
+        "A sent invoice cannot be silently edited"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "PDF",
+      "goal": "A clean one-page PDF from your template, byte-identical when regenerated.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Install Puppeteer and write the HTML template",
+          "detail": "Logo, business details, line table, totals, terms and payment details from config/business.json.",
+          "commands": [
+            "npm install puppeteer@23"
+          ],
+          "files": [
+            "templates/invoice.html"
+          ]
+        },
+        {
+          "id": "p4s2",
+          "do": "Render from the snapshot to PDF_DIR",
+          "detail": "Reuse one browser instance; close pages in finally."
+        }
+      ],
+      "check": [
+        "A short invoice is one page",
+        "Totals match the screen exactly",
+        "It opens correctly in a phone mail client",
+        "Regenerating a sent invoice's PDF later is byte-identical"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Email",
+      "goal": "Sent means sent; failure leaves it a draft with the error visible.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Send the PDF over SMTP_URL and record sent_at only on success",
+          "commands": [
+            "npm install nodemailer@6"
+          ]
+        },
+        {
+          "id": "p5s2",
+          "do": "Log every send attempt and allow resending without renumbering"
+        }
+      ],
+      "check": [
+        "A real send arrives with the PDF attached and readable",
+        "A failed send leaves the invoice in draft with the error shown",
+        "The same invoice resends without a new number"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Payment links",
+      "goal": "A Stripe link per invoice, paid marked by hand.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Create a Stripe Payment Link for the invoice total and store it",
+          "commands": [
+            "npm install stripe@17"
+          ]
+        },
+        {
+          "id": "p6s2",
+          "do": "Include it in the PDF and the email; mark paid by hand records paid_at and locks"
+        }
+      ],
+      "check": [
+        "The link opens a correct amount in the right currency",
+        "Mark paid records paid_at and locks the invoice"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Dashboard and books",
+      "goal": "What is unpaid, and an export your accountant can use.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Build the unpaid dashboard with days outstanding and totals by month and client"
+        },
+        {
+          "id": "p7s2",
+          "do": "Stream a CSV export of everything",
+          "detail": "The export is what makes this handover-able to an accountant."
+        }
+      ],
+      "check": [
+        "Days outstanding is correct across a month boundary",
+        "The CSV reconciles with the invoice table to the cent"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Backup and deploy",
+      "goal": "Database and PDFs backed up together, one restore performed.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Nightly copy of the database plus PDF_DIR, thirty kept; restore once",
+          "commands": [
+            "tar czf backups/invoices-$(date +%F).tgz data/"
+          ]
+        },
+        {
+          "id": "p8s2",
+          "do": "Write the README",
+          "detail": "The numbering rule, where PDFs live, and the tax disclaimer in plain language.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A restore brings back both data and the PDFs of sent invoices",
+        "The README carries the tax disclaimer"
+      ]
+    },
+    {
+      "id": "p9",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the invoicing app is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p9s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p9s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p9s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p9s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Invoicing you could run for a small studio: frozen documents, exact numbers, delivery you can prove, books that export.",
+    "architecture": [
+      {
+        "module": "Ledger",
+        "owns": "clients, invoices, line items, numbering",
+        "swap": "The core"
+      },
+      {
+        "module": "Snapshot",
+        "owns": "freezing at send and rendering from it",
+        "swap": "The rule that makes documents trustworthy; never bypass"
+      },
+      {
+        "module": "Render",
+        "owns": "the HTML template and Puppeteer",
+        "swap": "A lighter HTML-to-PDF path if the server cannot carry Chromium"
+      },
+      {
+        "module": "Deliver",
+        "owns": "SMTP sends and the attempt log",
+        "swap": "A provider API behind the same send()"
+      },
+      {
+        "module": "Payments",
+        "owns": "Stripe links and manual mark-paid",
+        "swap": "Webhook reconciliation later, carefully"
+      }
+    ],
+    "operations": {
+      "backup": "tar of data/ nightly off the box.",
+      "restore": "Extract, start, open a sent invoice's PDF.",
+      "monitoring": "Uptime on /healthz when hosted; failed sends are visible in the UI.",
+      "incident": "Leaked SMTP or Stripe keys: rotate at the provider and update .env. Never edit a sent invoice to fix an error; revise it."
+    },
+    "releaseGate": [
+      "Totals verified to the cent on a fixture with mixed tax rates",
+      "Snapshot immutability verified",
+      "One restore drill performed",
+      "Tax disclaimer in the README"
+    ]
+  },
+  "notIncluded": [
+    "Quotes, expenses, multi-user, a client portal: that is the platform, free to self-host.",
+    "Automatic payment reconciliation.",
+    "Tax compliance. This does arithmetic on rates you type; it is not e-invoicing compliant anywhere."
+  ],
+  "after": [
+    "Recurring invoices generated on a schedule",
+    "A read-only client link to view and pay an invoice"
+  ]
+}

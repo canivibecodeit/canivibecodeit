@@ -1,0 +1,319 @@
+{
+  "slug": "urlbox",
+  "version": 1,
+  "summary": "A screenshot API with Playwright: render any URL to PNG or PDF with viewport, full-page and device-scale options, refuse private addresses, sign requests, cache results, queue concurrency, and keep a browser fleet of one healthy.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Browser",
+      "choice": "Playwright with Chromium",
+      "why": "renders anything; the fleet is the cost"
+    },
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http, sharp",
+      "why": "one process with a page pool"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS with 2 GB of RAM",
+      "why": "Chromium"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A VPS with at least 2 GB of RAM",
+      "why": "Chromium needs it.",
+      "get": "Hetzner CX22 or similar.",
+      "cost": "about $6 a month",
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "playwright",
+      "kind": "tool",
+      "name": "Playwright with Chromium and system dependencies",
+      "why": "The renderer.",
+      "get": "npm install playwright && npx playwright install --with-deps chromium",
+      "verify": "npx playwright --version prints",
+      "cost": "free, a few hundred MB",
+      "url": "https://playwright.dev/docs/intro"
+    },
+    {
+      "id": "sign-key",
+      "kind": "decision",
+      "name": "An HMAC signing key",
+      "why": "Signed requests only.",
+      "get": "openssl rand -hex 32.",
+      "cost": "free"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "A public address you own, so links you share never break when a provider changes.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port."
+    },
+    {
+      "name": "SIGN_KEY",
+      "example": "hex",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32."
+    },
+    {
+      "name": "CACHE_DIR",
+      "example": "./renders",
+      "required": true,
+      "secret": false,
+      "where": "Cache."
+    },
+    {
+      "name": "MAX_CONCURRENCY",
+      "example": "3",
+      "required": false,
+      "secret": false,
+      "where": "Pages rendering at once."
+    },
+    {
+      "name": "RENDER_TIMEOUT_MS",
+      "example": "20000",
+      "required": false,
+      "secret": false,
+      "where": "Hard timeout per render."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Render one URL",
+      "goal": "PNG, JPEG or PDF with a timeout and no leaked contexts.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Install Playwright and write render(url, options) with one persistent browser and a fresh context per render",
+          "commands": [
+            "mkdir shotapi && cd shotapi && git init && npm init -y && npm pkg set type=module && npm install playwright@1 sharp@0.35.3",
+            "mkdir -p renders && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Always close the context in finally; enforce RENDER_TIMEOUT_MS"
+        }
+      ],
+      "check": [
+        "A public page renders crisp",
+        "Full-page captures below the fold",
+        "A page that never loads fails at the timeout without leaking a context"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Safety",
+      "goal": "Never fetch private or internal addresses.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Refuse RFC 1918, localhost, link-local, .internal; block file: and data:"
+        },
+        {
+          "id": "p2s2",
+          "do": "Resolve DNS before connecting and re-check the resolved address"
+        }
+      ],
+      "check": [
+        "127.0.0.1, 169.254.169.254 and a hostname resolving privately are all refused"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Endpoint and cache",
+      "goal": "Signed, cached, queued.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "GET /render with HMAC, a cache keyed by the option hash and TTL"
+        },
+        {
+          "id": "p3s2",
+          "do": "A queue with MAX_CONCURRENCY"
+        }
+      ],
+      "check": [
+        "A tampered signature is refused",
+        "A repeat is served from cache",
+        "20 concurrent requests complete under the memory cap"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Cleaner pages",
+      "goal": "Hide selectors, inject CSS, block trackers, dismiss banners.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Options for hide, css, block-hosts list, wait-for selector"
+        },
+        {
+          "id": "p4s2",
+          "do": "A cookie-banner selector list"
+        }
+      ],
+      "check": [
+        "A news page renders without its banner",
+        "A hidden selector is absent"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Operate",
+      "goal": "Eviction, browser restart on leaks, memory limit.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Restart the browser past a memory threshold; /healthz; systemd with MemoryMax"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with the private-address rule and sizing",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "1,000 renders without memory growth",
+        "Recovers from a browser crash"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the renderer is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Screenshots for your own products, safe against the classic SSRF, with a fleet of one you can operate.",
+    "architecture": [
+      {
+        "module": "Renderer",
+        "owns": "Playwright and options",
+        "swap": "Firefox or WebKit"
+      },
+      {
+        "module": "Guard",
+        "owns": "address checks",
+        "swap": "Never remove"
+      },
+      {
+        "module": "Edge",
+        "owns": "signing, cache, queue",
+        "swap": "A CDN"
+      }
+    ],
+    "operations": {
+      "backup": "Nothing; cache is disposable.",
+      "restore": "Redeploy.",
+      "monitoring": "Memory and render latency.",
+      "incident": "Rotate SIGN_KEY; review logs for refused addresses."
+    },
+    "releaseGate": [
+      "SSRF checks verified",
+      "Soak test passes"
+    ]
+  },
+  "notIncluded": [
+    "Web-scale reliability against every banner and anti-bot wall."
+  ],
+  "after": [
+    "Webhook delivery of finished renders",
+    "Scheduled recurring captures"
+  ]
+}

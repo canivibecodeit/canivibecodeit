@@ -1,0 +1,334 @@
+{
+  "slug": "wetransfer",
+  "version": 1,
+  "summary": "Large-file transfer on a bucket you pay cents for: uploads go straight to object storage with presigned URLs, links expire and count downloads, optional passwords, and optional client-side encryption with the key in the URL fragment so the server never sees it.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Storage",
+      "choice": "Cloudflare R2 or Backblaze B2 with presigned URLs",
+      "why": "files never pass through your server"
+    },
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "link records and the page"
+    },
+    {
+      "part": "Encryption",
+      "choice": "Web Crypto in the browser, optional",
+      "why": "privacy WeTransfer never had"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "bucket",
+      "kind": "key",
+      "name": "An S3-compatible bucket with access keys and CORS",
+      "why": "Direct browser uploads need CORS on the bucket.",
+      "get": "R2: create bucket, API token, and set CORS to allow PUT from your domain. B2: similar under bucket settings.",
+      "cost": "cents to a few dollars a month",
+      "url": "https://developers.cloudflare.com/r2/"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. The page and link table need a small always-on process.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "send.yourdomain.com",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/transfers.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "S3_ENDPOINT",
+      "example": "https://<account>.r2.cloudflarestorage.com",
+      "required": true,
+      "secret": false,
+      "where": "Bucket endpoint."
+    },
+    {
+      "name": "S3_BUCKET",
+      "example": "transfers",
+      "required": true,
+      "secret": false,
+      "where": "Bucket name."
+    },
+    {
+      "name": "S3_ACCESS_KEY_ID",
+      "example": "...",
+      "required": true,
+      "secret": true,
+      "where": "Bucket key."
+    },
+    {
+      "name": "S3_SECRET_ACCESS_KEY",
+      "example": "...",
+      "required": true,
+      "secret": true,
+      "where": "Bucket secret."
+    },
+    {
+      "name": "MAX_TRANSFER_GB",
+      "example": "20",
+      "required": false,
+      "secret": false,
+      "where": "Total size cap per transfer."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://send.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Upload",
+      "goal": "Presigned PUTs from the browser with progress; multipart over 100 MB; nothing touches your disk.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Tables and presign endpoint",
+          "detail": "transfers (id long random slug, created_at, expires_at, downloads, max_downloads, password_hash, note), files (id, transfer_id, key, name, size, content_type). Keys random, never the filename.",
+          "commands": [
+            "mkdir send && cd send && git init && npm init -y && npm pkg set type=module && npm install @aws-sdk/client-s3@3 @aws-sdk/s3-request-presigner@3",
+            "mkdir -p data && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "The upload page with progress and multipart for large files"
+        }
+      ],
+      "check": [
+        "A 2 GB file uploads with progress without touching the server's disk",
+        "A transfer over the cap is refused before upload starts"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Download",
+      "goal": "A file list, short-lived presigned GETs, counted downloads, a limit.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "/t/:slug with the list and presigned GET per file with the original filename"
+        },
+        {
+          "id": "p2s2",
+          "do": "Count downloads and refuse after max_downloads"
+        }
+      ],
+      "check": [
+        "The recipient downloads with the original filename",
+        "The count increments",
+        "The limit is enforced"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Expiry and passwords",
+      "goal": "Expired links explain themselves; objects are deleted; passwords are rate limited.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Default 7-day expiry; nightly job deleting objects and rows"
+        },
+        {
+          "id": "p3s2",
+          "do": "Optional password with constant-time compare and a rate limit"
+        }
+      ],
+      "check": [
+        "An expired link returns a clear page",
+        "Objects are gone from the bucket",
+        "A wrong password is rate limited"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Encryption",
+      "goal": "Key in the fragment; server never sees it.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Encrypt in the browser with Web Crypto before upload; key in the URL fragment"
+        },
+        {
+          "id": "p4s2",
+          "do": "Decrypt in the recipient's browser"
+        }
+      ],
+      "check": [
+        "The bucket object is unreadable",
+        "The recipient's download is the original file"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Deploy",
+      "goal": "Lifecycle rules as a backstop, healthz, service, README.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Bucket lifecycle rules, /healthz, systemd, Caddy"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with the cost model and the fragment-key design",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A stranger receives and downloads a file using only the link"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the transfer page is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "File transfer for a small team on your domain, cheaper and more private than the service it replaces.",
+    "architecture": [
+      {
+        "module": "Presign",
+        "owns": "upload and download URLs",
+        "swap": "Any S3-compatible storage"
+      },
+      {
+        "module": "Links",
+        "owns": "transfers, expiry, passwords",
+        "swap": "The core"
+      },
+      {
+        "module": "Crypto",
+        "owns": "browser encryption",
+        "swap": "Optional"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite nightly; objects are transient by design.",
+      "restore": "Copy back; expired objects are gone regardless.",
+      "monitoring": "Uptime and bucket size.",
+      "incident": "Rotate bucket keys if leaked; presigned URLs are short-lived."
+    },
+    "releaseGate": [
+      "Presigned upload verified without server disk use",
+      "Expiry deletes objects",
+      "Encryption round-trip verified"
+    ]
+  },
+  "notIncluded": [
+    "Worldwide CDN bandwidth, the brand, email delivery and receipts, the apps."
+  ],
+  "after": [
+    "Email the link on request via a provider",
+    "Upload from a phone via a share target"
+  ]
+}

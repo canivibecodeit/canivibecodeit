@@ -1,0 +1,255 @@
+{
+  "slug": "remove-bg",
+  "version": 1,
+  "summary": "Background removal on your own machine: rembg behind a CLI and a localhost page with drag-and-drop, batch processing, background replacement and export at full resolution. Nothing is uploaded anywhere.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Engine",
+      "choice": "rembg with onnxruntime",
+      "why": "open models that run on a laptop CPU"
+    },
+    {
+      "part": "Runtime",
+      "choice": "Python 3.11+, a stdlib or FastAPI server on localhost",
+      "why": "rembg is Python"
+    },
+    {
+      "part": "UI",
+      "choice": "Vanilla HTML and JS",
+      "why": "one page"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "python",
+      "kind": "tool",
+      "name": "Python 3.11 or newer with pip",
+      "why": "rembg is a Python package.",
+      "get": "python.org or your package manager; use a virtual environment.",
+      "verify": "python3 --version prints 3.11 or higher",
+      "cost": "free",
+      "url": "https://www.python.org/downloads/"
+    },
+    {
+      "id": "rembg",
+      "kind": "tool",
+      "name": "rembg and its models",
+      "why": "The whole engine. Models download on first use (hundreds of MB).",
+      "get": "python3 -m venv .venv && source .venv/bin/activate && pip install 'rembg[cli]' onnxruntime",
+      "verify": "rembg --help prints usage",
+      "cost": "free, a few GB of disk",
+      "url": "https://github.com/danielgatis/rembg"
+    },
+    {
+      "id": "images",
+      "kind": "asset",
+      "name": "Test images: a portrait, a product on white, something with hair",
+      "why": "Each phase is judged on real results.",
+      "get": "Three photos.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "8000",
+      "required": true,
+      "secret": false,
+      "where": "Localhost port for the page."
+    },
+    {
+      "name": "REMBG_MODEL",
+      "example": "isnet-general-use",
+      "required": false,
+      "secret": false,
+      "where": "Default model; birefnet for hair, u2net for speed."
+    },
+    {
+      "name": "MODEL_DIR",
+      "example": "~/.u2net",
+      "required": false,
+      "secret": false,
+      "where": "Where rembg stores downloaded models."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The CLI",
+      "goal": "cut in.jpg out.png with model and alpha-matting flags.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the venv and a cut script wrapping rembg",
+          "commands": [
+            "python3 -m venv .venv && source .venv/bin/activate",
+            "pip install 'rembg[cli]' onnxruntime pillow"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Add --model and --alpha-matting flags"
+        }
+      ],
+      "check": [
+        "A portrait produces a clean transparent PNG",
+        "Switching models changes the result"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Batch",
+      "goal": "A folder in, a folder out, resumable.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "cut --dir in/ out/ with a progress line"
+        },
+        {
+          "id": "p2s2",
+          "do": "Skip already-done files by hash; never overwrite"
+        }
+      ],
+      "check": [
+        "50 images process with a count",
+        "A rerun does nothing"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "The page",
+      "goal": "Drop, paste, pick; before/after; only localhost in the network tab.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "A localhost server with POST /cut returning PNG"
+        },
+        {
+          "id": "p3s2",
+          "do": "The page with three inputs and a before/after slider"
+        }
+      ],
+      "check": [
+        "A dropped image returns in under 5 seconds on CPU",
+        "The network tab shows only localhost"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Backgrounds and export",
+      "goal": "Replace with color, gradient or image; export at full size; copy.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Compositing options on the canvas"
+        },
+        {
+          "id": "p4s2",
+          "do": "Export at original or chosen size; copy to clipboard"
+        }
+      ],
+      "check": [
+        "A product on a chosen color exports at full resolution"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Package",
+      "goal": "One-line install and model sizes stated.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Pinned requirements.txt and a Makefile or run script"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with model sizes and the nothing-is-uploaded line",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A fresh machine reaches a first cutout from the README"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Run it for a team",
+      "productOnly": true,
+      "goal": "A shared instance on your network with a GPU if you have one.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Bind to the LAN behind basic auth; onnxruntime-gpu where available"
+        },
+        {
+          "id": "p6s2",
+          "do": "A job queue so ten uploads do not run at once"
+        }
+      ],
+      "check": [
+        "Two people use it concurrently without a crash"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Background removal for a small team that never leaves the building.",
+    "architecture": [
+      {
+        "module": "Engine",
+        "owns": "rembg calls and models",
+        "swap": "A different model behind the same function"
+      },
+      {
+        "module": "Server",
+        "owns": "/cut",
+        "swap": "Any HTTP layer"
+      },
+      {
+        "module": "UI",
+        "owns": "the page",
+        "swap": "Any client"
+      }
+    ],
+    "operations": {
+      "backup": "Nothing to back up; models re-download.",
+      "restore": "Reinstall.",
+      "monitoring": "Queue depth.",
+      "incident": "None of consequence; no data is stored."
+    },
+    "releaseGate": [
+      "Network tab verified localhost-only",
+      "Batch resumability verified"
+    ]
+  },
+  "notIncluded": [
+    "Their edge quality on hair and glass.",
+    "Plugins, API scale, GPU batch processing."
+  ],
+  "after": [
+    "A Photoshop-style refine-edge brush",
+    "A watch-folder mode"
+  ]
+}

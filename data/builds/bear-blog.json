@@ -1,0 +1,261 @@
+{
+  "slug": "bear-blog",
+  "version": 1,
+  "summary": "A minimal blog with Bear's constitution: Markdown in, static HTML out, zero client-side JavaScript and one stylesheet under 5 KB. Tags, RSS, a sitemap, optional privacy analytics, and a custom domain. Everything you add is a reason it stops being Bear.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Build",
+      "choice": "One Node script with markdown-it, pinned",
+      "why": "no framework, no bundler"
+    },
+    {
+      "part": "Styling",
+      "choice": "One inlined stylesheet under 5 KB",
+      "why": "the constraint that makes it Bear"
+    },
+    {
+      "part": "Hosting",
+      "choice": "Any static host on your domain",
+      "why": "nothing to run"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "posts",
+      "kind": "asset",
+      "name": "Your existing posts as Markdown",
+      "why": "Phase 1 renders them.",
+      "get": "Bear: Dashboard > Settings > Export. Otherwise copy your posts into Markdown files with a date.",
+      "cost": "free"
+    },
+    {
+      "id": "host",
+      "kind": "account",
+      "name": "A static host",
+      "why": "Deploy on push.",
+      "get": "Cloudflare Pages, Netlify or GitHub Pages connected to the repo.",
+      "cost": "free",
+      "url": "https://pages.cloudflare.com"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "The point of leaving is a domain you own.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    }
+  ],
+  "env": [
+    {
+      "name": "SITE_URL",
+      "example": "https://yourname.blog",
+      "required": true,
+      "secret": false,
+      "where": "Canonical base for RSS and OG."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Build pipeline",
+      "goal": "posts/*.md to dist/, drafts excluded, frontmatter errors loud.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and build.mjs",
+          "detail": "Read posts/*.md with frontmatter (title, date, slug, tags, draft), render index.html newest first and one page per post, copy static assets.",
+          "commands": [
+            "mkdir bear && cd bear && git init && npm init -y && npm pkg set type=module && npm install markdown-it@14 gray-matter@4",
+            "mkdir -p posts static && cp .env.example .env"
+          ],
+          "files": [
+            "build.mjs"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Fail the build on a missing title or date, naming the file"
+        }
+      ],
+      "check": [
+        "Adding a post and rebuilding adds it to the list",
+        "A draft is absent",
+        "A broken frontmatter fails loudly"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The stylesheet",
+      "goal": "Under 5 KB, inlined, no script tag anywhere.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Write styles.css: measured line length, system fonts, dark mode via prefers-color-scheme, readable code blocks",
+          "detail": "Inline it in build.mjs."
+        },
+        {
+          "id": "p2s2",
+          "do": "Add a build check that fails if the CSS exceeds 5 KB or any script tag appears in dist/"
+        }
+      ],
+      "check": [
+        "The built stylesheet is under 5 KB",
+        "The page ships no script tag",
+        "Lighthouse 100 across the board"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Tags and RSS",
+      "goal": "Tag pages, a full-content feed, sitemap, robots.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Render /tags/:tag pages"
+        },
+        {
+          "id": "p3s2",
+          "do": "Render feed.xml with full content, sitemap.xml and robots.txt"
+        }
+      ],
+      "check": [
+        "The feed validates",
+        "Every tag page lists only its posts"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Privacy analytics (optional)",
+      "goal": "Pageviews without a cookie or a raw IP, or nothing at all.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Decide: read the host's logs, or add one tiny endpoint",
+          "detail": "The endpoint logs a daily-salted hash of IP and user agent per path; /stats behind basic auth. Write the decision down."
+        },
+        {
+          "id": "p4s2",
+          "do": "If you add the endpoint, keep the page's zero-JavaScript rule by using a 1x1 image request, not a script"
+        }
+      ],
+      "check": [
+        "Pageviews for today match the day's rows",
+        "No raw IP stored anywhere",
+        "Still no script tag in the HTML"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Deploy",
+      "goal": "One command from Markdown to live.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Connect the host and the custom domain"
+        },
+        {
+          "id": "p5s2",
+          "do": "Write the README with the zero-JavaScript constitution and how to add a post in three lines",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A new post goes from file to live with one command",
+        "The README states the constitution"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Keep it Bear",
+      "productOnly": true,
+      "goal": "Guardrails so the blog stays small as it grows.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a CI check that fails on any script tag, any external request, or CSS over 5 KB"
+        },
+        {
+          "id": "p6s2",
+          "do": "Add a size budget for HTML per page and an accessibility audit in CI"
+        }
+      ],
+      "check": [
+        "A commit adding a script tag fails CI",
+        "A commit growing CSS past 5 KB fails CI"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A blog whose constraints are enforced by the build, so it stays fast and private for years.",
+    "architecture": [
+      {
+        "module": "Build",
+        "owns": "build.mjs and the checks",
+        "swap": "Any generator that passes the same checks"
+      },
+      {
+        "module": "Content",
+        "owns": "posts/",
+        "swap": "Markdown is the format"
+      },
+      {
+        "module": "Analytics",
+        "owns": "the optional endpoint",
+        "swap": "Drop it entirely"
+      }
+    ],
+    "operations": {
+      "backup": "The repo.",
+      "restore": "Redeploy.",
+      "monitoring": "Uptime check.",
+      "incident": "Revert with git."
+    },
+    "releaseGate": [
+      "CI enforces the constitution",
+      "Lighthouse 100"
+    ]
+  },
+  "notIncluded": [
+    "The Bear discover feed; it is the community.",
+    "Newsletters, comments, themes."
+  ],
+  "after": [
+    "An email-me-new-posts option via RSS-to-email you do not run"
+  ]
+}

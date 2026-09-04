@@ -1,0 +1,312 @@
+{
+  "slug": "tailscale",
+  "version": 1,
+  "summary": "Your own Tailscale control plane: headscale on a VPS behind Caddy, the official Tailscale clients pointed at it, MagicDNS and a deny-by-default ACL, an embedded relay and an exit node, and a restore you performed before switching off the free account.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Control plane",
+      "choice": "headscale",
+      "why": "rule zero: do not write a VPN"
+    },
+    {
+      "part": "Data plane",
+      "choice": "WireGuard via the official Tailscale clients",
+      "why": "you never touch the cryptography"
+    },
+    {
+      "part": "TLS",
+      "choice": "Caddy",
+      "why": "clients need HTTPS to the control server"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "free-tier",
+      "kind": "decision",
+      "name": "Know that Tailscale is free for six users",
+      "why": "The honest reason to do this is owning the control plane, not saving money.",
+      "get": "Read tailscale.com/pricing once.",
+      "cost": "free",
+      "url": "https://tailscale.com/pricing"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. The coordination server needs a public IP.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "hs.yourdomain.com",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    },
+    {
+      "id": "headscale",
+      "kind": "tool",
+      "name": "headscale",
+      "why": "The control server.",
+      "get": "Download the .deb from github.com/juanfont/headscale/releases and install it on the VPS.",
+      "verify": "headscale version prints",
+      "cost": "free",
+      "url": "https://github.com/juanfont/headscale/releases"
+    },
+    {
+      "id": "clients",
+      "kind": "tool",
+      "name": "The official Tailscale clients on every device",
+      "why": "The endpoints.",
+      "get": "tailscale.com/download for each platform.",
+      "cost": "free",
+      "url": "https://tailscale.com/download"
+    },
+    {
+      "id": "offbox",
+      "kind": "account",
+      "name": "Off-box storage for backups",
+      "why": "The headscale database is the network's identity.",
+      "get": "rclone to B2 or R2.",
+      "cost": "cents",
+      "url": "https://rclone.org"
+    }
+  ],
+  "env": [
+    {
+      "name": "HEADSCALE_URL",
+      "example": "https://hs.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public server URL in config.yaml."
+    },
+    {
+      "name": "BASE_DOMAIN",
+      "example": "ts.yourdomain.internal",
+      "required": true,
+      "secret": false,
+      "where": "MagicDNS base domain; must differ from the server's domain."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The server",
+      "goal": "headscale up behind Caddy with one user.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Install headscale, set server_url and the base domain in config.yaml, Caddy in front",
+          "files": [
+            "/etc/headscale/config.yaml",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Create your user",
+          "commands": [
+            "sudo systemctl enable --now headscale",
+            "headscale users create you"
+          ]
+        }
+      ],
+      "check": [
+        "The health endpoint answers over HTTPS",
+        "headscale users list shows your user"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "First two devices",
+      "goal": "A laptop and a phone reach each other directly.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Generate a pre-auth key and register two devices",
+          "commands": [
+            "headscale preauthkeys create --user you --reusable --expiration 24h",
+            "tailscale up --login-server https://hs.yourdomain.com --authkey <key>"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Ping between them and confirm a direct connection in tailscale status"
+        }
+      ],
+      "check": [
+        "A ping succeeds over the mesh",
+        "The connection is direct, not via the VPS"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "DNS and ACLs",
+      "goal": "Names that resolve and a policy that denies by default.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Enable MagicDNS with BASE_DOMAIN"
+        },
+        {
+          "id": "p3s2",
+          "do": "Write an ACL policy denying by default and test a denied port"
+        }
+      ],
+      "check": [
+        "Devices resolve each other by name",
+        "An allowed port connects; a denied port is refused"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Relays and exit node",
+      "goal": "Hostile NATs still connect; one machine routes traffic.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Enable the embedded DERP relay"
+        },
+        {
+          "id": "p4s2",
+          "do": "Advertise and approve an exit node",
+          "commands": [
+            "tailscale up --advertise-exit-node",
+            "headscale routes enable -r <id>"
+          ]
+        }
+      ],
+      "check": [
+        "A device on a restrictive network still connects",
+        "Routing through the exit node changes your public IP"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Backup and restore drill",
+      "goal": "The database off the box and a restore that keeps devices connected.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Nightly backup of the headscale database and config off the box",
+          "commands": [
+            "sqlite3 /var/lib/headscale/db.sqlite \".backup '/tmp/hs-$(date +%F).db'\"",
+            "rclone copy /tmp/hs-$(date +%F).db remote:headscale/"
+          ]
+        },
+        {
+          "id": "p5s2",
+          "do": "Restore into a fresh VPS and confirm existing devices reconnect without re-registering"
+        }
+      ],
+      "check": [
+        "A restore performed and dated",
+        "Devices reconnect without re-registering"
+      ],
+      "traps": [
+        "Until the restore drill is done, keep the free Tailscale account."
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate",
+      "productOnly": true,
+      "goal": "Updates, monitoring, key expiry handling.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "An update procedure for headscale with a backup first"
+        },
+        {
+          "id": "p6s2",
+          "do": "Uptime on the control server and a reminder for node key expiry"
+        }
+      ],
+      "check": [
+        "One upgrade performed",
+        "An alert fires when headscale stops"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A private network whose control plane you own, with a proven restore and a documented upgrade.",
+    "architecture": [
+      {
+        "module": "headscale",
+        "owns": "coordination, users, ACLs",
+        "swap": "Tailscale's hosted plane, same clients"
+      },
+      {
+        "module": "Clients",
+        "owns": "WireGuard",
+        "swap": "Never"
+      },
+      {
+        "module": "Caddy",
+        "owns": "TLS",
+        "swap": "Any reverse proxy"
+      },
+      {
+        "module": "Backup",
+        "owns": "the database",
+        "swap": "Any storage"
+      }
+    ],
+    "operations": {
+      "backup": "Nightly database and config off the box.",
+      "restore": "Verified once; re-verify after upgrades.",
+      "monitoring": "Uptime on the control URL.",
+      "incident": "If the server is lost without backup, every device must re-register; this is why the drill matters."
+    },
+    "releaseGate": [
+      "Restore drill dated",
+      "ACL deny-by-default verified",
+      "One upgrade performed"
+    ]
+  },
+  "notIncluded": [
+    "SSO with every provider, the admin console, device posture: the seat price, and free for six people anyway."
+  ],
+  "after": [
+    "OIDC login via headscale's OIDC support",
+    "Subnet routers for a home network"
+  ]
+}

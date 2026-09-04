@@ -1,0 +1,321 @@
+{
+  "slug": "dead-mans-snitch",
+  "version": 1,
+  "summary": "A dead-man's switch for scheduled jobs: each job checks in at a URL, silence past the interval plus grace raises one alert, the next check-in recovers it. The minimal version of heartbeat monitoring, on a box that is not the one running the jobs.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "the whole product is a table, a loop and a webhook"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS separate from the jobs",
+      "why": "or it is decorative"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "webhook",
+      "kind": "key",
+      "name": "A chat webhook URL (Discord, Slack or Telegram)",
+      "why": "Alerts go to a chat channel you already watch. A webhook URL is the only credential this needs.",
+      "get": "Discord: Server settings > Integrations > Webhooks > New Webhook, copy the URL. Slack: create an app at api.slack.com/apps, enable Incoming Webhooks, add to a channel, copy the URL. Telegram: create a bot with @BotFather and use the bot token plus your chat id.",
+      "verify": "curl -X POST -H 'Content-Type: application/json' -d '{\"content\":\"test\"}' <url> posts a message (Discord form; Slack uses a text field)",
+      "cost": "free",
+      "url": "https://api.slack.com/apps"
+    },
+    {
+      "id": "jobs",
+      "kind": "asset",
+      "name": "The jobs and how often each should check in",
+      "why": "Interval plus grace per snitch.",
+      "get": "crontab -l and a list.",
+      "cost": "free"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. Separate from the jobs it watches.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/snitches.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "ALERT_WEBHOOK_URL",
+      "example": "https://...",
+      "required": true,
+      "secret": true,
+      "where": "Chat webhook."
+    },
+    {
+      "name": "ALERT_FORMAT",
+      "example": "slack",
+      "required": true,
+      "secret": false,
+      "where": "discord, slack or telegram."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://snitch.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Check-ins",
+      "goal": "GET, POST or HEAD /s/:uuid records a check-in; /fail records a failure; unknown ids 404.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and tables",
+          "detail": "snitches (id, name, interval_seconds, grace_seconds, status, last_checkin_at), checkins (id, snitch_id, received_at, ok, note), alerts.",
+          "commands": [
+            "mkdir snitch && cd snitch && git init && npm init -y && npm pkg set type=module",
+            "mkdir -p data && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Route /s/:uuid and /s/:uuid/fail; store a POST body up to 4 kB as the note; answer OK"
+        }
+      ],
+      "check": [
+        "A curl records one row and prints OK",
+        "A 10 kB body stores 4 kB",
+        "A random uuid returns 404"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The switch",
+      "goal": "healthy within interval plus grace, missing beyond, fail flips immediately.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Loop every 30 seconds computing status; waiting and paused never alert"
+        },
+        {
+          "id": "p2s2",
+          "do": "Write one alerts row per transition"
+        }
+      ],
+      "check": [
+        "1-hour interval, 5-minute grace reads healthy after a check-in and missing at 65 minutes",
+        "A fail flips at once",
+        "Same-state polls write nothing"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Shouting",
+      "goal": "One message missing, one recovered.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Sender for ALERT_FORMAT with how overdue it is"
+        },
+        {
+          "id": "p3s2",
+          "do": "Retries with backoff, error recorded on the row"
+        }
+      ],
+      "check": [
+        "Exactly one missing message",
+        "Exactly one recovered message",
+        "A dead webhook does not stall the loop"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Admin",
+      "goal": "Create, pause, delete; copy the URL and the crontab line.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Basic-auth /admin with CRUD and the URL plus crontab line per snitch"
+        },
+        {
+          "id": "p4s2",
+          "do": "Show the last 20 check-ins and a status dot per snitch"
+        }
+      ],
+      "check": [
+        "Managed end to end in the browser",
+        "Renders with none"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Deploy",
+      "goal": "HTTPS, a service, retention, README.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "/healthz, systemd, Caddy, nightly prune of check-ins beyond 30 days"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with the && curl -fsS suffix, the /fail wrapper and the same-host warning",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "State survives a restart",
+        "The README reaches a monitored job"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the switch is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "The smallest reliable heartbeat service, run from a box that is not the jobs' and itself watched.",
+    "architecture": [
+      {
+        "module": "Ingest",
+        "owns": "/s routes",
+        "swap": "Any listener writing the rows"
+      },
+      {
+        "module": "Switch",
+        "owns": "the loop",
+        "swap": "Pure function"
+      },
+      {
+        "module": "Notifier",
+        "owns": "messages and retries",
+        "swap": "One function per format"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly.",
+      "restore": "Copy back.",
+      "monitoring": "External check on /healthz.",
+      "incident": "Down switch means unwatched jobs; restore and review."
+    },
+    "releaseGate": [
+      "Different box than the jobs",
+      "One restore drill performed"
+    ]
+  },
+  "notIncluded": [
+    "Smart alerts that parse output, PagerDuty and Heroku integrations, team accounts."
+  ],
+  "after": [
+    "A weekly summary message of every snitch's health"
+  ]
+}

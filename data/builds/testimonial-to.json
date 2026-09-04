@@ -1,0 +1,414 @@
+{
+  "slug": "testimonial-to",
+  "version": 1,
+  "summary": "Testimonial collection you own: a public submit page, avatars resized safely on your server, a moderation queue where nothing goes public until you approve it, a wall page, and an embeddable widget that renders the wall into any site without an iframe. No third-party hosting a page about you.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "a submission is one INSERT; the wall is one SELECT"
+    },
+    {
+      "part": "Images",
+      "choice": "sharp",
+      "why": "the one dependency worth taking: resize, strip EXIF, reject fakes"
+    },
+    {
+      "part": "Widget",
+      "choice": "One small vanilla-JS file, no iframe",
+      "why": "inherits the host page's font and scopes its own styles"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS behind Caddy",
+      "why": "uploads need disk and the widget needs an HTTPS origin"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "site",
+      "kind": "asset",
+      "name": "The site you will embed the wall into",
+      "why": "Phase 5 is tested by rendering the widget on a different origin.",
+      "get": "Your existing site, or a blank HTML page served locally on another port.",
+      "cost": "free"
+    },
+    {
+      "id": "ipsalt",
+      "kind": "decision",
+      "name": "A random salt for hashing IPs",
+      "why": "For rate limiting without storing addresses.",
+      "get": "openssl rand -hex 32 into .env as IP_SALT.",
+      "cost": "free"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. Uploaded avatars need disk that persists, and the widget needs an HTTPS origin.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "A public address you own, so links you share never break when a provider changes.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port; Caddy proxies to it."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/testimonials.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "UPLOAD_DIR",
+      "example": "./data/avatars",
+      "required": true,
+      "secret": false,
+      "where": "Where resized avatars are written. Back this up with the database."
+    },
+    {
+      "name": "MAX_UPLOAD_MB",
+      "example": "5",
+      "required": false,
+      "secret": false,
+      "where": "Reject files over this before reading them fully."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://praise.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL for the widget script and JSON endpoint."
+    },
+    {
+      "name": "EMBED_ORIGINS",
+      "example": "https://yoursite.com",
+      "required": true,
+      "secret": false,
+      "where": "Comma-separated origins allowed to load the widget data."
+    },
+    {
+      "name": "IP_SALT",
+      "example": "hex-from-openssl-rand",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32, once."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Submission",
+      "goal": "Store submissions as unapproved, exactly as typed, escaped only on the way out.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the testimonials table",
+          "detail": "testimonials (id, name, role, company, avatar_path, rating 1-5, body, source_url, approved default false, created_at, approved_at, ip_hash). Build the approved flag now even though the wall arrives in Phase 4.",
+          "commands": [
+            "mkdir praise && cd praise && git init && npm init -y && npm pkg set type=module",
+            "npm install sharp@0.35.3",
+            "mkdir -p data/avatars && cp .env.example .env"
+          ],
+          "files": [
+            "server.mjs",
+            "db.mjs"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Build GET and POST /submit",
+          "detail": "Name, role, company, rating, body. Cap body at 1500 characters, require rating 1-5, strip control characters. Store text as typed; escape at render time. Works with JavaScript disabled."
+        }
+      ],
+      "check": [
+        "A submission stores one row with approved = 0",
+        "An over-length body is rejected with a readable message",
+        "A body containing <script> is stored verbatim and later renders as visible text"
+      ],
+      "traps": [
+        "Never sanitize on the way in. You will lose the ability to tell a real apostrophe from an attack. Escape on output, every time."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Avatars",
+      "goal": "Uploads that cannot hurt you: sniffed, resized, stripped, capped.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Accept an optional avatar and inspect the decoded header",
+          "detail": "sharp(buffer).metadata() throws on non-images; reject anything that is not a real image regardless of extension or declared type."
+        },
+        {
+          "id": "p2s2",
+          "do": "Resize to 128px square WebP with a JPEG fallback, strip EXIF",
+          "detail": "sharp(...).resize(128, 128, { fit: 'cover' }).webp(). Write under a generated filename; never reuse the uploaded name."
+        },
+        {
+          "id": "p2s3",
+          "do": "Cap the upload while streaming and set a pixel limit",
+          "detail": "Stop reading past MAX_UPLOAD_MB. sharp({ limitInputPixels }) so a decompression bomb cannot exhaust memory."
+        }
+      ],
+      "check": [
+        "A 12 MP photo becomes a small square file",
+        "A renamed .txt is rejected",
+        "A 20 MB file is refused before being fully read",
+        "The stored file has no EXIF"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Moderation",
+      "goal": "Approve, reject, un-approve, delete, with files cleaned up.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Build /admin behind basic auth",
+          "detail": "Pending list with approve, reject and delete; approved list with un-approve; a raw view per row."
+        },
+        {
+          "id": "p3s2",
+          "do": "Delete the avatar file when deleting a row"
+        }
+      ],
+      "check": [
+        "Approving makes a row eligible for the wall",
+        "Un-approving removes it immediately",
+        "Deleting leaves no file behind in UPLOAD_DIR"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Public wall",
+      "goal": "Approved testimonials only, responsive, with a designed empty state.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Build GET /wall",
+          "detail": "Masonry grid of approved rows: avatar, name, role, company, stars, body. Lazy-load avatars. Mobile-first, dark mode."
+        },
+        {
+          "id": "p4s2",
+          "do": "Render an empty state when nothing is approved"
+        }
+      ],
+      "check": [
+        "The wall shows only approved rows",
+        "It reflows from 375px to 1440px",
+        "An unapproved submission is absent from the HTML source, not merely hidden with CSS"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Embeddable widget",
+      "goal": "One script tag renders the wall into any page with no iframe and no style leaks.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Serve GET /api/wall.json with CORS for EMBED_ORIGINS",
+          "detail": "Cache-Control with a short max-age."
+        },
+        {
+          "id": "p5s2",
+          "do": "Write /embed.js under 5 KB",
+          "detail": "Finds a target div, fetches the JSON, renders cards with every text escaped on injection. Scope styles with a unique class prefix. Inherit the host font."
+        }
+      ],
+      "check": [
+        "The widget renders on a different origin",
+        "It does not alter any host page style",
+        "A testimonial containing HTML displays as text in the embed"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Abuse controls and deploy",
+      "goal": "Spam turned away, backups covering both database and files, live.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a honeypot, a minimum fill time and a per-IP limit of 3 per hour in SQLite"
+        },
+        {
+          "id": "p6s2",
+          "do": "Add /healthz, systemd, Caddy and a backup covering data/ entirely",
+          "commands": [
+            "tar czf /tmp/praise-$(date +%F).tgz data/"
+          ],
+          "files": [
+            "deploy/praise.service",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p6s3",
+          "do": "Write the README",
+          "detail": "The embed snippet verbatim, the statement that nothing appears until approved, and the note that avatars live outside the database and must be backed up with it.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "The honeypot silently discards while showing success",
+        "The fourth submission in an hour is refused",
+        "A restore from backup brings back both rows and images"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product path: get told about new submissions, keep the box safe, never lose an avatar.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Email yourself on each new submission",
+          "detail": "SMTP credentials in .env (Fastmail, Postmark or any provider); fire-and-forget with a timeout so a mail outage never blocks a submission."
+        },
+        {
+          "id": "p7s2",
+          "do": "Add an uptime check on /healthz and structured request logs"
+        },
+        {
+          "id": "p7s3",
+          "do": "Nightly off-box backup of data/ and one restore drill",
+          "commands": [
+            "rclone copy /tmp/praise-$(date +%F).tgz remote:praise-backups/"
+          ]
+        },
+        {
+          "id": "p7s4",
+          "do": "Firewall and unattended upgrades on the VPS"
+        }
+      ],
+      "check": [
+        "A new submission produces an email within a minute",
+        "Stopping the service triggers an alert",
+        "The restore drill brings back avatars as well as rows"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A testimonial service for one or a few sites: moderated by default, embeddable anywhere, with uploads handled the safe way and backups that include the files.",
+    "architecture": [
+      {
+        "module": "Intake",
+        "owns": "/submit, validation, honeypot, rate limit",
+        "swap": "Any handler writing the same rows"
+      },
+      {
+        "module": "Media",
+        "owns": "sharp pipeline and UPLOAD_DIR",
+        "swap": "Object storage behind the same write/read functions"
+      },
+      {
+        "module": "Moderation",
+        "owns": "/admin and the approved flag",
+        "swap": "Any UI; the flag is the contract"
+      },
+      {
+        "module": "Display",
+        "owns": "/wall, /api/wall.json, /embed.js",
+        "swap": "A React widget could replace embed.js against the same JSON"
+      }
+    ],
+    "operations": {
+      "backup": "tar of data/ (database plus avatars) nightly, off the box, thirty days kept.",
+      "restore": "Extract into a fresh checkout, start, check the wall and one avatar.",
+      "monitoring": "Uptime on /healthz; a spike in pending rows is a spam wave.",
+      "incident": "Spam wave: tighten the rate limit, bulk-reject from admin. Compromised box: rebuild, restore data/, rotate ADMIN_PASS and SMTP credentials."
+    },
+    "releaseGate": [
+      "Unapproved content never appears in any public response, verified with a fixture",
+      "Upload rejection paths verified with a fake image and an oversize file",
+      "One restore drill including avatars performed and dated",
+      "Widget verified on a different origin without style leakage"
+    ]
+  },
+  "notIncluded": [
+    "In-browser video testimonials: permissions, encoding, storage and playback are genuinely hard and a real reason their price exists.",
+    "Importing reviews from G2, Capterra or Google.",
+    "Their widget template gallery."
+  ],
+  "after": [
+    "A per-project mode so one server collects for several sites",
+    "Layout options (list, carousel) selected by a data attribute on the embed tag"
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "slug": "doppler",
+  "version": 1,
+  "summary": "Secrets management without a secrets server: sops and age encrypt env files you commit, a wrapper decrypts them into a process and never to disk, environments have different recipients so a laptop key cannot read production, CI holds one key, rotation removes a leaver, and a push command feeds one platform.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Encryption",
+      "choice": "sops with age",
+      "why": "rule zero: do not invent a scheme"
+    },
+    {
+      "part": "Wrapper",
+      "choice": "A small shell or Node script",
+      "why": "decrypt into a child process environment only"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "sops",
+      "kind": "tool",
+      "name": "sops and age",
+      "why": "The whole mechanism.",
+      "get": "brew install sops age, or the releases pages. age-keygen -o key.txt creates a key pair.",
+      "verify": "sops --version and age --version print",
+      "cost": "free",
+      "url": "https://github.com/getsops/sops"
+    },
+    {
+      "id": "keys",
+      "kind": "decision",
+      "name": "One age key per person and one for CI, and where the private keys live",
+      "why": "Recipients define who can decrypt each environment.",
+      "get": "Each person runs age-keygen; the private key goes in their password manager, the public key into .sops.yaml.",
+      "cost": "free"
+    },
+    {
+      "id": "platform",
+      "kind": "account",
+      "name": "The platform you deploy to (optional)",
+      "why": "Phase 5 pushes secrets into one platform via its CLI.",
+      "get": "Vercel, Railway or Fly CLI logged in.",
+      "cost": "free",
+      "optional": true
+    },
+    {
+      "id": "ci",
+      "kind": "account",
+      "name": "A CI with repository secrets",
+      "why": "CI holds only the age private key.",
+      "get": "GitHub Actions: Settings > Secrets and variables > Actions.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "SOPS_AGE_KEY_FILE",
+      "example": "~/.config/sops/age/keys.txt",
+      "required": true,
+      "secret": false,
+      "where": "Where sops finds your private key locally."
+    },
+    {
+      "name": "SOPS_AGE_KEY",
+      "example": "AGE-SECRET-KEY-...",
+      "required": false,
+      "secret": true,
+      "where": "The CI private key, set only in the CI secret store."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Keys and one file",
+      "goal": "An encrypted dev.env committed; plaintext never can be.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Generate keys and write .sops.yaml mapping secrets/*.env to recipients",
+          "commands": [
+            "age-keygen -o ~/.config/sops/age/keys.txt",
+            "sops --encrypt --in-place secrets/dev.env"
+          ],
+          "files": [
+            ".sops.yaml",
+            "secrets/dev.env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "A pre-commit hook refusing any unencrypted *.env"
+        }
+      ],
+      "check": [
+        "The encrypted file is committed and git log shows no plaintext",
+        "The hook blocks a plaintext .env"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Runtime",
+      "goal": "secrets run --env dev -- npm start, nothing decrypted to disk.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "The run wrapper using sops exec-env",
+          "commands": [
+            "sops exec-env secrets/dev.env 'npm start'"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Verify no decrypted file exists afterward"
+        }
+      ],
+      "check": [
+        "The app starts with its secrets",
+        "No decrypted file exists afterward"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Environments and CI",
+      "goal": "Prod excludes laptops; CI decrypts with its own key.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "staging.env and prod.env with different recipient lists"
+        },
+        {
+          "id": "p3s2",
+          "do": "A GitHub Actions job decrypting with SOPS_AGE_KEY from repository secrets"
+        }
+      ],
+      "check": [
+        "A dev key cannot decrypt prod",
+        "CI runs with its secrets and no plaintext in the workflow"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Rotation and audit",
+      "goal": "Remove a leaver; see who changed what.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "A rotate command re-encrypting every file for the current recipients",
+          "commands": [
+            "sops updatekeys secrets/*.env"
+          ]
+        },
+        {
+          "id": "p4s2",
+          "do": "A log command over git history of the secrets folder"
+        }
+      ],
+      "check": [
+        "A removed recipient cannot decrypt the new files",
+        "The log names the change"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Sync where needed",
+      "goal": "One platform fed from the encrypted file.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "A push command writing selected keys via the platform CLI"
+        },
+        {
+          "id": "p5s2",
+          "do": "README: where private keys live, what a leak means, the rotate procedure",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A change in the encrypted file reaches the platform with one command"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Team hygiene",
+      "productOnly": true,
+      "goal": "Onboarding and offboarding as procedures.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "An onboarding script adding a recipient and rotating"
+        },
+        {
+          "id": "p6s2",
+          "do": "A quarterly rotation reminder for the CI key"
+        }
+      ],
+      "check": [
+        "A new person is onboarded in five minutes",
+        "The CI key rotation is documented and tested"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Secrets with access control and history, no server to run, and a platform sync you control.",
+    "architecture": [
+      {
+        "module": "Files",
+        "owns": "encrypted env files and .sops.yaml",
+        "swap": "Infisical when you outgrow files"
+      },
+      {
+        "module": "Wrapper",
+        "owns": "exec-env",
+        "swap": "Any language"
+      },
+      {
+        "module": "Push",
+        "owns": "platform sync",
+        "swap": "One adapter per platform"
+      }
+    ],
+    "operations": {
+      "backup": "The repo; private keys in password managers.",
+      "restore": "Clone plus a private key.",
+      "monitoring": "The pre-commit hook and CI.",
+      "incident": "A leaked private key: remove the recipient, rotate, and rotate every secret it could read."
+    },
+    "releaseGate": [
+      "Dev key cannot decrypt prod",
+      "Hook blocks plaintext",
+      "Rotation verified"
+    ]
+  },
+  "notIncluded": [
+    "Dynamic secrets, sync to every platform, per-person access in a UI."
+  ],
+  "after": [
+    "Infisical self-hosted when the team outgrows files"
+  ]
+}

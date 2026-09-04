@@ -1,0 +1,275 @@
+{
+  "slug": "shots",
+  "version": 1,
+  "summary": "A screenshot beautifier as one static page: drop, paste or pick a screenshot, adjust padding, corners, shadow, background and canvas ratio with live preview, export a crisp PNG at 1x or 2x or copy it to the clipboard. Everything happens in the browser; nothing is uploaded; it works offline after the first load.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Everything",
+      "choice": "One HTML file, vanilla JS, Canvas 2D",
+      "why": "no framework, no build step, no server, no dependency to break"
+    },
+    {
+      "part": "Hosting",
+      "choice": "Any static host, or open the file",
+      "why": "there is nothing to run"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "browsers",
+      "kind": "tool",
+      "name": "A Chromium browser and Safari",
+      "why": "Clipboard image copying behaves differently in Safari; Phase 5 must be tested in both.",
+      "get": "Chrome or Edge, plus Safari if you have a Mac. Without Safari, note the clipboard code path is untested there.",
+      "cost": "free"
+    },
+    {
+      "id": "screens",
+      "kind": "asset",
+      "name": "A few screenshots to test with",
+      "why": "Including one very tall one and one wider than 4000px, to exercise ratios and performance.",
+      "get": "Take three: a normal window, a full-page tall capture, a large retina one.",
+      "cost": "free"
+    },
+    {
+      "id": "host",
+      "kind": "account",
+      "name": "A static host (optional)",
+      "why": "To share it with others. Locally, opening the file is enough.",
+      "get": "Cloudflare Pages, Netlify or GitHub Pages: connect the repo, done.",
+      "cost": "free",
+      "optional": true,
+      "url": "https://pages.cloudflare.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    }
+  ],
+  "env": [],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Image input and render loop",
+      "goal": "Three ways in, one render function, correct on HiDPI from the start.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create index.html with a canvas, a sidebar and one state object",
+          "detail": "state = { image, padding, radius, shadow, background, ratio, scale }. Every control writes to state and calls render(). Exactly one render function; two code paths drawing to the canvas is the classic bug here.",
+          "files": [
+            "index.html"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Wire drag-and-drop, paste and a file picker",
+          "detail": "paste: read clipboardData.items for an image type. All three create an Image from a Blob URL and set state.image."
+        },
+        {
+          "id": "p1s3",
+          "do": "Handle devicePixelRatio in render()",
+          "detail": "Backing store = css size times devicePixelRatio; ctx.scale once. Retrofitting this later means re-tuning every offset."
+        }
+      ],
+      "check": [
+        "All three input paths load the same image identically",
+        "The render is crisp on a HiDPI display",
+        "A 5000px-wide screenshot loads without freezing the page"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Geometry controls",
+      "goal": "Padding, radius and shadow as live sliders whose export matches the preview.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Add the three sliders",
+          "detail": "Range inputs bound to state; render on input."
+        },
+        {
+          "id": "p2s2",
+          "do": "Clip rounded corners with a real path",
+          "detail": "ctx.roundRect and clip, not a CSS overlay, or the export will not match the preview. Draw the shadow with canvas shadow properties on the clipped shape."
+        }
+      ],
+      "check": [
+        "Every slider updates the preview within one frame",
+        "Corners are genuinely transparent at the edges",
+        "The shadow follows the rounded shape, not the bounding box"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Backgrounds",
+      "goal": "Ten presets that look premium before anyone touches anything.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Add a preset picker with gradients, multi-stop meshes and solids",
+          "detail": "Plus a custom colour input and a transparent option."
+        },
+        {
+          "id": "p3s2",
+          "do": "Make the default the best one",
+          "detail": "Most users never change it."
+        }
+      ],
+      "check": [
+        "Every preset renders correctly at every ratio",
+        "The transparent option exports a PNG with a real alpha channel"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Canvas ratios",
+      "goal": "Fit without cropping or distortion.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Add the ratio selector: original, 16:9, 4:3, 1:1 and 2:1",
+          "detail": "Store it in state; a change triggers one render()."
+        },
+        {
+          "id": "p4s2",
+          "do": "Fit the image inside the padding without cropping and centre it on both axes",
+          "detail": "Compute the scale as the minimum of available width over image width and available height over image height. Never crop, never distort."
+        }
+      ],
+      "check": [
+        "Switching ratios never crops the screenshot",
+        "A very tall screenshot fits inside a 16:9 canvas",
+        "The image stays centred"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Export",
+      "goal": "Sharp PNG at 1x and 2x, and clipboard that works in both engines.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Export by rendering to an offscreen canvas at the target scale",
+          "detail": "Never upscale the preview bitmap."
+        },
+        {
+          "id": "p5s2",
+          "do": "Copy to clipboard the portable way",
+          "detail": "Pass a Promise resolving to a Blob into ClipboardItem; Safari requires the promise form and Chromium accepts it. Call navigator.clipboard.write synchronously inside the click handler."
+        }
+      ],
+      "check": [
+        "The 2x export is exactly twice the pixels and visibly sharper",
+        "The exported file matches the preview pixel for pixel in layout",
+        "Paste works in both Safari and a Chromium browser"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Polish",
+      "goal": "Shortcuts, an empty state, memory, offline.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add keyboard shortcuts, reset, and remembered settings in localStorage wrapped in try/catch"
+        },
+        {
+          "id": "p6s2",
+          "do": "Write the empty state and a visible nothing-is-uploaded note"
+        },
+        {
+          "id": "p6s3",
+          "do": "Confirm offline: no external requests at all",
+          "detail": "Open DevTools > Network, reload with Offline checked."
+        }
+      ],
+      "check": [
+        "The page works with the network disabled",
+        "A first-time user knows what to do without instructions"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Ship it as an app",
+      "productOnly": true,
+      "goal": "Only for the product path: installable, offline-first, with a privacy statement.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Add a web app manifest and a service worker that caches the one file",
+          "files": [
+            "manifest.webmanifest",
+            "sw.js"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Deploy to a static host with a custom domain and a one-line privacy note",
+          "detail": "Nothing is uploaded; there is no analytics."
+        }
+      ],
+      "check": [
+        "The site installs as an app and opens offline",
+        "The deployed page makes zero network requests after first load"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "An installable, offline screenshot tool with a defensible privacy statement: the code is the policy.",
+    "architecture": [
+      {
+        "module": "State",
+        "owns": "the single state object and render()",
+        "swap": "The whole app is this; keep it one file"
+      },
+      {
+        "module": "Inputs",
+        "owns": "drop, paste, picker",
+        "swap": "Add a share-target in the manifest later"
+      },
+      {
+        "module": "Export",
+        "owns": "offscreen rendering and clipboard",
+        "swap": "Add WebP or JPEG output here only"
+      }
+    ],
+    "operations": {
+      "backup": "The repo is the backup. There is no state anywhere else.",
+      "restore": "Redeploy from git.",
+      "monitoring": "An uptime check on the URL. Nothing else can fail.",
+      "incident": "A broken deploy is reverted with git; there is no data to lose."
+    },
+    "releaseGate": [
+      "Zero network requests after first load",
+      "Clipboard copy verified in Safari and Chromium",
+      "Installable as a PWA"
+    ]
+  },
+  "notIncluded": [
+    "A template and device-frame library. Keeping frames current is real ongoing work and a real reason to pay.",
+    "Batch processing and automatic text redaction.",
+    "Cloud sync of presets. There is no cloud here."
+  ],
+  "after": [
+    "Device frames as SVG overlays you maintain yourself",
+    "A share-target so phones can send screenshots straight in"
+  ]
+}

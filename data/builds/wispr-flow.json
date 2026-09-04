@@ -1,0 +1,399 @@
+{
+  "slug": "wispr-flow",
+  "version": 1,
+  "summary": "System-wide dictation for your Mac: hold a key to record, release to transcribe locally with whisper.cpp, run the text through a quick LLM cleanup, and insert it at the cursor in whatever app has focus. A floating pill shows it is live. Works offline with the local model; no accounts, no telemetry.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "App",
+      "choice": "Swift 6, SwiftUI, MenuBarExtra, macOS 14+",
+      "why": "global hotkeys and synthetic text insertion are native APIs"
+    },
+    {
+      "part": "Audio",
+      "choice": "AVAudioEngine",
+      "why": "microphone capture with explicit resampling to what whisper needs"
+    },
+    {
+      "part": "Transcription",
+      "choice": "whisper.cpp small.en via whisper-cli",
+      "why": "latency matters more than the last word of accuracy for dictation"
+    },
+    {
+      "part": "Cleanup",
+      "choice": "An LLM API behind an interface, optional",
+      "why": "filler words and punctuation, with the raw transcript as fallback"
+    },
+    {
+      "part": "Insertion",
+      "choice": "Pasteboard plus a synthetic Cmd-V",
+      "why": "far more reliable across apps than typing characters via CGEvent"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "mac",
+      "kind": "asset",
+      "name": "A Mac with Apple Silicon on macOS 14 or newer",
+      "why": "Local transcription latency is only acceptable on Apple Silicon.",
+      "get": "Apple menu > About This Mac.",
+      "verify": "sw_vers prints 14 or higher",
+      "cost": "the Mac you have"
+    },
+    {
+      "id": "xcode",
+      "kind": "tool",
+      "name": "Xcode 16 or newer",
+      "why": "Swift and the macOS SDK.",
+      "get": "Mac App Store; open once to install components.",
+      "verify": "xcodebuild -version prints 16 or higher",
+      "cost": "free",
+      "url": "https://apps.apple.com/app/xcode/id497799835"
+    },
+    {
+      "id": "whisper",
+      "kind": "tool",
+      "name": "whisper.cpp built, with the small.en model",
+      "why": "Dictation is judged on the wait. small.en answers a short clip in well under three seconds; medium roughly doubles it.",
+      "get": "git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp && cmake -B build && cmake --build build --config Release && ./models/download-ggml-model.sh small.en",
+      "verify": "./build/bin/whisper-cli -h prints usage and models/ggml-small.en.bin exists (about 500 MB)",
+      "cost": "free",
+      "url": "https://github.com/ggml-org/whisper.cpp"
+    },
+    {
+      "id": "llm-key",
+      "kind": "key",
+      "name": "An LLM API key for the cleanup pass (optional)",
+      "why": "Removes filler words and fixes punctuation. Without it the raw transcript is inserted, which is still useful.",
+      "get": "Anthropic: console.anthropic.com > API Keys. OpenAI: platform.openai.com/api-keys. Into .env; never in source.",
+      "cost": "pay per use; fractions of a cent per dictation",
+      "optional": true,
+      "url": "https://console.anthropic.com"
+    },
+    {
+      "id": "groq",
+      "kind": "key",
+      "name": "A Groq key for hosted transcription (optional)",
+      "why": "A faster path on slower machines. Local stays the default.",
+      "get": "console.groq.com > API Keys.",
+      "cost": "free tier available",
+      "optional": true,
+      "url": "https://console.groq.com"
+    },
+    {
+      "id": "permissions",
+      "kind": "decision",
+      "name": "Two separate permissions: Input Monitoring and Accessibility",
+      "why": "Input Monitoring lets the app observe the global hotkey; Accessibility lets it post the synthetic paste. Confusing them costs an afternoon. Each prompt appears once per launch; if dismissed, relaunch.",
+      "get": "System Settings > Privacy & Security > Input Monitoring, and > Accessibility. Add the built app to both when prompted.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "WHISPER_BIN",
+      "example": "/Users/you/whisper.cpp/build/bin/whisper-cli",
+      "required": true,
+      "secret": false,
+      "where": "Path to the binary you built."
+    },
+    {
+      "name": "WHISPER_MODEL",
+      "example": "/Users/you/whisper.cpp/models/ggml-small.en.bin",
+      "required": true,
+      "secret": false,
+      "where": "small.en for latency; medium.en if accuracy matters more."
+    },
+    {
+      "name": "HOTKEY",
+      "example": "fn",
+      "required": true,
+      "secret": false,
+      "where": "The hold-to-talk key. fn, right-option, or a key combination."
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "example": "sk-ant-...",
+      "required": false,
+      "secret": true,
+      "where": "Anthropic console. Empty disables the cleanup pass."
+    },
+    {
+      "name": "LLM_MODEL",
+      "example": "claude-haiku-4-5-20251001",
+      "required": true,
+      "secret": false,
+      "where": "A fast, cheap model is right for a cleanup pass."
+    },
+    {
+      "name": "GROQ_API_KEY",
+      "example": "gsk_...",
+      "required": false,
+      "secret": true,
+      "where": "Enables hosted transcription when TRANSCRIBE_MODE=hosted."
+    },
+    {
+      "name": "TRANSCRIBE_MODE",
+      "example": "local",
+      "required": true,
+      "secret": false,
+      "where": "local or hosted."
+    },
+    {
+      "name": "RESTORE_CLIPBOARD",
+      "example": "false",
+      "required": true,
+      "secret": false,
+      "where": "true restores your previous clipboard after inserting; false leaves the transcript on it."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Hotkey and recording",
+      "goal": "Hold to record, release to stop, with a WAV whisper accepts, plus hands-free, a hard cap and Esc to cancel.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the Xcode project with a CLI target and the app target",
+          "detail": "Prove capture in the CLI target first.",
+          "files": [
+            "Dictate.xcodeproj"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Observe the global hotkey with a CGEvent tap",
+          "detail": "Requires Input Monitoring. Detect key down and key up for HOTKEY. Detect a double-tap for hands-free."
+        },
+        {
+          "id": "p1s3",
+          "do": "Record the microphone with AVAudioEngine while held",
+          "detail": "Tap the input node; on release stop and write 16 kHz mono 16-bit PCM WAV via AVAudioConverter. Not 44.1 kHz, not float."
+        },
+        {
+          "id": "p1s4",
+          "do": "Add the 5-minute auto-stop and Esc to cancel",
+          "detail": "Observe Esc passively so it still reaches the app being typed in."
+        },
+        {
+          "id": "p1s5",
+          "do": "Verify the WAV",
+          "commands": [
+            "afinfo /tmp/clip.wav",
+            "$WHISPER_BIN -m $WHISPER_MODEL -f /tmp/clip.wav"
+          ]
+        }
+      ],
+      "check": [
+        "Hold-record-release produces a playable 16 kHz mono 16-bit WAV",
+        "Double-tap starts and stops a hands-free session",
+        "The 5-minute cap fires",
+        "Esc discards the recording and still works normally in the foreground app",
+        "Denying Input Monitoring produces a clear message naming the pane"
+      ],
+      "traps": [
+        "The permission prompt appears once per launch. If the user dismisses it, the app must be relaunched before it can ask again; detect the denied state and say so."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Transcription",
+      "goal": "Under three seconds from key release to text for a short clip, local by default.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Shell out to whisper-cli with -otxt and read the result"
+        },
+        {
+          "id": "p2s2",
+          "do": "Add the hosted path behind TRANSCRIBE_MODE with a Groq or OpenAI key"
+        },
+        {
+          "id": "p2s3",
+          "do": "Measure latency and log it",
+          "detail": "Key release to transcript, in the console, so regressions are visible."
+        }
+      ],
+      "check": [
+        "A 10-second clip transcribes accurately",
+        "Local works with Wi-Fi off",
+        "Key release to transcript is under three seconds for a short clip on small.en"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Cleanup pass",
+      "goal": "Filler removed, punctuation fixed, and never silence when the model fails.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Write the provider interface and a fixed prompt",
+          "detail": "Return only the cleaned text, no preamble. Strip a leading 'Here is' defensively."
+        },
+        {
+          "id": "p3s2",
+          "do": "Fall through to the raw transcript on any failure or missing key"
+        }
+      ],
+      "check": [
+        "'um so like send him the thing tomorrow' becomes a clean sentence",
+        "An LLM failure still inserts the raw transcript",
+        "No response arrives wrapped in quotes or an explanation"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Insertion",
+      "goal": "Text appears at the cursor in any app, with the clipboard handled the way the user chose.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Write to the pasteboard and post Cmd-V via CGEvent",
+          "detail": "Requires Accessibility: check AXIsProcessTrustedWithOptions and guide the user to the pane. Per-character CGEvent typing needs key-code mapping and breaks on layouts; the paste approach is the default."
+        },
+        {
+          "id": "p4s2",
+          "do": "Implement RESTORE_CLIPBOARD",
+          "detail": "Save the previous pasteboard contents, paste, then restore after a short delay when the flag is true."
+        }
+      ],
+      "check": [
+        "Dictation inserts correctly in TextEdit, a browser address bar, Slack and a terminal",
+        "The clipboard flag behaves in both positions",
+        "With Accessibility denied the app shows an actionable message"
+      ],
+      "traps": [
+        "Password fields refuse synthetic input by design. Say so in the README; it is not a bug to fix."
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Feedback UI",
+      "goal": "You always know whether it is listening.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Build the floating pill",
+          "detail": "A small always-on-top panel that never takes focus, showing recording, transcribing or cleaning, the mode, and a live level meter."
+        },
+        {
+          "id": "p5s2",
+          "do": "Build the menu bar item",
+          "detail": "On/off, launch at login, settings, recent transcripts."
+        }
+      ],
+      "check": [
+        "The pill appears within 100 ms of the hotkey",
+        "It never steals focus from the app being typed into",
+        "Three distinct states are visible"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Settings, offline, README",
+      "goal": "Configurable, works offline, documented.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Read settings from a JSON file and reload on change"
+        },
+        {
+          "id": "p6s2",
+          "do": "Verify the full path with the network off and no LLM key"
+        },
+        {
+          "id": "p6s3",
+          "do": "Write the README",
+          "detail": "Both permissions and their panes, the relaunch caveat, the password-field limitation, model sizes and latency.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "Works with the network off",
+        "A fresh Mac goes from clone to first dictation using only the README"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Distribute it",
+      "productOnly": true,
+      "goal": "Notarized, self-updating, with opt-in crash reports.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Sign with a Developer ID and notarize",
+          "commands": [
+            "xcrun notarytool submit Dictate.zip --keychain-profile notary --wait",
+            "xcrun stapler staple Dictate.app"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Add Sparkle with a signed appcast on your domain"
+        },
+        {
+          "id": "p7s3",
+          "do": "Add opt-in crash reporting, off by default"
+        }
+      ],
+      "check": [
+        "A notarized build opens on a second Mac without a right-click workaround",
+        "An appcast update is offered to an installed copy"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A dictation tool you could ship to others: notarized, private by default, honest about the one field type it cannot type into.",
+    "architecture": [
+      {
+        "module": "Hotkey",
+        "owns": "the CGEvent tap and modes",
+        "swap": "The only Input Monitoring code"
+      },
+      {
+        "module": "Recorder",
+        "owns": "AVAudioEngine and WAV writing",
+        "swap": "Any source producing 16 kHz mono 16-bit"
+      },
+      {
+        "module": "Transcriber",
+        "owns": "whisper-cli and hosted fallback",
+        "swap": "WhisperKit in-process"
+      },
+      {
+        "module": "Cleaner",
+        "owns": "the LLM interface and prompt",
+        "swap": "Any provider; Ollama locally"
+      },
+      {
+        "module": "Inserter",
+        "owns": "pasteboard and Cmd-V, Accessibility checks",
+        "swap": "Per-character CGEvent typing as an alternative strategy"
+      }
+    ],
+    "operations": {
+      "backup": "No state beyond settings.json and recent transcripts; both under ~/Library/Application Support. Time Machine covers it.",
+      "restore": "Reinstall; copy settings back.",
+      "monitoring": "Opt-in crash reports only.",
+      "incident": "A leaked API key is rotated at the provider; ship a release that clears stored keys."
+    },
+    "releaseGate": [
+      "Notarized build runs on a clean Mac",
+      "Offline test passes",
+      "Password-field limitation documented",
+      "One Sparkle update delivered"
+    ]
+  },
+  "notIncluded": [
+    "Their tuned auto-editing voice model and per-app tone formatting.",
+    "The mobile keyboard.",
+    "Polish on accents, noise and crosstalk where hosted models lead."
+  ],
+  "after": [
+    "Custom vocabulary passed to the cleanup prompt",
+    "Per-app cleanup styles (terse in a terminal, prose in mail)"
+  ]
+}

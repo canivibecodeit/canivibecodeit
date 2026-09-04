@@ -1,0 +1,450 @@
+{
+  "slug": "granola",
+  "version": 1,
+  "summary": "A local meeting-notes app for your Mac: a menu bar button records system audio and your microphone, whisper.cpp transcribes on your machine, an LLM turns the transcript plus your rough notes into a summary with decisions and action items, and everything lands as Markdown files in a folder you own. Nothing leaves the machine except the optional LLM call.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "App",
+      "choice": "Swift 6, SwiftUI, MenuBarExtra, macOS 14+",
+      "why": "system audio capture is a native API; wrapping it in Electron is where these projects stall"
+    },
+    {
+      "part": "Audio",
+      "choice": "ScreenCaptureKit for system audio, AVAudioEngine for the mic",
+      "why": "no virtual audio driver to install, and two separate taps you can mix"
+    },
+    {
+      "part": "Transcription",
+      "choice": "whisper.cpp via the whisper-cli binary",
+      "why": "local, free, good enough on Apple Silicon"
+    },
+    {
+      "part": "Summaries",
+      "choice": "An LLM API behind a small provider interface",
+      "why": "the one network call, swappable and optional"
+    },
+    {
+      "part": "Storage",
+      "choice": "Markdown files in ~/MeetingNotes",
+      "why": "greppable, portable, no index to corrupt"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "mac",
+      "kind": "asset",
+      "name": "A Mac with Apple Silicon running macOS 14 or newer",
+      "why": "ScreenCaptureKit audio capture needs macOS 13+, and local transcription is only pleasant on Apple Silicon.",
+      "get": "Apple menu > About This Mac. Update through System Settings > General > Software Update if below 14.",
+      "verify": "sw_vers prints ProductVersion 14 or higher",
+      "cost": "the Mac you have"
+    },
+    {
+      "id": "xcode",
+      "kind": "tool",
+      "name": "Xcode 16 or newer",
+      "why": "Swift, SwiftUI and the macOS SDK come with it. The Command Line Tools alone are not enough for a signed menu bar app.",
+      "get": "Install from the Mac App Store (it is large; start the download first). Open it once to accept the licence and install components.",
+      "verify": "xcodebuild -version prints Xcode 16 or higher",
+      "cost": "free",
+      "url": "https://apps.apple.com/app/xcode/id497799835"
+    },
+    {
+      "id": "homebrew",
+      "kind": "tool",
+      "name": "Homebrew, cmake and ffmpeg",
+      "why": "cmake builds whisper.cpp; ffmpeg is the easiest way to inspect and convert audio while you debug Phase 1.",
+      "get": "Install Homebrew from brew.sh, then: brew install cmake ffmpeg",
+      "verify": "cmake --version and ffmpeg -version both print",
+      "cost": "free",
+      "url": "https://brew.sh"
+    },
+    {
+      "id": "whisper",
+      "kind": "tool",
+      "name": "whisper.cpp built from source",
+      "why": "The whisper-cli binary is what Phase 2 shells out to.",
+      "get": "git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp && cmake -B build && cmake --build build --config Release. The binary is build/bin/whisper-cli.",
+      "verify": "./build/bin/whisper-cli -h prints usage",
+      "cost": "free",
+      "url": "https://github.com/ggml-org/whisper.cpp"
+    },
+    {
+      "id": "model",
+      "kind": "asset",
+      "name": "The medium.en whisper model (about 1.5 GB)",
+      "why": "Without a model file there is no transcription. medium.en is the quality-speed balance for English meetings.",
+      "get": "Inside the whisper.cpp folder: ./models/download-ggml-model.sh medium.en. It saves to models/ggml-medium.en.bin. Use small.en (about 500 MB) if disk or speed is tight.",
+      "verify": "ls -lh models/ggml-medium.en.bin shows about 1.5G",
+      "cost": "free, 1.5 GB of disk"
+    },
+    {
+      "id": "llm-key",
+      "kind": "key",
+      "name": "An LLM API key (OpenAI or Anthropic)",
+      "why": "Phase 3 sends the transcript to a model for the summary. Without a key the app still records and transcribes; it just skips the summary.",
+      "get": "Anthropic: console.anthropic.com > API Keys > Create Key. OpenAI: platform.openai.com/api-keys > Create new secret key. Copy it once; it is not shown again. Put it in .env, never in the source.",
+      "cost": "pay per use; a one-hour meeting summary costs a few cents",
+      "optional": true,
+      "url": "https://console.anthropic.com"
+    },
+    {
+      "id": "hosted-whisper",
+      "kind": "key",
+      "name": "A Groq or OpenAI key for hosted transcription",
+      "why": "An optional fast path when local transcription is too slow on your machine. Local stays the default.",
+      "get": "Groq: console.groq.com > API Keys. OpenAI: the same key as above works for the audio endpoint.",
+      "cost": "pay per use; Groq has a free tier",
+      "optional": true,
+      "url": "https://console.groq.com"
+    },
+    {
+      "id": "permissions",
+      "kind": "decision",
+      "name": "Screen Recording and Microphone permissions",
+      "why": "System audio arrives under the Screen Recording permission (no separate audio permission exists); the mic needs its own. Both are granted once per app build.",
+      "get": "macOS prompts on first use. If you dismiss the prompt, the app must be relaunched before it can ask again; otherwise System Settings > Privacy & Security > Screen Recording and > Microphone.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "NOTES_DIR",
+      "example": "~/MeetingNotes",
+      "required": true,
+      "secret": false,
+      "where": "Where meeting folders are written. Any folder you sync or back up."
+    },
+    {
+      "name": "WHISPER_BIN",
+      "example": "/Users/you/whisper.cpp/build/bin/whisper-cli",
+      "required": true,
+      "secret": false,
+      "where": "Path to the binary you built."
+    },
+    {
+      "name": "WHISPER_MODEL",
+      "example": "/Users/you/whisper.cpp/models/ggml-medium.en.bin",
+      "required": true,
+      "secret": false,
+      "where": "Path to the model you downloaded."
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "example": "sk-ant-...",
+      "required": false,
+      "secret": true,
+      "where": "Anthropic console. Leave empty to skip summaries."
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "example": "sk-...",
+      "required": false,
+      "secret": true,
+      "where": "OpenAI dashboard. Used for summaries if no Anthropic key, and for hosted Whisper if enabled."
+    },
+    {
+      "name": "LLM_MODEL",
+      "example": "claude-sonnet-5",
+      "required": true,
+      "secret": false,
+      "where": "Model name for summaries. Anything the provider offers."
+    },
+    {
+      "name": "GROQ_API_KEY",
+      "example": "gsk_...",
+      "required": false,
+      "secret": true,
+      "where": "console.groq.com. Enables the hosted transcription fast path."
+    },
+    {
+      "name": "TRANSCRIBE_MODE",
+      "example": "local",
+      "required": true,
+      "secret": false,
+      "where": "local or hosted. Local is the default and works offline."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Audio capture, proven as a CLI first",
+      "goal": "Before any UI exists, prove you can record system audio and the mic into a WAV that whisper-cli accepts. This is the phase that kills the project if skipped.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create an Xcode project with two targets: a command-line tool and the menu bar app",
+          "detail": "The CLI target is for this phase; the app target waits until Phase 5. Both share a Swift package with the capture code.",
+          "files": [
+            "MeetingNotes.xcodeproj",
+            "Sources/Capture/"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Capture system audio with ScreenCaptureKit",
+          "detail": "Build an SCStreamConfiguration with capturesAudio true. SCStream still requires a screen output to be added even for audio only: add one and set minimumFrameInterval to a very large value so no real frames are processed. On macOS 14.2+ you may instead use Core Audio process taps (AudioHardwareCreateProcessTap) for genuine audio-only capture; pick one and say which in a comment."
+        },
+        {
+          "id": "p1s3",
+          "do": "Capture the microphone with AVAudioEngine, separately",
+          "detail": "Do not use SCStreamConfiguration's microphone capture; it has known output-corruption reports. Tap the input node and collect buffers."
+        },
+        {
+          "id": "p1s4",
+          "do": "Mix both taps and write 16 kHz mono 16-bit PCM WAV",
+          "detail": "Resample explicitly with AVAudioConverter. Not 44.1 kHz, not float, not stereo. whisper-cli accepts 16-bit WAV only; every hour lost to this project is lost here."
+        },
+        {
+          "id": "p1s5",
+          "do": "Run the CLI for 30 seconds while music plays and you speak",
+          "commands": [
+            "swift run capture-cli --seconds 30 --out /tmp/test.wav",
+            "afinfo /tmp/test.wav",
+            "/path/to/whisper-cli -m /path/to/ggml-medium.en.bin -f /tmp/test.wav"
+          ]
+        }
+      ],
+      "check": [
+        "afinfo reports 16000 Hz, 1 channel, 16-bit for the WAV",
+        "Playing the WAV back you hear both the music and your voice",
+        "whisper-cli accepts the file without a format error and prints text",
+        "Denying Screen Recording produces a clear error naming the System Settings pane, not a silent empty file"
+      ],
+      "traps": [
+        "Do not tell the user to install BlackHole or Loopback. ScreenCaptureKit delivers system audio under the screen-recording grant with no driver.",
+        "The permission prompt appears once per launch. If it is dismissed the app must be relaunched; detect the denied state and say so."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Transcription",
+      "goal": "A transcript from a WAV, local by default, with progress you can see and a hosted fast path when a key exists.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Shell out to whisper-cli with -otxt",
+          "detail": "Process with WHISPER_BIN, WHISPER_MODEL and the audio path. Read the .txt it writes. Capture stderr for progress lines.",
+          "commands": [
+            "whisper-cli -m $WHISPER_MODEL -f audio.wav -otxt -of transcript"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Report progress",
+          "detail": "A 45-minute meeting on the medium model is minutes of CPU. Parse whisper's progress output into a percentage; a UI that looks frozen will be assumed broken."
+        },
+        {
+          "id": "p2s3",
+          "do": "Add the hosted path behind TRANSCRIBE_MODE",
+          "detail": "When hosted and a Groq or OpenAI key exists, post the WAV to the Whisper endpoint. Local remains the default: the recording should not leave the machine unless asked."
+        },
+        {
+          "id": "p2s4",
+          "do": "Make it resumable",
+          "detail": "Write the transcript to a temp name and rename on completion. Killing the app mid-transcription must leave the audio intact and no half-written transcript."
+        }
+      ],
+      "check": [
+        "A 5-minute recording produces a transcript whose first and last sentences are recognisably correct",
+        "Progress moves during transcription",
+        "Killing the app mid-transcription leaves audio.wav intact and no transcript.txt",
+        "With TRANSCRIBE_MODE=hosted and a key, the same file transcribes via the API"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Summarization",
+      "goal": "A fixed prompt turns the transcript and your jotted notes into a 5-bullet summary, decisions and action items with owners, and long meetings are chunked rather than truncated.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Write the provider interface and one implementation",
+          "detail": "summarize(transcript, notes) returning structured text. Anthropic first; OpenAI as a second implementation selected by which key exists."
+        },
+        {
+          "id": "p3s2",
+          "do": "Chunk transcripts that exceed the context window",
+          "detail": "Split on paragraph boundaries into chunks under the model's limit, summarize each, then summarize the summaries. Never silently truncate: that produces confident notes about the first third of a meeting."
+        },
+        {
+          "id": "p3s3",
+          "do": "Pass the user's rough notes alongside the transcript",
+          "detail": "This is the actual Granola idea: your jottings steer what the summary emphasises."
+        }
+      ],
+      "check": [
+        "A transcript with three clear decisions and two assigned tasks yields notes naming all five",
+        "A 90-minute transcript summarizes without an API error",
+        "With no key present the step is skipped with a clear note in the output, not an error"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Notes on disk",
+      "goal": "One folder per meeting, plain Markdown with frontmatter, never overwriting.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Write NOTES_DIR/YYYY-MM-DD-HHMM-<slug>/ with audio.wav, transcript.txt and notes.md",
+          "detail": "notes.md: YAML frontmatter (title, date, duration, participants, model), the summary, a divider, then the full transcript."
+        },
+        {
+          "id": "p4s2",
+          "do": "Derive the title from the summary and never overwrite",
+          "detail": "If the folder exists, suffix a counter. Two meetings in the same minute must produce two folders."
+        }
+      ],
+      "check": [
+        "Two meetings started in the same minute produce two folders",
+        "notes.md opens correctly in a plain Markdown editor with no app running",
+        "The audio file is kept next to the notes"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Menu bar app",
+      "goal": "Start and stop from the menu bar, jot notes while recording, see recent meetings, and get told exactly what to do when a permission is missing.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Build the MenuBarExtra with Start/Stop and elapsed time",
+          "detail": "A recording indicator that is unmistakable. Wire the capture code from Phase 1."
+        },
+        {
+          "id": "p5s2",
+          "do": "Add the live jot-notes field",
+          "detail": "Text typed during the meeting is passed to the summarizer in Phase 3."
+        },
+        {
+          "id": "p5s3",
+          "do": "List recent meetings with Reveal in Finder",
+          "detail": "Read NOTES_DIR; newest first."
+        },
+        {
+          "id": "p5s4",
+          "do": "Handle permissions explicitly",
+          "detail": "If Screen Recording or Microphone is denied, show which System Settings pane to open and the relaunch caveat, instead of failing silently."
+        }
+      ],
+      "check": [
+        "A full meeting runs start to notes without touching a terminal",
+        "First launch on a machine that has never granted permission explains itself",
+        "The jotted notes visibly influence the summary"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Offline, packaging, README",
+      "goal": "Works with the network off when the model is present, signed for your own machine, documented.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Test with Wi-Fi off and no LLM key",
+          "detail": "Transcript saved; summary skipped with an honest note in notes.md."
+        },
+        {
+          "id": "p6s2",
+          "do": "Sign locally and document the Gatekeeper first-run step",
+          "detail": "Sign with your development certificate for your own use. Right-click > Open the first time."
+        },
+        {
+          "id": "p6s3",
+          "do": "Write the README",
+          "detail": "Permissions and where to grant them, model download size, disk cost per hour of audio, and a plain warning that recording a meeting can require consent from everyone in it depending on where they are.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "Airplane mode produces a complete transcript and a note saying the summary was skipped",
+        "A fresh Mac goes from clone to first recording using only the README"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Distribute it",
+      "productOnly": true,
+      "goal": "Only for the product path: an app other people can install without terrifying Gatekeeper dialogs, that updates itself, and that tells you when it crashes.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Join the Apple Developer Program and sign with a Developer ID",
+          "detail": "Required to notarize. Xcode > Signing & Capabilities with the Developer ID Application certificate.",
+          "commands": [
+            "xcrun notarytool submit MeetingNotes.zip --keychain-profile notary --wait",
+            "xcrun stapler staple MeetingNotes.app"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Add Sparkle for updates",
+          "detail": "Host an appcast XML on your domain; sign updates with the EdDSA key Sparkle generates."
+        },
+        {
+          "id": "p7s3",
+          "do": "Add opt-in crash reporting",
+          "detail": "A local crash log the user can send you, or Sentry's macOS SDK behind an explicit opt-in toggle. Never on by default for a privacy-first app."
+        }
+      ],
+      "check": [
+        "A notarized build opens on a second Mac with no right-click workaround",
+        "Publishing a new appcast entry makes the installed app offer the update",
+        "A deliberate crash produces a report only when the toggle is on"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A privacy-first meeting notes app you could hand to colleagues: notarized, self-updating, local by default, with a clear consent posture.",
+    "architecture": [
+      {
+        "module": "Capture",
+        "owns": "ScreenCaptureKit and AVAudioEngine taps, mixing, WAV writing",
+        "swap": "Core Audio process taps on 14.2+, or any source producing 16 kHz mono 16-bit WAV"
+      },
+      {
+        "module": "Transcriber",
+        "owns": "whisper-cli invocation, progress, hosted fallback",
+        "swap": "WhisperKit in-process, or any engine writing the same transcript.txt"
+      },
+      {
+        "module": "Summarizer",
+        "owns": "the provider interface, chunking, the fixed prompt",
+        "swap": "Any LLM provider; local models via Ollama behind the same interface"
+      },
+      {
+        "module": "Vault",
+        "owns": "the meeting folder layout and frontmatter",
+        "swap": "Obsidian-compatible folder; a sync tool sits outside the app"
+      },
+      {
+        "module": "Shell",
+        "owns": "MenuBarExtra UI and permissions guidance",
+        "swap": "The only SwiftUI code; everything else is a package"
+      }
+    ],
+    "operations": {
+      "backup": "NOTES_DIR is plain files: point Time Machine, iCloud Drive or Syncthing at it. The app holds no other state.",
+      "restore": "Copy the folder back. The recent-meetings list is derived from the folder, so there is nothing else to restore.",
+      "monitoring": "For a distributed app: opt-in crash reports and an update-check success rate from the appcast host's logs.",
+      "incident": "If an API key is leaked, rotate it at the provider and ship a release that clears the stored key. If a transcription bug corrupts notes, the audio.wav next to each note allows regeneration."
+    },
+    "releaseGate": [
+      "A notarized build installs and records on a Mac that has never had the developer tools",
+      "Airplane-mode test passes",
+      "The consent warning is in the README and the first-run screen",
+      "One update delivered through Sparkle to a real install"
+    ]
+  },
+  "notIncluded": [
+    "Sync across devices and a mobile app. That is most of the subscription.",
+    "Automatic calendar joining and bot attendees.",
+    "Someone else's servers and support when a recording is lost."
+  ],
+  "after": [
+    "Speaker diarization with a local model so action items get real owners",
+    "Ollama as a local summarizer behind the same provider interface for a fully offline pipeline"
+  ]
+}

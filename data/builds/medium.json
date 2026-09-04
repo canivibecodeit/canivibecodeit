@@ -1,0 +1,274 @@
+{
+  "slug": "medium",
+  "version": 1,
+  "summary": "Not a Medium clone: the readership is the product and no code produces it. This is the consolation done right: your archive imported to your own domain, a typographic reading experience, syndication to Medium with canonical pointing home so the audience still finds you, and a reader list you own.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Framework",
+      "choice": "Astro, static, Markdown collections",
+      "why": "validated content, zero client JavaScript"
+    },
+    {
+      "part": "Hosting",
+      "choice": "Any static host on your domain",
+      "why": "nothing to run"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "export",
+      "kind": "asset",
+      "name": "Your Medium export",
+      "why": "Phase 1 imports every past post with its date.",
+      "get": "Medium > Settings > Security and apps > Download your information. You receive a zip of HTML files by email.",
+      "cost": "free"
+    },
+    {
+      "id": "host",
+      "kind": "account",
+      "name": "A static host connected to the repo",
+      "why": "Deploy on push.",
+      "get": "Cloudflare Pages or Netlify.",
+      "cost": "free",
+      "url": "https://pages.cloudflare.com"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "Your archive at your address.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "medium-token",
+      "kind": "key",
+      "name": "A Medium integration token (optional)",
+      "why": "Phase 3 syndicates with canonical set. Medium's API is limited; the import-a-story tool is the fallback.",
+      "get": "Medium > Settings > Security and apps > Integration tokens. If unavailable, use medium.com/p/import with your post URL.",
+      "cost": "free",
+      "optional": true
+    }
+  ],
+  "env": [
+    {
+      "name": "SITE_URL",
+      "example": "https://yourname.com",
+      "required": true,
+      "secret": false,
+      "where": "Canonical base."
+    },
+    {
+      "name": "MEDIUM_TOKEN",
+      "example": "...",
+      "required": false,
+      "secret": true,
+      "where": "Integration token for syndication. Empty means use the import tool by hand."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Your archive",
+      "goal": "Every past post on your domain with its original date.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the Astro project and a posts collection with validated frontmatter",
+          "commands": [
+            "npm create astro@latest archive -- --template minimal --typescript strict --install --git"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Convert the export's HTML to Markdown with original dates and canonical fields",
+          "commands": [
+            "npm install turndown@7",
+            "node scripts/import-medium.mjs ~/Downloads/medium-export/posts"
+          ]
+        },
+        {
+          "id": "p1s3",
+          "do": "Add index, tag pages, RSS with full content and a sitemap"
+        }
+      ],
+      "check": [
+        "Every past post renders with its original date",
+        "The feed validates"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Reading experience",
+      "goal": "Typography worth reading, zero client JavaScript.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Layout with a measured line length, dark mode, reading time, heading anchors"
+        },
+        {
+          "id": "p2s2",
+          "do": "Run Lighthouse and fix what it names"
+        }
+      ],
+      "check": [
+        "Lighthouse 100 on Performance and Accessibility"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Syndication with canonical",
+      "goal": "Publish here first, mirror to Medium with canonical home.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Write scripts/syndicate.mjs using the integration token with canonicalUrl, or document the import tool",
+          "detail": "The reverse order leaves Medium canonical; do not do it."
+        },
+        {
+          "id": "p3s2",
+          "do": "Mirror one post and verify canonical in the page source on Medium"
+        }
+      ],
+      "check": [
+        "A post published on your domain appears on Medium with canonical pointing home"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Readers you own",
+      "goal": "A signup list stored locally, exported into a sender when ready.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "One small Node endpoint with honeypot and rate limit storing to SQLite"
+        },
+        {
+          "id": "p4s2",
+          "do": "A form on every post and a CSV export"
+        }
+      ],
+      "check": [
+        "A signup stores once",
+        "The export opens cleanly"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Deploy",
+      "goal": "Live on your domain, documented.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Connect host and domain"
+        },
+        {
+          "id": "p5s2",
+          "do": "README: publish-here-first rule, the import path, the signup export",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A new post is live and mirrored",
+        "The README states the canonical rule"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate the signup endpoint",
+      "productOnly": true,
+      "goal": "Monitor and back up the one server you run.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "/healthz, uptime check, structured logs"
+        },
+        {
+          "id": "p6s2",
+          "do": "Nightly backup off the box and one restore"
+        }
+      ],
+      "check": [
+        "An alert fires when the endpoint stops",
+        "A restore contains yesterday's signups"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "An archive that outlives any platform, with the audience rented by canonical syndication rather than owned by Medium.",
+    "architecture": [
+      {
+        "module": "Archive",
+        "owns": "posts and the import script",
+        "swap": "Any Markdown source"
+      },
+      {
+        "module": "Site",
+        "owns": "Astro layouts and feeds",
+        "swap": "Another generator"
+      },
+      {
+        "module": "Syndicate",
+        "owns": "the canonical rule and script",
+        "swap": "Add other platforms with the same rule"
+      },
+      {
+        "module": "Signup",
+        "owns": "the endpoint",
+        "swap": "A hosted form"
+      }
+    ],
+    "operations": {
+      "backup": "The repo; the signup database nightly.",
+      "restore": "Redeploy; copy the database.",
+      "monitoring": "Uptime on both.",
+      "incident": "Revert with git."
+    },
+    "releaseGate": [
+      "Canonical verified on Medium",
+      "Lighthouse 100",
+      "One restore of the signup database"
+    ]
+  },
+  "notIncluded": [
+    "The recommendation feed, claps, publications, Partner Program earnings: that is the network."
+  ],
+  "after": [
+    "Syndicate to Substack Notes or dev.to with the same rule"
+  ]
+}

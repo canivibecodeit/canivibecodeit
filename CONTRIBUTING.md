@@ -252,6 +252,61 @@ Rules for the phases themselves:
 - **`Out of scope (and why)`** carries the honesty: not just what is missing, but
   what the vendor's price is actually buying.
 
+## Build kits
+
+A build kit is the beginner-friendly, per-app development guide behind two
+surfaces: the project pack on the verdict page (real per-project Markdown files
+instead of the generic templates) and the step-by-step tracker at `/<slug>/build`.
+One file per app in `data/builds/<slug>.json`; apps without one keep the generic
+pack and the phases parsed from the prompt. `npm run validate` checks every kit.
+
+```jsonc
+{
+  "slug": "carrd", "version": 1,          // bump version when steps change materially
+  "summary": "What you have when every item is ticked.",
+  "time": "one sitting",                    // one sitting | weekend | multi-day
+  "stack": [{ "part": "Runtime", "choice": "Node 22", "why": "..." }],
+  "prerequisites": [{                       // everything to have BEFORE step 1
+    "id": "node", "kind": "tool",           // tool | account | key | asset | decision
+    "name": "Node.js 22 or newer",
+    "why": "what breaks without it",
+    "get": "exactly where and how, for a beginner",
+    "verify": "node --version prints v22+",  // optional
+    "cost": "free",                          // "free" is an answer; API keys say what they cost
+    "optional": false, "url": "https://nodejs.org"
+  }],
+  "env": [{ "name": "PORT", "example": "3000", "required": true, "secret": false, "where": "where the value comes from" }],
+  "phases": [{
+    "id": "p1", "title": "Build pipeline", "goal": "one paragraph",
+    "productOnly": false,                    // true = product-builder mode only
+    "steps": [{ "id": "p1s1", "do": "...", "detail": "...", "commands": ["..."], "files": ["..."], "snippet": "..." }],
+    "check": ["falsifiable, one per line"],   // rendered as tickable items
+    "traps": ["the detail that wastes an afternoon"]
+  }],
+  "product": {                               // product-builder extras
+    "outcome": "...", "architecture": [{ "module": "...", "owns": "...", "swap": "..." }],
+    "operations": { "backup": "...", "restore": "...", "monitoring": "...", "incident": "..." },
+    "releaseGate": ["..."]
+  },
+  "notIncluded": ["what this does not replace, and why"],
+  "after": ["ideas once v1 works"]           // optional
+}
+```
+
+Rules the validator enforces, and why:
+
+- **Every prerequisite says how to get it and what it costs.** The point of the
+  kit is that a beginner is never stuck before step one. "An API key" is not a
+  prerequisite; "Stripe test-mode secret key from dashboard.stripe.com >
+  Developers > API keys, free in test mode" is.
+- **Every phase has at least two steps and at least one check.** One step is not
+  a phase, and a check that cannot fail is a wish.
+- **Ids are stable.** Progress in the tracker is saved against them, so renaming
+  an id resets a visitor's ticks; bumping `version` does that deliberately.
+- **At least one phase is available in indie mode.** `productOnly` phases carry
+  the operations and distribution work a solo builder can skip.
+- **No em dashes**, same as everywhere else on the site.
+
 ## House rules
 
 - Verdicts are editorial and honest — sponsorships never buy verdicts, and vote counts

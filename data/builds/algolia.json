@@ -1,0 +1,307 @@
+{
+  "slug": "algolia",
+  "version": 1,
+  "summary": "Instant, typo-tolerant search over your own content without writing a search engine: Meilisearch on a small box behind Caddy, an idempotent indexing script, a search-only key for the browser, and a search box under 5 KB that works without JavaScript too.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Engine",
+      "choice": "Meilisearch",
+      "why": "rule zero: do not write a search engine"
+    },
+    {
+      "part": "Indexer",
+      "choice": "A Node script",
+      "why": "your content to documents, idempotently"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS with a few GB of RAM behind Caddy",
+      "why": "the index lives in memory"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A VPS with 4 GB of RAM",
+      "why": "Meilisearch holds the index in memory.",
+      "get": "Hetzner CX22 or similar, Ubuntu 24.04.",
+      "cost": "about $6 to $12 a month",
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "meili",
+      "kind": "tool",
+      "name": "Meilisearch",
+      "why": "The engine.",
+      "get": "curl -L https://install.meilisearch.com | sh, or the Docker image getmeili/meilisearch.",
+      "verify": "meilisearch --version prints",
+      "cost": "free",
+      "url": "https://www.meilisearch.com/docs/learn/getting_started/installation"
+    },
+    {
+      "id": "content",
+      "kind": "asset",
+      "name": "Your content as files, JSON or a database",
+      "why": "The indexer reads it.",
+      "get": "Markdown files, a JSON export, or a database connection string.",
+      "cost": "free"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "search.yourdomain.com for the API.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "MEILI_MASTER_KEY",
+      "example": "long-random",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -base64 32; admin key, server-side only."
+    },
+    {
+      "name": "MEILI_URL",
+      "example": "https://search.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public API address behind Caddy."
+    },
+    {
+      "name": "MEILI_SEARCH_KEY",
+      "example": "...",
+      "required": false,
+      "secret": false,
+      "where": "Generated in Phase 3; safe for the browser."
+    },
+    {
+      "name": "CONTENT_DIR",
+      "example": "./content",
+      "required": true,
+      "secret": false,
+      "where": "Where the indexer reads from."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Run it",
+      "goal": "Meilisearch bound to localhost with a master key, Caddy in front.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Install and run with MEILI_MASTER_KEY, bound to 127.0.0.1:7700",
+          "commands": [
+            "meilisearch --master-key $MEILI_MASTER_KEY --http-addr 127.0.0.1:7700"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Caddyfile with reverse_proxy and TLS",
+          "files": [
+            "Caddyfile"
+          ]
+        }
+      ],
+      "check": [
+        "The health endpoint answers over HTTPS",
+        "The master key is required for admin calls"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Index",
+      "goal": "Documents with id, title, url, body and tags; idempotent.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Write index.mjs reading CONTENT_DIR into documents and setting searchable and displayed attributes",
+          "commands": [
+            "mkdir search-index && cd search-index && git init && npm init -y && npm pkg set type=module && npm install meilisearch@0.4",
+            "mkdir -p content && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Make it idempotent on a content hash; delete removed documents"
+        }
+      ],
+      "check": [
+        "Re-running adds nothing",
+        "A changed document updates",
+        "A deleted one disappears"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Keys",
+      "goal": "A search-only key for the browser; the master key never leaves the server.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Create a search-only API key scoped to the index"
+        },
+        {
+          "id": "p3s2",
+          "do": "Put it in the page; verify it cannot write"
+        }
+      ],
+      "check": [
+        "The browser key can search",
+        "It cannot add documents"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "The box",
+      "goal": "Results as you type, highlighted, keyboard-driven, under 5 KB, degrades to a form.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Vanilla-JS search box with debounce and highlighting"
+        },
+        {
+          "id": "p4s2",
+          "do": "A server-rendered /search?q= fallback for JavaScript off"
+        }
+      ],
+      "check": [
+        "A typo still finds the right result",
+        "Fully keyboard operable",
+        "Under 5 KB of JavaScript"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Operate",
+      "goal": "Service, snapshots, reindex on deploy.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "systemd unit, nightly snapshot, reindex step in your deploy"
+        },
+        {
+          "id": "p5s2",
+          "do": "README: the key model in two sentences and how to reindex",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A restore from snapshot searches correctly"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Relevance tuning",
+      "productOnly": true,
+      "goal": "Synonyms, ranking rules, and a way to measure.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Configure synonyms and ranking rules for your domain"
+        },
+        {
+          "id": "p6s2",
+          "do": "Log queries with zero results and review them weekly"
+        }
+      ],
+      "check": [
+        "Top zero-result queries are visible",
+        "A synonym fixes one of them"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Search you operate with a relevance loop, at a fraction of the hosted price, with the edge stated as the thing you gave up.",
+    "architecture": [
+      {
+        "module": "Engine",
+        "owns": "Meilisearch",
+        "swap": "Typesense with the same document shape"
+      },
+      {
+        "module": "Indexer",
+        "owns": "content to documents",
+        "swap": "Any source"
+      },
+      {
+        "module": "Keys",
+        "owns": "master vs search-only",
+        "swap": "Tenant tokens later"
+      },
+      {
+        "module": "Box",
+        "owns": "the UI",
+        "swap": "Any client"
+      }
+    ],
+    "operations": {
+      "backup": "Nightly snapshots; the index is rebuildable from content.",
+      "restore": "Load the snapshot or reindex.",
+      "monitoring": "Uptime on health; zero-result rate.",
+      "incident": "A leaked master key: rotate and regenerate search keys."
+    },
+    "releaseGate": [
+      "Search-only key verified read-only",
+      "Reindex idempotence verified",
+      "Snapshot restore verified"
+    ]
+  },
+  "notIncluded": [
+    "Merchandising rules, AI ranking, the global edge: commerce money."
+  ],
+  "after": [
+    "Faceted filters",
+    "Multi-index federated search"
+  ]
+}

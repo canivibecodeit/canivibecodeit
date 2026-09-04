@@ -1,0 +1,294 @@
+{
+  "slug": "placid",
+  "version": 1,
+  "summary": "A template-to-image service with a spreadsheet mindset: templates as code, batch rendering from CSV, and a signed HTTP endpoint with a cache. The same engine as the Bannerbear build, plus the CSV step Placid users think in.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Rendering",
+      "choice": "satori, @resvg/resvg-js, sharp",
+      "why": "no headless browser"
+    },
+    {
+      "part": "Runtime",
+      "choice": "Node 22",
+      "why": "a CLI and one endpoint"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "fonts",
+      "kind": "asset",
+      "name": "Font files for your templates",
+      "why": "satori needs files.",
+      "get": "Google Fonts, committed to the repo.",
+      "cost": "free",
+      "url": "https://fonts.google.com"
+    },
+    {
+      "id": "csv",
+      "kind": "asset",
+      "name": "A CSV of rows to render",
+      "why": "Phase 2 renders one image per row.",
+      "get": "Export from your spreadsheet: one column per template field plus a name column.",
+      "cost": "free"
+    },
+    {
+      "id": "sign-key",
+      "kind": "decision",
+      "name": "An HMAC signing key",
+      "why": "For the endpoint.",
+      "get": "openssl rand -hex 32.",
+      "cost": "free"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port."
+    },
+    {
+      "name": "SIGN_KEY",
+      "example": "hex",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32."
+    },
+    {
+      "name": "CACHE_DIR",
+      "example": "./renders",
+      "required": true,
+      "secret": false,
+      "where": "Cache."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "One template, one image",
+      "goal": "A crisp card from a satori tree.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Install and write templates/card.mjs",
+          "commands": [
+            "mkdir placid-diy && cd placid-diy && git init && npm init -y && npm pkg set type=module && npm install satori@0.29.0 @resvg/resvg-js@2.6.2 sharp@0.35.3 csv-parse@5",
+            "mkdir -p templates renders fonts && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "A CLI rendering one with params"
+        }
+      ],
+      "check": [
+        "A 1200x630 card renders crisp"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Batch from CSV",
+      "goal": "One image per row, named by a column, resumable.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "render --template card --csv rows.csv writing to out/"
+        },
+        {
+          "id": "p2s2",
+          "do": "Skip rows already rendered by hash; a progress line"
+        }
+      ],
+      "check": [
+        "200 rows render with progress",
+        "A rerun does nothing"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "The endpoint",
+      "goal": "Signed, cached, validated.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "GET /img/:template with HMAC and schema validation"
+        },
+        {
+          "id": "p3s2",
+          "do": "Cache by hash"
+        }
+      ],
+      "check": [
+        "A tampered URL is refused",
+        "A repeat is served from cache"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Formats",
+      "goal": "JPEG, WebP, sizes, three templates.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Format and size parameters"
+        },
+        {
+          "id": "p4s2",
+          "do": "Two more templates"
+        }
+      ],
+      "check": [
+        "Each renders at two sizes in each format"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Operate",
+      "goal": "Eviction, healthz, README.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Cache eviction, /healthz, systemd"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with the CSV command and signing",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A new template is live from the README"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the renderer is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Creative automation for your own campaigns at zero per-image cost.",
+    "architecture": [
+      {
+        "module": "Templates",
+        "owns": "code modules",
+        "swap": "JSON templates later"
+      },
+      {
+        "module": "Batch",
+        "owns": "CSV rendering",
+        "swap": "A spreadsheet API source"
+      },
+      {
+        "module": "Edge",
+        "owns": "signing and cache",
+        "swap": "A CDN"
+      }
+    ],
+    "operations": {
+      "backup": "Templates in git.",
+      "restore": "Redeploy.",
+      "monitoring": "Uptime.",
+      "incident": "Rotate SIGN_KEY."
+    },
+    "releaseGate": [
+      "Signing verified",
+      "Batch resumability verified"
+    ]
+  },
+  "notIncluded": [
+    "The editor, video, the integrations catalogue."
+  ],
+  "after": [
+    "A Google Sheets source",
+    "A preview page per template"
+  ]
+}

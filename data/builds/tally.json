@@ -1,0 +1,461 @@
+{
+  "slug": "tally",
+  "version": 1,
+  "summary": "A personal form builder on your own server: create forms and fields in an admin, publish each at a public URL that works without JavaScript, store answers in SQLite with file uploads on disk, get an email or webhook per response, and export CSV. Your respondents' data stays in your file.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22 with Express and better-sqlite3",
+      "why": "many routes and forms; a thin framework earns its place here"
+    },
+    {
+      "part": "Rendering",
+      "choice": "Server-rendered HTML, no client framework",
+      "why": "public forms must submit with JavaScript disabled"
+    },
+    {
+      "part": "Uploads",
+      "choice": "Disk under uploads/<form-slug>/",
+      "why": "one server, one disk, simple backups"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS behind Caddy",
+      "why": "uploads need persistent disk"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "admin-token",
+      "kind": "decision",
+      "name": "One long random admin token",
+      "why": "The admin is protected by a single token, no user accounts.",
+      "get": "openssl rand -base64 32 into .env as ADMIN_TOKEN. Store it in your password manager.",
+      "cost": "free"
+    },
+    {
+      "id": "smtp",
+      "kind": "key",
+      "name": "SMTP credentials for response notifications (optional)",
+      "why": "Phase 7 emails you each response. Any SMTP provider works; without one, use the webhook or just read the admin.",
+      "get": "Fastmail, Postmark, Resend or your mail host: create an app password or SMTP credential, note host, port, user, password.",
+      "cost": "free tiers exist",
+      "optional": true
+    },
+    {
+      "id": "webhook-target",
+      "kind": "asset",
+      "name": "A webhook URL to receive responses (optional)",
+      "why": "The other notification path: a Zapier or Make hook, or webhook.site while testing.",
+      "get": "Create one at webhook.site to test with; replace with the real target later.",
+      "cost": "free",
+      "optional": true,
+      "url": "https://webhook.site"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. Uploads need disk that persists across deploys.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "A public address you own, so links you share never break when a provider changes.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/forms.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "UPLOAD_DIR",
+      "example": "./data/uploads",
+      "required": true,
+      "secret": false,
+      "where": "Where files land, per form slug."
+    },
+    {
+      "name": "ADMIN_TOKEN",
+      "example": "base64-from-openssl",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -base64 32. The only admin credential."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://forms.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL."
+    },
+    {
+      "name": "SMTP_URL",
+      "example": "smtps://user:pass@smtp.fastmail.com:465",
+      "required": false,
+      "secret": true,
+      "where": "SMTP connection string from your provider."
+    },
+    {
+      "name": "NOTIFY_FROM",
+      "example": "forms@yourdomain.com",
+      "required": false,
+      "secret": false,
+      "where": "From address for notifications."
+    },
+    {
+      "name": "MAX_UPLOAD_MB",
+      "example": "10",
+      "required": false,
+      "secret": false,
+      "where": "Per-file cap, enforced while streaming."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Form definition and admin auth",
+      "goal": "An admin you can log into with the token, and forms you can create.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the tables",
+          "detail": "forms (id, slug, title, description, accent, published, notify_email, webhook_url), fields (id, form_id, position, kind, label, help, required, options JSON, deleted), responses (id, form_id, submitted_at, ip_hash, user_agent_class), answers (id, response_id, field_id, value, file_path).",
+          "commands": [
+            "mkdir forms && cd forms && git init && npm init -y && npm pkg set type=module",
+            "npm install express@4 better-sqlite3@13",
+            "mkdir -p data/uploads && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Implement token login",
+          "detail": "POST the token; compare with a constant-time function; set an HttpOnly cookie. Never accept the token in a URL."
+        },
+        {
+          "id": "p1s3",
+          "do": "Build form CRUD in /admin"
+        }
+      ],
+      "check": [
+        "A wrong token is refused",
+        "A right one persists across a page load as a cookie",
+        "The token never appears in a URL or a log line",
+        "A form can be created, renamed and deleted"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Field editor",
+      "goal": "Every field kind, reorderable, soft-deleted so old responses keep rendering.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Add, edit and soft-delete fields with up/down buttons for order",
+          "detail": "Kinds: text, textarea, email, select, checkbox, file. Explicit buttons work on mobile and are testable; drag can come later."
+        },
+        {
+          "id": "p2s2",
+          "do": "Store select options as JSON and validate them on save",
+          "detail": "At least one option, no duplicates, trimmed."
+        }
+      ],
+      "check": [
+        "A form with one of every kind saves and reloads identically",
+        "Reordering persists",
+        "A soft-deleted field disappears from the public form but still shows in past responses"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Public form rendering",
+      "goal": "Accessible, single column, works without JavaScript, unpublished forms 404.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Build GET /f/:slug",
+          "detail": "Labels with for attributes, one question per block, single column, mobile-first. Unpublished forms return 404."
+        },
+        {
+          "id": "p3s2",
+          "do": "Add the accent custom property, dark mode and a designed thank-you page",
+          "detail": "prefers-color-scheme with the same custom properties overridden."
+        }
+      ],
+      "check": [
+        "No accessibility violations",
+        "Every field keyboard reachable with a focus ring",
+        "Submitting with JavaScript disabled works",
+        "An unpublished slug returns 404"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Submission and validation",
+      "goal": "Validate on the server against the stored definitions and never lose what someone typed.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Implement POST /f/:slug with server-side validation against the stored fields",
+          "detail": "Required, email shape, select values drawn from the stored options, length caps. Never trust the client copy of the rules."
+        },
+        {
+          "id": "p4s2",
+          "do": "Preserve every typed value on a validation error",
+          "detail": "Re-render with inline errors and the answers intact; losing a long answer is the worst thing this app can do."
+        },
+        {
+          "id": "p4s3",
+          "do": "Store one answers row per field with the field_id",
+          "detail": "So a renamed or soft-deleted field still renders in past responses."
+        }
+      ],
+      "check": [
+        "A valid submission stores one response with one answer per field",
+        "An invalid one re-renders with every typed value intact",
+        "A forged select value outside the stored options is rejected"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "File uploads",
+      "goal": "Safe uploads: streamed, capped, sniffed, stripped.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Stream multipart to UPLOAD_DIR/<slug>/ under a generated name",
+          "detail": "Cap at MAX_UPLOAD_MB while streaming; check MIME against the decoded header; strip EXIF from images with sharp.",
+          "commands": [
+            "npm install busboy@1 sharp@0.35.3"
+          ]
+        },
+        {
+          "id": "p5s2",
+          "do": "Never serve UPLOAD_DIR directly; serve via an admin-only route"
+        }
+      ],
+      "check": [
+        "An oversize file is refused before it is fully read",
+        "A .php renamed to .png is refused",
+        "Two uploads with the same original name coexist",
+        "Uploads are not reachable without admin auth"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Spam controls",
+      "goal": "Honeypot, minimum fill time, per-IP limits in SQLite.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a CSS-hidden honeypot and a signed minimum-fill timestamp requiring 3 seconds"
+        },
+        {
+          "id": "p6s2",
+          "do": "Rate limit 10 submissions per IP per hour in a SQLite table",
+          "detail": "Survives restarts, unlike memory."
+        }
+      ],
+      "check": [
+        "A filled honeypot shows thanks and stores nothing",
+        "A sub-3-second submission is refused",
+        "The eleventh in an hour is refused while another IP succeeds"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Notifications and export",
+      "goal": "Email and webhook that can never make a respondent wait, and a streamed CSV.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Send email over SMTP_URL and POST the webhook, fire-and-forget with a timeout",
+          "commands": [
+            "npm install nodemailer@6"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Build the admin response table and streamed CSV export"
+        }
+      ],
+      "check": [
+        "A submission still stores and shows thanks with SMTP unreachable and the webhook timing out",
+        "A real email arrives readable on a phone",
+        "A 10,000-row CSV exports without memory growth"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Deploy",
+      "goal": "Live, backed up including uploads, documented.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Add /healthz, systemd, Caddy and a backup of data/",
+          "files": [
+            "deploy/forms.service",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p8s2",
+          "do": "Write the README",
+          "detail": ".env keys, the Caddy snippet, where the database and uploads live, and the honest line that Tally's free tier is generous and the reason to build this is data ownership.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "A restore brings back both responses and files",
+        "A reader goes from clone to a published form using only the README"
+      ]
+    },
+    {
+      "id": "p9",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the form server is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p9s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p9s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p9s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p9s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A form service for one person or a small team: any number of forms, uploads handled safely, respondent data never leaving your server.",
+    "architecture": [
+      {
+        "module": "Admin",
+        "owns": "token auth, form and field CRUD",
+        "swap": "Add real accounts later behind the same routes"
+      },
+      {
+        "module": "Renderer",
+        "owns": "public forms and validation",
+        "swap": "A JavaScript-enhanced form could sit on top; the POST contract stays"
+      },
+      {
+        "module": "Storage",
+        "owns": "responses, answers, uploads",
+        "swap": "Object storage behind the same write/read functions"
+      },
+      {
+        "module": "Notify",
+        "owns": "email and webhook, fire-and-forget",
+        "swap": "Add Slack as another adapter"
+      }
+    ],
+    "operations": {
+      "backup": "tar of data/ nightly off the box.",
+      "restore": "Extract, start, check one form and one upload.",
+      "monitoring": "Uptime on /healthz; alert on a spike in refused submissions.",
+      "incident": "Spam wave: tighten limits, bulk-delete. Compromise: rebuild, restore data/, rotate ADMIN_TOKEN and SMTP credentials."
+    },
+    "releaseGate": [
+      "Every validation path verified with a fixture",
+      "Upload rejection verified with a fake image and an oversize file",
+      "One restore drill including uploads performed and dated",
+      "Notifications verified fire-and-forget with SMTP down"
+    ]
+  },
+  "notIncluded": [
+    "Conditional logic, partial submissions, payments.",
+    "A template gallery.",
+    "Team workspaces and custom domains per form."
+  ],
+  "after": [
+    "Conditional visibility for one field based on another's value",
+    "A Slack notification adapter"
+  ]
+}

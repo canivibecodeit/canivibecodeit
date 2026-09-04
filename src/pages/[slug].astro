@@ -8,7 +8,8 @@ import RecModule from '../components/RecModule.astro';
 import BuildsSection from '../components/BuildsSection.astro';
 import { getApp, relatedApps, yearlySaving, sortedAlternatives, ALTERNATIVES_PAGE_MIN, CATEGORIES, VERDICTS, MOAT_TAGS, MOAT_TAG_EMOJI, VIBE_CODING_TOOL_SLUGS } from '../lib/apps.js';
 import { voteCount, voteCounts } from '../lib/db.js';
-import { DELIVERY_ORDER, buildSteps } from '../lib/build-plan.js';
+import { buildSteps } from '../lib/build-plan.js';
+import { kitCounts, loadKit, makeBundle, packFiles } from '../lib/build-kit.js';
 
 const { slug } = Astro.params;
 const app = getApp(slug);
@@ -28,6 +29,15 @@ const alternatives = sortedAlternatives(app);
 
 // Step count for the tracker button; the steps themselves live on /<slug>/build.
 const { phased, steps } = buildSteps(app);
+const kit = loadKit(app.slug);
+const kitIndie = kit ? kitCounts(kit, 'indie') : null;
+// What the CTA quotes, and the key the saved progress is filed under (must
+// match /<slug>/build exactly or a return visit reads as a fresh start).
+const trackerTotal = kit ? kitIndie.prerequisites + kitIndie.steps : steps.length;
+const trackerVersion = kit ? `kit-${kit.version}` : `steps-${steps.length}`;
+const trackerSub = kit
+  ? `${kitIndie.phases} phases, ${kitIndie.steps} steps, beginner friendly`
+  : `${steps.length} ${phased ? 'modules' : 'steps'}, step by step`;
 const hasAltPage = alternatives.length >= ALTERNATIVES_PAGE_MIN;
 
 const verdictWord = { yes: 'YES', kinda: 'KINDA', no: 'NOT REALLY' }[app.verdict];
@@ -145,211 +155,20 @@ const jsonld = [
   },
 ];
 
-const requirementLines = (app.requirements ?? []).map((item) => `- ${item}`).join('\n') || '- Implement the core workflow described in the build brief.';
-const lossLines = (app.whatYouLose ?? []).map((item) => `- ${item}`).join('\n') || '- None documented.';
-const makeBundle = (mode, files) => `You are building a ${mode} version of ${baseName}.
-
-Create the following project files first, then implement the application by following them. Keep the files updated as decisions change. Do not collapse this into a single README or prompt.
-
-${files.map((file) => `===== ${file.path} =====\n${file.content}`).join('\n\n')}`;
-
-const indieFiles = [
-  {
-    path: 'README.md',
-    content: `# ${baseName} indie build
-
-## Goal
-
-Build the smallest trustworthy replacement for the core ${baseName} workflow for one developer or a tiny team.
-
-## Scope
-
-${app.coreLoopDIY || app.verdictSummary || `Rebuild the useful core of ${baseName}.`}
-
-## Quick start
-
-1. Install the documented dependencies.
-2. Copy \`.env.example\` to \`.env\`.
-3. Run the development command chosen during implementation.
-4. Complete the acceptance checks in \`BUILD_PLAN.md\`.
-
-## Honest limits
-
-This build deliberately does not replace:
-${lossLines}
-
-If those capabilities are essential, use ${app.priorArt?.[0]?.name || alternatives?.[0]?.name || baseName} instead of pretending the gap is solved.`,
-  },
-  {
-    path: 'AGENTS.md',
-    content: `# Agent instructions
-
-- Optimize for a working, understandable weekend build.
-- Prefer the fewest moving parts that satisfy the brief.
-- Do not invent cryptography, security guarantees, APIs, or compliance claims.
-- Keep secrets out of source control and logs.
-- Add focused tests for destructive, security-sensitive, and data-loss paths.
-- Run the project checks before declaring the build complete.
-- Record any deliberate shortcut in the README under "Tradeoffs".`,
-  },
-  {
-    path: 'BUILD_PLAN.md',
-    content: `# Build plan
-
-## Original build brief
-
-${app.prompt}
-
-## Required capabilities
-
-${requirementLines}
-
-## Delivery order
-
-${DELIVERY_ORDER.map((step, i) => `${i + 1}. ${step.title}`).join('\n')}
-
-## Done when
-
-- A new user can go from clone to first successful workflow using only the README.
-- The core workflow works without paid infrastructure unless the brief requires it.
-- Tests cover the highest-risk behavior.
-- Known limitations are explicit rather than hidden.`,
-  },
-  {
-    path: '.env.example',
-    content: `# Copy to .env and document every variable when it is introduced.
-# Never put real credentials in this file.
-
-APP_ENV=development
-# Add only values required by the selected implementation.`,
-  },
-];
-
-const productFiles = [
-  {
-    path: 'PRODUCT.md',
-    content: `# ${baseName} product brief
-
-## Problem
-
-${app.verdictSummary || app.notes}
-
-## Product outcome
-
-${app.coreLoopDIY || `Deliver a trustworthy replacement for the core ${baseName} workflow.`}
-
-## Target user
-
-A serious builder who needs a maintainable product foundation rather than a one-off demo.
-
-## Required capabilities
-
-${requirementLines}
-
-## Explicit non-goals for v1
-
-${lossLines}
-
-## Success criteria
-
-- The primary workflow is measurable end to end.
-- Setup is reproducible in a clean environment.
-- Failure, recovery, and support paths are documented.
-- Product claims match what the implementation actually guarantees.`,
-  },
-  {
-    path: 'ARCHITECTURE.md',
-    content: `# Architecture
-
-## Starting brief
-
-${app.prompt}
-
-## Boundaries
-
-Separate the product into replaceable modules for interface, application logic, persistence, external integrations, and operational concerns. Keep domain logic independent from delivery frameworks and vendors.
-
-## Production baseline
-
-- Configuration: validated at startup with safe local defaults where possible.
-- Security: least privilege, input validation, secret redaction, rate limits on abuse-prone paths, and no invented security primitives.
-- Data: explicit schema and migrations, transactional writes where integrity matters, backup and restore instructions.
-- Integrations: adapters around third-party providers, idempotent webhook or job processing, bounded retries, and timeouts.
-- Observability: structured logs with request or operation IDs, an error-tracking hook, and health/readiness checks where a server exists.
-- Quality: unit tests for domain rules, integration tests at module boundaries, and one end-to-end critical-path test.
-
-## Decision records
-
-For each major dependency, document why it was chosen, its failure mode, and how it can be replaced. Do not introduce infrastructure until a requirement justifies it.`,
-  },
-  {
-    path: 'AGENTS.md',
-    content: `# Agent instructions
-
-- Read \`PRODUCT.md\` and \`ARCHITECTURE.md\` before changing code.
-- Implement milestone by milestone; keep each change reviewable and leave the application runnable.
-- Treat authentication, payments, encryption, imports, webhooks, and destructive actions as high-risk boundaries when present.
-- Never invent cryptography or silently weaken a requirement to make a test pass.
-- Use provider interfaces for external services and deterministic fakes in tests.
-- Add migrations and rollback or recovery notes for persistent data changes.
-- Log useful operational context without credentials, tokens, passwords, or personal data.
-- Update documentation and run all checks before completing a milestone.`,
-  },
-  {
-    path: 'MILESTONES.md',
-    content: `# Delivery milestones
-
-## M0 — Decisions and scaffold
-
-- Confirm the runtime, persistence model, threat boundaries, and deployment target.
-- Create a reproducible local environment and continuous checks.
-
-## M1 — Core workflow
-
-- Implement the smallest end-to-end product path with validation and tests.
-- Keep integrations behind interfaces.
-
-## M2 — Trust layer
-
-- Add secure failure behavior, recovery paths, audit-relevant events, and data safeguards.
-- Test abuse cases and destructive operations.
-
-## M3 — Operability
-
-- Add structured logs, error reporting hooks, health signals, backup/restore documentation, and deployment configuration.
-
-## M4 — Release gate
-
-- Run a clean-install test, critical-path end-to-end test, dependency review, and documented rollback exercise.
-- Compare the shipped behavior with \`PRODUCT.md\` and publish remaining limitations.`,
-  },
-  {
-    path: 'OPERATIONS.md',
-    content: `# Operations
-
-## Before release
-
-- Validate configuration and secrets at startup.
-- Define backup, restore, and rollback procedures and test them.
-- Document logs, error tracking, health signals, and alert ownership.
-- Set dependency update and vulnerability review expectations.
-
-## Incident checklist
-
-1. Contain the issue without destroying evidence or user data.
-2. Record the timeline and affected scope.
-3. Rotate exposed secrets and revoke compromised sessions or credentials.
-4. Restore from a verified source when needed.
-5. Document the root cause, remediation, and regression test.
-
-## Launch constraint
-
-Do not market omitted ${baseName} capabilities as implemented. The v1 non-goals in \`PRODUCT.md\` remain user-visible limitations until they are deliberately delivered.`,
-  },
-];
-
-const indieBundle = makeBundle('lean indie', indieFiles);
-const productBundle = makeBundle('production product', productFiles);
+// The pack: real per-project files when a build kit exists, the generic
+// templates otherwise. Both generators live in src/lib/build-kit.js.
+const indieFiles = packFiles(app, kit, 'indie');
+const productFiles = packFiles(app, kit, 'product');
+const indieBundle = makeBundle(baseName, 'lean indie', indieFiles);
+const productBundle = makeBundle(baseName, 'production product', productFiles);
+const packSummary = {
+  indie: kit
+    ? `${indieFiles.length} files · written for this build, step by step`
+    : `${indieFiles.length} files · fastest path to a working personal build`,
+  product: kit
+    ? `${productFiles.length} files · architecture, milestones and operations for this build`
+    : `${productFiles.length} files · architecture, delivery, and operations included`,
+};
 
 const priceTag = app.priceMonthly != null ? ` ($${app.priceMonthly}/mo)` : '';
 const tweet = encodeURIComponent(
@@ -369,11 +188,11 @@ const tweet = encodeURIComponent(
         <img src={`/icons/${app.slug}.png`} alt="" width="48" height="48" />
         <h1>Vibecode {app.name.split(' / ')[0]}</h1>
       </span>
-      {steps.length > 0 && (
-        <a class="track-cta" href={`/${app.slug}/build`} data-track-cta data-slug={app.slug} data-total={steps.length}>
+      {(kit || steps.length > 0) && (
+        <a class="track-cta" href={`/${app.slug}/build`} data-track-cta data-slug={app.slug} data-total={trackerTotal} data-version={trackerVersion}>
           <span class="track-cta-main">
             <b>track this build</b>
-            <small data-track-cta-sub>{steps.length} {phased ? 'modules' : 'steps'}, step by step</small>
+            <small data-track-cta-sub>{trackerSub}</small>
           </span>
           <span class="track-cta-ring" data-track-cta-ring hidden>
             <b data-track-cta-pct>0%</b>
@@ -475,7 +294,7 @@ const tweet = encodeURIComponent(
       <div class="prompt-head">
         <span>
           <span class="microlabel">the project pack</span>
-          <span class="pack-summary" data-pack-summary>4 files · fastest path to a working personal build</span>
+          <span class="pack-summary" data-pack-summary data-summary-indie={packSummary.indie} data-summary-product={packSummary.product}>{packSummary.indie}</span>
         </span>
         <div class="copy-group" data-slug={app.slug}>
           <button class="copy-btn" data-agent="raw">
@@ -520,7 +339,7 @@ const tweet = encodeURIComponent(
         <nav class="pack-files" aria-label="Product project files">
           {productFiles.map((file, index) => (
             <button type="button" class:list={['pack-file', { active: index === 0 }]} data-pack-file={file.path} aria-pressed={index === 0 ? 'true' : 'false'}>
-              <span class="file-icon">#</span>{file.path}
+              <span class="file-icon">{file.path.startsWith('.') ? '⚙' : '#'}</span>{file.path}
             </button>
           ))}
         </nav>

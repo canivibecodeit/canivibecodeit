@@ -1,0 +1,482 @@
+{
+  "slug": "plausible",
+  "version": 1,
+  "summary": "Privacy-first analytics for your own sites: a tracker under 2 KB with no cookies, an ingest endpoint that never stores a raw IP, a daily-rotating visitor hash exactly as Plausible defines it, sessions and bounce rate computed at write time, and a fast dashboard. Honest at personal-site scale, and you can state the ceiling.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "an event is one INSERT; the dashboard is a handful of indexed GROUP BYs"
+    },
+    {
+      "part": "Database",
+      "choice": "SQLite in WAL mode",
+      "why": "fine to a few million events; say the ceiling out loud"
+    },
+    {
+      "part": "Tracker",
+      "choice": "Hand-written vanilla JS under 2 KB",
+      "why": "if it needs a bundler it is too big"
+    },
+    {
+      "part": "Geo",
+      "choice": "MaxMind GeoLite2 country database, read locally",
+      "why": "country from IP without sending the IP anywhere"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A small VPS behind Caddy",
+      "why": "the ingest endpoint must be public and on HTTPS"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "sites",
+      "kind": "asset",
+      "name": "The site (or sites) you want to measure",
+      "why": "The tracker is a script tag you add to each site; you need somewhere to add it.",
+      "get": "Write down each site's domain. Each becomes a site_id in SITES.",
+      "cost": "free"
+    },
+    {
+      "id": "maxmind",
+      "kind": "key",
+      "name": "A MaxMind account and licence key for GeoLite2",
+      "why": "Country breakdowns need an IP-to-country database. GeoLite2 is free but requires an account to download and to receive updates.",
+      "get": "Sign up at maxmind.com/en/geolite2/signup, then Account > Manage License Keys > Generate new license key. Download GeoLite2-Country.mmdb (or use geoipupdate). Put the file path in .env.",
+      "verify": "The .mmdb file exists at GEOIP_DB_PATH",
+      "cost": "free",
+      "url": "https://www.maxmind.com/en/geolite2/signup"
+    },
+    {
+      "id": "salt-plan",
+      "kind": "decision",
+      "name": "Understand the daily-salt rule",
+      "why": "The privacy claim rests on one rule: the salt rotates daily and the old one is deleted. If you keep old salts, this is a tracker with extra steps.",
+      "get": "Read Plausible's data policy page once before Phase 1 so the design is yours, not a guess.",
+      "cost": "free",
+      "url": "https://plausible.io/data-policy"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address. Sites post to it from the visitor's browser, so it must be public.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "The collector needs an HTTPS address, e.g. stats.yourdomain.com.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port; Caddy proxies to it."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/analytics.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file. Back it up."
+    },
+    {
+      "name": "SITES",
+      "example": "yoursite.com,blog.yoursite.com",
+      "required": true,
+      "secret": false,
+      "where": "Comma-separated site ids accepted by the ingest endpoint. Anything else is dropped."
+    },
+    {
+      "name": "GEOIP_DB_PATH",
+      "example": "./data/GeoLite2-Country.mmdb",
+      "required": false,
+      "secret": false,
+      "where": "The MaxMind file from the prerequisites."
+    },
+    {
+      "name": "RETENTION_DAYS",
+      "example": "400",
+      "required": false,
+      "secret": false,
+      "where": "Raw events older than this are rolled up and deleted nightly."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://stats.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Public base URL of the collector, used in the snippet."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Identity without cookies",
+      "goal": "The visitor hash and its salt, done exactly right, before anything else exists.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and the salts table",
+          "detail": "salts (day, salt, created_at). Generate 32 random bytes per UTC day on first use.",
+          "commands": [
+            "mkdir analytics && cd analytics && git init && npm init -y && npm pkg set type=module",
+            "mkdir data public && cp .env.example .env"
+          ],
+          "files": [
+            "server.mjs",
+            "identity.mjs"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Implement visitorHash(site, ip, userAgent)",
+          "detail": "sha256(daily_salt + site_domain + ip + user_agent). Include the domain so the same visitor on two of your sites is two hashes. The ip and user agent exist only inside this function."
+        },
+        {
+          "id": "p1s3",
+          "do": "Rotate and delete",
+          "detail": "At UTC midnight create tomorrow's salt and delete yesterday's row. Deleting is what makes cross-day re-identification impossible even for you."
+        }
+      ],
+      "check": [
+        "Two calls with the same ip and agent on the same day produce one hash",
+        "The same pair on two site ids produce two hashes",
+        "After a forced rotation the hash changes and the old salt row is gone",
+        "grep of the database file for your own IP returns nothing"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Ingest endpoint",
+      "goal": "POST /api/event stores derived facts only and never makes a visitor's page wait.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Create the events table with its indexes",
+          "detail": "events (id, site_id, name, path, referrer_host, screen_class, country, browser, os, visitor_hash, session_id, timestamp). Index (site_id, timestamp) and (site_id, path, timestamp)."
+        },
+        {
+          "id": "p2s2",
+          "do": "Derive, then discard",
+          "detail": "Screen class from a width the tracker sends, browser and os from the user agent, country from the GeoLite2 lookup. Strip query strings and hashes from path. Then drop the inputs."
+        },
+        {
+          "id": "p2s3",
+          "do": "Always answer 202 with an empty body",
+          "detail": "Unknown site ids are accepted and dropped. Malformed bodies get 202 too. Cap the body at 2 KB. An analytics endpoint must leak nothing about itself."
+        }
+      ],
+      "check": [
+        "A hand-crafted curl writes one row with no raw identifiers",
+        "An unknown site_id returns 202 and stores nothing",
+        "A malformed body returns 202 without a stack trace in the log",
+        "Country resolves for a known public IP when GEOIP_DB_PATH is set"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "The tracker",
+      "goal": "Under 2 KB, no cookies, counts SPA route changes once, honours opt-out.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Write public/p.js",
+          "detail": "On load send a pageview with path, referrer and innerWidth via navigator.sendBeacon with a fetch fallback. Hook pushState and popstate for SPA routes. Expose window.plausible-style track(name) for custom events."
+        },
+        {
+          "id": "p3s2",
+          "do": "Respect Do Not Track and a localStorage opt-out flag",
+          "detail": "If either is set, send nothing at all."
+        },
+        {
+          "id": "p3s3",
+          "do": "Serve it with a long cache header and a version in the filename",
+          "detail": "p.v1.js; bump on change."
+        },
+        {
+          "id": "p3s4",
+          "do": "Add the snippet to one real site and watch events arrive",
+          "commands": [
+            "<script defer data-site=\"yoursite.com\" src=\"https://stats.yourdomain.com/p.v1.js\"></script>"
+          ]
+        }
+      ],
+      "check": [
+        "The minified file is under 2 KB",
+        "One page load records exactly one pageview, including under React strict mode",
+        "An SPA route change records a second pageview",
+        "With the opt-out flag set nothing is sent"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Sessions and bounce rate",
+      "goal": "Sessionize at write time so the dashboard never does it.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Create the sessions table",
+          "detail": "sessions (id, site_id, visitor_hash, started_at, last_event_at, entry_path, exit_path, event_count, is_bounce)."
+        },
+        {
+          "id": "p4s2",
+          "do": "Join or open a session on each event",
+          "detail": "If the visitor's last event on this site was under 30 minutes ago, update that session; otherwise open a new one. A session with one pageview is a bounce."
+        }
+      ],
+      "check": [
+        "Two pageviews 5 minutes apart are one session with is_bounce false",
+        "Two pageviews 31 minutes apart are two sessions, both bouncing",
+        "Bounce rate matches a hand count on a seeded fixture"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Bot filtering",
+      "goal": "Drop obvious bots at ingest and count what you dropped.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Filter by user agent and impossible screen classes",
+          "detail": "A short bot list, plus events with no referrer and a zero width."
+        },
+        {
+          "id": "p5s2",
+          "do": "Count filtered events in a separate table",
+          "detail": "filtered (day, site_id, reason, n). A traffic drop you can explain beats one you guess at."
+        }
+      ],
+      "check": [
+        "A curl with a default user agent is filtered",
+        "A real browser is not",
+        "The filtered count is visible on the dashboard"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Dashboard",
+      "goal": "Every panel one indexed query; every number reconcilable with SQL.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Build /dashboard behind basic auth with a site switcher",
+          "detail": "Unique visitors, pageviews, bounce rate and visit duration for today, 7 and 30 days."
+        },
+        {
+          "id": "p6s2",
+          "do": "Add top pages, referrers, countries, browsers, devices",
+          "detail": "Each a GROUP BY with a LIMIT."
+        },
+        {
+          "id": "p6s3",
+          "do": "Draw visitors per day as inline SVG",
+          "detail": "No chart library. Dark mode."
+        },
+        {
+          "id": "p6s4",
+          "do": "Seed 100,000 events and time every panel",
+          "commands": [
+            "node scripts/seed.mjs 100000"
+          ]
+        }
+      ],
+      "check": [
+        "Every number reconciles with a hand-written query on the seeded fixture",
+        "The page renders in under 200 ms on 100,000 events",
+        "Switching sites changes every panel"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Retention and deploy",
+      "goal": "Old events rolled up, live on your domain, documented with the ceiling stated.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Write the nightly rollup",
+          "detail": "daily (day, site_id, visitors, pageviews, bounces) computed from events, then delete events older than RETENTION_DAYS. Charts read daily for old ranges."
+        },
+        {
+          "id": "p7s2",
+          "do": "Add /healthz, systemd, Caddy and a backup command",
+          "files": [
+            "deploy/analytics.service",
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p7s3",
+          "do": "Write the README and the data policy",
+          "detail": "The snippet, a plain-language policy (collected, derived, never stored, salt deleted daily), and the traffic ceiling as a number.",
+          "files": [
+            "README.md",
+            "PRIVACY.md"
+          ]
+        }
+      ],
+      "check": [
+        "Retention runs without breaking historical charts",
+        "A reader goes from clone to a tracked site using only the README",
+        "PRIVACY.md states that the daily salt is deleted"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the collector is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p8s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p8s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p8s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "An analytics collector you can point several small sites at with a privacy policy you can defend, and a stated scale at which you would move to Plausible itself.",
+    "architecture": [
+      {
+        "module": "Identity",
+        "owns": "the daily salt and the hash",
+        "swap": "The one module that must not change casually; its test suite is the privacy claim"
+      },
+      {
+        "module": "Ingest",
+        "owns": "/api/event, derivation, bot filter",
+        "swap": "Any listener writing the same rows"
+      },
+      {
+        "module": "Sessionizer",
+        "owns": "session join/open at write time",
+        "swap": "Could move to a batch job; the schema stays"
+      },
+      {
+        "module": "Dashboard",
+        "owns": "queries and SVG",
+        "swap": "Any UI over events, sessions and daily"
+      },
+      {
+        "module": "Rollup",
+        "owns": "retention and daily aggregates",
+        "swap": "Adjust the window; the daily table is the long-term record"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly; the daily table is small and is the part worth keeping for years.",
+      "restore": "Copy back, start, confirm the dashboard totals for last month match the last known figure.",
+      "monitoring": "Uptime on /healthz, and an alert if events per hour drops to zero for a site that normally has traffic.",
+      "incident": "If raw IPs were ever logged by mistake, delete the log, rotate the salt, and record the incident in PRIVACY.md."
+    },
+    "releaseGate": [
+      "Identity tests pass and the database contains no raw IP or user agent",
+      "Dashboard under 200 ms at 100,000 events",
+      "PRIVACY.md published with the ceiling",
+      "One restore drill performed and dated"
+    ]
+  },
+  "notIncluded": [
+    "Funnels, goals, revenue attribution and scheduled email reports.",
+    "Bot filtering tuned on adversarial traffic. Yours is a list.",
+    "Millions of pageviews. SQLite on one box is honest for personal sites; above that, self-host Plausible."
+  ],
+  "after": [
+    "A public shareable dashboard link per site",
+    "Goal tracking as a custom event with a conversion panel"
+  ]
+}

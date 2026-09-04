@@ -1,0 +1,244 @@
+{
+  "slug": "insomnia",
+  "version": 1,
+  "summary": "A file-based API client for one developer, with a small local web UI: requests as YAML in git, secrets only from the shell, assertions and chaining, history with diffs, and an importer for Insomnia's v4 export. Bruno is the free open-source answer; this is the version you can read in an afternoon.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, a CLI plus a localhost page",
+      "why": "no cloud, no sync"
+    },
+    {
+      "part": "Storage",
+      "choice": "YAML in git, SQLite history",
+      "why": "diffable and disposable respectively"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "bruno",
+      "kind": "decision",
+      "name": "Try Bruno first",
+      "why": "The fork that stayed file-based and offline. Use it unless you want your own.",
+      "get": "usebruno.com",
+      "cost": "free",
+      "url": "https://www.usebruno.com"
+    },
+    {
+      "id": "export",
+      "kind": "asset",
+      "name": "Your Insomnia export (v4 JSON)",
+      "why": "Phase 5 imports it.",
+      "get": "Insomnia > Preferences > Data > Export Data > Insomnia v4 JSON.",
+      "cost": "free"
+    }
+  ],
+  "env": [
+    {
+      "name": "API_UI_PORT",
+      "example": "4880",
+      "required": false,
+      "secret": false,
+      "where": "Localhost port for the small UI."
+    },
+    {
+      "name": "API_TOKEN",
+      "example": "...",
+      "required": false,
+      "secret": true,
+      "where": "Example secret referenced as {{env.API_TOKEN}}."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Runner",
+      "goal": "One request from YAML with substitution; secrets from the shell only.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the CLI and define requests/*.yaml and environments/*.yaml",
+          "commands": [
+            "mkdir api-cli && cd api-cli && git init && npm init -y && npm pkg set type=module && npm install yaml@2",
+            "mkdir -p requests environments && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Implement api run <file> --env <name> with {{var}} and {{env.NAME}} substitution and pretty output"
+        }
+      ],
+      "check": [
+        "GET and POST work",
+        "A missing variable fails naming itself",
+        "No secret can be committed"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Assertions and chaining",
+      "goal": "Non-zero exit on failure; a token captured into the next call.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Status and JSON-path asserts, exit 1 with a diff"
+        },
+        {
+          "id": "p2s2",
+          "do": "capture into variables for later requests in a folder run"
+        }
+      ],
+      "check": [
+        "A login feeds a token to the next call",
+        "A wrong status exits 1"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "History",
+      "goal": "Every run to SQLite; list and diff.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Record runs with status, latency, size and body hash"
+        },
+        {
+          "id": "p3s2",
+          "do": "api history and api diff commands"
+        }
+      ],
+      "check": [
+        "Diff shows a changed field between the last two runs"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Local UI",
+      "goal": "A localhost page listing requests, running one, showing the response.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Serve a server-rendered page on API_UI_PORT listing requests"
+        },
+        {
+          "id": "p4s2",
+          "do": "Run from a button and show the highlighted response"
+        }
+      ],
+      "check": [
+        "A request edited in the file appears on reload and runs from a button"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Import",
+      "goal": "Insomnia v4 becomes YAML.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Parse the v4 export into requests and environments"
+        },
+        {
+          "id": "p5s2",
+          "do": "Run an imported workspace unchanged"
+        }
+      ],
+      "check": [
+        "An exported workspace runs after import"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Share with a team",
+      "productOnly": true,
+      "goal": "Publish the CLI and run the collection in CI.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Publish privately or as a git dependency"
+        },
+        {
+          "id": "p6s2",
+          "do": "Run in CI with secrets from the CI store"
+        }
+      ],
+      "check": [
+        "A teammate runs the collection",
+        "CI fails on a failed assertion"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "API tests in the repo, run in CI, with no synced workspace to leak a secret.",
+    "architecture": [
+      {
+        "module": "Runner",
+        "owns": "substitution and fetch",
+        "swap": "The core"
+      },
+      {
+        "module": "Asserts",
+        "owns": "status and paths",
+        "swap": "Add schemas"
+      },
+      {
+        "module": "UI",
+        "owns": "the localhost page",
+        "swap": "Optional"
+      },
+      {
+        "module": "Import",
+        "owns": "Insomnia v4",
+        "swap": "Add Postman v2.1"
+      }
+    ],
+    "operations": {
+      "backup": "The repo.",
+      "restore": "Clone.",
+      "monitoring": "CI status.",
+      "incident": "Rotate a leaked secret at its source."
+    },
+    "releaseGate": [
+      "No secrets in files",
+      "CI passes on a real collection"
+    ]
+  },
+  "notIncluded": [
+    "Cloud sync, RBAC, mocks, gRPC: the seat price."
+  ],
+  "after": [
+    "OpenAPI import",
+    "Response schema assertions"
+  ]
+}

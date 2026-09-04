@@ -1,0 +1,345 @@
+{
+  "slug": "dub",
+  "version": 1,
+  "summary": "A link shortener on your own domain with click analytics: CSPRNG slugs, a redirect that never waits on the database, clicks with country, referrer and device but no raw IP, a private admin with per-link stats, a token API, and QR codes. Dub itself is open source; this is the 200-line version for one person and a domain you will keep forever.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Runtime",
+      "choice": "Node 22, node:http and node:sqlite",
+      "why": "a row and a 302"
+    },
+    {
+      "part": "Hosting",
+      "choice": "A VPS behind Caddy on a domain you will keep",
+      "why": "a shared short link outlives the tool"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A short domain you will keep for years",
+      "why": "Every link you share depends on it. Auto-renew on.",
+      "get": "A short .co, .link or .to at Porkbun or Cloudflare Registrar; turn on auto-renew.",
+      "cost": "roughly $10 to $30 a year",
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "ipsalt",
+      "kind": "decision",
+      "name": "A random salt for hashing IPs",
+      "why": "Click rows store hashes.",
+      "get": "openssl rand -hex 32.",
+      "cost": "free"
+    },
+    {
+      "id": "api-token",
+      "kind": "decision",
+      "name": "An API token for scripts",
+      "why": "Phase 4 exposes a token-protected API.",
+      "get": "openssl rand -base64 32 into .env as API_TOKEN.",
+      "cost": "free"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A small always-on server (VPS)",
+      "why": "This needs one process running all the time with a public address.",
+      "get": "Hetzner Cloud (from about 4 EUR), DigitalOcean or Fly.io. Ubuntu 24.04, the smallest size. You need SSH access and a public IP. Only needed for the deploy phase; develop locally first.",
+      "cost": "about $5 a month",
+      "optional": true,
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "PORT",
+      "example": "3000",
+      "required": true,
+      "secret": false,
+      "where": "Any free port."
+    },
+    {
+      "name": "DATABASE_PATH",
+      "example": "./data/links.db",
+      "required": true,
+      "secret": false,
+      "where": "SQLite file."
+    },
+    {
+      "name": "SITE_URL",
+      "example": "https://yr.link",
+      "required": true,
+      "secret": false,
+      "where": "The short domain."
+    },
+    {
+      "name": "FALLBACK_URL",
+      "example": "https://yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "Where unknown or inactive slugs land."
+    },
+    {
+      "name": "IP_SALT",
+      "example": "hex",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32."
+    },
+    {
+      "name": "API_TOKEN",
+      "example": "base64",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -base64 32."
+    },
+    {
+      "name": "ADMIN_USER",
+      "example": "admin",
+      "required": true,
+      "secret": false,
+      "where": "Any username for the basic-auth admin pages."
+    },
+    {
+      "name": "ADMIN_PASS",
+      "example": "change-me-to-a-long-random-string",
+      "required": true,
+      "secret": true,
+      "where": "Generate one: openssl rand -base64 24. Never reuse a real password."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Redirects",
+      "goal": "GET /:slug 302s; unknown slugs fall back; reserved paths cannot be slugs.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Create the project and tables",
+          "detail": "links (id, slug unique, url, title, created_at, expires_at, active), clicks (id, link_id, clicked_at, referer_host, country, device_class, ip_hash).",
+          "commands": [
+            "mkdir shortener && cd shortener && git init && npm init -y && npm pkg set type=module",
+            "mkdir -p data && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Slugs 6+ chars from an alphabet without 0/O/1/l/I via crypto.randomBytes, or custom; reserve admin, api, healthz"
+        }
+      ],
+      "check": [
+        "A created slug redirects",
+        "An unknown one lands on FALLBACK_URL",
+        "Creating a slug named admin is refused"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Click logging",
+      "goal": "After the redirect, never before; bots bucketed.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Insert the click after sending the 302; country from a cf-ipcountry style header when present"
+        },
+        {
+          "id": "p2s2",
+          "do": "Bucket bot user agents separately"
+        }
+      ],
+      "check": [
+        "A click adds one row",
+        "A Slack preview is bucketed as bot",
+        "The redirect works with the database stopped"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Admin and analytics",
+      "goal": "Create, edit target without changing the slug, deactivate, expire; stats per link.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Basic-auth /admin with CRUD and expiry"
+        },
+        {
+          "id": "p3s2",
+          "do": "Per-link 7 and 30 day totals, top referrers and countries, clicks-per-day inline SVG"
+        }
+      ],
+      "check": [
+        "Editing a target keeps the slug",
+        "An expired link falls back",
+        "Totals reconcile with GROUP BY"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "API and QR",
+      "goal": "A token-protected POST for scripts and a QR image per link.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "POST /api/links with Authorization: Bearer API_TOKEN"
+        },
+        {
+          "id": "p4s2",
+          "do": "GET /admin/qr/:slug rendering a QR PNG server-side",
+          "commands": [
+            "npm install qrcode@1"
+          ]
+        }
+      ],
+      "check": [
+        "A curl with the token creates a link",
+        "The QR scans to it"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Deploy",
+      "goal": "HTTPS, service, backup, README.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "/healthz, systemd, Caddy, nightly backup"
+        },
+        {
+          "id": "p5s2",
+          "do": "README: domain-is-forever warning, reserved paths, the API",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "State survives a reboot",
+        "Auto-renew confirmed on the registrar"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate it like a product",
+      "productOnly": true,
+      "goal": "Only for the product-builder path: know when the redirect is down, never lose the database, and keep the server patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Add a /healthz endpoint and an external uptime check against it",
+          "detail": "Answer 200 with the build id and a quick database read. Point a free uptime monitor (or your own, from the Healthchecks entry on this site) at it so an outage is noticed before a user notices."
+        },
+        {
+          "id": "p6s2",
+          "do": "Write structured request logs and rotate them",
+          "detail": "One JSON line per request: method, path, status, duration, no raw IPs. Rotate weekly with logrotate, keep eight."
+        },
+        {
+          "id": "p6s3",
+          "do": "Back the SQLite file up off the machine nightly and test a restore",
+          "detail": "SQLite's .backup command makes a consistent copy while the app runs. Copy it to object storage or a second machine; then, once, restore it into a fresh checkout and confirm the app reads it.",
+          "commands": [
+            "sqlite3 data/app.db \".backup '/tmp/app-$(date +%F).db'\"",
+            "rclone copy /tmp/app-$(date +%F).db remote:backups/"
+          ]
+        },
+        {
+          "id": "p6s4",
+          "do": "Lock the box down",
+          "detail": "Firewall allowing only 22, 80 and 443; unattended security updates on; the app running as an unprivileged user under systemd with Restart=on-failure."
+        }
+      ],
+      "check": [
+        "Stopping the service triggers an uptime alert within a few minutes",
+        "A restore from last night's backup contains yesterday's data",
+        "A port scan from another machine shows only 22, 80 and 443"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A shortener you could run for a team: token API, stats without personal data, and a domain treated as permanent infrastructure.",
+    "architecture": [
+      {
+        "module": "Redirector",
+        "owns": "/:slug",
+        "swap": "A serverless function reading the same table"
+      },
+      {
+        "module": "Analytics",
+        "owns": "clicks and bucketing",
+        "swap": "Drop without touching redirects"
+      },
+      {
+        "module": "API",
+        "owns": "token routes",
+        "swap": "Add per-token scopes later"
+      },
+      {
+        "module": "Admin",
+        "owns": "CRUD and stats",
+        "swap": "Any UI; slugs are the contract"
+      }
+    ],
+    "operations": {
+      "backup": "SQLite .backup nightly; the links table is the asset.",
+      "restore": "Copy back; verify one slug.",
+      "monitoring": "External check on a known slug.",
+      "incident": "Domain expiry: renew in the grace period immediately. Leaked API token: rotate."
+    },
+    "releaseGate": [
+      "Auto-renew on with a reminder",
+      "One restore drill performed",
+      "External slug check passing"
+    ]
+  },
+  "notIncluded": [
+    "Conversion tracking, partner payouts, workspaces: the $90 product."
+  ],
+  "after": [
+    "UTM parameters appended per link",
+    "Bulk import from a CSV"
+  ]
+}

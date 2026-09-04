@@ -1,0 +1,440 @@
+{
+  "slug": "ghost-pro",
+  "version": 1,
+  "summary": "Ghost, self-hosted properly: the open-source CMS in Docker with MySQL 8, Caddy for HTTPS, transactional email over SMTP, newsletters through Mailgun (the only bulk provider Ghost supports self-hosted), memberships wired to Stripe in test mode first, and a backup you have actually restored once. You save the subscription and take on upgrades and deliverability.",
+  "time": "weekend",
+  "stack": [
+    {
+      "part": "CMS",
+      "choice": "The official ghost Docker image",
+      "why": "rule zero: do not write a CMS"
+    },
+    {
+      "part": "Database",
+      "choice": "MySQL 8.0 or 8.4 in Docker",
+      "why": "the only database Ghost supports in production; MariaDB and SQLite are not"
+    },
+    {
+      "part": "TLS",
+      "choice": "Caddy",
+      "why": "automatic certificates, one config file"
+    },
+    {
+      "part": "Newsletters",
+      "choice": "Mailgun",
+      "why": "Ghost's bulk sending is built on Mailgun's API specifically"
+    },
+    {
+      "part": "Payments",
+      "choice": "Stripe",
+      "why": "Ghost's native memberships integration"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A VPS with at least 2 GB of RAM",
+      "why": "Ghost plus MySQL need it. Ubuntu 24.04 with SSH.",
+      "get": "Hetzner CX22 or a DigitalOcean 2 GB droplet.",
+      "cost": "about $6 to $12 a month",
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "docker",
+      "kind": "tool",
+      "name": "Docker Engine and Compose on the VPS",
+      "why": "Ghost and MySQL run as containers.",
+      "get": "Follow docs.docker.com/engine/install/ubuntu, then add your user to the docker group.",
+      "verify": "docker compose version prints a version",
+      "cost": "free",
+      "url": "https://docs.docker.com/engine/install/ubuntu/"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain or subdomain",
+      "why": "Ghost's url setting must be the exact public HTTPS address.",
+      "get": "Register at Cloudflare Registrar, Porkbun or Namecheap, or use a subdomain of one you already own. You add one DNS record in the deploy phase.",
+      "cost": "roughly $10 a year, or free on an existing domain",
+      "optional": true,
+      "url": "https://porkbun.com"
+    },
+    {
+      "id": "smtp",
+      "kind": "key",
+      "name": "SMTP credentials for transactional mail",
+      "why": "Password resets, staff invites and member sign-in links. Any SMTP provider.",
+      "get": "Postmark, Fastmail or Mailgun's SMTP: host, port, username, password.",
+      "cost": "free tiers exist"
+    },
+    {
+      "id": "mailgun",
+      "kind": "key",
+      "name": "A Mailgun account, API key and sending domain",
+      "why": "Newsletters will not send over SMTP. Ghost's bulk email is Mailgun-only for self-hosted installs as of 2026.",
+      "get": "Sign up at mailgun.com, add a sending domain (mail.yourdomain.com), add the DNS records it shows (SPF, DKIM, MX), then Settings > API Keys > create a key. Verify current provider support in Ghost's docs before relying on this.",
+      "cost": "free trial, then usage-based",
+      "url": "https://www.mailgun.com"
+    },
+    {
+      "id": "stripe",
+      "kind": "key",
+      "name": "A Stripe account with test-mode keys",
+      "why": "Paid memberships. Test mode first, live as a separate deliberate step.",
+      "get": "dashboard.stripe.com > Developers > API keys (toggle Test mode). Ghost connects via Stripe Connect from its settings.",
+      "cost": "free; fees per transaction when live",
+      "optional": true,
+      "url": "https://dashboard.stripe.com/test/apikeys"
+    },
+    {
+      "id": "offbox",
+      "kind": "account",
+      "name": "Somewhere off the box for backups",
+      "why": "A backup on the server being backed up is not a backup.",
+      "get": "Backblaze B2 or Cloudflare R2 bucket plus rclone configured on the VPS.",
+      "cost": "cents a month",
+      "url": "https://rclone.org"
+    }
+  ],
+  "env": [
+    {
+      "name": "GHOST_URL",
+      "example": "https://yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "The exact public address. Wrong here means broken links and mixed content."
+    },
+    {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "example": "long-random",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -base64 24."
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "example": "long-random",
+      "required": true,
+      "secret": true,
+      "where": "Ghost's database password."
+    },
+    {
+      "name": "MAIL_TRANSPORT",
+      "example": "SMTP",
+      "required": true,
+      "secret": false,
+      "where": "Ghost transactional mail transport."
+    },
+    {
+      "name": "MAIL_HOST",
+      "example": "smtp.postmarkapp.com",
+      "required": true,
+      "secret": false,
+      "where": "From your SMTP provider."
+    },
+    {
+      "name": "MAIL_PORT",
+      "example": "587",
+      "required": true,
+      "secret": false,
+      "where": "From your SMTP provider."
+    },
+    {
+      "name": "MAIL_USER",
+      "example": "...",
+      "required": true,
+      "secret": true,
+      "where": "SMTP username."
+    },
+    {
+      "name": "MAIL_PASS",
+      "example": "...",
+      "required": true,
+      "secret": true,
+      "where": "SMTP password."
+    },
+    {
+      "name": "MAIL_FROM",
+      "example": "'Your Site' <hello@yourdomain.com>",
+      "required": true,
+      "secret": false,
+      "where": "From address for transactional mail."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Bring it up locally",
+      "goal": "Ghost and MySQL running from one compose file, data surviving a restart.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Write docker-compose.yml with ghost and mysql:8",
+          "detail": "Named volumes for content and the database, health checks, restart: unless-stopped, every secret from .env.",
+          "files": [
+            "docker-compose.yml",
+            ".env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Start it and reach the setup screen",
+          "commands": [
+            "docker compose up -d",
+            "docker compose logs -f ghost"
+          ]
+        }
+      ],
+      "check": [
+        "The site loads on localhost",
+        "/ghost reaches the admin setup screen",
+        "docker compose down && docker compose up -d preserves posts and settings"
+      ],
+      "traps": [
+        "MySQL 8.0 or 8.4 only. Substituting MariaDB or SQLite is a migration you discover at the worst moment."
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Domain and TLS",
+      "goal": "Public HTTPS, Ghost bound to localhost, url set correctly.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Write the Caddyfile and set GHOST_URL",
+          "detail": "Your domain with reverse_proxy localhost:2368. Ghost's port published on 127.0.0.1 only.",
+          "files": [
+            "Caddyfile"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Point DNS and verify from another machine"
+        }
+      ],
+      "check": [
+        "HTTPS with a valid certificate; HTTP redirects",
+        "curl to the server IP on 2368 from outside is refused",
+        "No page shows a mixed-content warning"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Transactional email",
+      "goal": "Magic links and invites arrive in a real inbox.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Set the mail__ environment variables from your SMTP provider and restart",
+          "detail": "mail__transport, mail__options__host, port, auth user and pass, mail__from."
+        },
+        {
+          "id": "p3s2",
+          "do": "Send a staff invite and a member magic link and read both in a real inbox",
+          "detail": "Check the spam folder too; if they land there, fix SPF for the from domain before moving on."
+        }
+      ],
+      "check": [
+        "A member magic link arrives",
+        "A staff invite arrives"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Newsletter delivery",
+      "goal": "Bulk email through Mailgun with DNS that keeps it out of spam.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Add SPF, DKIM and DMARC records for the sending domain",
+          "detail": "Mailgun shows the exact records. DMARC starts at p=none."
+        },
+        {
+          "id": "p4s2",
+          "do": "Enter the Mailgun API key and domain in Ghost's Email newsletter settings"
+        },
+        {
+          "id": "p4s3",
+          "do": "Send a test newsletter to a Gmail and an Outlook address"
+        }
+      ],
+      "check": [
+        "The test newsletter reaches the inbox at a major provider, not spam",
+        "A mail-tester style check passes SPF, DKIM and DMARC"
+      ],
+      "traps": [
+        "Plain SMTP delivers your password resets and will not deliver your newsletter. These are two systems."
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Memberships and payments",
+      "goal": "Tiers and gating working in test mode before a single live key exists.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Connect Stripe in test mode and create tiers"
+        },
+        {
+          "id": "p5s2",
+          "do": "Run a test subscription and gate a post"
+        }
+      ],
+      "check": [
+        "A test-mode subscription completes and the member shows the right tier",
+        "A paid post is gated for a free member and readable for a paid one",
+        "Cancelling in Stripe revokes access"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Theme",
+      "goal": "The default theme adjusted, not a theme from scratch.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Adjust the default theme's settings and upload any small CSS changes"
+        },
+        {
+          "id": "p6s2",
+          "do": "Confirm it survives a restart"
+        }
+      ],
+      "check": [
+        "Renders correctly on mobile",
+        "The theme survives docker compose restart"
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "Backup, and a restore drill",
+      "goal": "A nightly backup off the box and one restore you actually performed.",
+      "steps": [
+        {
+          "id": "p7s1",
+          "do": "Write backup.sh: mysqldump plus a tar of the content volume, to ./backups, fourteen kept, copied off the box",
+          "commands": [
+            "docker compose exec -T mysql mysqldump -u root -p$MYSQL_ROOT_PASSWORD ghost > backups/ghost-$(date +%F).sql",
+            "docker run --rm -v ghost_content:/c -v $PWD/backups:/b alpine tar czf /b/content-$(date +%F).tgz -C /c .",
+            "rclone copy backups remote:ghost-backups/"
+          ],
+          "files": [
+            "backup.sh"
+          ]
+        },
+        {
+          "id": "p7s2",
+          "do": "Schedule it nightly with cron"
+        },
+        {
+          "id": "p7s3",
+          "do": "Restore into a throwaway compose stack and check posts, members and images",
+          "detail": "Do this now, not later. Write the date in the README."
+        }
+      ],
+      "check": [
+        "Last night's backup exists off the box",
+        "A restore into a clean stack brings up the site with posts, members and images intact",
+        "The restore date is written in the README"
+      ]
+    },
+    {
+      "id": "p8",
+      "title": "Upgrades and handover",
+      "goal": "A repeatable upgrade and the honest trade written down.",
+      "steps": [
+        {
+          "id": "p8s1",
+          "do": "Write update.sh: backup, pull, up -d, verify",
+          "files": [
+            "update.sh"
+          ]
+        },
+        {
+          "id": "p8s2",
+          "do": "Write the README",
+          "detail": "Every DNS record and what breaks without it, the restore date, and the trade: you now own upgrades, patching, deliverability and support.",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "One upgrade cycle has been run and the site is up",
+        "The README lists every DNS record"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "A publication platform you operate with confidence: monitored, backed up with a proven restore, upgradable in one command.",
+    "architecture": [
+      {
+        "module": "Ghost",
+        "owns": "content, members, newsletters",
+        "swap": "It is the product; you do not fork it"
+      },
+      {
+        "module": "MySQL",
+        "owns": "all state",
+        "swap": "Managed MySQL 8 later, same dump format"
+      },
+      {
+        "module": "Caddy",
+        "owns": "TLS and the public edge",
+        "swap": "Any reverse proxy or a CDN in front"
+      },
+      {
+        "module": "Mail",
+        "owns": "SMTP for transactional, Mailgun for bulk",
+        "swap": "SMTP provider freely; bulk provider only as Ghost adds support"
+      },
+      {
+        "module": "Backup",
+        "owns": "dump, tar, off-box copy, restore.sh",
+        "swap": "Any storage rclone speaks"
+      }
+    ],
+    "operations": {
+      "backup": "Nightly mysqldump plus content tar, fourteen kept, copied off the box.",
+      "restore": "restore.sh into a clean stack; verified once already, re-verify after major upgrades.",
+      "monitoring": "Uptime on the homepage and /ghost/api/admin/site/; watch Mailgun's dashboard for bounces.",
+      "incident": "Deliverability drop: check DNS records and Mailgun suppressions. Compromise: rebuild from compose, restore, rotate every credential in .env and Stripe."
+    },
+    "releaseGate": [
+      "Newsletter test lands in the inbox at two major providers",
+      "One restore drill performed and dated",
+      "Stripe live keys enabled only after a test-mode subscription and cancellation succeeded",
+      "update.sh run once successfully"
+    ]
+  },
+  "notIncluded": [
+    "A custom theme from scratch and any custom blog engine code.",
+    "Third-party analytics.",
+    "A CDN and WAF in front; worth adding later."
+  ],
+  "after": [
+    "Cloudflare in front for caching and a WAF",
+    "A staging stack from last night's backup to test upgrades on"
+  ]
+}

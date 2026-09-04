@@ -1,0 +1,237 @@
+{
+  "slug": "cookiebot",
+  "version": 1,
+  "summary": "A consent manager for your own site: an inventory of every script you load, gating so nothing non-essential runs before consent, an accessible banner with equal-weight accept and reject, withdrawal, Consent Mode signals and an optional consent log. First question: do you load anything non-essential at all? If not, the right build is no banner.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Banner",
+      "choice": "Vanilla JS under 8 KB, self-hosted",
+      "why": "no third-party script to consent to"
+    },
+    {
+      "part": "Log",
+      "choice": "A tiny optional endpoint",
+      "why": "to show what was agreed, without IPs"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "inventory",
+      "kind": "asset",
+      "name": "A list of every third-party script on your site",
+      "why": "Phase 1 gates them by category. You cannot gate what you have not listed.",
+      "get": "Open DevTools > Network on a cold load and write down every third-party host and what it does.",
+      "cost": "free"
+    },
+    {
+      "id": "decision",
+      "kind": "decision",
+      "name": "Do you need a banner at all?",
+      "why": "Cookieless analytics and no ad or social scripts means no banner is the correct build.",
+      "get": "Answer honestly from the inventory.",
+      "cost": "free"
+    },
+    {
+      "id": "gtm",
+      "kind": "account",
+      "name": "Google Tag Manager or gtag (optional)",
+      "why": "Phase 4 sends Consent Mode v2 signals if you use Google tags.",
+      "get": "Your existing container id.",
+      "cost": "free",
+      "optional": true
+    }
+  ],
+  "env": [
+    {
+      "name": "CONSENT_LOG_ENDPOINT",
+      "example": "https://forms.yourdomain.com/consent",
+      "required": false,
+      "secret": false,
+      "where": "Optional endpoint for consent records. Empty disables logging."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "Inventory",
+      "goal": "scripts.json and every non-essential tag inert before consent.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Write scripts.json with category and cookies per script",
+          "files": [
+            "scripts.json"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Change non-necessary script tags to type=text/plain with data-category"
+        }
+      ],
+      "check": [
+        "With the banner unanswered, the network tab shows zero requests to analytics or marketing hosts on a cold load"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The banner",
+      "goal": "Accept all, Reject all, Preferences with equal weight; stored with a version and timestamp.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Build the accessible banner with no pre-ticked boxes"
+        },
+        {
+          "id": "p2s2",
+          "do": "Store the choice in a first-party cookie and localStorage; activate gated scripts on accept without a reload"
+        }
+      ],
+      "check": [
+        "Reject leaves every gated script inert",
+        "Accept activates them without a reload",
+        "The choice persists across visits"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Preferences and withdrawal",
+      "goal": "Reopen, re-ask on change, stop and clear on withdrawal.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "A footer link reopening preferences; a consent version bump when scripts.json changes"
+        },
+        {
+          "id": "p3s2",
+          "do": "On withdrawal, stop scripts on next load and clear their cookies"
+        }
+      ],
+      "check": [
+        "Changing scripts.json re-prompts",
+        "Withdrawing stops the scripts and clears their cookies"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Consent Mode and the log",
+      "goal": "Google signals and an optional record without IPs.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Send Consent Mode v2 defaults and updates when Google tags exist"
+        },
+        {
+          "id": "p4s2",
+          "do": "POST consent id, timestamp, version and choices to CONSENT_LOG_ENDPOINT when set"
+        }
+      ],
+      "check": [
+        "The tag manager receives the consent state",
+        "The log shows one row per decision with no IP"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Verify",
+      "goal": "A checklist someone else can run.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "A test page and checklist: cold load, reject, accept, withdraw"
+        },
+        {
+          "id": "p5s2",
+          "do": "README stating scripts.json is the source of truth and that this is engineering, not legal advice",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "Someone else runs the checklist and every step passes"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Keep it honest",
+      "productOnly": true,
+      "goal": "Catch the tag someone adds next Tuesday.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "A CI check that fails when a third-party host appears in the built site that is not in scripts.json"
+        },
+        {
+          "id": "p6s2",
+          "do": "A monthly review reminder"
+        }
+      ],
+      "check": [
+        "Adding an unlisted script fails CI"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Consent you can explain line by line, with the scanner replaced by a CI check on your own build.",
+    "architecture": [
+      {
+        "module": "Inventory",
+        "owns": "scripts.json",
+        "swap": "The source of truth"
+      },
+      {
+        "module": "Gate",
+        "owns": "type=text/plain activation",
+        "swap": "Tag-manager triggers"
+      },
+      {
+        "module": "Banner",
+        "owns": "UI and storage",
+        "swap": "Any UI over the same stored choice"
+      },
+      {
+        "module": "Log",
+        "owns": "the optional endpoint",
+        "swap": "Drop it"
+      }
+    ],
+    "operations": {
+      "backup": "The repo; the log if kept.",
+      "restore": "Redeploy.",
+      "monitoring": "The CI check.",
+      "incident": "An unlisted tracker found: remove it, bump the consent version."
+    },
+    "releaseGate": [
+      "Cold-load network tab clean",
+      "Checklist passed by someone else",
+      "CI guard in place"
+    ]
+  },
+  "notIncluded": [
+    "Scanning for cookies you do not know about, jurisdiction-specific legal text, a regulator-familiar audit trail."
+  ],
+  "after": [
+    "A per-region default (no banner where none is required)"
+  ]
+}

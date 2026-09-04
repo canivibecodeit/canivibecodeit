@@ -1,0 +1,288 @@
+{
+  "slug": "ngrok",
+  "version": 1,
+  "summary": "A tunnel to localhost on a VPS you already have: frp exposes a local port on a subdomain you own, Caddy terminates TLS, every tunnel is protected by default, and a local log shows and replays incoming requests. cloudflared does most of this for free; this is for owning the plumbing.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Tunnel",
+      "choice": "frp (server on the VPS, client locally)",
+      "why": "a mature reverse proxy, not a hand-rolled TCP forwarder"
+    },
+    {
+      "part": "TLS",
+      "choice": "Caddy with a wildcard subdomain",
+      "why": "one certificate for every tunnel name"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "cloudflared",
+      "kind": "decision",
+      "name": "Consider cloudflared first",
+      "why": "Cloudflare Tunnel is free and covers most hobby use with one command. This build is for wanting your own box.",
+      "get": "developers.cloudflare.com/cloudflare-one/connections/connect-networks",
+      "cost": "free",
+      "url": "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/"
+    },
+    {
+      "id": "vps",
+      "kind": "account",
+      "name": "A VPS with a public IP",
+      "why": "The public end of the tunnel.",
+      "get": "Smallest Ubuntu 24.04 instance.",
+      "cost": "about $5 a month",
+      "url": "https://www.hetzner.com/cloud"
+    },
+    {
+      "id": "domain",
+      "kind": "account",
+      "name": "A domain with a wildcard record",
+      "why": "*.tunnel.yourdomain.com so each tunnel gets a name.",
+      "get": "Add an A record for *.tunnel pointing at the VPS.",
+      "cost": "free on a domain you own"
+    },
+    {
+      "id": "frp",
+      "kind": "tool",
+      "name": "frp binaries",
+      "why": "frps on the server, frpc on your machine.",
+      "get": "Download the release for each platform from github.com/fatedier/frp/releases.",
+      "verify": "frps --version and frpc --version print",
+      "cost": "free",
+      "url": "https://github.com/fatedier/frp/releases"
+    },
+    {
+      "id": "caddy",
+      "kind": "tool",
+      "name": "Caddy on the server",
+      "why": "Automatic HTTPS in front of the Node process. Without TLS the browser features this relies on (and your visitors' trust) do not work.",
+      "get": "On the VPS: follow the install steps at caddyserver.com/docs/install for Ubuntu. One Caddyfile with your domain and a reverse_proxy line is the whole config.",
+      "verify": "caddy version prints a version on the server",
+      "cost": "free",
+      "optional": true,
+      "url": "https://caddyserver.com/docs/install"
+    }
+  ],
+  "env": [
+    {
+      "name": "FRP_TOKEN",
+      "example": "long-random",
+      "required": true,
+      "secret": true,
+      "where": "openssl rand -hex 32; the same value on server and client."
+    },
+    {
+      "name": "TUNNEL_DOMAIN",
+      "example": "tunnel.yourdomain.com",
+      "required": true,
+      "secret": false,
+      "where": "The wildcard base."
+    },
+    {
+      "name": "BASIC_AUTH_USER",
+      "example": "me",
+      "required": true,
+      "secret": false,
+      "where": "Default protection for every tunnel."
+    },
+    {
+      "name": "BASIC_AUTH_HASH",
+      "example": "$2a$14$...",
+      "required": true,
+      "secret": true,
+      "where": "Caddy hash-password output."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The server",
+      "goal": "frps bound to localhost with a token; Caddy issuing wildcard certificates.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "Install frps on the VPS with frps.toml bound to 127.0.0.1 and FRP_TOKEN",
+          "files": [
+            "frps.toml"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Caddyfile for *.tunnel.yourdomain.com with the DNS challenge for wildcard certificates",
+          "detail": "Wildcard certificates need the DNS challenge; Caddy needs a DNS provider module or use per-name certificates on demand.",
+          "files": [
+            "Caddyfile"
+          ]
+        }
+      ],
+      "check": [
+        "Only 22, 80 and 443 are reachable from outside",
+        "A certificate issues for a test subdomain"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The client",
+      "goal": "tunnel <port> <name> prints a URL and cleans up on exit.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "Write a wrapper around frpc that generates a per-tunnel config",
+          "files": [
+            "tunnel.sh"
+          ]
+        },
+        {
+          "id": "p2s2",
+          "do": "Print the URL and remove the route on Ctrl-C"
+        }
+      ],
+      "check": [
+        "A local server on 3000 is reachable at its subdomain over HTTPS",
+        "Ctrl-C removes the route"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Protection",
+      "goal": "Never public by accident.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Basic auth per tunnel via Caddy, on by default",
+          "commands": [
+            "caddy hash-password"
+          ]
+        },
+        {
+          "id": "p3s2",
+          "do": "An IP allowlist flag and an explicit --public flag"
+        }
+      ],
+      "check": [
+        "An unauthenticated request gets 401",
+        "The allowlist blocks a foreign IP",
+        "--public is required to open a tunnel"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Inspection",
+      "goal": "See and replay incoming requests locally.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "Ship Caddy access logs for the tunnel to the client and pretty-print them"
+        },
+        {
+          "id": "p4s2",
+          "do": "A replay command that re-sends the last request body to localhost"
+        }
+      ],
+      "check": [
+        "A webhook appears in the local log within a second",
+        "Replay reaches the local server"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Service and README",
+      "goal": "Survives a reboot; documented.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "systemd units for frps and Caddy"
+        },
+        {
+          "id": "p5s2",
+          "do": "README with the default-protected rule and the cloudflared alternative",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "The VPS reboots and tunnels resume",
+        "The README states the free alternative"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Operate",
+      "productOnly": true,
+      "goal": "Know when the tunnel host is down; keep it patched.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Uptime check on the VPS and frps health"
+        },
+        {
+          "id": "p6s2",
+          "do": "Firewall, unattended upgrades, and a rotation procedure for FRP_TOKEN"
+        }
+      ],
+      "check": [
+        "Stopping frps triggers an alert",
+        "Rotating the token is documented and tested"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Tunnels you control, protected by default, with the one free alternative stated honestly.",
+    "architecture": [
+      {
+        "module": "Server",
+        "owns": "frps and Caddy",
+        "swap": "Any reverse proxy with wildcard TLS"
+      },
+      {
+        "module": "Client",
+        "owns": "the wrapper",
+        "swap": "Any frpc config generator"
+      },
+      {
+        "module": "Inspector",
+        "owns": "logs and replay",
+        "swap": "Optional"
+      }
+    ],
+    "operations": {
+      "backup": "Configs in git; no state.",
+      "restore": "Redeploy.",
+      "monitoring": "Uptime on the VPS.",
+      "incident": "Rotate FRP_TOKEN; check Caddy logs for unexpected tunnel names."
+    },
+    "releaseGate": [
+      "Default-protected verified",
+      "Reboot test passes"
+    ]
+  },
+  "notIncluded": [
+    "The global edge, OAuth-in-front with one flag, TCP and TLS tunnels: what ten dollars buys."
+  ],
+  "after": [
+    "OAuth in front via Caddy's forward_auth",
+    "TCP tunnels for databases"
+  ]
+}

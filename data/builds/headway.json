@@ -1,0 +1,247 @@
+{
+  "slug": "headway",
+  "version": 1,
+  "summary": "A changelog page and a what's-new widget: Markdown entries rendered to a static page and RSS, a badge that knows the last entry a visitor saw, and a script that posts new entries to Slack. One of the smallest real products on the list and a good first build.",
+  "time": "one sitting",
+  "stack": [
+    {
+      "part": "Build",
+      "choice": "A Node script rendering Markdown",
+      "why": "static, no server"
+    },
+    {
+      "part": "Widget",
+      "choice": "One vanilla-JS file under 3 KB",
+      "why": "drops into any page"
+    }
+  ],
+  "prerequisites": [
+    {
+      "id": "node",
+      "kind": "tool",
+      "name": "Node.js 22 or newer",
+      "why": "Everything in this build runs on it: the server, the scripts, the tests.",
+      "get": "Download the LTS installer from nodejs.org, or install with your package manager (brew install node, or nvm install 22). Restart the terminal afterwards.",
+      "verify": "node --version prints v22 or higher",
+      "cost": "free",
+      "url": "https://nodejs.org"
+    },
+    {
+      "id": "editor",
+      "kind": "tool",
+      "name": "A terminal and a code editor",
+      "why": "Every step below is a command you type or a file you edit.",
+      "get": "VS Code (code.visualstudio.com), Cursor or Zed. Open a folder for the project and use the editor's built-in terminal.",
+      "verify": "You can open a folder and run a command in its terminal",
+      "cost": "free",
+      "url": "https://code.visualstudio.com"
+    },
+    {
+      "id": "git",
+      "kind": "tool",
+      "name": "Git",
+      "why": "History for your code, and the way most hosts deploy.",
+      "get": "Install from git-scm.com or with your package manager, then run git init in the project folder once it exists.",
+      "verify": "git --version prints a version",
+      "cost": "free",
+      "url": "https://git-scm.com"
+    },
+    {
+      "id": "host",
+      "kind": "account",
+      "name": "A static host, or your existing site",
+      "why": "The changelog is static files.",
+      "get": "Cloudflare Pages, Netlify, or a folder in your current site.",
+      "cost": "free",
+      "url": "https://pages.cloudflare.com"
+    },
+    {
+      "id": "slack",
+      "kind": "key",
+      "name": "A Slack incoming webhook (optional)",
+      "why": "Phase 4 posts new entries.",
+      "get": "api.slack.com/apps > Incoming Webhooks.",
+      "cost": "free",
+      "optional": true,
+      "url": "https://api.slack.com/apps"
+    }
+  ],
+  "env": [
+    {
+      "name": "SITE_URL",
+      "example": "https://yourdomain.com/changelog",
+      "required": true,
+      "secret": false,
+      "where": "Public base of the changelog."
+    },
+    {
+      "name": "SLACK_WEBHOOK_URL",
+      "example": "https://hooks.slack.com/services/...",
+      "required": false,
+      "secret": true,
+      "where": "For the publish script. Empty disables it."
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "title": "The page",
+      "goal": "Entries rendered newest first with categories; a validating build; RSS.",
+      "steps": [
+        {
+          "id": "p1s1",
+          "do": "changelog/YYYY-MM-DD-slug.md with frontmatter (title, date, category) and build.mjs",
+          "commands": [
+            "mkdir changelog && cd changelog && git init && npm init -y && npm pkg set type=module && npm install markdown-it@14 gray-matter@4",
+            "mkdir -p changelog public && cp .env.example .env"
+          ]
+        },
+        {
+          "id": "p1s2",
+          "do": "Render index.html and feed.xml; fail on a missing field naming the file"
+        }
+      ],
+      "check": [
+        "Adding an entry and rebuilding shows it first",
+        "The feed validates",
+        "A missing field fails the build"
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "The widget",
+      "goal": "A badge from latest.json cleared by opening the panel.",
+      "steps": [
+        {
+          "id": "p2s1",
+          "do": "The build writes latest.json with newest date and count; widget.js shows a badge on data-changelog"
+        },
+        {
+          "id": "p2s2",
+          "do": "A panel listing the last five entries; localStorage for the seen date in try/catch"
+        }
+      ],
+      "check": [
+        "A new entry makes the badge appear",
+        "Opening the panel clears it",
+        "The page works with the widget blocked"
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Design",
+      "goal": "A timeline, category colours, dark mode, no style leaks.",
+      "steps": [
+        {
+          "id": "p3s1",
+          "do": "Timeline layout and category colours with dark mode"
+        },
+        {
+          "id": "p3s2",
+          "do": "Scope the widget's styles so nothing leaks into the host page"
+        }
+      ],
+      "check": [
+        "No contrast failures",
+        "The panel does not alter host page styles"
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "Distribution",
+      "goal": "Slack on publish.",
+      "steps": [
+        {
+          "id": "p4s1",
+          "do": "A publish script posting a new entry to SLACK_WEBHOOK_URL"
+        },
+        {
+          "id": "p4s2",
+          "do": "Guard against re-posting an entry already announced"
+        }
+      ],
+      "check": [
+        "A new entry appears in Slack within a minute",
+        "A rebuild does not re-post"
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Deploy",
+      "goal": "One command from Markdown to live; README.",
+      "steps": [
+        {
+          "id": "p5s1",
+          "do": "Host config on your domain"
+        },
+        {
+          "id": "p5s2",
+          "do": "README: frontmatter reference and the one-line embed",
+          "files": [
+            "README.md"
+          ]
+        }
+      ],
+      "check": [
+        "An entry goes from Markdown to live with one command"
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Private changelog",
+      "productOnly": true,
+      "goal": "A customer-only changelog behind your app's login.",
+      "steps": [
+        {
+          "id": "p6s1",
+          "do": "Serve the built HTML from your app behind its existing auth"
+        },
+        {
+          "id": "p6s2",
+          "do": "Per-plan entries via a frontmatter field the build filters on"
+        }
+      ],
+      "check": [
+        "A logged-out visitor cannot see the private changelog",
+        "A plan-tagged entry shows only to that plan"
+      ]
+    }
+  ],
+  "product": {
+    "outcome": "Product updates your users actually see, with a widget you own and an optional private track.",
+    "architecture": [
+      {
+        "module": "Build",
+        "owns": "Markdown to HTML, RSS, latest.json",
+        "swap": "Any generator"
+      },
+      {
+        "module": "Widget",
+        "owns": "badge and panel",
+        "swap": "A framework component"
+      },
+      {
+        "module": "Publish",
+        "owns": "Slack posting",
+        "swap": "Add Bluesky or email"
+      }
+    ],
+    "operations": {
+      "backup": "The repo.",
+      "restore": "Redeploy.",
+      "monitoring": "Uptime.",
+      "incident": "Revert."
+    },
+    "releaseGate": [
+      "Widget verified on a host page without style leaks",
+      "Publish guard verified"
+    ]
+  },
+  "notIncluded": [
+    "The hosted editor and reaction analytics."
+  ],
+  "after": [
+    "Email digests of entries",
+    "Reactions stored in a tiny endpoint"
+  ]
+}

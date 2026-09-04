@@ -623,3 +623,66 @@ restarted.
   `npm exec -- astro build` passed.
 - Commit: `feat: reprice sponsor slots to a $199 ladder` (pushed to
   `origin/monster`).
+
+### 2026-09-04 — Build kits: beginner-friendly per-project plans for all 50 phased apps
+
+- Asked for proper per-project development files for indie dev and product
+  builder, and a tracker that is beginner friendly rather than top level, naming
+  what is needed before the project starts (API keys, accounts, tools). Built the
+  system, then authored a kit for every app with a phased prompt: all 50.
+- New data source `data/builds/<slug>.json`, one per app, validated by
+  `scripts/validate-builds.mjs` inside `npm run validate`. The format is documented
+  in `CONTRIBUTING.md` under "Build kits": summary, time, stack with reasons,
+  prerequisites (kind, why, exactly how to get it, verify, cost, optional, url),
+  env vars (example, required, secret, where the value comes from), phases with
+  sub-steps (do, detail, commands, files, snippet), tickable checks and traps,
+  `productOnly` phases, and product extras (outcome, architecture modules with a
+  swap path, operations, release gate). The validator rejects a phase with fewer
+  than two steps or no check, duplicate ids, non-UPPER_SNAKE env names, missing
+  cost or how-to-get on a prerequisite, and em dashes.
+- `src/lib/build-kit.js` owns loading (cached in prod, re-read in dev), validation,
+  mode filtering, and both pack generators. The generic templates moved out of
+  `[slug].astro` into `genericPack` unchanged, so every app without a kit renders
+  exactly what it did; `kitPack` renders real per-project files: indie
+  `README.md` (stack table, prerequisite checklist with get/verify/cost, quick
+  start lifted from the first commands, honest limits), `BRIEF.md` (the prompt,
+  shipped because it carries the data model and the exact acceptance wording),
+  `AGENTS.md` (project-specific rules plus the kit's traps), `BUILD_PLAN.md`
+  (every phase with numbered steps, fenced commands, tickable checks, watch-outs)
+  and `.env.example` generated from the env table; the product set adds
+  `PRODUCT.md`, `ARCHITECTURE.md` (modules table), `MILESTONES.md` (all phases
+  including production-only) and `OPERATIONS.md` (backup, restore, monitoring,
+  incident, release gate). 7 tests in `test/build-kit.test.mjs`.
+- `/<slug>/build` with a kit is now the beginner path: an indie / product toggle
+  (remembered per device, hides `productOnly` phases and their items from the
+  total), the summary and stack chips, a "Before step 1" list where each
+  prerequisite is tickable and shows why, how to get it, verify and cost, with API
+  keys tagged, the prompt's data model, an environment-variable table, then each
+  phase on the numbered rail with tickable sub-steps, copyable command blocks,
+  files, snippets, a tickable "done when" list and a watch-out callout. Progress
+  ids are strings and the saved entry is keyed by `kit-<version>`; the verdict
+  page CTA reads the saved percentage back. Apps without a kit render the previous
+  prompt-phase view unchanged.
+- The 50 kits: the 20 batch-1 and batch-2 apps and the 30 added today. Each names
+  its real prerequisites: Anthropic or OpenAI keys with the console path and
+  pay-per-use cost, X developer pay-per-use pricing, SimpleFIN's $15 a year,
+  Mailgun for Ghost newsletters with the DNS records, vaultwarden's Argon2 admin
+  token and the `$$` Compose trap, MaxMind GeoLite2 licence keys, Stripe test-mode
+  keys and Payment Links, S3-compatible bucket credentials with CORS, VAPID keys,
+  ntfy topics, whisper.cpp model downloads with sizes, Xcode, Docker, age, sops,
+  headscale, Playwright's Chromium download, and the free alternative to check
+  first where one exists (Bruno, cloudflared). Every kit carries a `productOnly`
+  operate-or-distribute phase: monitoring, structured logs, off-box backups with a
+  restore drill, firewall and updates, or notarization and Sparkle for the Mac
+  apps. Authored as Python data and written as JSON so the files are byte-stable.
+- Verification: `npm run validate` (1,123 app files, 50 build kits), `npm test`
+  (37 passing), `npm exec -- astro build`, `git diff --check`. Runtime on the
+  built server: all 50 verdict pages and all 50 `/build` pages return 200 with the
+  kit rendering, the fallback page for an app without a kit is unchanged, the
+  pack on a kit page lists the per-project files with BRIEF.md second, and pages
+  still carry only the two hashed inline scripts.
+- Not verified: no headless browser here, so the tracker's toggles, mode switch,
+  copy buttons and progress persistence were reviewed statically against the
+  served markup rather than clicked.
+- Commit: `feat: build kits with beginner-friendly plans for all 50 phased apps`
+  (pushed to `origin/monster`).
