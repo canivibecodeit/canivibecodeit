@@ -1,0 +1,271 @@
+---
+/* Write a guide: the reader-submission front door for the sunday newsletter.
+   Posts to /api/article, which validates against the same limits rendered
+   below and stores the draft as pending for review at /admin/articles.
+
+   No accounts: a name and an email is the whole identity, matching how /submit
+   and the stack work. Nothing here is published automatically. */
+import Base from '../layouts/Base.astro';
+import { LIMITS } from '../lib/articles.js';
+
+const title = 'Write a guide · vibecodeit';
+const description =
+  'Send us a technology guide and we will publish it in the sunday newsletter with your byline. No account needed, one form, a human reads every draft.';
+---
+
+<Base {title} {description} ogImage="/og/newsletter.png">
+  <main class="wrap write-wrap">
+    <span class="microlabel">write for us</span>
+    <h1>Got a guide worth reading? Send it.</h1>
+    <p class="write-sub">
+      Every sunday we publish one guide to technology. Some weeks it is ours, some weeks it is
+      yours · same bar either way: real, tested, and honest about what does not work. If it runs,
+      it runs with your name and your link on it.
+    </p>
+
+    <section class="write-bar">
+      <span class="microlabel">what gets published</span>
+      <ul>
+        <li><i>$</i>you built or broke something and can show the receipts</li>
+        <li><i>$</i>the prompts, commands and configs are in the text, not implied</li>
+        <li><i>$</i>it says what did not work, not only the win</li>
+        <li><i>$</i>no ghostwritten SEO filler, no pitch for your product</li>
+      </ul>
+    </section>
+
+    <form class="write-form" data-article-form novalidate>
+      <label class="hp" aria-hidden="true">
+        Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off" />
+      </label>
+
+      <div class="wf-row">
+        <label class="wf-field">
+          <span>title</span>
+          <input
+            type="text"
+            name="title"
+            required
+            maxlength={LIMITS.title.max}
+            placeholder="What I learned shipping a CLI in one weekend"
+            autocomplete="off"
+          />
+        </label>
+      </div>
+
+      <div class="wf-row wf-split">
+        <label class="wf-field">
+          <span>your name · the byline</span>
+          <input type="text" name="author" required maxlength={LIMITS.author.max} placeholder="Ada Lovelace" autocomplete="name" />
+        </label>
+        <label class="wf-field">
+          <span>email · so we can reply</span>
+          <input type="email" name="email" required maxlength="254" placeholder="you@wherever.com" autocomplete="email" />
+        </label>
+      </div>
+
+      <div class="wf-row">
+        <label class="wf-field">
+          <span>link <small>optional · your site, GitHub or X</small></span>
+          <input type="text" name="link" maxlength={LIMITS.link.max} placeholder="example.com" autocomplete="url" />
+        </label>
+      </div>
+
+      <div class="wf-row">
+        <label class="wf-field">
+          <span>one-line summary <small>optional</small></span>
+          <input type="text" name="summary" maxlength={LIMITS.summary.max} placeholder="What the reader walks away able to do." autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="wf-row">
+        <label class="wf-field">
+          <span>the guide <small>markdown welcome</small></span>
+          <textarea
+            name="body"
+            required
+            rows="16"
+            minlength={LIMITS.body.min}
+            maxlength={LIMITS.body.max}
+            placeholder="Paste the whole thing. Headings, code blocks and links all survive."
+            data-article-body></textarea>
+        </label>
+        <p class="wf-count">
+          <span data-article-count>0</span> characters ·
+          {LIMITS.body.min.toLocaleString('en-US')} minimum
+        </p>
+      </div>
+
+      <div class="wf-actions">
+        <button class="btn primary" type="submit" data-article-submit>send the draft</button>
+        <span class="wf-msg" data-article-msg role="status" aria-live="polite"></span>
+      </div>
+    </form>
+
+    <p class="write-fine">
+      A human reads every draft. If it runs you get an email first · we never publish without
+      telling you. Your email is only used to reply about the guide, and nothing you send here
+      appears on the site until you have said yes.
+    </p>
+
+    <noscript>
+      <p class="write-fine">
+        This form needs JavaScript. Without it, email the draft to
+        <a href="mailto:hello@vibecodeit.com?subject=Guide%20submission">hello@vibecodeit.com</a>.
+      </p>
+    </noscript>
+  </main>
+</Base>
+
+<style>
+  .write-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-top: 56px;
+    padding-bottom: 72px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    padding-top: 14px;
+  }
+
+  .write-sub {
+    padding-top: 16px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 62ch;
+  }
+
+  .write-bar {
+    margin-top: 30px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .write-bar ul {
+    list-style: none;
+    margin: 0;
+    padding: 10px 0 0;
+  }
+
+  .write-bar li {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--muted);
+  }
+
+  .write-bar i {
+    color: var(--primary);
+    font-style: normal;
+    padding-right: 9px;
+  }
+
+  .write-form {
+    margin-top: 30px;
+  }
+
+  .wf-row {
+    padding-bottom: 16px;
+  }
+
+  .wf-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .wf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .wf-field > span {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wf-field small {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .wf-field input,
+  .wf-field textarea {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 11px 13px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .wf-field textarea {
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: 13px;
+    line-height: 1.65;
+    resize: vertical;
+    min-height: 240px;
+  }
+
+  .wf-field input:focus-visible,
+  .wf-field textarea:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+
+  .wf-count {
+    padding-top: 7px;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wf-count.short span {
+    color: var(--kinda-fg);
+  }
+
+  .wf-count.ready span {
+    color: var(--primary);
+  }
+
+  .wf-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+  }
+
+  .wf-msg {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .wf-msg.err {
+    color: var(--no-fg);
+  }
+
+  .wf-msg.ok {
+    color: var(--primary);
+  }
+
+  .write-fine {
+    padding-top: 26px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 66ch;
+  }
+</style>

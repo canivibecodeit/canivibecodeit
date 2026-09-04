@@ -399,3 +399,51 @@ restarted.
   the new copy on the homepage digest card, the digest bar, and `/newsletter`
   including the mailto link.
 - Commit: `copy: repitch the newsletter as a weekly sunday guide`.
+
+### 2026-09-04 — Article submissions: nav entry, /write, and a review queue
+
+- Built the submission system the new newsletter copy promises, so "send yours in
+  and we'll publish it" points at a real route instead of an email address.
+- `src/pages/write.astro`: the public form · title, byline, email, optional link
+  and summary, and the draft itself. Renders its limits from `LIMITS` in
+  `src/lib/articles.js`, the same constants the API validates against, so the
+  character counter can never disagree with what the server accepts. A `noscript`
+  fallback keeps the mailto path for anyone without JavaScript.
+- `src/lib/articles.js`: validation shared by both callers · length bounds, email
+  shape, a public-URL check that refuses IP literals and `.local`/`.internal`
+  hosts (the same shape check the app submitter uses), and control-character
+  stripping that keeps newlines in the body but collapses them in single-line
+  fields.
+- `src/pages/api/article.js`: POST validates, rate limits (3 per IP per day, 100
+  a day globally), stores the draft as `pending`, and emails Faizan through
+  `alertAdmin`. Synchronous, unlike `/api/submit` · there is no AI draft or PR to
+  open, so the writer gets a real answer in one request instead of polling.
+  Honeypot answers exactly like a success so a bot learns nothing from the
+  difference.
+- `src/pages/admin/articles.astro` and `src/pages/api/article/admin.js`: the
+  token-gated review queue with accept, reject with a note, and back-to-queue,
+  following the existing build-queue pattern including the same-origin guard on
+  `return_to`.
+- `src/lib/db.js`: an `articles` table in both the SQLite and Postgres schemas
+  with matching driver methods and exported wrappers.
+- Nav: added `write a guide` to the single `SECTIONS` list in
+  `src/layouts/Base.astro`, which drives both the header and the footer, and
+  pointed the newsletter page and the digest card's copy at `/write`.
+- Deliberately NOT built: a public blog. Nothing in the `articles` table is ever
+  rendered on the site · accepted means the guide goes into a sunday issue with
+  the writer's byline. Rendering submissions publicly is a separate feature with
+  its own moderation, SEO and abuse questions, and half-building it would have
+  put unreviewed reader HTML on the domain.
+- Verification: `node --check` on `app.js`, `db.js` and `articles.js`,
+  `git diff --check`, `npm run validate` (1,093 app files), `npm test` (13
+  passing), and `npm exec -- astro build` all passed. The validator was
+  unit-tested directly for each rejection path.
+- Runtime check against the built server with a throwaway `DATA_DIR`: `/write`
+  and `/newsletter` 200; `/admin/articles` 404s without a token, 404s with a wrong
+  one and 200s with the right one; every validation rejection returns its message
+  at 400; the honeypot returns a success shape and stores nothing; a cross-origin
+  POST is refused 403 once `SITE_URL` is set (the guard is a no-op when it is
+  unset, which is existing sitewide behavior); the per-IP rate limit returns 429
+  on the fourth draft; accept and reject redirect back with a message; and a
+  `//evil.example` `return_to` falls back to `/` rather than redirecting off-site.
+- Commit: `feat: accept reader-submitted guides`.

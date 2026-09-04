@@ -706,6 +706,87 @@
       });
     });
 
+    /* ---------- write a guide ----------
+       One form, one POST, a real answer. Unlike /submit there is no async
+       pipeline to poll: /api/article validates and stores in the same request,
+       so the writer either sees the error against their draft or sees it land.
+       The draft is never cleared on failure · losing a long piece of writing to
+       a network blip is the worst thing this page could do. */
+    const articleForm = $('[data-article-form]');
+    if (articleForm) {
+      const bodyField = $('[data-article-body]', articleForm);
+      const count = $('[data-article-count]', articleForm);
+      const countWrap = count?.closest('.wf-count');
+      const msg = $('[data-article-msg]', articleForm);
+      const submitBtn = $('[data-article-submit]', articleForm);
+      const minChars = Number(bodyField?.getAttribute('minlength')) || 0;
+
+      const setMsg = (text, kind) => {
+        if (!msg) return;
+        msg.textContent = text;
+        msg.classList.toggle('err', kind === 'err');
+        msg.classList.toggle('ok', kind === 'ok');
+      };
+
+      const renderCount = () => {
+        if (!bodyField || !count) return;
+        const n = bodyField.value.trim().length;
+        count.textContent = n.toLocaleString('en-US');
+        countWrap?.classList.toggle('short', n > 0 && n < minChars);
+        countWrap?.classList.toggle('ready', n >= minChars);
+      };
+      bodyField?.addEventListener('input', renderCount);
+      renderCount();
+
+      articleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (submitBtn?.disabled) return;
+
+        const data = Object.fromEntries(new FormData(articleForm).entries());
+        // Cheap client-side guard so an obviously short draft never costs a
+        // round trip; the server checks the same rule regardless.
+        if (String(data.body || '').trim().length < minChars) {
+          setMsg(`the draft is too short · ${minChars.toLocaleString('en-US')} characters minimum`, 'err');
+          bodyField?.focus();
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'sending…';
+        }
+        setMsg('sending…');
+
+        try {
+          const res = await fetch('/api/article', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setMsg(out.error || 'that did not send · try again in a moment', 'err');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'send the draft';
+            }
+            return;
+          }
+          articleForm.reset();
+          renderCount();
+          setMsg('sent · a human reads it next, and you get an email either way', 'ok');
+          if (submitBtn) submitBtn.textContent = 'sent ✓';
+          track('article_submit', { ok: true });
+        } catch {
+          setMsg('network trouble · your draft is still here, try again', 'err');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'send the draft';
+          }
+        }
+      });
+    }
+
     /* ---------- build progress ----------
        Device-local progress over the steps on /<slug>/build, in localStorage
        under vibecodeit:progress · same contract as my stack, no account and no
