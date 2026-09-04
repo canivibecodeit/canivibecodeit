@@ -211,8 +211,16 @@ export const VERDICTS = {
 
 let cache;
 
+/* Production caches the dataset for the life of the process: 1,093 files is a
+   one-off read and the pages are rendered on every request. The dev server
+   re-reads instead, so an edit to data/apps/*.json shows on the next reload
+   rather than after a restart · the stale-page confusion that costs an
+   afternoon otherwise. Optional chaining because plain Node (scripts, tests)
+   has no import.meta.env at all, and there the cache stays on. */
+const CACHE = !import.meta.env?.DEV;
+
 export function allApps() {
-  if (!cache) {
+  if (!cache || !CACHE) {
     cache = readdirSync(DATA_DIR)
       .filter((f) => f.endsWith('.json'))
       .map((f) => {

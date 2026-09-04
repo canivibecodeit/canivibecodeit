@@ -447,3 +447,51 @@ restarted.
   on the fourth draft; accept and reject redirect back with a message; and a
   `//evil.example` `return_to` falls back to `/` rather than redirecting off-site.
 - Commit: `feat: accept reader-submitted guides`.
+
+### 2026-09-04 — Whole-project audit: security, performance, bugs
+
+- Audited the project end to end rather than the pending diff, in risk order:
+  dependencies, injection sinks, the request trust boundary, every API endpoint's
+  guards, the Stripe webhooks, the hot rendering paths, and the code added today.
+- Findings, security: `npm audit` reports 0 vulnerabilities. Every `set:html`
+  goes through `scriptJson` or the two CSP-hashed snippets; every client-side
+  `innerHTML` in `globe.js` and `dither.js` escapes its data. All dynamic SQL in
+  `db.js` interpolates only column names drawn from whitelists
+  (`SUBMISSION_FIELDS`, `BUILD_FIELDS`, `PURCHASE_LOOKUP_COLS`); values are
+  parameterised throughout. Both Stripe webhooks verify the signature with a
+  timing-safe compare and a replay tolerance. Icon uploads are streamed with a
+  byte cap and sniffed, and rate-limited per IP and per token inside the shared
+  `iconEndpoint`. The two public POSTs that looked unguarded at the file level
+  (`rec/impression.js`, `thebuildgames/icon.js`) rate-limit inside their shared
+  helpers. Every cookie-authenticated state change (`account/delete`, `stack`,
+  `build`, `build/media`, `article`) checks `crossOrigin`; the endpoints that do
+  not are token-gated admin routes, signature-verified webhooks, or idempotent
+  rate-limited beacons. No code change was warranted.
+- Configuration note, not a code bug: with `ORIGIN_VERIFY_SECRET` unset,
+  `clientIp` trusts the first `x-forwarded-for` entry, so per-IP rate limits can
+  be spoofed; and `crossOrigin` is a no-op until `SITE_URL` or `BETTER_AUTH_URL`
+  is set. Both are the documented rollout ladders in `.env.example` and
+  `src/middleware.js`, and both should be set in production.
+- Findings, performance: on the production build, `/` renders in ~30 ms
+  (1.15 MB of HTML · the full death list, by design, compressed by the reverse
+  proxy), verdict pages in 2–4 ms, `/alternatives` in 7 ms, `/api/search` in
+  3 ms. PostHog-backed pages are cached with stale-while-revalidate in
+  `src/lib/analytics.js`. `voteCounts()` is one query per render over at most
+  1,093 rows. Nothing needed changing.
+- Bug fixed: `allApps()` in `src/lib/apps.js` cached the dataset for the life of
+  the process in every mode, so an edit to `data/apps/*.json` did not appear in
+  the dev server until a restart · the exact confusion hit earlier today when a
+  phased prompt showed the 5-step fallback. The cache now stays on in production
+  (confirmed in the compiled bundle: `"DEV": false`, so `CACHE` is true) and is
+  bypassed under `import.meta.env.DEV`. Optional chaining keeps plain Node
+  (scripts, tests) on the cached path, verified by importing the module directly.
+- Tests added, pinning today's two new libraries: `test/build-plan.test.mjs`
+  (7 tests, including the multi-line `Done when` regression the parser had
+  earlier today) and `test/articles.test.mjs` (10 tests covering every rejection
+  path, both cleaning modes, CRLF normalisation, caps, `parseLink`, and a guard
+  that the source carries no raw control bytes). `npm test` is now 30 passing.
+- Verification: `node --check src/lib/apps.js`, `git diff --check`,
+  `npm run validate` (1,093 app files), `npm test` (30 passing), and
+  `npm exec -- astro build` passed.
+- Commit: `fix: re-read app data per request in dev; add parser and validator
+  tests` (pushed to `origin/monster`).
