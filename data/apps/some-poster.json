@@ -1,0 +1,51 @@
+{
+  "slug": "some-poster",
+  "name": "Some Poster",
+  "domain": "someposter.ai",
+  "category": "social-media",
+  "subcategory": "AI post generation and scheduling",
+  "tagline": "AI tool for turning ideas into social posts and publishing them on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://someposter.ai/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The generation half of this is a prompt template and a text box, and an agent will nail it in an afternoon. The publishing half is where every DIY social tool dies: each platform wants its own OAuth app, review process, rate limits, and media upload dance, and those change often enough to become a chore you did not sign up for. If you are willing to live with a local drafts queue that you copy-paste into each app yourself, the personal version is genuinely fine and probably better tuned to your voice. If you want scheduled auto-publishing to several networks with previews that match the real thing, you are buying maintenance, not code. Build it, then decide how much you hate pasting.",
+  "coreLoopDIY": "A local app that takes a topic or a URL, drafts platform-sized posts in your voice with an LLM, stores them in a scheduled queue, and reminds you to post or pushes to the one or two networks you bothered to wire up.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "An LLM API key (OpenAI-compatible) in .env",
+    "Optional: a developer app plus tokens for any network you want to auto-publish to",
+    "Somewhere always-on if you want scheduling to fire while you sleep"
+  ],
+  "whatYouLose": [
+    "Multi-network publishing that already works: no OAuth apps to register, no API review, no token refresh code to babysit",
+    "Accurate per-platform previews and character/media rules that someone else keeps current",
+    "Mobile access, so scheduling and approving from a phone is on you",
+    "Analytics on what actually performed, which is most of why people schedule at all",
+    "Team review flows, shared calendars, and the audit trail that comes with them"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the model, it is the boring maintenance of half a dozen platform APIs that keep moving.",
+  "whyPeopleStillPay": "Because nobody wants to be the on-call engineer for someone else's API deprecation notice. Paying converts a recurring maintenance liability into a line item, and it buys the parts that are annoying rather than hard: real previews, media handling, retries when a post fails at 6am, and a phone app for the moment you spot a typo. If posting is part of your job, that trade is easy. If you post twice a week for yourself, a local drafter and a calendar reminder covers it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Cheap to build, expensive to keep working, which is the usual shape of anything that touches social platform APIs.",
+  "prompt": "Build a local-first social post drafter and scheduler called \"Deskposter\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Node 20, TypeScript, Next.js App Router, SQLite via better-sqlite3, Tailwind for styling. Everything runs with `npm run dev` on localhost. Single user, no auth.\n\nCore loop:\n1. Input box accepts a raw idea, a pasted article, or a URL (fetch and extract readable text with @mozilla/readability + jsdom).\n2. Call an OpenAI-compatible chat API using OPENAI_API_KEY and OPENAI_BASE_URL from .env to draft posts for the selected targets: x (280 chars), linkedin (long form), mastodon (500 chars), threads. Generate 3 variants per target in one request, streaming to the UI.\n3. A persistent \"voice profile\" stored in SQLite: tone notes plus up to 20 example posts I paste in. Inject it into every prompt.\n4. Editable draft view with live character counting and a hard warning past each platform limit.\n5. Save drafts to a queue with a scheduled datetime and status (draft | scheduled | posted | skipped).\n\nScheduling: an in-process node-cron job checks every minute. If a due post has an outbound adapter configured, publish it; otherwise mark it \"due\" and surface it in a Due Now panel with a one-click copy button per platform. Log every attempt with the response or error.\n\nAdapters: implement exactly two, behind a shared interface, both optional and skipped when env vars are missing: Mastodon (access token, simple POST to /api/v1/statuses) and a generic webhook POST. Do not attempt X or LinkedIn OAuth. Leave a documented stub file explaining where to add them.\n\nAlso include: a week calendar view of the queue, CSV export of all posts, and a /health route.\n\nOut of scope, do not build: analytics, image generation, team roles, multi-workspace, payment, a mobile app, or hosted deployment config.\n\nSecrets only in .env, ship .env.example. Write a README with setup in under 10 lines and a blunt note that auto-publishing works for Mastodon and webhooks only.",
+  "promptCurated": false
+}
