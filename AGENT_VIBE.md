@@ -349,3 +349,19 @@ restarted.
   confirmed the rendered `h1`, and that the title, `og:site_name` and footer
   attribution are unchanged.
 - Commit: `copy: drop the question mark from the homepage heading`.
+
+### 2026-09-04 — Restore the homepage question mark, struck through
+
+- `src/pages/index.astro`: the hero `h1` reads `Can I vibecode it?` again, with the
+  question mark wrapped in the existing `.struck` span so the line-through runs
+  across it exactly as it does across `Can I`. The heading now reads as the
+  question being crossed out, which is the joke the strikethrough was making all
+  along · struck `Can I`, accent `it`, struck `?`.
+- No CSS was added: `.hero h1 .struck` already carries the line-through, its
+  thickness and color. The mark sits flush against `it` with no space.
+- Left the sub-heading alone: `One question each: vibecode it today, or keep
+  paying?` is a real question and reads correctly with its mark.
+- Verification: `git diff --check`, `npm run validate` (1,093 app files),
+  `npm test` (13 passing), and `npm exec -- astro build` passed. Runtime check
+  confirmed the rendered markup and that no space crept in before the mark.
+- Commit: `copy: restore the homepage question mark, struck through`.
