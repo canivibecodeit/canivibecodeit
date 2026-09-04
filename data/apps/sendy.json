@@ -1,0 +1,51 @@
+{
+  "slug": "sendy",
+  "name": "Sendy",
+  "domain": "sendy.co",
+  "category": "newsletter",
+  "subcategory": "self-hosted email sending",
+  "tagline": "Self-hosted newsletter app that sends bulk email through Amazon SES for pennies per thousand.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Sendy license",
+    "basis": "one-time license, self-hosted",
+    "unit": "one-time",
+    "source": "https://sendy.co/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Sendy is already the DIY answer: it is a PHP app you install on your own server and point at Amazon SES, so there is no network and no proprietary data to replicate. An agent can absolutely produce a subscriber table, a campaign composer, a throttled SES sender, unsubscribe tokens, and open/click tracking in a weekend. What it will not produce on the first pass is the unglamorous plumbing: SNS bounce and complaint ingestion that actually keeps your SES reputation alive, sending rate governance, resumable queues, and a template editor a human can use twice. The deliverability was never Sendy's anyway, it is SES, and that part transfers cleanly. So this is a real build, just one where the last 20 percent is compliance-flavored grunt work rather than features.",
+  "coreLoopDIY": "Import subscribers, write a campaign, send it in throttled batches through Amazon SES, and track opens, clicks, unsubscribes, bounces, and complaints in a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An AWS account with SES out of the sandbox and a verified sending domain",
+    "DKIM, SPF and DMARC records on that domain",
+    "A publicly reachable host for the SNS webhook, tracking pixel and unsubscribe links",
+    "A cheap VPS or container host that can stay up during long sends"
+  ],
+  "whatYouLose": [
+    "Battle-tested bounce and complaint handling, which is the thing that stops SES from suspending you",
+    "Autoresponders, drip sequences, and segmentation rules that already work",
+    "A WYSIWYG email editor and a library of templates that render in Outlook",
+    "Multi-brand and multi-list management plus the API and WordPress integrations people build on",
+    "Years of other people finding the edge cases in bulk sending before you did"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat here is not lock-in, it is that a one-time license costs less than the weekend you would spend reimplementing bounce handling.",
+  "whyPeopleStillPay": "Because Sendy is priced like a tool, not a subscription, and the value proposition is time rather than data. You are buying someone else's finished handling of SES quirks, bounce loops, complaint thresholds, unsubscribe compliance, and email HTML that survives Outlook. If you send to a few hundred people, your own build is fine and arguably nicer. If you send to fifty thousand and a suspended SES account would be a real problem, paying once to skip the learning curve is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the paid product is itself the self-hosted option, so the build is a fair fight rather than a downgrade.",
+  "prompt": "Build a self-hosted bulk newsletter sender in an empty folder. Single project, no monorepo.\n\nStack, no substitutions: TypeScript, Node 20, Hono for HTTP, SQLite via better-sqlite3, server-rendered HTML with plain templates and a little vanilla JS. No React, no Tailwind CDN nonsense, just one small CSS file. AWS SDK v3 (@aws-sdk/client-sesv2) for sending.\n\nData model in SQLite: lists, subscribers (email, name, status, list_id, custom fields as JSON, created_at), campaigns (subject, from name, from address, reply_to, html body, plain text body, list_id, status, scheduled_at), sends (campaign_id, subscriber_id, status, message_id, sent_at), events (send_id, type: open | click | bounce | complaint | unsubscribe, url, created_at).\n\nFeatures in scope:\n- Admin UI behind HTTP basic auth using ADMIN_USER and ADMIN_PASS from .env.\n- CSV import of subscribers with dedupe by email per list, and CSV export.\n- Campaign composer: paste raw HTML plus a plain text version, live preview iframe, test send to one address.\n- Send worker: on send, enqueue one row per active subscriber, then process with a configurable rate limit (SES_MAX_PER_SECOND) and concurrency, using SES SendEmail. Must be resumable: if the process restarts mid-campaign, it picks up pending rows only. Retry on throttling errors with exponential backoff.\n- Personalization: replace {{name}}, {{email}} and any custom field token in subject and body.\n- Every email gets a List-Unsubscribe header plus a footer link to a signed one-click unsubscribe URL (HMAC of subscriber id with APP_SECRET). Unsubscribes are honored immediately and never resend.\n- Tracking: 1x1 gif open pixel and click redirect endpoint that rewrites http links in the HTML at send time. Add a global TRACKING_ENABLED flag that defaults to true and actually turns both off when false.\n- POST /webhooks/sns endpoint that verifies the SNS message signature, auto-confirms subscription requests, and records Bounce and Complaint notifications. Hard bounces and any complaint set the subscriber status to suppressed permanently. Soft bounces increment a counter and suppress after 3.\n- Dashboard per campaign: sent, opens, unique opens, clicks, bounces, complaints, unsubscribes.\n\nOut of scope, do not build: WYSIWYG editor, drag and drop templates, autoresponders, A/B testing, multiple admin users, billing, analytics telemetry of any kind, any cloud service other than SES and SNS.\n\nOperational requirements: all config in .env (AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, APP_SECRET, APP_BASE_URL, ADMIN_USER, ADMIN_PASS, SES_MAX_PER_SECOND, TRACKING_ENABLED) with a committed .env.example. Provide a Dockerfile and a docker-compose.yml with a mounted volume for the SQLite file. Include npm scripts for dev, build, start, and a migrate script that creates the schema idempotently.\n\nWrite a README that states plainly: you must verify your domain in SES, set up DKIM, SPF and DMARC, request production access to leave the SES sandbox, and subscribe the /webhooks/sns endpoint to your SES bounce and complaint topics. Seed the database with one list and three fake subscribers so the UI is not empty on first run.",
+  "promptCurated": false
+}
