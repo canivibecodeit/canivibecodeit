@@ -1,0 +1,52 @@
+{
+  "slug": "accurx",
+  "name": "Accurx",
+  "domain": "accurx.com",
+  "category": "customer-support",
+  "subcategory": "NHS patient messaging",
+  "tagline": "Messaging, video consults and admin tooling that UK healthcare staff use to contact patients from inside their clinical system.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.accurx.com/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Accurx is largely bought at NHS organisation level with national and practice-level contracts, so there is no simple public per-seat number.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can build a patient SMS console in an afternoon: contact list, templates, send, log. What you cannot build is the part that matters, which is a two-way pipe into EMIS Web and SystmOne, mobile numbers that come from the actual patient record, and messages that write back into the notes as an auditable consultation entry. On top of that sits the paperwork: DCB0129 clinical safety cases, DSP Toolkit, NHS smartcard and single sign-on, data residency, and an information governance review that a practice manager will absolutely ask about. Accurx also gets used because the person on the other end already knows the interface, and because a receptionist sending a batch to 400 patients wants deliverability and a support line, not your Flask app. A personal replacement is fine for a private clinic that keeps its own list and accepts the risk; inside the NHS it is a non-starter.",
+  "coreLoopDIY": "A local web app holding a patient list, SMS templates and a send log, blasting messages through one SMS provider API and recording what went out.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An SMS provider account and API key, Twilio or similar",
+    "A phone number capable of sending to your country's mobiles",
+    "Your own patient or contact list as CSV, exported by you, legally, with a reason",
+    "Somewhere to run it that is not a laptop in a coffee shop"
+  ],
+  "whatYouLose": [
+    "Integration with EMIS Web and SystmOne, so no record-derived phone numbers and no write-back to the patient notes",
+    "Clinical safety documentation and information governance sign-off, which is what actually gets software allowed near patient data",
+    "NHS smartcard, single sign-on and role-based access that IT will demand",
+    "Two-way conversation handling, floreys and questionnaires, video consults, and batch messaging at practice scale",
+    "A support desk when a message fails to send on a Friday afternoon"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part is not messaging, it is being an approved thing that is allowed to touch a UK patient record and prove it afterwards.",
+  "whyPeopleStillPay": "Because the buyer is not choosing between Accurx and a script, they are choosing between Accurx and phoning 200 patients one at a time. The purchase decision is made by practices and ICBs who need a supplier with a clinical safety case, an audit trail, and integrations that already work with whatever clinical system they are stuck with. Even if a developer inside the practice built something better, it would not survive the first IG review, and nobody wants their name on the risk register. The software is the smallest part of what is being bought.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The send button is a weekend; the permission to press it is not. The moat is clinical safety paperwork plus live integrations into EMIS and SystmOne, and no amount of clean code substitutes for either.",
+  "prompt": "Build a local, single-user patient messaging console for a small private clinic that keeps its own contact list. This is a consolation build, not an NHS-integrated product.\n\nStack: Python 3.12, FastAPI, SQLite via SQLModel, server-rendered Jinja2 templates, plain CSS. No React, no build step, no auth provider. Single Docker file for deployment.\n\nIn scope:\n- Import contacts from CSV: first name, last name, mobile in E.164, date of birth, optional tags. Reject rows with unparseable numbers and show me the rejects.\n- Contact list page with search by name and filter by tag.\n- Message templates stored in the DB with {{first_name}} and {{appointment_date}} placeholders. Render a live preview before sending.\n- Send to one contact or to a filtered selection. Show a confirmation screen with the exact rendered text and the recipient count. Require typing the count to confirm a batch over 20.\n- Send via one SMS provider only: Twilio. Credentials in .env, loaded with python-dotenv. If credentials are missing, run in DRY_RUN mode and write messages to a local log instead of sending.\n- Inbound replies via a Twilio webhook endpoint, stored against the matching contact by phone number. Simple threaded view per contact.\n- Immutable send log: timestamp, contact id, template id, rendered body, provider message id, delivery status. Never allow edits or deletes, only appends.\n- Delivery status updates via Twilio status callback.\n- Basic HTTP basic auth on all routes, credentials from .env.\n\nOut of scope, do not attempt: EMIS or SystmOne integration, NHS login or smartcards, video consultations, appointment booking, questionnaires, analytics dashboards, multi-user roles, cloud hosting.\n\nSecurity and honesty requirements:\n- SQLite file lives in a mounted volume path from .env. No telemetry, no external calls except Twilio.\n- Add a /export route dumping contacts and send log as CSV so I am never locked in.\n- Write a README that states plainly: this has no clinical safety case, no DSP Toolkit assessment, and must not be used to message NHS patients or to store data from an NHS clinical system.\n\nFinish with a make target that runs the app locally in DRY_RUN and seeds five fake contacts and two templates.",
+  "promptCurated": false
+}
