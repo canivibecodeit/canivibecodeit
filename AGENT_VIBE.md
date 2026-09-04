@@ -304,4 +304,15 @@ two of a cluster in the same batch.
   the new route stays out of the sitemap.
 - Not verified: no headless browser here, so the visual result was checked
   structurally rather than rendered and looked at.
-- Commit: `feat: add a step-by-step build page per app`.
+- Follow-up on layout: the header row is now the project title on the left and
+  `track this build` on the right, aligned to the title's centre line; the verdict
+  badge and save-to-my-stack moved to their own left-aligned row directly beneath
+  the title. `.verdict-side` was removed entirely rather than left as dead CSS.
+- Commit: `feat: add a step-by-step build page per app` and
+  `style: title and track CTA on one row, verdict and save beneath` (pushed to
+  `origin/monster`).
+
+Note for anyone reviewing locally: `src/lib/apps.js` caches the app dataset at
+first read, so a dev server started before a `data/apps/*.json` edit keeps serving
+the old prompts · a phased app will show the 5-step fallback until the server is
+restarted.
