@@ -21,8 +21,8 @@ import { r2Configured, r2Put, r2PublicUrl } from './r2.js';
 const COLORS = {
   fg: '#e8e6e0',
   muted: '#9aa29a',
-  green: '#33e667',
-  onGreen: '#06170b',
+  green: '#403d88',
+  onGreen: '#ffffff',
   chipBg: '#20241f',
   chipBorder: '#2e332d',
 };
@@ -61,8 +61,6 @@ const logoRow = () =>
       el('div', { width: 7, height: 18, backgroundColor: COLORS.green }),
     ]),
     el('div', { display: 'flex', ...mono(26, COLORS.fg) }, [
-      el('span', { color: COLORS.fg }, 'can'),
-      el('span', { color: COLORS.green }, 'i'),
       el('span', { color: COLORS.fg }, 'vibecode'),
       el('span', { color: COLORS.green }, 'it'),
     ]),
@@ -107,7 +105,7 @@ function buildCard(build, handle, shot) {
         el('div', mono(24, COLORS.muted), `built with ${build.tool}${build.model ? ` · ${build.model}` : ''}`),
       ]),
       el('div', { display: 'flex', marginTop: 'auto', flexDirection: 'column', gap: 8 }, [
-        el('div', mono(21, COLORS.muted), `canivibecodeit.com/builds/${handle}`),
+        el('div', mono(21, COLORS.muted), `vibecodeit.com/builds/${handle}`),
         el('div', mono(21, COLORS.green), HOOK[build.goes] ?? HOOK.one),
       ]),
     ]),

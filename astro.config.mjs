@@ -8,7 +8,7 @@ import node from '@astrojs/node';
 // 127.0.0.1:8095 on a VPS; PaaS platforms inject their own PORT and need
 // HOST=0.0.0.0). The dev-server default below only affects `npm run dev`.
 export default defineConfig({
-  site: 'https://canivibecodeit.com',
+  site: 'https://vibecodeit.com',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   server: { host: '127.0.0.1', port: 8095 },

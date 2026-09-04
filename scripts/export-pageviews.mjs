@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const STATE_DIR = process.env.PAGEVIEW_STATE_DIR || '/srv/http/canivibecodeit-data/pageviews';
+const STATE_DIR = process.env.PAGEVIEW_STATE_DIR || '/srv/http/vibecodeit-data/pageviews';
 const STATE_FILE = path.join(STATE_DIR, '.last-day');
 // Nothing exists before the site did; the first run backfills from here.
 const FLOOR_DAY = '2026-07-25';
@@ -100,7 +100,7 @@ const LIMIT = 50000;
 
 function dayFilter(day) {
   return `
-    AND properties.$host = 'canivibecodeit.com'
+    AND properties.$host = 'vibecodeit.com'
     AND toDate(timestamp) = toDate('${day}')
   `;
 }

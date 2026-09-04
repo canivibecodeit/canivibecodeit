@@ -1,13 +1,13 @@
 // Icon upload for a Build Games placement, post-checkout. Authorisation is
 // the details token via bgEditableByToken (cleared payment that won the
 // identity claim). Writes go live on the board immediately, like the
-// tagline; a post-clear icon swap alerts Rob the same way a text edit does.
+// tagline; a post-clear icon swap alerts Faizan the same way a text edit does.
 import { updateBgSponsor } from '../../../lib/db.js';
 import { buildGamesLive } from '../../../lib/flags.js';
 import { bgEditableByToken } from '../../../lib/buildgames-details.js';
 import { selfHostImage } from '../../../lib/challenge-image.js';
 import { iconEndpoint } from '../../../lib/icon-upload.js';
-import { alertRob, esc } from '../../../lib/mail.js';
+import { alertAdmin, esc } from '../../../lib/mail.js';
 
 const handler = iconEndpoint({
   surface: 'buildgames',
@@ -18,10 +18,10 @@ const handler = iconEndpoint({
   },
   apply: async ({ sponsor }, url) => {
     await updateBgSponsor(sponsor.id, { icon_url: url });
-    alertRob(
+    alertAdmin(
       '[cvci] build games: placement icon replaced post-clear',
       `<p><b>${esc(sponsor.link)}</b></p><p><img src="${esc(url)}" width="56" height="56" alt="" /></p>
-       <p><a href="https://canivibecodeit.com/admin/thebuildgames">the queue</a></p>`
+       <p><a href="https://vibecodeit.com/admin/thebuildgames">the queue</a></p>`
     ).catch((err) => console.error(`bg icon alert failed: ${err.message}`));
     return { icon_url: url };
   },

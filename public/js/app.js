@@ -1,4 +1,4 @@
-/* Can I Vibecode It? — interactions. No frameworks, on purpose. */
+/* Vibecode It? — interactions. No frameworks, on purpose. */
 (() => {
   const $ = (sel, el = document) => el.querySelector(sel);
   const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -118,7 +118,7 @@
       placeGlobe();
     };
 
-    /* ---------- category dropdown (list header) ---------- */
+    /* ---------- category dropdown (hero, next to search) ---------- */
     const catDD = $('#cat-dd');
     if (catDD && rows.length) {
       const ddBtn = $('#cat-dd-btn');
@@ -135,10 +135,15 @@
         if (opening) $('.cat-opt.active', ddPanel)?.scrollIntoView({ block: 'nearest' });
       });
       ddPanel.addEventListener('click', (e) => {
-        const opt = e.target.closest('.cat-opt');
+        const link = e.target.closest('a.cat-opt');
+        if (link) {
+          ddClose();
+          return;
+        }
+        const opt = e.target.closest('button.cat-opt');
         if (!opt) return;
         activeCat = opt.dataset.cat || '';
-        $$('.cat-opt', ddPanel).forEach((o) => {
+        $$('button.cat-opt', ddPanel).forEach((o) => {
           o.classList.toggle('active', o === opt);
           o.setAttribute('aria-selected', String(o === opt));
         });
@@ -146,6 +151,9 @@
         ddBtn.classList.toggle('filtering', !!activeCat);
         ddClose();
         applyFilter();
+        if (activeCat) {
+          document.getElementById('death-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         track('category_filter', { category: activeCat || 'all' });
       });
       document.addEventListener('click', (e) => {

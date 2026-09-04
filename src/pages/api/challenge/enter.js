@@ -13,7 +13,7 @@ import {
   rateLimit,
 } from '../../../lib/db.js';
 import { challengeLive } from '../../../lib/flags.js';
-import { alertRob, esc, mirrorToResend } from '../../../lib/mail.js';
+import { alertAdmin, esc, mirrorToResend } from '../../../lib/mail.js';
 import { clientIp, crossOrigin, json, readBody, unreachableEmail, validEmail } from '../../../lib/request.js';
 import { parsePublicUrl } from '../../../lib/builds.js';
 import {
@@ -50,7 +50,7 @@ export async function POST({ request, clientAddress }) {
   }
   if (!(await rateLimit('chent:all', 500, 24 * 60 * 60 * 1000))) {
     if (await rateLimit('chent:cap-alert', 1, 24 * 60 * 60 * 1000)) {
-      alertRob(
+      alertAdmin(
         '[cvci] challenge entry cap tripped',
         '<p>The global challenge entry cap (500/day) tripped. Great day or a flood — check the gallery. Caps live in src/pages/api/challenge/enter.js.</p>'
       ).catch((err) => console.error(`challenge cap alert failed: ${err.message}`));
@@ -197,12 +197,12 @@ export async function POST({ request, clientAddress }) {
   // per entry up to the daily cap. Cap the mail at 6/hour — the entries still
   // sit in the admin queue regardless (audit N3).
   if (status === 'held' && (await rateLimit('challenge:held-alert', 6, 60 * 60 * 1000))) {
-    alertRob(
+    alertAdmin(
       '[cvci] challenge entry held',
       `<p>A challenge entry needs review:</p>
        <p><b>${esc(meta.title)}</b> by @${esc(handle)}</p>
        <p>${esc(heldReason)}</p>
-       <p><a href="https://canivibecodeit.com/admin/challenge">open the queue and paste your token</a></p>`
+       <p><a href="https://vibecodeit.com/admin/challenge">open the queue and paste your token</a></p>`
     ).catch((err) => console.error(`challenge held alert failed: ${err.message}`));
   }
 

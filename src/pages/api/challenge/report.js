@@ -1,11 +1,11 @@
 // Report a challenge entry. A report is a signal, not a takedown button: it
 // takes HOLD_AT DISTINCT reporters (deduped per IP+entry per day) to auto-hold
 // an entry, so one person with a script can't censor a rival — the audit's
-// report-bombing hole (H2). Crossing the threshold pings Rob once.
+// report-bombing hole (H2). Crossing the threshold pings Faizan once.
 import { createHash } from 'node:crypto';
 import { addEntryReport, challengeEntryById, rateLimit, updateChallengeEntry } from '../../../lib/db.js';
 import { challengeLive } from '../../../lib/flags.js';
-import { alertRob, esc } from '../../../lib/mail.js';
+import { alertAdmin, esc } from '../../../lib/mail.js';
 import { clientIp, crossOrigin, json, readBody } from '../../../lib/request.js';
 import { ENTRY_ID_RE } from '../../../lib/challenge.js';
 
@@ -51,10 +51,10 @@ export async function POST({ request, clientAddress }) {
     const entry = await challengeEntryById(id);
     if (entry && entry.status === 'live') {
       await updateChallengeEntry(id, { status: 'held', held_reason: `reports: ${distinct} distinct` });
-      alertRob(
+      alertAdmin(
         '[cvci] challenge entry auto-held on reports',
         `<p><b>${esc(entry.page_title ?? entry.url)}</b> by @${esc(entry.x_handle)} hit ${distinct} distinct reports and is out of the gallery pending a look.</p>
-         <p><a href="https://canivibecodeit.com/admin/challenge">open the queue and paste your token</a></p>`
+         <p><a href="https://vibecodeit.com/admin/challenge">open the queue and paste your token</a></p>`
       ).catch((err) => console.error(`challenge report alert failed: ${err.message}`));
     }
   }

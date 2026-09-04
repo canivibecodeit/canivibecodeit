@@ -71,7 +71,7 @@ const POLICY = [
   "img-src 'self' data: https:",
   "font-src 'self' data:",
   "connect-src 'self'",
-  "media-src 'self' https://stream.nightride.fm https://media.canivibecodeit.com",
+  "media-src 'self' https://stream.nightride.fm https://media.vibecodeit.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self' https://checkout.stripe.com",

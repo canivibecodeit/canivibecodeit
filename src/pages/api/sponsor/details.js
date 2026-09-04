@@ -1,5 +1,5 @@
 import { purchaseByToken, rateLimit, updatePurchase } from '../../../lib/db.js';
-import { alertRob, button, esc, shell } from '../../../lib/mail.js';
+import { alertAdmin, button, esc, shell } from '../../../lib/mail.js';
 import { clientIp, json, readBody } from '../../../lib/request.js';
 import { hostedIconUrl } from '../../../lib/sponsor-icon.js';
 import {
@@ -66,7 +66,7 @@ export async function POST({ request, clientAddress }) {
 
   const approve = `${siteUrl('/admin/decide')}?id=${purchase.id}&action=approve&sig=${signAction(purchase.id, 'approve')}`;
   const reject = `${siteUrl('/admin/decide')}?id=${purchase.id}&action=reject&sig=${signAction(purchase.id, 'reject')}`;
-  await alertRob(
+  await alertAdmin(
     `sponsor slot ${purchase.slot_id}: ${name} needs a decision`,
     shell(
       `<p style="color:#6e6e67;">${esc(purchase.slot_id)} &middot; ${esc(usd(purchase.amount_cents))}`

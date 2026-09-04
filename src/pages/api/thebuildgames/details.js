@@ -5,11 +5,11 @@
 // sponsor, and the edit is allowed only when that payment CLEARED and WON the
 // sponsor's identity claim (earliest cleared screened payment). Same
 // sanitisation as every other tagline path: cleanTagline + TAGLINE_MAX.
-// Writes go live immediately — no approval step, per Rob.
+// Writes go live immediately — no approval step, per Faizan.
 import { rateLimit, updateBgSponsor } from '../../../lib/db.js';
 import { bgEditableByToken } from '../../../lib/buildgames-details.js';
 import { buildGamesLive } from '../../../lib/flags.js';
-import { alertRob, esc } from '../../../lib/mail.js';
+import { alertAdmin, esc } from '../../../lib/mail.js';
 import { clientIp, crossOrigin, json, readBody } from '../../../lib/request.js';
 import { NAME_MAX, TAGLINE_MAX, cleanName, cleanTagline } from '../../../lib/buildgames.js';
 
@@ -56,12 +56,12 @@ export async function POST({ request, clientAddress }) {
   // Post-clear edits bypass the first-clear alert, so they get their own —
   // a defacement AFTER clearing must be as visible as one at clearing.
   // Fire-and-forget; the save never waits on mail.
-  alertRob(
+  alertAdmin(
     '[cvci] build games: placement details edited post-clear',
     `<p><b>${esc(sponsor.link)}</b></p>
      <p>name: ${esc(String(before.name))} → ${esc(String(nameUpdate === undefined ? before.name : nameUpdate))}<br>
         tagline: ${esc(String(before.tagline))} → ${esc(tagline)}</p>
-     <p><a href="https://canivibecodeit.com/admin/thebuildgames">the queue</a></p>`
+     <p><a href="https://vibecodeit.com/admin/thebuildgames">the queue</a></p>`
   ).catch((err) => console.error(`bg details edit alert failed: ${err.message}`));
 
   return json({ ok: true, message: 'saved · live on the board' });

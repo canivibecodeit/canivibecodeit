@@ -3,7 +3,7 @@
 // response scales with what the placement is worth:
 //   - reports are deduped per distinct reporter (stable salt);
 //   - a HIGH-VALUE placement (cleared ≥ PAID_ALERT) is NEVER auto-held on
-//     reports — it only ever alerts Rob for a human decision;
+//     reports — it only ever alerts Faizan for a human decision;
 //   - a low-value one auto-holds, but only past a threshold that SCALES with
 //     the amount paid AND only when the reports are SPREAD OVER TIME (a burst
 //     from one actor in minutes alerts instead of holding).
@@ -19,7 +19,7 @@ import {
   updateBgSponsor,
 } from '../../../lib/db.js';
 import { buildGamesLive } from '../../../lib/flags.js';
-import { alertRob, esc } from '../../../lib/mail.js';
+import { alertAdmin, esc } from '../../../lib/mail.js';
 import { sendSponsorMail } from '../../../lib/buildgames-mail.js';
 import { clientIp, crossOrigin, json, readBody } from '../../../lib/request.js';
 import { SPONSOR_ID_RE, displayName } from '../../../lib/buildgames.js';
@@ -59,10 +59,10 @@ export async function POST({ request, clientAddress }) {
 
   const cleared = await bgSponsorClearedTotal(id);
   const alertReview = (why) =>
-    alertRob(
+    alertAdmin(
       '[cvci] build games sponsor reported — needs a look',
       `<p><b>${esc(displayName(s))}</b> (${esc(s.link)}, $${Math.round(cleared / 100)} cleared) — ${why} (${distinct} distinct reports). Placement left LIVE for you to judge.</p>
-       <p><a href="https://canivibecodeit.com/admin/thebuildgames">open the queue and paste your token</a></p>`
+       <p><a href="https://vibecodeit.com/admin/thebuildgames">open the queue and paste your token</a></p>`
     ).catch((err) => console.error(`bg report alert failed: ${err.message}`));
 
   // High-value placement: never auto-hold on anonymous reports; alert once so a
@@ -80,10 +80,10 @@ export async function POST({ request, clientAddress }) {
     const firstAt = await bgFirstReportAt(id);
     if (firstAt != null && Date.now() - firstAt >= MIN_SPREAD_MS) {
       await updateBgSponsor(id, { status: 'held', held_reason: `reports: ${distinct} distinct over ${Math.round((Date.now() - firstAt) / 3600000)}h` });
-      alertRob(
+      alertAdmin(
         '[cvci] build games sponsor auto-held on reports',
         `<p><b>${esc(displayName(s))}</b> (${esc(s.link)}) hit ${distinct} distinct reports spread over time and is off the board pending a look. Its cleared money stays in the pool.</p>
-         <p><a href="https://canivibecodeit.com/admin/thebuildgames">open the queue and paste your token</a></p>`
+         <p><a href="https://vibecodeit.com/admin/thebuildgames">open the queue and paste your token</a></p>`
       ).catch((err) => console.error(`bg report alert failed: ${err.message}`));
       // Tell the sponsor their placement was held (if they left an email).
       // Suppression + per-address caps live inside sendSponsorMail (E1).

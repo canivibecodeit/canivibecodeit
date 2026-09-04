@@ -76,9 +76,9 @@ export async function createCheckoutSession({
           currency: 'usd',
           unit_amount: priceCents,
           product_data: {
-            name: `canivibecodeit.com · sponsor slot (${30 * months} days)`,
+            name: `vibecodeit.com · sponsor slot (${30 * months} days)`,
             description:
-              `Your product on every page of canivibecodeit.com for ${30 * months} days: icon, name,`
+              `Your product on every page of vibecodeit.com for ${30 * months} days: icon, name,`
               + ' tagline and link, plus the sponsor board.'
               + (months > 1 ? ' Price locked for the full run.' : '')
               + (termNote ? ` ${termNote}` : ''),
@@ -130,11 +130,11 @@ export async function createBidCheckoutSession({
             currency: 'usd',
             unit_amount: amountCents,
             product_data: {
-              name: 'canivibecodeit.com · sponsored placement',
+              name: 'vibecodeit.com · sponsored placement',
               description:
-                'Advertising placement on the canivibecodeit.com board: your icon, name,'
+                'Advertising placement on the vibecodeit.com board: your icon, name,'
                 + ' tagline and link, ranked by cumulative sponsorship. Subject to the'
-                + ' Build Games terms: canivibecodeit.com/thebuildgames/terms',
+                + ' Build Games terms: vibecodeit.com/thebuildgames/terms',
             },
           },
         },

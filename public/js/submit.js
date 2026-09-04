@@ -62,7 +62,7 @@
       resultText.textContent = line;
       const safePr =
         typeof prUrl === 'string' &&
-        prUrl.startsWith('https://github.com/canivibecodeit/canivibecodeit/');
+        prUrl.startsWith('https://github.com/vibecodeit/vibecodeit/');
       resultLink.hidden = !safePr;
       if (safePr) resultLink.href = prUrl;
       const safeSlug = typeof appSlug === 'string' && /^[a-z0-9-]{1,60}$/.test(appSlug);

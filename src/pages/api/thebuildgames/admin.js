@@ -1,4 +1,4 @@
-// Build Games admin (token-gated). The launch funding path — Rob adds a
+// Build Games admin (token-gated). The launch funding path — Faizan adds a
 // sponsor + clears its payment by hand — plus moderation. Same admin-gate
 // pattern as the sponsor board. Form posts bounce back to /admin/thebuildgames.
 import {
@@ -10,7 +10,7 @@ import {
   rateLimit,
   updateBgSponsor,
 } from '../../../lib/db.js';
-import { alertRob } from '../../../lib/mail.js';
+import { alertAdmin } from '../../../lib/mail.js';
 import { clientIp, crossOrigin, json, readBody } from '../../../lib/request.js';
 import { isAdmin } from '../../../lib/sponsors.js';
 import { assertSafeBrowsingReady } from '../../../lib/safe-browsing.js';
@@ -42,7 +42,7 @@ export async function POST({ request, clientAddress, cookies }) {
   const ip = clientIp(request, clientAddress);
   if (!(await rateLimit(`bgadmin:${ip}`, 10, 15 * 60 * 1000))) {
     if (await rateLimit('bgadmin:alert', 1, 60 * 60 * 1000)) {
-      alertRob(
+      alertAdmin(
         '[cvci] build games admin rate limit tripped',
         `<p>10+ admin POSTs from one IP in 15 min — possible token guessing against the Build Games admin. IP hash withheld; check logs.</p>`
       ).catch((err) => console.error(`bgadmin alert failed: ${err.message}`));

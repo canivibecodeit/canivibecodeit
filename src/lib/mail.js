@@ -4,8 +4,8 @@
    script is a standalone cron job with its own env loading and must keep
    running untouched by anything the site does. */
 
-const FROM = 'Rob at canivibecodeit <digest@send.canivibecodeit.com>';
-const REPLY_TO = 'digest@canivibecodeit.com';
+const FROM = 'Faizan at vibecodeit <hello@send.vibecodeit.com>';
+const REPLY_TO = 'hello@vibecodeit.com';
 
 export function esc(s) {
   return String(s ?? '')
@@ -42,7 +42,7 @@ export async function sendMail({ to, subject, html, text }) {
   }
 }
 
-export async function alertRob(subject, html) {
+export async function alertAdmin(subject, html) {
   return sendMail({ to: process.env.DIGEST_ALERT_EMAIL, subject, html });
 }
 
@@ -182,7 +182,7 @@ export function shell(body) {
 
 /* Sponsor-facing mail wears the same card as the newsletter: grey page, white
    card, the logo lockup, and a footer naming who answers replies. Internal
-   alerts to Rob keep the bare shell above. */
+   alerts to Faizan keep the bare shell above. */
 export function brandShell(body) {
   return `<!doctype html>
 <html>
@@ -198,14 +198,14 @@ export function brandShell(body) {
                 <tr>
                   <td align="center" style="padding:4px 0 30px 0;">
                     <span style="display:inline-block; vertical-align:middle; width:30px; height:30px; line-height:28px; border:3px solid #0e9c47; border-radius:8px; text-align:center; ${MONO} font-size:18px; font-weight:700; color:#0e9c47;">?|</span>
-                    <span style="display:inline-block; vertical-align:middle; margin-left:10px; ${MONO} font-size:17px; font-weight:500; color:#111111;">can<span style="color:#0e9c47;">i</span>vibecode<span style="color:#0e9c47;">it</span></span>
+                    <span style="display:inline-block; vertical-align:middle; margin-left:10px; ${MONO} font-size:17px; font-weight:500; color:#111111;">vibecode<span style="color:#0e9c47;">it</span></span>
                   </td>
                 </tr>
               </table>
               <div style="${MONO} font-size:14px; line-height:1.6; color:#171a17;">${body}</div>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e0e0db; margin-top:32px;">
                 <tr>
-                  <td align="center" style="padding:18px 0 0 0; ${MONO} font-size:11.5px; line-height:18px; color:#6e6e67;">reply to this email and you'll reach Rob, not a bot.</td>
+                  <td align="center" style="padding:18px 0 0 0; ${MONO} font-size:11.5px; line-height:18px; color:#6e6e67;">reply to this email and you'll reach Faizan, not a bot.</td>
                 </tr>
               </table>
             </td>
@@ -219,10 +219,10 @@ export function brandShell(body) {
 }
 
 /* The How to AI ps. block: one muted paragraph above the footer of the
-   transactional mails, Rob's voice, linked through the counting redirect so
+   transactional mails, Faizan's voice, linked through the counting redirect so
    email clicks report per surface. No images. */
 export function recPs(src) {
-  const href = `https://canivibecodeit.com/api/rec/howtoai?src=${encodeURIComponent(src)}`;
+  const href = `https://vibecodeit.com/api/rec/howtoai?src=${encodeURIComponent(src)}`;
   return `<p style="margin-top:28px; padding-top:18px; border-top:1px solid #e0e0db; color:#6e6e67; font-size:12.5px; line-height:1.6;">`
     + `ps. if you want to get better at the AI side of this,`
     + ` <a href="${esc(href)}" style="color:#0e9c47;">How to AI</a> by Ruben Hassid is the newsletter I read.`
@@ -230,7 +230,7 @@ export function recPs(src) {
 }
 
 export function recPsText(src) {
-  return `\n\nps. if you want to get better at the AI side of this, How to AI by Ruben Hassid is the newsletter I read. free, 890k readers. https://canivibecodeit.com/api/rec/howtoai?src=${src}`;
+  return `\n\nps. if you want to get better at the AI side of this, How to AI by Ruben Hassid is the newsletter I read. free, 890k readers. https://vibecodeit.com/api/rec/howtoai?src=${src}`;
 }
 
 export function button(href, label) {

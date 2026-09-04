@@ -53,7 +53,7 @@ export async function checkUrls(urls) {
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(8000),
         body: JSON.stringify({
-          client: { clientId: 'canivibecodeit', clientVersion: '1.0' },
+          client: { clientId: 'vibecodeit', clientVersion: '1.0' },
           threatInfo: {
             threatTypes: THREAT_TYPES,
             platformTypes: ['ANY_PLATFORM'],

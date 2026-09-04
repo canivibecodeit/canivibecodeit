@@ -59,12 +59,12 @@ const icon = (slug) => {
 const COLORS = {
   fg: '#e8e6e0',
   muted: '#9aa29a',
-  green: '#33e667',
-  onGreen: '#06170b',
+  green: '#403d88',
+  onGreen: '#ffffff',
   amber: '#ffb000',
   onAmber: '#1a1200',
   red: '#ff4444',
-  ticker: '#ff5c33',
+  ticker: '#6b68c4',
 };
 
 const VERDICT = {
@@ -95,8 +95,6 @@ const logoRow = el(
       el('div', { width: 7, height: 18, backgroundColor: COLORS.green }),
     ]),
     el('div', { display: 'flex', ...mono(26, COLORS.fg) }, [
-      el('span', { color: COLORS.fg }, 'can'),
-      el('span', { color: COLORS.green }, 'i'),
       el('span', { color: COLORS.fg }, 'vibecode'),
       el('span', { color: COLORS.green }, 'it'),
     ]),
@@ -123,7 +121,7 @@ function appCard(app) {
         el('div', {
           fontFamily: 'Space Grotesk', fontSize: 74, fontWeight: 700,
           color: COLORS.fg, letterSpacing: '-0.02em',
-        }, `Can I vibecode ${shortName}?`),
+        }, `Vibecode ${shortName}`),
       ]),
       el('div', { display: 'flex', alignItems: 'center', gap: 22 }, [
         el('div', {
@@ -140,7 +138,7 @@ function appCard(app) {
       ]),
     ]),
     el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
-      el('div', mono(22, COLORS.muted), `canivibecodeit.com/${app.slug}`),
+      el('div', mono(22, COLORS.muted), `vibecodeit.com/${app.slug}`),
       el('div', mono(22, COLORS.muted), 'the exact prompt inside →'),
     ]),
   ]);
@@ -151,9 +149,18 @@ function homeCard(mrr) {
     logoRow,
     el('div', { display: 'flex', flexDirection: 'column', gap: 30, marginTop: 56 }, [
       el('div', {
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'baseline',
         fontFamily: 'Space Grotesk', fontSize: 84, fontWeight: 700,
         color: COLORS.fg, letterSpacing: '-0.02em', lineHeight: 1.05,
-      }, 'Can I vibecode ___?'),
+      }, [
+        el('span', { color: COLORS.muted, textDecoration: 'line-through' }, 'Can I'),
+        el('span', { color: COLORS.fg }, ' vibecode '),
+        el('span', { color: COLORS.green }, 'it'),
+        el('span', { color: COLORS.fg }, '?'),
+      ]),
       el('div', mono(30, COLORS.muted), 'Which subscriptions are one prompt away from free.'),
       el('div', { display: 'flex', alignItems: 'center', gap: 18, marginTop: 18 }, [
         el('div', { ...mono(26, '#ff8a5c', 700), letterSpacing: '0.08em' }, 'COLLECTIVE MRR DESTROYED'),
@@ -164,7 +171,7 @@ function homeCard(mrr) {
       ]),
     ]),
     el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
-      el('div', mono(22, COLORS.muted), 'canivibecodeit.com'),
+      el('div', mono(22, COLORS.muted), 'vibecodeit.com'),
       el('div', mono(22, COLORS.muted), 'the death list →'),
     ]),
   ]);
@@ -184,7 +191,7 @@ function builtWithCard(model) {
       el('div', mono(30, COLORS.muted), 'what people one-shotted with it on day one, prompts included.'),
     ]),
     el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
-      el('div', mono(22, COLORS.muted), `canivibecodeit.com/built-with/${model.slug}`),
+      el('div', mono(22, COLORS.muted), `vibecodeit.com/built-with/${model.slug}`),
       el('div', mono(22, COLORS.muted), 'the demos and the prompts →'),
     ]),
   ]);
@@ -202,7 +209,7 @@ function newsletterCard() {
       el('div', { ...mono(26, COLORS.green, 700), letterSpacing: '0.08em', marginTop: 18 }, 'THURSDAYS · FREE'),
     ]),
     el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
-      el('div', mono(22, COLORS.muted), 'canivibecodeit.com/newsletter'),
+      el('div', mono(22, COLORS.muted), 'vibecodeit.com/newsletter'),
       el('div', mono(22, COLORS.muted), 'unsubscribe in one click →'),
     ]),
   ]);
@@ -246,7 +253,7 @@ function siteCard() {
       el('div', {
         fontFamily: 'Space Grotesk', fontSize: 76, fontWeight: 700,
         color: COLORS.fg, letterSpacing: '-0.02em', lineHeight: 1.05,
-      }, 'Can I vibecode canivibecodeit.com?'),
+      }, 'Vibecode vibecodeit.com?'),
       el('div', { display: 'flex', alignItems: 'center', gap: 22 }, [
         el('div', {
           ...mono(30, COLORS.onGreen, 700), backgroundColor: COLORS.green,
@@ -256,7 +263,7 @@ function siteCard() {
       ]),
     ]),
     el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
-      el('div', mono(22, COLORS.muted), 'canivibecodeit.com/vibecode-this-site'),
+      el('div', mono(22, COLORS.muted), 'vibecodeit.com/vibecode-this-site'),
       el('div', mono(22, COLORS.muted), 'the rebuild prompt inside →'),
     ]),
   ]);

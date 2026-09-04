@@ -8,7 +8,7 @@
 
    Env: OPENROUTER_API_KEY (already present), BUILDS_AI_REVIEW. */
 import { buildById, updateBuild } from './db.js';
-import { alertRob, esc } from './mail.js';
+import { alertAdmin, esc } from './mail.js';
 import { GOES, parsePublicUrl } from './builds.js';
 import { generateBuildOg } from './build-og.js';
 
@@ -28,7 +28,7 @@ async function linkAlive(rawUrl) {
     try {
       res = await fetch(parsed.href, {
         redirect: 'manual',
-        headers: { 'User-Agent': 'canivibecodeit-builds' },
+        headers: { 'User-Agent': 'vibecodeit-builds' },
         signal: AbortSignal.timeout(8000),
       });
     } catch {
@@ -43,7 +43,7 @@ async function linkAlive(rawUrl) {
   return false;
 }
 
-const POLICY = `You are the overnight moderator for canivibecodeit.com/builds, a public
+const POLICY = `You are the overnight moderator for vibecodeit.com/builds, a public
 feed where people post things they vibe coded, with the prompts that made
 them. A human normally approves every post; tonight you hold the queue.
 
@@ -60,7 +60,7 @@ Approve only when ALL of these hold:
   memes, ads, or unrelated/offensive imagery.
 - Not spam: not a bare advert for a commercial product, not link-farming,
   not keyword stuffing, not the same text shell repeated.
-- No impersonation of canivibecodeit or its team.
+- No impersonation of vibecodeit or its team.
 
 Hold when anything is off, unclear, or borderline — holding is cheap and a
 human reads everything held. When in doubt, hold.
@@ -83,14 +83,14 @@ function parseVerdict(text) {
 }
 
 // Fire-and-forget from POST /api/build. Owns the outcome email (the plain
-// queue email is skipped while the reviewer is on, so Rob gets exactly one
+// queue email is skipped while the reviewer is on, so Faizan gets exactly one
 // mail per post either way).
 export async function reviewBuild(id) {
   // Bare link — never embed ADMIN_TOKEN in mail (it travels through Resend and
-  // sits in the mailbox indefinitely). Rob pastes the token on the page.
-  const adminUrl = 'https://canivibecodeit.com/admin/builds';
+  // sits in the mailbox indefinitely). Faizan pastes the token on the page.
+  const adminUrl = 'https://vibecodeit.com/admin/builds';
   const held = async (build, why) => {
-    await alertRob(
+    await alertAdmin(
       `[cvci] build held for you: ${build.name}`,
       `<p><b>${esc(build.name)}</b> · ${esc(build.one_liner)}</p>
        <p>AI reviewer held it: ${esc(why)}</p>
@@ -151,12 +151,12 @@ export async function reviewBuild(id) {
     if (!verdict) throw new Error('unparseable verdict');
 
     if (verdict.decision === 'approve') {
-      // Re-check right before flipping: if Rob acted meanwhile, his call wins.
+      // Re-check right before flipping: if Faizan acted meanwhile, his call wins.
       const fresh = await buildById(id);
       if (fresh?.status !== 'pending') return;
       await updateBuild(id, { status: 'live' });
       generateBuildOg(id).catch((err) => console.error(`build og ${id}: ${err.message}`));
-      await alertRob(
+      await alertAdmin(
         `[cvci] AI approved, live: ${build.name}`,
         `<p><b>${esc(build.name)}</b> · ${esc(build.one_liner)} — live now.</p>
          <p>Reviewer: ${esc(verdict.reason ?? '')}</p>

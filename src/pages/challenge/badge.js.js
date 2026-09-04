@@ -9,7 +9,7 @@ import { challengeLive } from '../../lib/flags.js';
 export function GET() {
   if (!challengeLive()) return new Response(null, { status: 404 });
 
-  const origin = process.env.SITE_URL || 'https://canivibecodeit.com';
+  const origin = process.env.SITE_URL || 'https://vibecodeit.com';
 
   const body = `(function () {
   if (window.__cvciBadge) return; window.__cvciBadge = 1;
@@ -24,7 +24,7 @@ export function GET() {
     a.target = '_blank';
     a.rel = 'noopener';
     a.textContent = 'i vibecoded it';
-    a.setAttribute('aria-label', 'This site was vibecoded for the canivibecodeit challenge');
+    a.setAttribute('aria-label', 'This site was vibecoded for the vibecodeit challenge');
     a.style.cssText = [
       'position:fixed', 'right:12px', 'bottom:12px', 'z-index:2147483646',
       'font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace',

@@ -19,17 +19,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const STATE_DIR = '/srv/http/canivibecodeit-data/digest';
+const STATE_DIR = '/srv/http/vibecodeit-data/digest';
 const STATE_FILE = path.join(STATE_DIR, 'state.json');
 const LOCK_FILE = path.join(STATE_DIR, 'digest.lock');
 const LOG_FILE = path.join(STATE_DIR, 'digest.log');
 const LOCK_STALE_MS = 30 * 60 * 1000;
 const LOG_MAX_BYTES = 1024 * 1024;
 
-const SITE = 'https://canivibecodeit.com';
+const SITE = 'https://vibecodeit.com';
 const MODEL = 'anthropic/claude-opus-5';
-const FROM = 'Rob at canivibecodeit <digest@send.canivibecodeit.com>';
-const REPLY_TO = 'digest@canivibecodeit.com';
+const FROM = 'Faizan at vibecodeit <hello@send.vibecodeit.com>';
+const REPLY_TO = 'hello@vibecodeit.com';
 const MAX_ROWS = 8;
 const MAX_QUIP = 45;
 
@@ -308,8 +308,8 @@ function fallbackCopy(data) {
     quips[app.slug] = truncate(app.tagline || app.verdictSummary || '', MAX_QUIP);
   }
   const subject = data.lead === 'changes'
-    ? `${data.changes.length} verdict${data.changes.length === 1 ? '' : 's'} changed this week, canivibecodeit digest #${data.issueLabel}`
-    : `${data.newCount} new verdicts this week, canivibecodeit digest #${data.issueLabel}`;
+    ? `${data.changes.length} verdict${data.changes.length === 1 ? '' : 's'} changed this week, vibecodeit digest #${data.issueLabel}`
+    : `${data.newCount} new verdicts this week, vibecodeit digest #${data.issueLabel}`;
   return {
     subject,
     greeting_line: 'hey,',
@@ -333,13 +333,13 @@ function buildPrompt(data) {
     ? 'This issue has NO new verdicts. It leads on verdict changes, so "breakdown_line" must be an empty string and "quips" an empty object.'
     : `This issue leads on the ${data.newCount} new verdicts.`;
   return [
-    'You write the weekly email for canivibecodeit, a site that rules on whether a paid',
+    'You write the weekly email for vibecodeit, a site that rules on whether a paid',
     'SaaS app is worth building yourself instead of paying for it. Verdicts are YES (build it),',
     'KINDA (depends), NOT REALLY (keep paying).',
     '',
     'Voice: dry, honest, slightly irreverent, engineer to engineer. No marketing-speak,',
     'no hype, no exclamation marks, no emoji, no URLs. The brand is written lowercase:',
-    'canivibecodeit. Use commas, NEVER em dashes or en dashes.',
+    'vibecodeit. Use commas, NEVER em dashes or en dashes.',
     '',
     leadNote,
     '',
@@ -566,7 +566,7 @@ function render(data, copy, icons) {
                 <tr>
                   <td align="center" style="padding:4px 0 14px 0;">
                     <span style="display:inline-block; vertical-align:middle; width:30px; height:30px; line-height:28px; border:3px solid #0e9c47; border-radius:8px; text-align:center; ${MONO} font-size:18px; font-weight:700; color:#0e9c47;">?|</span>
-                    <span style="display:inline-block; vertical-align:middle; margin-left:10px; ${MONO} font-size:17px; font-weight:500; color:#111111;">can<span style="color:#0e9c47;">i</span>vibecode<span style="color:#0e9c47;">it</span></span>
+                    <span style="display:inline-block; vertical-align:middle; margin-left:10px; ${MONO} font-size:17px; font-weight:500; color:#111111;">vibecode<span style="color:#0e9c47;">it</span></span>
                   </td>
                 </tr>
                 <tr>
@@ -592,7 +592,7 @@ function render(data, copy, icons) {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e0e0db;">
                 <tr>
                   <td align="center" style="padding:18px 0 0 0;">
-                    <p style="margin:0 0 6px 0; ${MONO} font-size:11.5px; line-height:18px; color:#6e6e67;">You're getting this because you signed up on canivibecodeit.com.</p>
+                    <p style="margin:0 0 6px 0; ${MONO} font-size:11.5px; line-height:18px; color:#6e6e67;">You're getting this because you signed up on vibecodeit.com.</p>
                     <p style="margin:0; ${MONO} font-size:11.5px; line-height:18px; color:#6e6e67;"><a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#0e9c47; text-decoration:underline;">Unsubscribe</a>, one click, no hard feelings.</p>
                   </td>
                 </tr>
@@ -831,7 +831,7 @@ async function main() {
       ? `Quiet week: no new verdicts and no verdict changes since ${since}. No digest sent.`
       : `Nothing renderable: ${newCount} new verdict files could not be read and no verdict changes since ${since}. No digest sent.`;
     console.log(note);
-    if (MODE === 'send') await alert('canivibecodeit digest skipped, quiet week', note);
+    if (MODE === 'send') await alert('vibecodeit digest skipped, quiet week', note);
     return;
   }
 
@@ -916,7 +916,7 @@ try {
   console.error(`digest failed: ${message}`);
   if (MODE !== 'dry') {
     try {
-      await alert('canivibecodeit digest FAILED', `Weekly digest failed: ${message}`);
+      await alert('vibecodeit digest FAILED', `Weekly digest failed: ${message}`);
     } catch (alertErr) {
       console.error(`alert failed: ${alertErr?.message || alertErr}`);
     }

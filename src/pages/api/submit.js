@@ -11,7 +11,7 @@ import {
   rateLimit,
   submissionById,
 } from '../../lib/db.js';
-import { alertRob } from '../../lib/mail.js';
+import { alertAdmin } from '../../lib/mail.js';
 import { clientIp, crossOrigin, json, readBody } from '../../lib/request.js';
 import {
   appByDomain,
@@ -78,14 +78,14 @@ export async function POST({ request, locals, clientAddress }) {
   // a viral day is the point of this form, so the ceiling is sized for one
   // (~$0.10 worst case per draft; 200/day tops out around $20). The hourly
   // fuse keeps a bot from burning the whole day's budget in one burst, and
-  // Rob gets one email per day when either cap trips so a genuine rush can
+  // Faizan gets one email per day when either cap trips so a genuine rush can
   // be answered by bumping the numbers.
   if (
     !(await rateLimit('submit:all:hour', 40, 60 * 60 * 1000)) ||
     !(await rateLimit('submit:all', 200, 24 * 60 * 60 * 1000))
   ) {
     if (await rateLimit('submit:cap-alert', 1, 24 * 60 * 60 * 1000)) {
-      alertRob(
+      alertAdmin(
         '[cvci] submission rate cap tripped',
         '<p>The global /submit cap (40/hr or 200/day) just tripped. Viral day or bot flood — check Railway logs and the submissions table. Caps live in src/pages/api/submit.js.</p>'
       ).catch((err) => console.error(`submit cap alert failed: ${err.message}`));

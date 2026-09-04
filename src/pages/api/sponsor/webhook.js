@@ -3,7 +3,7 @@ import {
   activePurchases, insertPurchase, purchaseById, purchaseBySession, setSlotNextState,
   updatePurchase,
 } from '../../../lib/db.js';
-import { recPs, alertRob, brandShell, button, esc, sendMail, shell } from '../../../lib/mail.js';
+import { recPs, alertAdmin, brandShell, button, esc, sendMail, shell } from '../../../lib/mail.js';
 import { json } from '../../../lib/request.js';
 import {
   blocksSlot, clearCache, isLive, newToken, RUN_MS, shortDate, siteUrl, SLOT_IDS, SPILL_MS, usd,
@@ -33,7 +33,7 @@ export async function reconcileLinkSession(session) {
 
   const slotId = String(meta.slot_id || '').toUpperCase();
   if (!SLOT_IDS.includes(slotId) || Number(month) < 1 || Number(month) > 12) {
-    await alertRob(
+    await alertAdmin(
       `link payment could not be reconciled (${esc(meta.purpose)} / slot "${meta.slot_id}")`,
       shell(
         `<p>Session <code>${esc(session.id)}</code> (${esc(meta.purpose)}, ${esc(meta.sponsor || 'no name')},`
@@ -63,7 +63,7 @@ export async function reconcileLinkSession(session) {
     return !(oStart <= startsAt && oEnd <= startsAt + SPILL_MS);
   });
   if (conflict) {
-    await alertRob(
+    await alertAdmin(
       `link payment NOT recorded · ${slotId} already booked for that term`,
       shell(
         `<p>Session <code>${esc(session.id)}</code> (${esc(meta.purpose)},`
@@ -127,7 +127,7 @@ export async function reconcileLinkSession(session) {
     // The row exists but is missing its term — money moved, so this must
     // never fail silently.
     console.error(`link session ${session.id} completion failed: ${err?.message || err}`);
-    await alertRob(
+    await alertAdmin(
       `link payment recorded INCOMPLETELY · ${slotId}`,
       shell(
         `<p>Purchase <code>${esc(purchase.id)}</code> for session <code>${esc(session.id)}</code>`
@@ -175,7 +175,7 @@ export async function reconcileLinkSession(session) {
     });
   }
 
-  await alertRob(
+  await alertAdmin(
     `${kind} paid: ${slotId} from ${shortDate(startsAt)} · ${meta.sponsor || toEmail || 'unknown'} (${usd(session.amount_total)})`,
     shell(
       `<p>Slot ${esc(slotId)} ${esc(kind)} reconciled: ${esc(meta.sponsor || 'no name in metadata')},`
@@ -314,9 +314,9 @@ export async function promoteFromSession(session, { notify = false } = {}) {
     await updatePurchase(purchase.id, { status: 'reject_failed' }, ['paid']);
   }
 
-  // Rob hears about every double-booking, not just the ones that fail to refund:
+  // Faizan hears about every double-booking, not just the ones that fail to refund:
   // two people paid for one slot and he needs to know it happened.
-  await alertRob(
+  await alertAdmin(
     `sponsor slot ${purchase.slot_id} double-booked${refundError ? ' · REFUND FAILED' : ' (auto-refunded)'}`,
     shell(
       `<p>Purchase <code>${esc(purchase.id)}</code> (${esc(email || 'no email')}) paid for slot`

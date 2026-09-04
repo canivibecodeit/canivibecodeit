@@ -1,6 +1,6 @@
 // GDPR delete. Better Auth removes user/sessions/accounts; the beforeDelete
 // hook in lib/auth.js cascades our stack rows, the waitlist row, and the
-// Resend contact (alerting Rob if the contact removal fails).
+// Resend contact (alerting Faizan if the contact removal fails).
 import { getAuth } from '../../../lib/auth.js';
 import { crossOrigin, json } from '../../../lib/request.js';
 

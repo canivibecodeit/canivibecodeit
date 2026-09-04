@@ -113,7 +113,7 @@ export async function POST({ request, clientAddress }) {
 
   // The flow runs UNATTENDED (pay → screened → listed, no human). So a link
   // that screens anything but clean is refused BEFORE money moves — we never
-  // take a payment we'd have to hold or refund while Rob sleeps. Admin `add`
+  // take a payment we'd have to hold or refund while Faizan sleeps. Admin `add`
   // remains the exception path for judgment calls.
   if (screen.verdict !== 'ok') {
     // Refusals are logged, not emailed — operator's call (Aug 28): refusal

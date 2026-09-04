@@ -1,6 +1,6 @@
 /* Payment interface for The Build Games. Two impls behind one boundary:
    - ADMIN-ENTRY (launch): submitBid then clearPayment are both driven by the
-     token-gated admin — Rob funds the pot / adds sponsors by hand.
+     token-gated admin — Faizan funds the pot / adds sponsors by hand.
    - PROCESSOR (later): the public checkout creates a pending payment via
      submitBid, and a webhook calls clearPayment on success / reversePayment on
      chargeback. Nothing here knows which; the caller wires the trigger.
@@ -27,7 +27,7 @@ import {
   reverseBgPaymentAtomic,
   updateBgSponsor,
 } from './db.js';
-import { alertRob, esc } from './mail.js';
+import { alertAdmin, esc } from './mail.js';
 import { sendSponsorMail } from './buildgames-mail.js';
 import { displayName, newPaymentId, newSponsorId, rankSponsors, registrableHost, sponsorIdentity, usd } from './buildgames.js';
 import { newToken } from './sponsors.js';
@@ -130,7 +130,7 @@ export async function clearPayment(paymentId, capture = null) {
     } catch (err) {
       // Almost certainly the unique processor_ref index: this capture already
       // cleared some payment. Money moved somewhere — a human must look.
-      alertRob(
+      alertAdmin(
         '[cvci] build games: processor ref REUSED — payment not cleared',
         `<p>Clearing payment <code>${esc(paymentId)}</code> with ref <code>${esc(String(capture.processorRef))}</code> failed: ${esc(err.message)}.</p>
          <p>That ref has already cleared a payment. Nothing was credited; reconcile by hand in Stripe + the admin queue.</p>`
@@ -171,15 +171,15 @@ export async function clearPayment(paymentId, capture = null) {
   // H2 residual: with unattended clears, a paid defacement (someone else's
   // brand + a hostile tagline) would list itself. Screening can't judge
   // ownership, so the mitigation is price (entry floor) + IMMEDIATE human
-  // visibility: Rob is alerted on every first-clear, one mail per placement
+  // visibility: Faizan is alerted on every first-clear, one mail per placement
   // ever (inherently money-gated), and can edit/remove with money kept.
   if (won) {
     const s = await bgSponsorById(p.sponsor_id);
-    alertRob(
+    alertAdmin(
       `[cvci] build games: new placement listed · ${usd(p.amount_cents)}`,
       `<p><b>${esc(displayName(s))}</b> · ${esc(s.link)} · ${usd(p.amount_cents)} · status ${esc(s.status)}</p>
        <p>Identity just froze from this payment's screen. If this is someone else's brand or a hostile tagline:
-       <a href="https://canivibecodeit.com/admin/thebuildgames">edit or remove it</a> — the money stays in the pool.</p>`
+       <a href="https://vibecodeit.com/admin/thebuildgames">edit or remove it</a> — the money stays in the pool.</p>`
     ).catch((err) => console.error(`bg new-placement alert failed: ${err.message}`));
   }
 
@@ -195,13 +195,13 @@ export async function clearPayment(paymentId, capture = null) {
     try {
       const s = await bgSponsorById(p.sponsor_id);
       if (s && s.status !== 'active') {
-        alertRob(
+        alertAdmin(
           '[cvci] build games: capture cleared onto a NON-ACTIVE sponsor',
           `<p>${usd(p.amount_cents)} cleared for <code>${esc(p.sponsor_id)}</code>
              (${esc(s.link)}) but its status is <b>${esc(s.status)}</b> — the payer is
              NOT on the board and their receipt says otherwise.</p>
            <p>Release it or refund the payment:
-             <a href="https://canivibecodeit.com/admin/thebuildgames">the queue</a></p>`
+             <a href="https://vibecodeit.com/admin/thebuildgames">the queue</a></p>`
         ).catch((err) => console.error(`bg non-active clear alert failed: ${err.message}`));
       }
     } catch (err) {
@@ -231,7 +231,7 @@ export async function clearPayment(paymentId, capture = null) {
         html: `<p>Someone just took the #1 spot on The Build Games with ${esc(usd(newLeader.cleared_total))}.</p>
                <p>Your placement (<b>${esc(displayName(prevLeader))}</b>, ${esc(usd(prevLeader.cleared_total))}) is now #2.</p>
                <p>Top up to reclaim the top spot — you keep it until someone bids more.</p>
-               <p><a href="https://canivibecodeit.com/thebuildgames">the board →</a></p>`,
+               <p><a href="https://vibecodeit.com/thebuildgames">the board →</a></p>`,
       }).catch((err) => console.error(`outbid mail failed: ${err.message}`));
     }
   } catch (err) {

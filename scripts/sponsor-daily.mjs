@@ -22,15 +22,15 @@ import { brandShell, button } from '../src/lib/mail.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Overridable so a supervised test run can keep its lock and log out of the
 // real state directory.
-const STATE_DIR = process.env.SPONSOR_STATE_DIR || '/srv/http/canivibecodeit-data/sponsor';
+const STATE_DIR = process.env.SPONSOR_STATE_DIR || '/srv/http/vibecodeit-data/sponsor';
 const LOCK_FILE = path.join(STATE_DIR, 'sponsor.lock');
 const LOG_FILE = path.join(STATE_DIR, 'sponsor.log');
 const LOCK_STALE_MS = 30 * 60 * 1000;
 const LOG_MAX_BYTES = 1024 * 1024;
 
-const SITE = 'https://canivibecodeit.com';
-const FROM = 'Rob at canivibecodeit <digest@send.canivibecodeit.com>';
-const REPLY_TO = 'digest@canivibecodeit.com';
+const SITE = 'https://vibecodeit.com';
+const FROM = 'Faizan at vibecodeit <hello@send.vibecodeit.com>';
+const REPLY_TO = 'hello@vibecodeit.com';
 
 const DRY = process.argv.includes('--dry');
 const USE_SQLITE = process.argv.includes('--sqlite');
@@ -214,7 +214,7 @@ async function detailsReminders(db, now) {
 
 /* End-of-term reminders, automated next-run offers and the weekly stats email
    were removed 2026-08-05: sponsors get transactional email only. Renewals are
-   Rob, personally, by DM. */
+   Faizan, personally, by DM. */
 
 async function robNudges(db, now) {
   const stale = await db.all(
@@ -245,7 +245,7 @@ async function robNudges(db, now) {
   }
   console.log(lines.map((l) => `nudge: ${l}`).join('\n'));
   await alert(
-    `canivibecodeit sponsors need you (${lines.length})`,
+    `vibecodeit sponsors need you (${lines.length})`,
     `${lines.join('\n')}\n\nAdmin: ${SITE}/admin/sponsors?token=...`
   );
   return lines.length;
@@ -314,7 +314,7 @@ try {
   console.error(`sponsor-daily failed: ${message}`);
   if (!DRY) {
     try {
-      await alert('canivibecodeit sponsor-daily FAILED', `Daily sponsor run failed: ${message}`);
+      await alert('vibecodeit sponsor-daily FAILED', `Daily sponsor run failed: ${message}`);
     } catch (alertErr) {
       console.error(`alert failed: ${alertErr?.message || alertErr}`);
     }

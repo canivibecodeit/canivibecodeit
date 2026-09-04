@@ -16,7 +16,7 @@ import { CHALLENGES, ENTRY_ID_RE } from '../../../../lib/challenge.js';
 const COLORS = {
   fg: '#e8e6e0',
   muted: '#9aa29a',
-  green: '#33e667',
+  green: '#403d88',
   chipBg: '#20241f',
   chipBorder: '#2e332d',
 };
@@ -54,8 +54,6 @@ const logoRow = () =>
       el('div', { width: 7, height: 18, backgroundColor: COLORS.green }),
     ]),
     el('div', { display: 'flex', ...mono(26, COLORS.fg) }, [
-      el('span', { color: COLORS.fg }, 'can'),
-      el('span', { color: COLORS.green }, 'i'),
       el('span', { color: COLORS.fg }, 'vibecode'),
       el('span', { color: COLORS.green }, 'it'),
     ]),
@@ -98,7 +96,7 @@ async function renderCard(entry, challengeTitle) {
     ]),
     el('div', { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }, [
       el('div', { ...mono(24, COLORS.muted) }, 'vibecoded during the window · the twist proves it'),
-      el('div', { ...mono(24, COLORS.muted) }, 'canivibecodeit.com/challenge'),
+      el('div', { ...mono(24, COLORS.muted) }, 'vibecodeit.com/challenge'),
     ]),
   ]);
 

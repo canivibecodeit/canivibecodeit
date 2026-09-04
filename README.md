@@ -1,6 +1,6 @@
-# Can I Vibecode It?
+# Vibecode It?
 
-**[canivibecodeit.com](https://canivibecodeit.com)** — find out which subscriptions are one
+**[vibecodeit.com](https://vibecodeit.com)** — find out which subscriptions are one
 prompt away from free.
 
 For each paid SaaS app: an honest verdict on whether an AI coding agent (Claude Code,
@@ -11,7 +11,15 @@ as important — what you lose by leaving. Think caniuse.com, but for killing yo
 - 🟡 **KINDA** — buildable in a weekend, real gaps remain
 - 🔴 **NOT REALLY** — the value is the network, the data, or the infra. Some things survive.
 
-Yes, [you can vibecode this site too](https://canivibecodeit.com/vibecode-this-site).
+Yes, [you can vibecode this site too](https://vibecodeit.com/vibecode-this-site).
+
+## About
+
+**Vibecode It** is built and maintained by **Faizan Ali** — computer science student and
+lead software engineer. It is a modified fork of the open-source project
+[Can I Vibecode It?](https://canivibecodeit.com) by [Rob Hallam](https://x.com/robj3d3)
+([source](https://github.com/canivibecodeit/canivibecodeit)). Original credit stays with
+Rob; product branding, copy, and ongoing work here are Faizan's.
 
 ## Add an app
 
@@ -58,3 +66,4 @@ Any VPS with a reverse proxy works:
 ## License
 
 [MIT](LICENSE). The prompts are free forever — paywalling them would be brand poison.
+Original copyright Rob Hallam; modifications Faizan Ali.
