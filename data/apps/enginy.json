@@ -1,0 +1,52 @@
+{
+  "slug": "enginy",
+  "name": "Enginy",
+  "domain": "enginy.ai",
+  "category": "analytics",
+  "subcategory": "AI data analysis",
+  "tagline": "An AI agent you point at your business data so non-analysts can ask questions and get charts and explanations back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.enginy.ai/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here, natural language in, SQL out, chart and summary back, is one of the most reproduced patterns in AI tooling right now, and a competent agent will get you a working local version fast. What takes longer than one sitting is everything that makes the answers trustworthy: a schema description the model actually understands, metric definitions that match how your business counts things, and enough guardrails that a wrong join does not quietly become a board slide. For a single person querying one or two databases they already know, the DIY build is genuinely fine and arguably better because you can read the SQL. For a team where five people ask the same question five ways and expect the same number, you are signing up to maintain a semantic layer, which is a real job. Call it a weekend for the useful 80 percent, indefinite for the last 20.",
+  "coreLoopDIY": "Connects to a read-only Postgres, turns a typed question into SQL with an LLM, shows you the SQL before it runs, then renders the result as a table or chart with a short written explanation.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key in .env",
+    "Read-only database credentials for whatever you want to query",
+    "Python 3.12 locally",
+    "Willingness to eyeball the generated SQL instead of trusting it"
+  ],
+  "whatYouLose": [
+    "A maintained semantic layer, so your DIY version will happily give two different numbers for 'active users' depending on phrasing",
+    "Connectors to warehouses, spreadsheets and SaaS sources you have not written yourself",
+    "Accuracy work: evals, retries, ambiguity clarification, the unglamorous stuff that stops confident wrong answers",
+    "Scheduled reports and shareable dashboards for colleagues who will not run a local Python app",
+    "Anyone to escalate to when the number is wrong and someone already sent it to a client"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The defensibility is not the model, it is the boring layer between messy schemas and a number someone will act on.",
+  "whyPeopleStillPay": "Because the failure mode of a homemade text-to-SQL tool is not a crash, it is a plausible wrong answer, and most buyers are paying to move that risk off their desk. There is also the audience problem: the people who most want to ask questions in English are exactly the people who will not clone a repo, set an env var and read generated SQL. A hosted product gives them a URL, a login and someone who has already argued with their schema. If you are the technical person who would build this, you are also the person who could just write the query, which tells you who the product is really for.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The query engine is a weekend; agreeing on what a metric means is the part that never ships.",
+  "prompt": "Build a local, single-user \"ask my database\" tool. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12, FastAPI backend, Uvicorn.\n- psycopg 3 for Postgres, connected with a read-only role.\n- One LLM provider via HTTP, key from .env as LLM_API_KEY. Model name in .env too.\n- SQLite file for local history of questions, SQL and results metadata.\n- Frontend: one server-rendered HTML page plus a little vanilla JS. No React, no build step.\n- Charts: Vega-Lite from a CDN.\n\nBehaviour:\n1. On startup, introspect the database: tables, columns, types, foreign keys, row counts. Cache this as a compact schema summary in SQLite.\n2. Let me store per-table and per-column notes in a schema_notes table, and a metrics table where I define named metrics as canonical SQL snippets. Both get injected into the prompt.\n3. Text box: I type a question. The app sends schema summary plus notes plus metrics plus the last few turns to the LLM and asks for a single read-only SELECT, plus a one-line explanation, as JSON.\n4. Show me the SQL and the explanation BEFORE running anything. I click Run. Never auto-execute.\n5. Reject any statement that is not a single SELECT or WITH. Enforce a statement timeout and a LIMIT if none is present.\n6. Render results as a table. If the shape looks chartable, offer a Vega-Lite bar or line chart with a toggle back to the table.\n7. After results, ask the LLM for a two sentence plain-language summary of what the numbers show. Label it clearly as generated.\n8. History page: every question, the SQL, when it ran, how long it took. Let me re-run or fork any past query.\n9. Export current result to CSV.\n\nExplicitly out of scope: multi-user auth, scheduled reports, dashboards, warehouse connectors beyond Postgres, write queries, any hosted deployment.\n\nDeliver: README with setup, .env.example, requirements.txt, a seed script that loads a small sample schema so I can test without touching real data, and a make target to run it. Add a visible banner in the UI reading \"Generated SQL. Read it before you trust it.\"",
+  "promptCurated": false
+}
