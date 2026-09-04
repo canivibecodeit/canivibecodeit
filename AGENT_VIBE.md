@@ -331,3 +331,21 @@ restarted.
   confirmed the label renders without the question mark and the footer
   attribution on the same page is unchanged.
 - Commit: `copy: drop the question mark from the alternatives link label`.
+
+### 2026-09-04 — Drop the question mark from the homepage heading
+
+- `src/pages/index.astro`: the hero `h1` now reads `Can I vibecode it` (with
+  `Can I` struck through and `it` in the accent color, as before) instead of
+  `Can I vibecode it?`. The mark was plain text outside both spans, so no styling
+  changed.
+- Left the product branding and the attribution alone: the `<title>`,
+  `og:site_name` and JSON-LD still carry `Vibecode It?` as the product name, and
+  the footer credit still reads `Can I Vibecode It?` for Rob Hallam's upstream
+  product. Say so explicitly if the brand itself should lose its question mark ·
+  that is a rename touching titles, structured data and OG metadata sitewide,
+  not a copy tweak.
+- Verification: `git diff --check`, `npm run validate` (1,093 app files),
+  `npm test` (13 passing), and `npm exec -- astro build` passed. Runtime check
+  confirmed the rendered `h1`, and that the title, `og:site_name` and footer
+  attribution are unchanged.
+- Commit: `copy: drop the question mark from the homepage heading`.
