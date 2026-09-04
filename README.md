@@ -37,31 +37,25 @@ Production build:
 
 ```sh
 npm run build      # builds the site + regenerates OG images
-npm start          # node server on 127.0.0.1:8095
+npm start          # previews the static dist/ output on 127.0.0.1:4321
 ```
 
-No environment variables are required for local development. `.env.example` documents
-the optional ones (analytics, sign-in, payments, email, media storage).
+No environment variables are required. The current deployment is frontend-only:
+Astro prerenders the catalog to `dist/`, and Vercel serves those static files. Former
+API, admin, account, Stripe, PostHog, database, submission, sponsor, challenge, and
+community-build routes are preserved under `src/backend-disabled/` but are not built.
 
 ## Stack
 
-- [Astro](https://astro.build) server output + Node adapter — every page is fully
-  rendered HTML, no client framework
-- SQLite ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) for vote
-  counters and the waitlist — set `DATA_DIR` outside the repo in production
-- Vanilla JS + CSS for all interactions; [satori](https://github.com/vercel/satori) +
-  resvg render the OG images at build time
+- [Astro](https://astro.build) static output — every route is prerendered HTML
+- Vanilla JS + CSS for local interactions; no client framework and no API calls
+- [satori](https://github.com/vercel/satori) + resvg for build-time OG images
 
 ## Deploy
 
-Any VPS with a reverse proxy works:
-
-1. `npm run build`, then run `npm start` under a process manager (systemd unit,
-   restart-on-failure) as an unprivileged user.
-2. Point your reverse proxy at `127.0.0.1:8095` and terminate TLS there.
-3. Set `DATA_DIR` to a path outside the repo so user data can never be committed.
-4. Optional analytics: set `POSTHOG_KEY` and have the proxy forward `/ph/*` to your
-   PostHog instance (keeps analytics first-party).
+Import the repository into Vercel. `vercel.json` runs `npm run build` and publishes
+`dist/`; no functions, database, Stripe, PostHog, secrets, or environment variables
+are required.
 
 ## License
 

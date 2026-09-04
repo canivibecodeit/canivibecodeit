@@ -687,6 +687,26 @@ restarted.
 - Commit: `feat: build kits with beginner-friendly plans for all 50 phased apps`
   (pushed to `origin/monster`).
 
+### 2026-09-05 — Convert deployment to a pure static Vercel frontend
+
+- Changed Astro from standalone Node server output to static output and added a
+  Vercel configuration that publishes `dist/` without functions.
+- Preserved every backend route and the request middleware under
+  `src/backend-disabled/`, outside Astro's routable page tree. This covers APIs,
+  admin, auth/account, Stripe sponsorship, PostHog analytics/proxying, database
+  submissions, community builds, challenges, and The Build Games.
+- Replaced database-backed votes, totals, and community data on the remaining
+  catalog pages with deterministic build-time data. Voting and My Stack remain
+  device-local through `localStorage`.
+- Removed the Node adapter, Better Auth, SQLite, and Postgres dependencies and
+  updated the npm lockfile. Removed navigation, newsletter forms, sponsor rails,
+  analytics loading, and browser polling that pointed at disabled endpoints.
+- Added static path generation for verdicts, build guides, category pages, moat
+  pages, app-alternative pages, and alternative-product pages.
+- Verification: 1,123 app files and 50 build kits validated; all 37 tests passed;
+  `node --check public/js/app.js` passed; Astro generated 3,234 static pages.
+- Commit: `feat: prepare frontend-only Vercel deployment`.
+
 ### 2026-09-04 — Make repository scripts portable on Windows and start locally
 
 - Fixed six repository scripts that derived the project root from the raw

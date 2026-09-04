@@ -379,13 +379,7 @@
       lastLoggedQuery = q;
       const hits = rowData.filter((r) => r.lower.includes(q)).length;
       track('search', { query: q, hits });
-      // keepalive: the request survives navigating away to a picked result.
-      fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q, hits }),
-        keepalive: true,
-      }).catch(() => {});
+      // Frontend-only deployment: search remains local and sends no telemetry.
     };
     if (search) {
       search.addEventListener('input', () => {
@@ -471,10 +465,7 @@
         });
       } catch {}
     };
-    if ($('#ticker')) {
-      const iv = setInterval(refreshStats, 30000);
-      onLeave(() => clearInterval(iv));
-    }
+    // Frontend-only deployment: the build-time total is authoritative.
 
     /* ---------- public analytics strip ---------- */
     const strip = $('#stats-strip');
@@ -1016,36 +1007,19 @@
       const slug = btn.dataset.vote;
       if (localStorage.getItem(`voted:${slug}`)) voteLabel(btn, true);
 
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const voted = !!localStorage.getItem(`voted:${slug}`);
         btn.classList.remove('voted');
         void btn.offsetWidth; // restart animation
         btn.classList.add('voted');
-        try {
-          const res = await fetch(`/api/vote/${slug}`, { method: voted ? 'DELETE' : 'POST' });
-          if (!voted && res.status === 429) {
-            localStorage.setItem(`voted:${slug}`, '1');
-            voteLabel(btn, true);
-            toast('already counted · one funeral per person');
-            return;
-          }
-          if (!res.ok) throw new Error();
-          const { count } = await res.json();
-          $$(`[data-votes="${slug}"]`).forEach((el) => (el.textContent = count));
-          if (voted) {
-            localStorage.removeItem(`voted:${slug}`);
-            voteLabel(btn, false);
-            toast('vote taken back · resurrection granted');
-            track('unvote', { app: slug });
-          } else {
-            localStorage.setItem(`voted:${slug}`, '1');
-            voteLabel(btn, true);
-            toast('☠ counted. RIP that subscription.');
-            track('vote', { app: slug });
-            showReveal({ source: 'post_vote', head: 'counted. verdicts flip when models improve.' });
-          }
-        } catch {
-          toast('something broke · try again');
+        if (voted) {
+          localStorage.removeItem(`voted:${slug}`);
+          voteLabel(btn, false);
+          toast('saved vote removed from this device');
+        } else {
+          localStorage.setItem(`voted:${slug}`, '1');
+          voteLabel(btn, true);
+          toast('saved on this device');
         }
       });
     });

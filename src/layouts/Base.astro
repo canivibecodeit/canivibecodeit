@@ -3,21 +3,12 @@ import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/jetbrains-mono';
 import '../styles/global.css';
 import { ClientRouter } from 'astro:transitions';
-import DigestBar from '../components/DigestBar.astro';
 import Radio from '../components/Radio.astro';
-import SponsorRails from '../components/SponsorRails.astro';
-import SponsorTape from '../components/SponsorTape.astro';
-import { buildGamesLive, buildsLive } from '../lib/flags.js';
-import { getBoard, nextRunMonthName } from '../lib/sponsors.js';
 import { scriptJson } from '../lib/request.js';
 import { REC_HIDE_SCRIPT, THEME_SCRIPT } from '../lib/csp.js';
 
 // Next-month pre-book count for the footer link. Board is cached, so this
 // costs the layout nothing extra; the month names itself.
-const septBoard = await getBoard();
-const septLeft = septBoard.slots.length - septBoard.prebookedCount;
-const prebookLabel = nextRunMonthName();
-
 // socialTitle lets a page rank under one <title> while share cards keep
 // another (og/twitter). Defaults to the same string.
 const {
@@ -33,8 +24,6 @@ const {
   // one page, one ask (and on mobile the bar overlapped the inline form).
   hideDigest = false,
 } = Astro.props;
-
-const user = Astro.locals.user ?? null;
 
 const canonical = new URL(Astro.url.pathname, 'https://vibecodeit.com').href;
 // Pages whose URL carries a token: they stay out of the index, and out of
@@ -74,14 +63,7 @@ const blocks = [orgLd, ...jsonld];
 // nav for the games launch (operator brief, Aug 31) — accent-highlighted.
 const SECTIONS = [
   { href: '/#death-list', label: 'the death list', top: true },
-  { href: '/thebuildgames', label: 'the build games', top: true, cls: 'nav-games', show: buildGamesLive() },
   { href: '/alternatives', label: 'alternatives', top: true },
-  { href: '/builds', label: 'builds', top: false, show: buildsLive() },
-  { href: '/stats', label: 'stats', top: false },
-  { href: '/newsletter', label: 'newsletter', top: false, footerLabel: 'the newsletter' },
-  { href: '/submit', label: 'submit an app', top: true, cls: 'nav-submit' },
-  { href: '/write', label: 'write a post', top: true, cls: 'nav-write' },
-  { href: '/sponsor', label: 'sponsor', top: true },
 ];
 const navSections = SECTIONS.filter((s) => s.show !== false);
 const headerLinks = navSections.filter((s) => s.top);
@@ -122,11 +104,9 @@ const headerLinks = navSections.filter((s) => s.top);
     {/* Referrer-aware hide for the How to AI placements; text lives in
         lib/csp.js next to its hash, same rule as the theme script. */}
     <script is:inline set:html={REC_HIDE_SCRIPT} />
-    {!isPrivate && <script is:inline src="/analytics.js" defer></script>}
     <ClientRouter />
   </head>
-  <body data-user={user ? '1' : undefined} class:list={[{ 'no-tape': hideSponsors }]}>
-    {!hideSponsors && <SponsorTape side="left" />}
+  <body class:list={[{ 'no-tape': hideSponsors }]}>
     <header class="site-header">
       <div class="inner">
         <a class="brand" href="/" aria-label="Vibecode It? home">
@@ -161,7 +141,6 @@ const headerLinks = navSections.filter((s) => s.top);
 
     <slot />
 
-    {!hideSponsors && <SponsorRails />}
 
     <footer class="site-footer">
       {/* Sitewide section links. The header hides most of these on narrow
@@ -179,7 +158,7 @@ const headerLinks = navSections.filter((s) => s.top);
         · based on <a href="https://canivibecodeit.com">Can I Vibecode It?</a> by <a href="https://x.com/robj3d3">Rob Hallam</a>
       </span>
       <span>
-        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a> · <a href="/sponsor">pre-book {prebookLabel}{septBoard.prebookedCount > 0 ? ` · ${septLeft} of ${septBoard.slots.length} left` : ''}</a>
+        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a>
       </span>
       </div>
     </footer>
@@ -187,10 +166,8 @@ const headerLinks = navSections.filter((s) => s.top);
     {!hideSponsors && (
       <>
         <div class="sp-tape-spacer"></div>
-        <SponsorTape side="right" />
       </>
     )}
-    {!hideDigest && <DigestBar />}
 
     {/* Back to top. Rendered after the digest bar on purpose: the bar slides
         into the same corner on narrow viewports, and a general-sibling rule in
@@ -199,23 +176,6 @@ const headerLinks = navSections.filter((s) => s.top);
     <button class="to-top" type="button" data-to-top aria-label="Back to top">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
     </button>
-
-    {/* Co-reg card shown after a successful newsletter signup (cloned by
-        app.js). No checkbox, nothing automatic: one button, one no-thanks. */}
-    <template id="rec-coreg-tpl">
-      <aside class="rec-coreg" data-hide-for-ruben data-rec-coreg>
-        <img class="rec-coreg-img" src="/thebuildgames/howtoai-grid.webp" alt="How to AI post grid" width="640" height="490" loading="lazy" />
-        <div class="rec-coreg-body">
-          <span class="rec-eyebrow">one more, free</span>
-          <b class="rec-coreg-title">How to AI by Ruben Hassid</b>
-          <p class="rec-coreg-text">the newsletter 890k people use to get better at AI. one tap, your email is already filled in.</p>
-          <div class="rec-coreg-actions">
-            <a class="btn primary rec-coreg-go" href="/api/rec/howtoai?src=coreg_digest" target="_blank" rel="sponsored nofollow noopener" data-rec-coreg-go>get How to AI</a>
-            <button class="rec-coreg-no" type="button" data-rec-coreg-no>no thanks</button>
-          </div>
-        </div>
-      </aside>
-    </template>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src={`/js/app.js?v=${__BUILD_ID__}`} defer></script>
