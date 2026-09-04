@@ -60,7 +60,7 @@ module-by-module build guide, ten apps per batch. The format spec lives in
 names, library APIs, CLI flags) are verified against primary sources before they
 go into a prompt, and the check date belongs in the entry.
 
-Progress: **10 of 1,093 converted.**
+Progress: **20 of 1,093 converted.**
 
 ### Batch 1 — flagship YES verdicts (2026-09-04)
 
@@ -77,12 +77,39 @@ Progress: **10 of 1,093 converted.**
 | `testimonial-to` | testimonials | 6 | — |
 | `typefully` | social-media | 6 | X killed the free API tier: new developers get pay-per-use at ~$0.015/post and ~$0.20/post with a link. The old prompt's "free tier is read-only" was wrong |
 
+### Batch 2 — remaining priority-5 YES verdicts (2026-09-04)
+
+| App | Category | Phases | Researched fact that changed the prompt |
+| --- | --- | --- | --- |
+| `uptime` | uptime | 6 | — |
+| `wispr-flow` | voice-dictation | 6 | Input Monitoring and Accessibility are separate grants; the permission prompt appears once per launch, so a dismissal needs a relaunch; pasteboard + Cmd-V beats per-character `CGEvent` (key codes, not characters); password fields refuse synthetic input by design |
+| `tally` | forms | 8 | — |
+| `ghost-pro` | publishing | 8 | Ghost production requires MySQL 8.0/8.4 (MariaDB and SQLite unsupported); transactional email is SMTP but newsletters go through Mailgun's API, still the only first-class bulk provider self-hosted. The old prompt conflated the two |
+| `ynab` | personal-finance | 8 | SimpleFIN Bridge is ~$15/year and is what Actual Budget uses, so bank sync is affordable rather than impossible · the old prompt ruled it out entirely |
+| `invoice-ninja` | finance-accounting | 8 | — |
+| `todoist` | tasks | 7 | — |
+| `feedly` | rss-research | 7 | — |
+| `obsidian-sync` | notes-knowledge | 6 | — |
+| `bitwarden` | security | 7 | vaultwarden's `ADMIN_TOKEN` must be an Argon2 PHC hash from `/vaultwarden hash`; `$` needs `$$` escaping in a Compose env file; you log in at `/admin` with the original password, not the hash |
+
+Deliberately deferred from this batch, with reasons: `showtrust` (same domain as
+the already-converted `testimonial-to`, and its existing prompt is the most
+detailed in the repo, so the marginal gain is smallest), `umami-cloud` (a
+near-duplicate of `plausible`), and `superwhisper` (a near-duplicate of
+`wispr-flow`). Converting ten variations of two prompts in one batch would have
+produced worse prompts than picking ten domains.
+
 ### Batches still to run
 
-The remaining 1,083 entries keep their one-shot prompts until converted. Priority
-order: the rest of `pagePriority: 5` with a `yes` verdict, then `kinda` verdicts
-(where the phase that states the unclosable gap matters most), then the long tail.
-`no` verdicts render no prompt at all and need no conversion.
+The remaining 1,073 entries keep their one-shot prompts until converted. 21
+`pagePriority: 5` `yes` verdicts are left, including the three deferred above.
+After those: `kinda` verdicts (where the phase that states the unclosable gap
+matters most), then the long tail. `no` verdicts render no prompt at all and need
+no conversion.
+
+Watch for clusters of near-identical apps (three task managers, two dictation
+tools, several macOS utilities). Convert one well, then adapt · but do not put
+two of a cluster in the same batch.
 
 ## Task log
 
@@ -167,3 +194,33 @@ order: the rest of `pagePriority: 5` with a `yes` verdict, then `kinda` verdicts
   pages return HTTP 200 with the phased prompt present in both the indie and
   product bundles and in the visible per-file panes.
 - Commit: `feat: rewrite batch 1 prompts as phased build guides` (pushed to `origin/monster`).
+
+### 2026-09-04 — Rewrite batch 2 prompts as phased build guides
+
+- Converted ten more entries to the phased format, 97 to 130 lines each:
+  `uptime`, `wispr-flow`, `tally`, `ghost-pro`, `ynab`, `invoice-ninja`,
+  `todoist`, `feedly`, `obsidian-sync`, `bitwarden`.
+- Eight of the ten were `promptCurated: false` generated prompts and are now
+  hand-written, so the flag was flipped to true alongside the rewrite.
+- Four of the ten are operations rather than build tasks (`ghost-pro`,
+  `bitwarden`, `obsidian-sync`, and partly `invoice-ninja`). Their phases are
+  deploy-and-verify stages, and each keeps its rule-zero line: do not write a CMS,
+  do not write a password manager, do not write a sync engine. Both `ghost-pro`
+  and `bitwarden` end on a restore drill that must actually be performed, with the
+  date recorded in the README.
+- Research corrected two prompts that were materially wrong or incomplete: the
+  `ghost-pro` prompt conflated transactional SMTP with newsletter delivery, which
+  self-hosted Ghost routes through Mailgun's API specifically; and the `ynab`
+  prompt ruled out bank sync entirely when SimpleFIN Bridge does it for about
+  $15/year. See the batch 2 table for the rest.
+- Selection deliberately skipped three near-duplicates of batch 1 rather than
+  filling the batch by rank; the reasoning is recorded above the batch table.
+- Verification: `git diff --check`, `npm run validate` (1,093 app files),
+  `npm test` (13 passing), and `npm exec -- astro build` all passed. Confirmed the
+  patch touched only `prompt` and `promptCurated` on each entry.
+- Runtime check: served the production build on port 8099 and confirmed all ten
+  pages return HTTP 200 with the phased prompt present and a clean `#`/`##`/`###`
+  hierarchy in the generated pack files. The pre-existing dev server on 8095 was
+  left running untouched.
+- Commit: `feat: rewrite batch 2 prompts as phased build guides` (pushed to
+  `origin/monster`).
