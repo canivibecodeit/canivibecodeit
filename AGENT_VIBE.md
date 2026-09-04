@@ -316,3 +316,18 @@ Note for anyone reviewing locally: `src/lib/apps.js` caches the app dataset at
 first read, so a dev server started before a `data/apps/*.json` edit keeps serving
 the old prompts · a phased app will show the 5-step fallback until the server is
 restarted.
+
+### 2026-09-04 — Drop the question mark from the alternatives-page link label
+
+- `src/pages/[slug]/alternatives.astro`: the link back to the verdict page now
+  reads `can I vibecode it` instead of `can I vibecode it?`.
+- Left every other occurrence alone deliberately. The strings in
+  `src/layouts/Base.astro`, `src/pages/terms.astro` and `src/pages/privacy.astro`
+  are `Can I Vibecode It?` as the name of Rob Hallam's upstream product, not a
+  question · the question mark is part of that product's name, and the handoff
+  rules require the attribution to stay exactly as it is.
+- Verification: `git diff --check`, `npm run validate` (1,093 app files),
+  `npm test` (13 passing), and `npm exec -- astro build` passed. Runtime check
+  confirmed the label renders without the question mark and the footer
+  attribution on the same page is unchanged.
+- Commit: `copy: drop the question mark from the alternatives link label`.
