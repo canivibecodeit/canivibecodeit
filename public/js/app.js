@@ -1101,7 +1101,7 @@
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || '');
         }
-        toast(next ? 'digest on · see you thursday' : 'digest off');
+        toast(next ? 'digest on · see you sunday' : 'digest off');
       } catch (err) {
         digestToggle.dataset.on = next ? '' : '1';
         digestToggle.classList.toggle('on', !next);
@@ -1287,7 +1287,7 @@
           btn.disabled = true;
           const emailInput = form.querySelector('input[type=email]');
           emailInput.disabled = true;
-          toast('in. see you thursday.');
+          toast('in. see you sunday.');
           // waitlist_signup is captured server-side in /api/waitlist — no
           // client event, or blocked-analytics visitors vanish from the count.
           remember('digest_subscribed');
@@ -1318,7 +1318,7 @@
       const res = await jsonPost('/api/account/digest', 'POST', { on: true, placement }).catch(() => null);
       if (res?.ok) {
         btn.textContent = "you're in ✓";
-        toast('digest on · see you thursday');
+        toast('digest on · see you sunday');
         remember('digest_subscribed');
         setTimeout(() => {
           if (reveal) reveal.hidden = true;

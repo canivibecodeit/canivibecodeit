@@ -204,9 +204,9 @@ function newsletterCard() {
       el('div', {
         fontFamily: 'Space Grotesk', fontSize: 76, fontWeight: 700,
         color: COLORS.fg, letterSpacing: '-0.02em', lineHeight: 1.1,
-      }, 'Five vibe-coding tips a week.'),
-      el('div', mono(30, COLORS.muted), 'With receipts. The prompts behind them, and which verdicts flipped.'),
-      el('div', { ...mono(26, COLORS.green, 700), letterSpacing: '0.08em', marginTop: 18 }, 'THURSDAYS · FREE'),
+      }, 'A new guide, every sunday.'),
+      el('div', mono(30, COLORS.muted), 'One guide to technology a week, with the prompts behind it. Or send us yours.'),
+      el('div', { ...mono(26, COLORS.green, 700), letterSpacing: '0.08em', marginTop: 18 }, 'SUNDAYS · FREE'),
     ]),
     el('div', { display: 'flex', marginTop: 'auto', justifyContent: 'space-between' }, [
       el('div', mono(22, COLORS.muted), 'vibecodeit.com/newsletter'),
@@ -284,7 +284,7 @@ if (range) {
   const cache = loadCache();
   await renderCached(homeCard(mrr), 'home.png', `home:${mrr}`, cache);
   await renderCached(siteCard(), 'vibecode-this-site.png', 'site', cache);
-  await renderCached(newsletterCard(), 'newsletter.png', 'newsletter:1', cache);
+  await renderCached(newsletterCard(), 'newsletter.png', 'newsletter:2', cache);
   for (const m of SHOWCASE_MODELS) {
     await renderCached(builtWithCard(m), `built-with-${m.slug}.png`, `built-with:${m.slug}:${m.name}:2`, cache);
   }

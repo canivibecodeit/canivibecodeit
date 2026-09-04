@@ -365,3 +365,37 @@ restarted.
   `npm test` (13 passing), and `npm exec -- astro build` passed. Runtime check
   confirmed the rendered markup and that no space crept in before the mark.
 - Commit: `copy: restore the homepage question mark, struck through`.
+
+### 2026-09-04 — Repitch the newsletter: a weekly sunday guide, open to submissions
+
+- Changed the newsletter promise from "five vibe-coding tips, thursdays" to "a new
+  guide to technology, every sunday · submit yours and we'll publish it", and
+  rewrote every heading, description and supporting line to match.
+- Updated all thirteen places the old promise appeared, because a newsletter that
+  says thursday in one placement and sunday in another is broken:
+  `src/components/DigestCard.astro` (heading, sub, button, fine print),
+  `src/components/DigestBar.astro`, `src/components/DigestReveal.astro` (default
+  sub), `src/pages/newsletter.astro` (meta description, `h1`, sub, submit button,
+  fine print, the "in every issue" list, and the file's own comment),
+  `src/pages/submit.astro`, the `newsletterCard` OG template in
+  `scripts/generate-og.mjs`, and the three "see you thursday" toasts in
+  `public/js/app.js`. A grep for `thursday` across `src/`, `scripts/` and
+  `public/js/` now returns nothing.
+- The OG card's cache key is manual, so it was bumped from `newsletter:1` to
+  `newsletter:2`; without that the hashed cache would have kept serving the old
+  image. `npm run og` re-rendered exactly one file, `public/og/newsletter.png`.
+- Gave the submission claim a real path rather than leaving it as a promise with
+  no route: the newsletter page now points at
+  `hello@vibecodeit.com` (the documented operator contact) with a prefilled
+  subject, and says the guide runs with the writer's byline. No new backend ·
+  there is no article submission pipeline, and inventing a half one would be
+  worse than an email address.
+- Note on cadence: no send day is hardcoded anywhere. `scripts/weekly-digest.mjs`
+  sends whenever it is invoked, so whatever cron or manual routine triggers it has
+  to move to Sunday for the copy to stay true.
+- Verification: `node --check public/js/app.js`, `git diff --check`,
+  `npm run validate` (1,093 app files), `npm test` (13 passing),
+  `npm exec -- astro build`, and `npm run og` all passed. Runtime check confirmed
+  the new copy on the homepage digest card, the digest bar, and `/newsletter`
+  including the mailto link.
+- Commit: `copy: repitch the newsletter as a weekly sunday guide`.
