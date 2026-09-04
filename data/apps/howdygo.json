@@ -1,0 +1,52 @@
+{
+  "slug": "howdygo",
+  "name": "HowdyGo",
+  "domain": "howdygo.com",
+  "category": "screen-recording",
+  "subcategory": "interactive product demos",
+  "tagline": "Records your web app and turns it into a clickable, guided interactive demo you can embed anywhere.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.howdygo.com/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The concept is simple enough that an agent can get you 80 percent there in a weekend: capture screenshots of a flow, drop hotspots and tooltips on them, play it back as a clickable walkthrough. What you cannot casually one-shot is high fidelity capture, cloning live DOM so text stays editable and selectable, rewriting asset URLs, killing scripts that break on replay, and making it all behave inside an iframe on someone else's marketing page. Screenshot-plus-hotspot demos work fine and honestly cover most sales use cases, they just look like screenshots. The other half of the product is the boring hosted part: embed snippets, view analytics, CDN, and a non-technical teammate being able to edit a tooltip without opening a code editor. Build it if you make your own demos; do not build it if marketing owns them.",
+  "coreLoopDIY": "A Playwright-driven recorder that captures a screenshot at every click in your app, then a static player that replays those frames with positioned hotspots and tooltips you can embed via iframe.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and Playwright installed locally",
+    "A web app to record, with a login you can drive in a browser",
+    "Any static host or S3 bucket for the exported demo folder",
+    "Manual JSON or UI editing for tooltip copy and hotspot positions"
+  ],
+  "whatYouLose": [
+    "DOM-level capture, so no selectable text, no responsive reflow, no editing a label after the fact",
+    "Hosted embeds with a stable URL, CDN delivery, and an oEmbed-ish snippet that just works on Webflow or HubSpot",
+    "Per-demo analytics: views, completion rate, where prospects drop off",
+    "Non-technical teammates editing demos without touching code",
+    "Polish like themed cursors, zoom and pan, mobile playback, and lead capture forms mid-demo"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is the capture engine and the fact that a marketer can use it, not the playback, which is a few hundred lines.",
+  "whyPeopleStillPay": "Because demos are a marketing asset owned by people who do not run Playwright scripts. The buyer wants to click through their own product, get a link, paste it into a landing page, and see how many prospects finished it. A self-hosted script that produces a folder of PNGs and a JSON file solves the founder's problem and none of the team's, and the moment the app UI changes someone has to re-run the recorder, which in a paid tool is a five minute re-capture in a browser extension.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player is trivial, the capture is not. Screenshot demos are perfectly good until someone asks for the text to be editable.",
+  "prompt": "Build a local interactive product demo recorder and player. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Node 20, TypeScript, Playwright for capture, plain Vite + React + Tailwind for the editor and player. Everything runs locally. Output is a self-contained static folder.\n\nPart 1, the recorder (npm run record):\n- CLI takes a start URL and a demo name.\n- Launches a headed Chromium via Playwright with a persistent user data dir under .profiles/ so I can log into my app once and reuse the session.\n- Injects a small script that listens for clicks in the page. On each click: record the click x/y in viewport coordinates, a best-effort CSS selector, the page URL, and a short label from the clicked element's text.\n- After each click, wait for network idle or 800ms, then take a full-viewport PNG screenshot into demos/NAME/frames/NNN.png.\n- Also capture one frame immediately on load, before any clicks.\n- Write demos/NAME/demo.json with viewport size and an ordered array of steps: frame file, hotspot x/y/width/height (default a 40px box centered on the click), and an editable tooltip string seeded from the label.\n- Ctrl+C ends the recording and flushes the JSON.\n\nPart 2, the editor (npm run dev):\n- Loads demos from the local filesystem via a tiny Express dev endpoint.\n- Shows the frame list, lets me drag hotspots, resize them, edit tooltip text and tooltip position (top/bottom/left/right), reorder steps, and delete steps.\n- Saves back to demo.json on disk. No database.\n\nPart 3, the player and export (npm run export -- NAME):\n- Player renders the current frame scaled to fit its container, with an absolutely positioned pulsing hotspot and a tooltip. Clicking the hotspot advances. Arrow keys work too. Progress dots at the bottom, plus a restart button at the end.\n- Export writes dist/NAME/ containing index.html, one JS bundle, the frames, and demo.json, with all paths relative so it works from file:// or any static host, and inside an iframe.\n- Print the iframe snippet to paste into a page.\n\nExplicitly out of scope: DOM cloning, editable in-demo text, responsive reflow, view analytics, lead capture, multi-user editing, hosting.\n\nInclude a README with the three commands, and a .env.example holding only DEMO_START_URL and DEMO_VIEWPORT. Ship a working example demo recorded against example.com so I can run the player immediately.",
+  "promptCurated": false
+}
