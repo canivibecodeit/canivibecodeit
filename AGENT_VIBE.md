@@ -258,10 +258,11 @@ two of a cluster in the same batch.
 - Not verified: no headless browser is installed in this environment, so the
   visual result was checked structurally rather than rendered and looked at. Worth
   a human glance on a phone width before this is considered done.
-- Follow-up: rounded the big verdict badge to a pill (`border-radius: 999px`) so
-  its shape matches the save-to-my-stack control beside it. Only the radius
-  changed · the verdict colors stay in `.badge.yes` / `.badge.kinda` / `.badge.no`,
-  untouched.
+- Follow-up: matched the big verdict badge to the save-to-my-stack control beside
+  it · pill radius `999px`, `font-size: 13px`, `padding: 8px 14px`, and a
+  transparent 1px border so both pills come out the same outer height. The
+  verdict colors stay in `.badge.yes` / `.badge.kinda` / `.badge.no`, untouched,
+  and the weight stays bold because it is a verdict rather than a control.
 - Commit: `feat: track build progress per module on verdict pages` and
   `style: round the verdict badge to match the save control` (pushed to
   `origin/monster`).
