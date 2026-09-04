@@ -224,3 +224,38 @@ two of a cluster in the same batch.
   left running untouched.
 - Commit: `feat: rewrite batch 2 prompts as phased build guides` (pushed to
   `origin/monster`).
+
+### 2026-09-04 — Add a device-local build tracker to verdict pages
+
+- Moved the big verdict badge (`KINDA · weekend project`) out of its stacked slot
+  and onto one row to the left of the save-to-my-stack control, by switching
+  `.verdict-side` from a column to a wrapping row.
+- Added a build tracker in the position the badge used to dominate, directly under
+  the header stats: a percentage, a progress bar, and one checkable row per module
+  with an expandable panel carrying that module's `Build` lead paragraph and its
+  full `Done when` acceptance check.
+- Modules come from the prompt itself. Phased prompts are parsed for their
+  `### Phase N · Title` sections, so the tracker lists this app's real build
+  sequence; the 1,073 entries not yet converted fall back to the generic delivery
+  order. That order is now defined once as `DELIVERY_ORDER` in `[slug].astro` and
+  rendered into both `BUILD_PLAN.md` and the fallback tracker, instead of existing
+  as two copies that could drift.
+- Progress is stored device-local in `localStorage` under `vibecodeit:progress`,
+  matching the my-stack contract: no account, no server round trip. Each entry
+  records the module count it was saved against, so a prompt that later gains or
+  loses phases invalidates its own stale ticks rather than crossing off the wrong
+  modules. Reset arms before clearing, like the stack's remove control.
+- No inline scripts were added: the page still carries exactly the two hashed
+  inline scripts declared in `src/lib/csp.js`.
+- Verification: `node --check public/js/app.js`, `git diff --check`,
+  `npm run validate` (1,093 app files), `npm test` (13 passing), and
+  `npm exec -- astro build` all passed. Confirmed the refactored `DELIVERY_ORDER`
+  renders `BUILD_PLAN.md` byte-identically to before.
+- Runtime check on the production build at port 8099: the tracker renders 6 real
+  modules for the phased `granola` and the 5-step fallback for the not-yet-phased
+  `1password`, every selector the script queries resolves in the served HTML, and
+  the badge precedes the save control in the header markup.
+- Not verified: no headless browser is installed in this environment, so the
+  visual result was checked structurally rather than rendered and looked at. Worth
+  a human glance on a phone width before this is considered done.
+- Commit: `feat: track build progress per module on verdict pages`.

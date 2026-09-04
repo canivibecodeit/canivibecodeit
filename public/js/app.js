@@ -706,6 +706,124 @@
       });
     });
 
+    /* ---------- build tracker ----------
+       Device-local progress over the modules the prompt defines. Same contract
+       as my stack: localStorage only, no account, no server round trip. Keyed
+       by slug and stamped with the module count, so a prompt that gains or
+       loses phases later invalidates its own stale ticks instead of silently
+       marking the wrong ones done. */
+    const tracker = $('[data-build-tracker]');
+    if (tracker) {
+      const PROGRESS_KEY = 'vibecodeit:progress';
+      const slug = tracker.dataset.slug;
+      const total = Number(tracker.dataset.total) || 0;
+
+      const readAll = () => {
+        try {
+          const value = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+          return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+        } catch {
+          return {};
+        }
+      };
+      const readDone = () => {
+        const entry = readAll()[slug];
+        if (!entry || !Array.isArray(entry.done)) return [];
+        // A different module count means the prompt changed under the saved
+        // ticks; drop them rather than crossing off the wrong modules.
+        if (entry.total !== total) return [];
+        return entry.done.filter((i) => Number.isInteger(i) && i >= 0 && i < total);
+      };
+      const writeDone = (done) => {
+        try {
+          const all = readAll();
+          if (done.length) all[slug] = { done: [...done].sort((a, b) => a - b), total, updated: Date.now() };
+          else delete all[slug];
+          localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const bar = $('[data-bt-bar]', tracker);
+      const fill = $('[data-bt-fill]', tracker);
+      const pct = $('[data-bt-pct]', tracker);
+      const doneCount = $('[data-bt-done]', tracker);
+
+      const render = (done) => {
+        const set = new Set(done);
+        $$('[data-bt-toggle]', tracker).forEach((btn) => {
+          btn.setAttribute('aria-pressed', String(set.has(Number(btn.dataset.btToggle))));
+        });
+        const percent = total ? Math.round((set.size / total) * 100) : 0;
+        if (fill) fill.style.width = `${percent}%`;
+        if (pct) pct.textContent = `${percent}%`;
+        if (doneCount) doneCount.textContent = String(set.size);
+        if (bar) bar.setAttribute('aria-valuenow', String(percent));
+        tracker.classList.toggle('complete', total > 0 && set.size === total);
+      };
+
+      let done = readDone();
+      render(done);
+
+      $$('[data-bt-toggle]', tracker).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.btToggle);
+          const set = new Set(done);
+          const nowDone = !set.has(i);
+          if (nowDone) set.add(i);
+          else set.delete(i);
+          done = [...set];
+          if (!writeDone(done)) {
+            toast('progress needs site data enabled in this browser');
+            done = readDone();
+          }
+          render(done);
+          if (nowDone && done.length === total) toast('every module ticked · nice');
+          track('build_module_toggle', { app: slug, module: i, done: nowDone, completed: done.length, total });
+        });
+      });
+
+      $$('[data-bt-more]', tracker).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const detail = $(`[data-bt-detail="${btn.dataset.btMore}"]`, tracker);
+          if (!detail) return;
+          const open = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', String(!open));
+          detail.hidden = open;
+        });
+      });
+
+      /* Reset wipes work someone actually did, so it arms first and disarms on
+         second thoughts, matching the stack's remove control. */
+      const resetBtn = $('[data-bt-reset]', tracker);
+      if (resetBtn) {
+        const label = resetBtn.textContent;
+        let armTimer = null;
+        const disarm = () => {
+          clearTimeout(armTimer);
+          delete resetBtn.dataset.armed;
+          resetBtn.textContent = label;
+        };
+        resetBtn.addEventListener('click', () => {
+          if (!done.length) return;
+          if (!resetBtn.dataset.armed) {
+            resetBtn.dataset.armed = '1';
+            resetBtn.textContent = 'clear all progress?';
+            armTimer = setTimeout(disarm, 4000);
+            return;
+          }
+          disarm();
+          done = [];
+          writeDone(done);
+          render(done);
+          track('build_progress_reset', { app: slug });
+        });
+        onLeave(disarm);
+      }
+    }
+
     /* ---------- vote (toggles: click again to take it back) ---------- */
     const voteLabel = (btn, voted) => {
       const text = btn.childNodes[0];
