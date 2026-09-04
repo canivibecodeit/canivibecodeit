@@ -543,3 +543,42 @@ restarted.
   1,123 apps, `/category/cron` lists all three, `/category/og-images` renders.
 - Commit: `feat: add 30 researched apps across thin categories` (pushed to
   `origin/monster`).
+
+### 2026-09-04 — Add a back-to-top button
+
+- Added a floating back-to-top control to `src/layouts/Base.astro`, so it is on
+  every page: a real `<button>` with `aria-label="Back to top"`, hidden until
+  `app.js` arms it, appearing once the page has scrolled past 600px.
+- Placed it after `<DigestBar />` in the DOM deliberately. The digest bar slides
+  into the same corner and is nearly full width below 940px, so a general-sibling
+  rule (`.digest-bar.show ~ .to-top`) stands the button down while the bar is up
+  rather than letting them overlap. Higher specificity than `.to-top.show`, so
+  the bar wins without any JavaScript coordination between them.
+- Cleared the other things that live on the bottom edge: below 1280px the sponsor
+  tape owns the last 46px, so the button sits at `bottom: 62px` (the same reason
+  `.digest-bar` sits at 52px there); above 1280px the right sponsor rail runs the
+  full height at `right: 16px`, so the button offsets by `calc(var(--sp-side) + 8px)`,
+  reusing the variable the layout already defines for the rail's width plus gutter.
+  Both offsets are scoped to `body:not(.no-tape)` so sponsor-free pages keep the
+  corner.
+- Behavior in `public/js/app.js` follows the existing patterns: a passive scroll
+  listener that only sets a flag with the class flip in a `requestAnimationFrame`,
+  and an `AbortController` registered through `onLeave` so soft navigation unhooks
+  it, matching the digest bar. `sync()` runs once on init because a reload can
+  restore a scrolled position before any scroll event fires.
+- Accessibility: `visibility: hidden` rather than opacity alone, so the button is
+  out of the tab order and the accessibility tree while hidden; the click moves
+  focus to the header brand link, without which a keyboard visitor scrolls up but
+  resumes tabbing from where they were; and `prefers-reduced-motion` drops both
+  the slide-in and the smooth scroll.
+- No inline scripts added · the page still carries only the two hashed inline
+  scripts from `src/lib/csp.js`.
+- Verification: `node --check public/js/app.js`, `git diff --check`,
+  `npm run validate` (1,123 app files), `npm test` (30 passing), and
+  `npm exec -- astro build` passed. Runtime on the built server: the button
+  renders on `/`, `/granola`, `/granola/build`, `/stack`, `/newsletter` and
+  `/write`, sits after `.digest-bar` in the DOM, and the compiled CSS carries
+  `.to-top`, `.to-top.show`, the sibling rule and both media offsets.
+- Not verified: no headless browser here, so the scroll threshold, the fade and
+  the focus move were reviewed statically rather than exercised in a browser.
+- Commit: `feat: add a back-to-top button` (pushed to `origin/monster`).

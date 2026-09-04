@@ -1447,6 +1447,45 @@
       dismissAsks();
     });
 
+    /* ---------- back to top ----------
+       Shown past roughly one screen. The scroll listener is passive and does
+       nothing but set a flag · the class flip happens in a rAF, so a fast
+       scroll cannot queue a style write per event. The AbortController is what
+       unhooks it on soft navigation, matching the digest bar. */
+    const toTop = $('[data-to-top]');
+    if (toTop) {
+      const toTopScroll = new AbortController();
+      onLeave(() => toTopScroll.abort());
+
+      const THRESHOLD = 600;
+      let ticking = false;
+      const sync = () => {
+        ticking = false;
+        toTop.classList.toggle('show', window.scrollY > THRESHOLD);
+      };
+      addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(sync);
+        },
+        { passive: true, signal: toTopScroll.signal }
+      );
+      sync(); // a reload can restore a scrolled position before any scroll event
+
+      toTop.addEventListener('click', () => {
+        const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+        /* Send focus back to the top too. Without this a keyboard visitor
+           scrolls up but their next Tab resumes wherever they were, which is
+           the bug that makes these buttons useless with a keyboard. */
+        const first = $('.site-header .brand');
+        if (first) first.focus({ preventScroll: true });
+        track('back_to_top');
+      });
+    }
+
     /* ---------- reveal on scroll ---------- */
     const revealables = $$('.reveal');
     if (revealables.length && 'IntersectionObserver' in window) {
