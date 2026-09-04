@@ -1,0 +1,61 @@
+{
+  "slug": "formspree",
+  "name": "Formspree",
+  "domain": "formspree.io",
+  "category": "forms",
+  "subcategory": "form backend for static sites",
+  "tagline": "Point a plain HTML form at a URL and get email",
+  "priceMonthly": 15,
+  "pricing": {
+    "plan": "Personal",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "15 USD",
+    "source": "https://formspree.io/plans",
+    "checkedOn": "2026-09-04",
+    "confidence": "medium",
+    "notes": "The official plans page did not render for verification; figures are from multiple 2026 secondary sources. Free 50 submissions/month, Personal $15 for 200 ($10 annual), Professional $30 for 2,000 ($20 annual), Business $90 for 20,000 ($60 annual).",
+    "freeTier": "The free plan takes 50 submissions a month with a 30-day archive."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "An endpoint that accepts a form post, stores it, emails you and redirects back is the canonical small server. The product sells convenience, spam filtering tuned across thousands of forms, and not running a server.",
+  "coreLoopDIY": "Accept a POST from any HTML form, validate, store to SQLite, email a notification, redirect to a thank-you page; add honeypot and rate limits.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small always-on host",
+    "SMTP credentials for notifications"
+  ],
+  "whatYouLose": [
+    "spam filtering tuned on someone else's traffic",
+    "the integrations (Slack, Zapier, Google Sheets)",
+    "file uploads to their storage",
+    "not running a server for a static site"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": null,
+  "whyPeopleStillPay": "The whole appeal of a static site is having no server. Paying $15 to keep it that way is rational, and their spam model has seen more bots than yours ever will.",
+  "priorArt": [
+    {
+      "name": "Formbricks",
+      "url": "https://github.com/formbricks/formbricks",
+      "desc": "open-source forms and surveys platform"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "tally",
+    "fillout",
+    "jotform",
+    "getwaitlist"
+  ],
+  "pagePriority": 4,
+  "verifiedOneShot": false,
+  "notes": "The one-file server everybody has written once. Worth writing well: it is the form backend for every static site you will ever ship.",
+  "prompt": "Build me a form backend for static sites like Formspree. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite. No Express, no framework, one process.\n- Plain HTML forms post to it with no JavaScript required. SQLite in WAL mode at a path from .env.\n\n### Data model (create this before Phase 1)\n\n- forms: id, slug (unique, short), name, redirect_url, notify_email, webhook_url, created_at\n- submissions: id, form_id, received_at, fields (JSON), ip_hash, user_agent_class, spam (bool)\n- One row per submission with the fields as JSON, because every form has different fields and you do not control the markup that posts to you.\n\n### Phase 1 · Accept a post\n\nBuild: POST /f/:slug accepting application/x-www-form-urlencoded and multipart (text fields only for now). Store the fields verbatim as JSON, cap the body at 64 kB, answer with a 303 redirect to the form's redirect_url, or a plain thank-you page when none is set. Unknown slugs answer 404. If the request asks for JSON (Accept header), answer JSON instead of redirecting.\nDone when: a blank HTML page with a form pointing at your endpoint submits with JavaScript disabled and lands on the thank-you, one row exists with the fields intact, and a 100 kB body is refused.\nDo not build yet: email, spam, uploads, admin.\n\n### Phase 2 · Spam controls\n\nBuild: a honeypot convention (any field named _gotcha filled means drop silently but still redirect), a per-IP rate limit of 10 per hour in SQLite, an origin check against an allowlist of domains per form, and a coarse user-agent bot filter. Flag rather than delete: set spam = true so a false positive is recoverable.\nDone when: a filled honeypot redirects normally and stores a row flagged spam, the eleventh submission in an hour is refused, and a post from a disallowed origin is refused.\n\n### Phase 3 · Notifications\n\nBuild: on each non-spam submission, send an email over SMTP from .env to notify_email with the fields as a readable table, and POST the JSON to webhook_url when set. Both fire-and-forget with a timeout · a dead SMTP host must never make the visitor wait or lose their submission.\nDone when: a submission still stores and redirects with SMTP unreachable, and a real send arrives readable in a phone mail client.\n\n### Phase 4 · File uploads\n\nBuild: multipart file fields streamed to uploads/<form-slug>/ under a generated name, 10 MB cap enforced while streaming, MIME checked against the decoded header, images stripped of EXIF. Reference the stored path in the submission JSON.\nDone when: an 11 MB file is refused before it is fully read, a renamed executable is refused, and two files with the same original name coexist.\n\n### Phase 5 · Admin\n\nBuild: /admin behind basic auth from .env: create forms and copy the paste-in HTML snippet, list submissions per form with the spam ones in a separate tab, a restore-from-spam button, and streamed CSV export.\nDone when: a form goes from created to receiving a real submission using only the snippet from the admin, and a 10,000-row export does not grow memory.\n\n### Phase 6 · Deploy\n\nBuild: a /healthz endpoint, a nightly backup of the database and the uploads directory, a systemd unit, and the README.\nDone when: a restore brings back both rows and files.\n\n### Out of scope (and why)\n\n- The integrations gallery and hosted file storage.\n- Spam filtering tuned on someone else's traffic. Yours is a honeypot and a rate limit; say so.\n- Not running a server. That is the actual thing Formspree sells to static-site owners, and this build gives it back.\n\n### README must contain\n\n- The paste-in HTML snippet with the _gotcha honeypot field, verbatim.\n- The origin allowlist step, because forgetting it means anyone can post to your endpoint.",
+  "promptCurated": true
+}

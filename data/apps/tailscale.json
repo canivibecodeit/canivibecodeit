@@ -1,0 +1,61 @@
+{
+  "slug": "tailscale",
+  "name": "Tailscale",
+  "domain": "tailscale.com",
+  "category": "security",
+  "subcategory": "mesh VPN",
+  "tagline": "WireGuard mesh between your devices with SSO and ACLs",
+  "priceMonthly": 8,
+  "pricing": {
+    "plan": "Standard",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "native": "8 USD",
+    "source": "https://tailscale.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Personal is free forever for up to 6 users with unlimited devices and 3 ACL groups. Standard $8 per user/month with SCIM and 10 ACL groups; Premium $18 with 300 groups and flow logs.",
+    "freeTier": "The free Personal plan covers up to 6 users, unlimited devices and nearly every feature."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The data plane is WireGuard and the clients are open source. The coordination server is what Tailscale runs, and headscale reimplements it well enough for a homelab. The free tier already covers six users, so the honest DIY case is wanting the control plane on your own box.",
+  "coreLoopDIY": "Run headscale on a VPS as the coordination server, point the official Tailscale clients at it, manage users and ACLs in its config.",
+  "diyTimeEstimate": "weekend",
+  "requirements": [
+    "a VPS with a public IP",
+    "a domain",
+    "the official clients on every device"
+  ],
+  "whatYouLose": [
+    "SSO with every identity provider, done",
+    "the admin console and device posture",
+    "Funnel and the relay network at their scale",
+    "someone else on call for the control plane"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "the DERP relay network and the console",
+  "whyPeopleStillPay": "Six users are free. Above that, companies pay for SSO, ACLs in a UI and a control plane that is not their problem.",
+  "priorArt": [
+    {
+      "name": "headscale",
+      "url": "https://github.com/juanfont/headscale",
+      "desc": "open-source implementation of the Tailscale control server"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "ngrok",
+    "mullvad",
+    "bitwarden"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rule zero: do not write a VPN. Deploy headscale and use the real clients.",
+  "prompt": "Build me a self-hosted Tailscale control plane. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase. This is an operations task with a restore drill at the end.\n\n### Rule zero\n\nDo not write a VPN and do not touch the cryptography. WireGuard is the data plane, the official Tailscale clients are the endpoints, and headscale is the coordination server. Your work is deploying and operating it.\n\n### Stack (fixed, do not substitute)\n\n- headscale on a small VPS with a public IP, behind Caddy for TLS on a subdomain. The official Tailscale clients on every device.\n\n### Phase 1 · The server\n\nBuild: headscale installed with its config pointing at your public URL, Caddy in front, a systemd unit, and one user created.\nDone when: the health endpoint answers over HTTPS and headscale users list shows your user.\nDo not build yet: clients, ACLs.\n\n### Phase 2 · First two devices\n\nBuild: register a laptop and a phone against your server with pre-auth keys, and confirm they reach each other by Tailscale IP.\nDone when: a ping between the two devices succeeds over the mesh and traffic does not traverse the VPS (check with a direct connection in the client status).\n\n### Phase 3 · DNS and ACLs\n\nBuild: MagicDNS with a base domain, and an ACL policy file that denies by default and allows what you need. Test a denied path.\nDone when: devices resolve each other by name, an allowed port connects, and a denied port is refused.\n\n### Phase 4 · Relays and exit node\n\nBuild: enable an embedded DERP relay for devices behind hostile NATs and configure one machine as an exit node.\nDone when: a device on a restrictive network still connects (via relay) and routing through the exit node changes your public IP.\n\n### Phase 5 · Backup and restore drill\n\nBuild: nightly backup of the headscale database and config off the box, and restore.sh. Then restore into a fresh VPS and confirm existing devices reconnect without re-registering.\nDone when: you have performed one restore and the devices came back. Until then, keep the free Tailscale account.\n\n### Out of scope (and why)\n\n- SSO with every provider, the admin console, device posture. That is the seat price, and for six people it is free anyway.\n\n### README must contain\n\n- The date of the last restore drill.\n- How to add a device with a pre-auth key.",
+  "promptCurated": true
+}

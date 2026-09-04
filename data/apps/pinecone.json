@@ -1,0 +1,64 @@
+{
+  "slug": "pinecone",
+  "name": "Pinecone",
+  "domain": "pinecone.io",
+  "category": "databases",
+  "subcategory": "managed vector database",
+  "tagline": "Vector database for embeddings and similarity search",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "Builder",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "20 USD",
+    "source": "https://www.pinecone.io/pricing/",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Starter free: 2 GB, 5 indexes, 1M read and 2M write units a month. Builder $20 flat: 10 GB, 10 indexes. Standard $50 minimum usage with $0.33/GB storage; Enterprise $500 minimum.",
+    "freeTier": "The free Starter plan covers 2 GB of vectors across 5 indexes with monthly read and write unit caps."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "For anything under a few million vectors, pgvector in the Postgres you already run does the job with a normal index and normal backups. Pinecone earns its fee at scale and for teams who want zero operations; a side project needs neither.",
+  "coreLoopDIY": "Add pgvector to Postgres, store embeddings next to your rows, query with cosine distance and an HNSW index.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Postgres with the pgvector extension",
+    "an embeddings API key or a local model"
+  ],
+  "whatYouLose": [
+    "serverless scaling to billions of vectors",
+    "zero-ops managed indexes",
+    "hybrid and sparse search features",
+    "the SLA"
+  ],
+  "moatTags": [
+    "scale-infra"
+  ],
+  "moatNotes": null,
+  "whyPeopleStillPay": "Teams pay so vector search is nobody's job. Under a million vectors, it is a column.",
+  "priorArt": [
+    {
+      "name": "pgvector",
+      "url": "https://github.com/pgvector/pgvector",
+      "desc": "vector similarity search for Postgres"
+    },
+    {
+      "name": "Qdrant",
+      "url": "https://github.com/qdrant/qdrant",
+      "desc": "open-source vector database"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "supabase-pro",
+    "neon",
+    "algolia"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rule zero: do not write a vector index. It is a column type.",
+  "prompt": "Build me semantic search over my own documents to replace Pinecone. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Rule zero\n\nDo not write a vector index. pgvector is a Postgres extension with HNSW built in; it is a column and a query.\n\n### Stack (fixed, do not substitute)\n\n- Postgres 16 with pgvector. Node 22. An embeddings provider behind an interface (OpenAI or a local model via Ollama).\n\n### Data model (create this before Phase 1)\n\n- documents: id, source, title, url, updated_at\n- chunks: id, document_id, position, text, embedding vector(N), token_count\nChunks, not documents, carry the vectors: a 40-page PDF as one vector matches nothing well.\n\n### Phase 1 · Store and embed\n\nBuild: a chunker (by paragraph, ~500 tokens with overlap) and an embed step behind an interface, writing chunks with their vectors. Idempotent on document hash.\nDone when: re-ingesting an unchanged document embeds nothing, a changed one re-embeds only its chunks, and the interface swaps providers by env var.\nDo not build yet: search, UI.\n\n### Phase 2 · Search\n\nBuild: a query function embedding the question and returning the top k chunks by cosine distance with their documents, using an HNSW index.\nDone when: a question about a known passage returns it in the top 3 and the query uses the index (EXPLAIN shows it).\n\n### Phase 3 · Hybrid\n\nBuild: combine vector results with Postgres full-text search via reciprocal rank fusion, because exact product names and error codes are where pure vectors fail.\nDone when: a query containing an exact identifier ranks the matching chunk first.\n\n### Phase 4 · A page\n\nBuild: a localhost search page and a JSON endpoint, results with highlighted passages and links to sources.\nDone when: a search returns in under 300 ms over 100k chunks.\n\n### Phase 5 · Operate\n\nBuild: migrations, a backup that is just pg_dump, a reindex command, the README.\nDone when: a restore searches correctly.\n\n### Out of scope (and why)\n\n- Billions of vectors and serverless scale. Under a few million, this is a column.\n\n### README must contain\n\n- The chunking rule and why.\n- The provider swap.",
+  "promptCurated": true
+}

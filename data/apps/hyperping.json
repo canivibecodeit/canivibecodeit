@@ -1,0 +1,60 @@
+{
+  "slug": "hyperping",
+  "name": "Hyperping",
+  "domain": "hyperping.com",
+  "category": "uptime",
+  "subcategory": "uptime monitoring + status pages",
+  "tagline": "Uptime checks from many regions and a hosted status page",
+  "priceMonthly": 29,
+  "pricing": {
+    "plan": "Essentials",
+    "basis": "monthly flat, 2 seats included",
+    "unit": "flat",
+    "native": "29 USD",
+    "source": "https://hyperping.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Free forever plan: 20 monitors at 5-minute intervals, 1 status page. Essentials $29 ($24 annual) for 50 monitors at 30 s, 3 status pages, +$7 per extra seat. Pro $89, Business $299.",
+    "freeTier": "The free plan covers 20 monitors at a 5-minute interval with one basic status page."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "A fetch on an interval, a state machine with flap suppression, a webhook and a status page is a one-sitting build. The 30-second interval and the multi-region probes are the part you cannot do from one box, and that is exactly what the price buys.",
+  "coreLoopDIY": "Fetch each URL on its interval, record latency and status, alert on transitions after N consecutive failures, render a public status page with uptime percentages.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "an always-on host on a different network from the sites it watches",
+    "a chat webhook"
+  ],
+  "whatYouLose": [
+    "multi-region probes that separate \"the site is down\" from \"my box is down\"",
+    "30-second intervals without hammering from one IP",
+    "incident management and subscriber notifications",
+    "a status page nobody has to host"
+  ],
+  "moatTags": [
+    "scale-infra"
+  ],
+  "moatNotes": "global vantage points",
+  "whyPeopleStillPay": "One machine cannot tell an outage from its own bad network. The paid product checks from several continents and hosts the status page on infrastructure that is not yours.",
+  "priorArt": [
+    {
+      "name": "Uptime Kuma",
+      "url": "https://github.com/louislam/uptime-kuma",
+      "desc": "self-hosted uptime monitor with status pages"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "uptime",
+    "instatus",
+    "checkly",
+    "pingdom"
+  ],
+  "pagePriority": 4,
+  "verifiedOneShot": false,
+  "notes": "Same shape as the UptimeRobot entry with a status page bolted on. The single-region caveat is the whole honest story.",
+  "prompt": "Build me an uptime monitor with a public status page like Hyperping. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http, node:sqlite and global fetch. No web framework, one process.\n- SQLite in WAL mode at a path from .env. Server-rendered HTML with inline SVG.\n\n### Data model (create this before Phase 1)\n\n- monitors: id, name, url, interval_seconds, timeout_ms, expected_status, keyword, enabled, status ('unknown' | 'up' | 'down'), consecutive_failures, last_checked_at, last_change_at\n- checks: id, monitor_id, checked_at, ok, status_code, latency_ms, error\n- incidents: id, monitor_id, started_at, ended_at, cause\n\nIndex checks(monitor_id, checked_at). Incidents are their own table on purpose: uptime percentage comes from checks, \"how long and why\" comes from incidents, and deriving the second from the first at read time gets slow and wrong.\n\n### Phase 1 · The check\n\nBuild: one function from a monitor to a result. An explicit AbortController timeout, redirects followed, body read capped at 64 kB for the keyword, latency recorded, and DNS, TLS, timeout and wrong-status recorded as distinct errors.\nDone when: a good URL records ok with a sane latency; a URL that never responds fails at the timeout, not later; a 404 against expected 200 fails with the code; a keyword monitor fails when the keyword is absent.\nDo not build yet: scheduling, alerts, the page.\n\n### Phase 2 · Scheduler\n\nBuild: due monitors run on their own intervals, concurrently with a cap of 10, so one hanging host cannot delay the rest. One monitor's exception never kills the loop. On boot every monitor is due.\nDone when: 30 s, 60 s and 300 s monitors each keep their cadence for ten minutes, a hanging host does not delay the others, and a thrown exception inside a check leaves the loop running.\n\n### Phase 3 · Transitions and incidents\n\nBuild: down only after N consecutive failures (default 2), up on the first success. Open an incidents row on the transition to down, close it on recovery with the cause from the first failing check.\nDone when: one blip opens nothing, two failures open one incident, recovery closes it with a correct duration, and up/down/up/down flapping produces one incident, not four.\n\n### Phase 4 · Alerting\n\nBuild: a webhook (Slack, Discord or Telegram URL in .env), once on down and once on recovery with the duration. Three retries with backoff, then record the error and continue.\nDone when: taking a service down produces exactly one message, keeping it down produces none, recovery produces exactly one with a correct duration, and a broken webhook does not stall the loop.\n\n### Phase 5 · Status page\n\nBuild: public /status · one row per monitor with a colored dot, uptime over 24 h, 7 d and 30 d, a latency sparkline as inline SVG, and the recent incident list. Refresh every 30 seconds. Print the denominator (\"over 2,880 checks\") so the percentage can be argued with. Add an RSS feed of incidents so subscribers need no account.\nDone when: percentages match a hand-written query, the page renders with zero history, and it loads in under 200 ms with 90 days of checks.\n\n### Phase 6 · Retention and deploy\n\nBuild: a nightly prune keeping 90 days of checks and all incidents, a /healthz endpoint, a systemd unit, the README.\nDone when: pruning does not distort the 30-day figure and the service survives a reboot with state intact.\n\n### Out of scope (and why)\n\n- Multi-region probes. From one box you cannot tell the site is down from your network being down · state that on the status page itself, not only in the README.\n- Subscriber email notifications, incident templates and on-call.\n\n### README must contain\n\n- The single-region caveat, and the instruction to host this on a different provider than the things it watches.\n- The RSS feed URL as the subscription mechanism.",
+  "promptCurated": true
+}

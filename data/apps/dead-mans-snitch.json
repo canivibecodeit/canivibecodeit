@@ -1,0 +1,60 @@
+{
+  "slug": "dead-mans-snitch",
+  "name": "Dead Man's Snitch",
+  "domain": "deadmanssnitch.com",
+  "category": "cron",
+  "subcategory": "cron and scheduled-task monitoring",
+  "tagline": "A URL your job curls; silence means an alert",
+  "priceMonthly": 19,
+  "pricing": {
+    "plan": "Private Eye",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "19 USD",
+    "source": "https://deadmanssnitch.com/plans",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "The Lone Snitch is free for one job. Little Birdy $5 for 3 snitches, Private Eye $19 for 100 with integrations, Surveillance Van $49 for 300 with smart alerts.",
+    "freeTier": "The free Lone Snitch plan monitors exactly one job."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "The entire product is \"expect a ping every N, shout when it stops\". That is a table, a loop and a webhook. The hosted version earns its fee by being off your box and by the alert routing, not by the code.",
+  "coreLoopDIY": "Mint a URL per job, record check-ins, alert when a check-in is overdue by more than the grace, recover on the next check-in.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "an always-on host separate from the jobs",
+    "a chat webhook"
+  ],
+  "whatYouLose": [
+    "the off-box vantage point",
+    "smart alerts and error-notice parsing",
+    "the integrations (PagerDuty, Slack app, Heroku add-on)",
+    "unlimited team members on one account"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": null,
+  "whyPeopleStillPay": "Because a monitor that lives on the same host as the jobs is silent exactly when the host is, and because the Heroku and PagerDuty plumbing is already done.",
+  "priorArt": [
+    {
+      "name": "healthchecks",
+      "url": "https://github.com/healthchecks/healthchecks",
+      "desc": "open-source equivalent with the same ping-URL model"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "healthchecks-io",
+    "cronitor",
+    "uptime"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Functionally the same build as Healthchecks.io. The prompt is deliberately smaller: this product is the minimal version of the idea.",
+  "prompt": "Build me a dead-man's-switch monitor for scheduled jobs like Dead Man's Snitch. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite, or Python 3.12 stdlib. No framework, one process, SQLite in WAL mode.\n\n### Data model (create this before Phase 1)\n\n- snitches: id (uuid), name, interval_seconds, grace_seconds, status ('waiting' | 'healthy' | 'missing' | 'paused'), last_checkin_at\n- checkins: id, snitch_id, received_at, ok (bool), note\n- alerts: id, snitch_id, kind ('missing' | 'recovered'), sent_at, error\n\nUTC epoch milliseconds everywhere.\n\n### Phase 1 · Check-ins\n\nBuild: GET, POST and HEAD on /s/:uuid record a check-in and answer 200 with the body OK. A POST body up to 4 kB is stored as the note. /s/:uuid/fail records ok = false. Unknown uuids answer 404.\nDone when: a curl records one row and returns OK, a 10 kB body stores 4 kB, and a random uuid returns 404 with no row.\nDo not build yet: state, alerts, UI.\n\n### Phase 2 · The switch\n\nBuild: a loop every 30 seconds. A snitch is healthy while now is within interval plus grace of its last check-in and becomes missing once past that. A fail check-in flips it missing immediately; the next ok check-in restores healthy. waiting (never checked in) and paused never alert. Each transition writes one alerts row.\nDone when: a 1-hour interval with 5-minute grace reads healthy after a check-in and missing at 65 minutes, a fail flips it at once, and a repeated poll in the same state writes nothing.\n\n### Phase 3 · Shouting\n\nBuild: a webhook sender (URL in .env) draining alerts rows: one message on missing with how overdue it is, one on recovered with how long it was missing. Three retries with backoff, then record the error.\nDone when: one missing produces exactly one message, staying missing produces none, and recovery produces exactly one.\n\n### Phase 4 · Admin\n\nBuild: /admin behind basic auth from .env: create, edit, pause and delete snitches; per snitch the URL with a copy button, the crontab line to paste, a status dot and the last 20 check-ins.\nDone when: a snitch can be managed end to end in the browser and the page renders with none.\n\n### Phase 5 · Deploy\n\nBuild: a /healthz endpoint, a systemd unit, a nightly prune of check-ins older than 30 days, and the README.\nDone when: state survives a restart and the README takes a reader from clone to a monitored job.\n\n### Out of scope (and why)\n\n- Smart alerts that parse error output, the PagerDuty and Heroku integrations, team accounts.\n- Being off your infrastructure. Put this on a different box than the jobs, or it is decorative.\n\n### README must contain\n\n- The crontab suffix && curl -fsS <url>, and the two-line wrapper that reports failure.\n- The same-host warning.",
+  "promptCurated": true
+}

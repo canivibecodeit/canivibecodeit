@@ -1,0 +1,60 @@
+{
+  "slug": "wetransfer",
+  "name": "WeTransfer",
+  "domain": "wetransfer.com",
+  "category": "cloud-storage",
+  "subcategory": "large file transfer",
+  "tagline": "Send big files with a link that expires",
+  "priceMonthly": 8,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "8 USD",
+    "source": "https://wetransfer.com/pricing",
+    "checkedOn": "2026-09-04",
+    "confidence": "medium",
+    "notes": "The pricing page blocks automated fetches; figures from the help center and 2026 sources. Free: 10 transfers or 3 GB per 30 days. Starter $8/month for 10 transfers or 300 GB per 30 days. Ultimate $23/month for unlimited transfers up to 1 TB each. The old Pro plan was retired in late 2024.",
+    "freeTier": "The free plan allows 10 transfers or 3 GB in any 30-day window."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "Upload to object storage, mint a link, expire it. With client-side encryption you get the privacy WeTransfer never had. Their moat is bandwidth at scale and the brand a client trusts when a link arrives; for your own sends, a $5 bucket and a page does it.",
+  "coreLoopDIY": "A page that uploads directly to an S3-compatible bucket with a presigned URL, stores a link record with expiry, and serves a download page.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "S3-compatible storage (R2 or B2)",
+    "a small host for the page and link table"
+  ],
+  "whatYouLose": [
+    "bandwidth and speed on their CDN worldwide",
+    "the brand a recipient recognises",
+    "email delivery of the link and download receipts",
+    "the mobile apps and Paste"
+  ],
+  "moatTags": [
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": null,
+  "whyPeopleStillPay": "Because a WeTransfer link is something a client opens without asking what it is, and their bandwidth is not on your bill.",
+  "priorArt": [
+    {
+      "name": "Send",
+      "url": "https://github.com/timvisee/send",
+      "desc": "encrypted file sharing, the continued Firefox Send"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "dropbox-plus",
+    "google-drive",
+    "pcloud"
+  ],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Firefox Send lives on as Send and does this with end-to-end encryption; deploying it is the fuller answer. The prompt is the small version on a bucket.",
+  "prompt": "Build me a large-file transfer service like WeTransfer for my own sends. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite. S3-compatible storage (Cloudflare R2 or Backblaze B2) with presigned URLs so files never pass through your server. Vanilla JS for the upload page.\n\n### Data model (create this before Phase 1)\n\n- transfers: id (long random slug), created_at, expires_at, downloads, max_downloads, password_hash (nullable), note\n- files: id, transfer_id, key, name, size, content_type\nObject keys are random, never the original filename.\n\n### Phase 1 · Upload\n\nBuild: the page requests a presigned PUT per file and uploads directly to the bucket with progress; multipart for files over 100 MB; the server records the transfer and files. Cap total size from .env.\nDone when: a 2 GB file uploads with a progress bar without touching your server's disk, and a transfer over the cap is refused before upload starts.\nDo not build yet: download, expiry.\n\n### Phase 2 · Download\n\nBuild: /t/:slug shows the file list and note, streams each file via a short-lived presigned GET, counts downloads, and refuses after max_downloads.\nDone when: the recipient downloads with the original filename, the count increments, and the limit is enforced.\n\n### Phase 3 · Expiry and passwords\n\nBuild: expiry (default 7 days), a nightly job deleting expired objects and rows, and an optional password checked server-side with a constant-time compare and a rate limit.\nDone when: an expired link returns a clear page, the objects are gone from the bucket, and a wrong password is rate limited.\n\n### Phase 4 · Encryption\n\nBuild: optional client-side encryption with the Web Crypto API, the key carried in the URL fragment so the server never sees it; decryption in the recipient's browser.\nDone when: the object in the bucket is unreadable and the recipient's download is the original file.\n\n### Phase 5 · Deploy\n\nBuild: bucket lifecycle rules as a backstop, /healthz, a systemd unit, the README.\nDone when: a stranger receives and downloads a file using only the link.\n\n### Out of scope (and why)\n\n- Worldwide CDN bandwidth, the brand, email delivery and receipts, the apps.\n\n### README must contain\n\n- The bucket cost model and the size cap.\n- The fragment-key design, in three sentences.",
+  "promptCurated": true
+}

@@ -495,3 +495,51 @@ restarted.
   `npm exec -- astro build` passed.
 - Commit: `fix: re-read app data per request in dev; add parser and validator
   tests` (pushed to `origin/monster`).
+
+### 2026-09-04 — Add 30 researched apps to the death list
+
+- Asked for up to 50 valuable new entries; delivered 30 after checking 238
+  candidate products against the existing 1,093 by domain and by name (the
+  domain check alone missed UptimeRobot under `betterstack.com`, Excalidraw+
+  and Harvest). Dropped free or open-source-only tools, dead products,
+  near-duplicates, saturated categories, and anything whose price could not be
+  verified (Pastebin, Hotjar behind a demo funnel, TinyPNG's paid web plan).
+- Weighted toward the thin categories: `cron` grows from 1 to 3
+  (`healthchecks-io`, `dead-mans-snitch`), `og-images` from 0 to 2
+  (`bannerbear`, `placid`), `publishing` from 1 to 4 (`hashnode`, `bear-blog`,
+  `medium`), `link-in-bio` gains `beacons`, `screenshots` gains `urlbox` and
+  `snappify`, `uptime` gains `hyperping`. The rest: `formspree`, `dub`,
+  `postman`, `insomnia`, `ngrok`, `webhook-site`, `resend`, `algolia`,
+  `pinecone`, `remove-bg`, `gitbook`, `cookiebot`, `cloudinary`, `tailscale`,
+  `doppler`, `onesignal`, `wetransfer`, `pocket`, `headway`.
+- Verdicts: 17 yes, 11 kinda, 2 no (`medium`, `resend`). `pocket` carries
+  `discontinued: "shut down on July 8, 2025"` and renders as a post-mortem.
+  Operations-shaped entries (`algolia`, `pinecone`, `cloudinary`, `tailscale`,
+  `doppler`) keep a rule-zero line: deploy Meilisearch, use pgvector, run
+  imgproxy, run headscale, use sops.
+- Pricing: every `pricing` block is dated 2026-09-04 with its source URL. 22 are
+  `confidence: high` from the vendor's live pricing page; 8 are `medium` where
+  the vendor blocks fetches or renders prices client-side (`formspree`,
+  `bear-blog`, `beacons`, `remove-bg`, `placid`, `wetransfer`, `pocket`
+  historical, and `cookiebot` noted in EUR). Research corrected assumptions:
+  Dub has no free plan and starts at $90; WeTransfer retired Pro in late 2024;
+  Tailscale is free for six users, so its honest DIY case is owning the control
+  plane, not saving money.
+- Every prompt is in the phased format (4 to 6 phases, 35 to 55 lines), passes
+  the parser, and carries no em dash. Generated from Python with the entries as
+  data so the JSON is byte-identical to `JSON.stringify(a, null, 2)` and the
+  key order matches existing files. `alternatives` and `rejectedAlternatives`
+  are empty: the curated-alternatives bar requires per-tool verification this
+  task did not do, and an empty list renders honestly.
+- Ran `scripts/fetch-icons.mjs` for the 30 icons. It also re-fetched two
+  pre-existing icons and produced junk (`jobscan.png` at 0 bytes, `eraser.png`
+  at 307); reverted those and their regenerated OG cards. `public/og/home.png`
+  changed legitimately because the headline MRR total moved.
+- Updated the app count in `CLAUDE.md` from 1,093 to 1,123.
+- Verification: `npm run validate` (1,123 app files), `npm test` (30 passing),
+  `npm exec -- astro build`, `node scripts/generate-og.mjs` (30 new cards),
+  `git diff --check`. Runtime on the built server: all 30 verdict pages and
+  their `/build` pages return 200, the Pocket banner renders, the homepage counts
+  1,123 apps, `/category/cron` lists all three, `/category/og-images` renders.
+- Commit: `feat: add 30 researched apps across thin categories` (pushed to
+  `origin/monster`).

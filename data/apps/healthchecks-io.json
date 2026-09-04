@@ -1,0 +1,60 @@
+{
+  "slug": "healthchecks-io",
+  "name": "Healthchecks.io",
+  "domain": "healthchecks.io",
+  "category": "cron",
+  "subcategory": "cron job and heartbeat monitoring",
+  "tagline": "Ping URLs for cron jobs, alerts when the ping stops",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "Business",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "native": "20 USD",
+    "source": "https://healthchecks.io/pricing/",
+    "checkedOn": "2026-09-04",
+    "confidence": "high",
+    "notes": "Hobbyist is free (20 checks, 100 log entries per check). Supporter $5 is the same limits as a donation. Business $20 ($16 annual) adds 100 checks, 1,000 log entries and SMS/phone credits; Business Plus $80.",
+    "freeTier": "The free Hobbyist plan covers 20 monitored jobs with 100 log entries each and no SMS or phone credits."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "high",
+  "verdictSummary": "The server is open source and the protocol is a GET to a URL. A single-process monitor with a period, a grace time and one webhook covers the personal case in a sitting; the hosted product sells the alerting fan-out and not being on the same box as your jobs.",
+  "coreLoopDIY": "Give each job a ping URL, record pings, flip a state machine to late and down on schedule, send one webhook per transition, show a dashboard.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "an always-on host that is not the box running the jobs",
+    "a chat webhook for alerts"
+  ],
+  "whatYouLose": [
+    "SMS, WhatsApp and phone-call alerts",
+    "a monitor that lives off your infrastructure",
+    "the integrations catalogue (PagerDuty, Opsgenie, Slack app)",
+    "team accounts and project sharing"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "the alert channels and the off-box vantage point",
+  "whyPeopleStillPay": "A monitor on your own server dies with your server. People pay for the one box that is guaranteed to be somewhere else, and for the phone call when it matters.",
+  "priorArt": [
+    {
+      "name": "healthchecks",
+      "url": "https://github.com/healthchecks/healthchecks",
+      "desc": "the hosted product is this, open source, self-hostable"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [
+    "cronitor",
+    "dead-mans-snitch",
+    "uptime"
+  ],
+  "pagePriority": 4,
+  "verifiedOneShot": false,
+  "notes": "The product is open source; self-hosting it is the honest shortcut. The prompt is for when you want a 300-line version you fully understand.",
+  "prompt": "Build me a cron-job heartbeat monitor like Healthchecks.io. Build it in phases, in the order below. Do not write the whole thing in one pass. Finish a phase, run its \"Done when\" check, fix what fails, and only then start the next phase.\n\n### Stack (fixed, do not substitute)\n\n- Node 22 with node:http and node:sqlite, or Python 3.12 with stdlib http.server and sqlite3. No web framework.\n- One process for the HTTP listener and the checker loop. SQLite in WAL mode at a path from .env.\n\n### Data model (create this before Phase 1)\n\n- checks: id (uuid), name, period_seconds, grace_seconds, status ('new' | 'up' | 'late' | 'down' | 'paused'), last_ping_at, last_started_at, last_duration_ms\n- pings: id, check_id, received_at, kind ('start' | 'success' | 'fail' | 'log'), exit_code, body\n- alerts: id, check_id, from_status, to_status, sent_at, delivered, error\n\nAll timestamps are UTC epoch milliseconds · a local-time string breaks the late maths across a DST change.\n\n### Phase 1 · Ping ingestion\n\nBuild: GET, POST and HEAD on /ping/:uuid, plus /ping/:uuid/start, /ping/:uuid/fail, /ping/:uuid/log and /ping/:uuid/:exit_code where 0 is success and 1-255 is failure. Store at most the first 100 kB of a POST body. Always answer 200 with the body OK; an unknown uuid answers 404.\nDone when: a curl to a real uuid returns OK and inserts one row, a 2 MB body stores exactly 100 kB, and a random uuid returns 404 without creating anything.\nDo not build yet: status changes, alerts, UI.\n\n### Phase 2 · Status state machine\n\nBuild: a loop every 30 seconds. up while now is within period of the last ping; late once past period; down once past period plus grace. An explicit fail ping goes down immediately; any success goes up immediately. new checks never alert; paused checks are skipped. Every transition writes one alerts row. A /start followed by a success records the duration.\nDone when: a 60 s period with 30 s grace reads up after a ping, late at 61 s and down at 91 s, with exactly one alerts row per transition and none for a repeated poll in the same state.\nDo not build yet: sending anything.\n\n### Phase 3 · Alerting\n\nBuild: a webhook sender (Slack, Discord or Telegram URL in .env) that drains undelivered alerts rows. One message per state change, never per poll, carrying the check name, the new status, how late in human units, and the last failure body. A recovery message on the return to up. Three retries with backoff, then record the error and move on.\nDone when: taking a check down produces exactly one message, leaving it down produces none, recovery produces exactly one, and a webhook URL that 500s leaves a row with an error and the loop still running.\n\n### Phase 4 · Dashboard\n\nBuild: /admin behind basic auth from .env with CRUD for checks, and per check its ping URL with a copy button, a crontab example line, a status dot, a relative last-ping time and a 24-hour ping histogram as inline SVG. No chart library.\nDone when: a check can be created, edited, paused and deleted in the browser, the page renders with zero checks, and the histogram matches a count query for the last 24 hours.\n\n### Phase 5 · Hardening and deploy\n\nBuild: generous per-IP rate limiting on /ping, a /healthz endpoint, a retention job for old pings, a systemd unit and the README.\nDone when: the service restarts with state intact, retention deletes, and the README takes a reader from clone to a monitored job.\n\n### Out of scope (and why)\n\n- SMS, WhatsApp and phone calls. You would be paying a provider anyway; one chat webhook covers the solo case.\n- Teams, projects and the integrations catalogue.\n- Running somewhere else. This is the real limit: a monitor on the same host as your jobs reports nothing when that host dies. Put it on a different box or a different provider, and say so in the README.\n\n### README must contain\n\n- The crontab one-liner ending in && curl -fsS <ping-url>, and the wrapper form that reports failures with /start and /fail.\n- The same-host warning, stated once and plainly.\n- A line noting Healthchecks.io is itself open source, and that self-hosting it is the fuller answer if you outgrow this.",
+  "promptCurated": true
+}
