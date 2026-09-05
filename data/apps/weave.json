@@ -1,0 +1,53 @@
+{
+  "slug": "weave",
+  "name": "Weave",
+  "domain": "getweave.com",
+  "category": "crm",
+  "subcategory": "patient communications and phone system for healthcare practices",
+  "tagline": "Unified phone, texting, payments, scheduling and review requests for dental, optometry and veterinary practices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getweave.com/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Weave sells per location via quote and typically bundles hardware phones, so no public sticker price.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Weave is not an app, it is a phone company wearing a CRM costume. The product is VoIP carrier service, desk handsets, two-way SMS on a real number, card-present payments, and live sync with practice management systems like Dentrix, Eaglesoft and Open Dental. All of that lands in regulated territory: HIPAA for patient data, TCPA for messaging, PCI for payments, plus e911 obligations the moment you answer a phone call. An agent can build you a reminder sender in an afternoon; it cannot build you a telco, a payment processor, or a signed integration with the software that already holds your patient schedule. If you actually run a clinic, this is a buy, not a build.",
+  "coreLoopDIY": "Reads a CSV export of tomorrow's appointments and fires reminder texts plus a post-visit review request link, logging every send to a local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Twilio account, a purchased phone number, and A2P 10DLC registration before any real sending",
+    "A CSV or read-only database export from your practice management software",
+    "Node 20 and a machine that stays awake, or a cheap always-on box for the cron",
+    "Written patient consent for SMS, and a legal read on HIPAA and TCPA before it touches real names",
+    "Your own Google review link, manually pasted"
+  ],
+  "whatYouLose": [
+    "The phone system itself: inbound calls, caller pop with patient history, call recording, voicemail transcription, hold music, e911",
+    "Live bidirectional sync with the practice management system, so your DIY version is always working from a stale export",
+    "Card-present and text-to-pay payments, which means PCI scope you do not want to own",
+    "Team inbox behavior: multiple front desk staff seeing who already replied to whom",
+    "Deliverability and compliance cover, carrier registration, opt-out handling, audit logs a HIPAA auditor will accept"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "hardware"
+  ],
+  "moatNotes": "The integrations moat is quieter than the compliance one but harder to route around: dental PMS vendors do not hand out API keys to hobby projects.",
+  "whyPeopleStillPay": "Front desk staff do not want six tools, they want one screen that rings, texts, takes a card and knows who is calling. Weave's actual value is that it sits between a legacy practice management database and the phone network, and it is the one that carries the liability when a patient's phone number gets texted the wrong reminder. A clinic owner paying for it is buying a support number to call when the phones go down at 8am, which is exactly the thing a self-hosted script cannot provide. Anything you build yourself becomes your problem at the worst possible moment.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The reminder texts are a weekend build; the phone system, the payment rails and the PMS sync are not. The moat is regulated telco plumbing wired into practice management software nobody else gets keys to.",
+  "prompt": "Build a local appointment reminder and review request tool. Single purpose, no login, runs on one machine for one small practice.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/reminders.db\n- Twilio Node SDK for SMS\n- node-cron inside a separate worker script, not in the Next process\n\nWhat it does:\n1. Import page accepts a CSV upload with columns: patient_name, phone_e164, appointment_at (ISO), provider, visit_type. Upsert into an appointments table keyed on a hash of phone plus appointment_at.\n2. Normalize and validate phone numbers, reject anything not E.164. Show rejected rows in a table so they can be fixed and re-uploaded.\n3. Two message templates stored in the DB and editable in the UI: a reminder sent 24 hours before the appointment, and a review request sent 3 hours after. Templates support {{patient_name}}, {{provider}}, {{appointment_at_local}} and {{review_link}}.\n4. Worker runs every 15 minutes, finds due sends, dispatches via Twilio, writes a row to a message_log table with status, Twilio SID and error text. Never send the same template twice for the same appointment.\n5. Handle inbound STOP: a webhook route that records opt-outs in a suppression table and hard-blocks any future send to that number. Show the suppression list in the UI.\n6. Dashboard: today's sends, failures, opt-out count, and a searchable message log.\n\nExplicitly out of scope, do not build: inbound voice calls, payments, a team inbox, patient records, PMS integrations, multi-tenant accounts, telemetry.\n\nRules:\n- TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER and REVIEW_LINK in .env, with a .env.example. No secrets in code.\n- DRY_RUN=true by default: log messages to the console and the DB instead of sending.\n- All timestamps stored UTC, displayed in a PRACTICE_TZ from .env.\n- Print a README with a blunt warning that this handles patient data, is not HIPAA compliant, and requires A2P 10DLC registration and written consent before sending anything to a real person.",
+  "promptCurated": false
+}
