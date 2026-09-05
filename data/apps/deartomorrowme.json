@@ -1,0 +1,50 @@
+{
+  "slug": "deartomorrowme",
+  "name": "DearTomorrowMe",
+  "domain": "deartomorrowme.com",
+  "category": "productivity-utilities",
+  "subcategory": "letters to your future self",
+  "tagline": "Write a letter now, have it delivered to your own inbox on a date years in the future.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://deartomorrowme.com/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Mechanically this is a form, a database row, a date field, and a daily job that sends email. An agent will hand you a working version before dinner, and it will do exactly what the paid product does on day one. The problem is that the product is not the code, it is the promise that something is still running in 2038 when the letter is due. Your VPS, your SMTP key, your domain, and your interest in maintaining a hobby cron job all have shorter half-lives than the average five year letter. Build it if you like owning your own words, but treat any delivery date past next year as a maybe.",
+  "coreLoopDIY": "A single-user local web app where you compose a letter, pick a future delivery date, and a daily job emails it to you and marks it sent.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An always-on machine or small VPS, not your laptop",
+    "An SMTP provider or account app password for outbound mail",
+    "A calendar reminder to yourself to keep the thing alive"
+  ],
+  "whatYouLose": [
+    "Someone else's problem to keep the server running for a decade",
+    "Deliverability engineering: SPF, DKIM, reputation, and not landing in spam in 2034",
+    "Any credible story for what happens to your letters if you die or lose the box",
+    "Polish: mobile composing, drafts, attachments, reminder nudges, nice delivery emails",
+    "The mild psychological weight of an outside party holding you to the date"
+  ],
+  "moatTags": [
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": "The only asset that matters here is the belief that the sender still exists on the delivery date, and nobody believes that about their own side project.",
+  "whyPeopleStillPay": "Because the entire value is deferred, and deferred value needs a custodian. Paying a few dollars a year buys the assumption that somebody is watching the mail queue, rotating the sending keys, and renewing the domain long after you have forgotten you wrote anything. A self-hosted version gives you the same feature set and a much worse guarantee, which is the opposite of what this category is for.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is an afternoon; the guarantee is a decade. Reliability over time is the whole product.",
+  "prompt": "Build a single-user, self-hosted \"letter to my future self\" app in an empty folder.\n\nStack, no substitutions: Node 22, TypeScript, Fastify for the HTTP server, server-rendered HTML with plain templates and a little vanilla JS, SQLite via better-sqlite3, nodemailer for sending, node-cron for scheduling. No React, no Next, no ORM, no cloud services beyond SMTP.\n\nIn scope:\n- Compose page: subject, body (plain text or simple markdown), delivery date (date only), optional \"send me a heads up 7 days before\" flag.\n- Letters stored in SQLite with status: scheduled, sent, failed. Store created_at and deliver_on.\n- A daily cron at 09:00 local time that selects letters where deliver_on is today or earlier and status is scheduled, sends each by email, then marks sent with a timestamp. On send error, mark failed with the error text and retry once per day for 7 days.\n- Inbox page listing scheduled letters (subject and date only, body hidden behind a \"peek\" toggle so future-you keeps the surprise) and a separate log of sent and failed ones.\n- Edit and delete allowed only while status is scheduled.\n- A CLI script `npm run send-now -- --id=N` for manual delivery, and `npm run dry-run` that prints what today's cron would send without sending.\n- Export: `npm run export` writes all letters to a single JSON file and a folder of .md files, so the data survives the app.\n- Basic auth via a single password hash in .env, since this will sit on a public VPS.\n\nOut of scope: multi-user accounts, signup flows, payments, mobile app, attachments, rich text editor, analytics, telemetry of any kind.\n\nConfig: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, MAIL_TO, APP_PASSWORD_HASH, TZ, all read from .env, with a .env.example committed and .env gitignored.\n\nAlso produce: a Dockerfile and docker-compose.yml mounting ./data for the SQLite file, and a README with a short honest section titled \"Why this will probably not work in 2040\" listing the failure modes (expired domain, rotated SMTP credentials, dead VPS, corrupted volume) and telling the operator to back up ./data offsite and test delivery once a year with dry-run.",
+  "promptCurated": false
+}
