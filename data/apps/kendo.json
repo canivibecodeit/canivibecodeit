@@ -1,0 +1,52 @@
+{
+  "slug": "kendo",
+  "name": "Kendo",
+  "domain": "kendo.ai",
+  "category": "dev-tools",
+  "subcategory": "design to code",
+  "tagline": "AI assistant that turns design files and prompts into front end component code.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://kendo.ai/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core trick here is not magic: pull a design file's node tree from an API, hand it to a frontier model with a strict output contract, get React and Tailwind back. An agent can wire that up in a weekend and it will work on simple screens. Where it falls apart is fidelity on real layouts, mapping to your existing component library, and the tight iterate-and-diff loop that makes a tool like this worth opening twice. You also inherit a hard dependency on someone else's model API, which means this is a wrapper you own rather than a thing you built. Fine as a personal utility, not a replacement for a polished product if you convert designs all day.",
+  "coreLoopDIY": "A local CLI that fetches a design file's node tree, sends it to an LLM with a strict output schema, and writes React plus Tailwind components into your repo.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Design tool API token (Figma personal access token or similar)",
+    "An LLM API key, and a per-token budget you are comfortable with",
+    "An existing React plus Tailwind project to drop output into",
+    "Patience for prompt tuning: the first ten outputs will be ugly"
+  ],
+  "whatYouLose": [
+    "Fidelity on real designs: nested auto layout, responsive intent, and absolute positioning all degrade fast",
+    "Automatic mapping onto your own design system components instead of raw divs",
+    "An interactive review loop: select a frame, preview, tweak, accept, versus rerunning a CLI",
+    "Any handling of images, icons, and asset export beyond crude URL grabs",
+    "Someone else paying for the prompt engineering when the underlying models change"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-models"
+  ],
+  "moatNotes": "The defensible part is the extraction and prompting layer plus a UI that makes correction cheap, not the code generation itself.",
+  "whyPeopleStillPay": "Because design to code is a fidelity problem, not a feasibility problem. Anyone can get 60 percent output in a weekend; the last 40 percent is a long grind of layout heuristics, design system mapping, and a review interface that makes fixing the misses faster than writing the component by hand. If you convert designs occasionally, the DIY script is genuinely fine. If it is your job, you are paying to skip a grind you would otherwise do yourself in the evenings.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Positioning in this corner of the market shifts every few months, so check what the product actually claims today before you decide the DIY version covers it.",
+  "prompt": "Build a local CLI tool called design2code in this empty folder. No web app, no accounts, no telemetry.\n\nStack, pick these and do not offer alternatives:\n- TypeScript on Node 20, run via tsx\n- commander for the CLI\n- zod for validating model output\n- prettier to format generated files\n- No database, no server, no UI\n\nBehavior:\n1. `design2code fetch <fileKey> <nodeId>` calls the Figma REST API with FIGMA_TOKEN from .env and writes the raw node JSON to ./cache/<nodeId>.json.\n2. A prune step strips the node tree down to what matters: type, name, layout mode, sizing, padding, gap, fills, strokes, corner radius, text content, font size, weight, and child order. Drop everything else. Log how many bytes you saved.\n3. `design2code gen <nodeId>` sends the pruned tree to the Anthropic API using ANTHROPIC_API_KEY from .env, with a system prompt that demands: one React function component, TypeScript, Tailwind utility classes only, no inline styles, no external UI libraries, flex and grid over absolute positioning, and text content copied verbatim.\n4. Validate the response against a zod schema of { componentName, filename, code }. On failure, retry once with the validation error appended, then give up loudly.\n5. Write the component to ./out/<ComponentName>.tsx, run prettier on it, and print the path.\n6. `design2code gen <nodeId> --note \"make the header sticky\"` appends a freeform correction to the prompt and regenerates, keeping the previous file as <ComponentName>.prev.tsx so I can diff.\n\nExplicitly out of scope: image and icon export, responsive breakpoint inference, mapping onto an existing component library, a plugin or browser extension, any hosted service.\n\nInclude a .env.example, a README with the exact commands, and one committed sample pruned tree plus its generated output so the pipeline can be tested without API keys.",
+  "promptCurated": false
+}
