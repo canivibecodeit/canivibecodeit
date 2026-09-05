@@ -1,0 +1,52 @@
+{
+  "slug": "airdna",
+  "name": "AirDNA",
+  "domain": "airdna.com",
+  "category": "analytics",
+  "subcategory": "short-term rental market data",
+  "tagline": "Short-term rental market analytics: occupancy, ADR and revenue estimates for Airbnb and Vrbo listings by market.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://airdna.com/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard is not the product, the decade of scraped listing calendars is. AirDNA's numbers come from tracking millions of Airbnb and Vrbo listings over years, then modeling booked nights versus blocked nights, which is the hard part and the part nobody can hand you. An agent can absolutely build you a clean dashboard in an afternoon; it will have zero rows in it, and starting collection today means your first usable trend line arrives next spring. Add that scraping Airbnb at scale is a permanent cat-and-mouse game against bot detection, and that lenders and appraisers will look at a spreadsheet you made yourself with the enthusiasm they deserve. The consolation build is real though: a personal tracker for one micro-market you actually care about.",
+  "coreLoopDIY": "Tracks a hand-picked list of comparable listings every night, recording calendar availability and nightly prices, then charts your own occupancy and ADR trends as the history accumulates.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or cheap VPS that runs a daily job for months without you noticing it died",
+    "A specific list of comparable listing IDs, chosen by hand, in one small market",
+    "Tolerance for scrapers breaking whenever the source changes markup or tightens bot detection",
+    "Patience: the data only exists going forward, there is no backfill"
+  ],
+  "whatYouLose": [
+    "Years of historical occupancy and rate data you cannot recreate retroactively",
+    "National and global market coverage instead of the twenty listings you personally picked",
+    "Modeled revenue estimates that separate booked nights from owner-blocked nights, which is the actual hard math",
+    "Credibility with lenders, city councils and investors who already know the AirDNA name",
+    "Market scores, seasonality curves, regulatory notes and an API, plus someone else maintaining the pipeline"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The modeling layer matters as much as the scraping: a blocked calendar date and a booked calendar date look identical from outside, and guessing well is the whole business.",
+  "whyPeopleStillPay": "Because the question is usually \"should I spend four hundred thousand dollars on this house\" and the answer needs history, comps and a number someone else will accept. A homemade tracker can tell you what your street is doing next month, which is genuinely useful for pricing your own place. It cannot tell you what that street did in 2019, or in the last three summers, or how it compares to the rest of the county, and that is exactly what the money is for. There is also the boring part: someone maintaining thousands of scrapers against active countermeasures, forever, so you don't have to.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the ten years of nightly calendar snapshots behind it are not. The moat is a decade of scraped listing history plus the modeling that turns blocked dates into booked dates, and the fact that everyone in the industry already quotes their numbers.",
+  "prompt": "Build a local short-term rental comp tracker called compwatch. Single Python 3.11 project, no cloud, no accounts, no telemetry.\n\nStack, no substitutions: Python 3.11, SQLite via sqlite3, httpx for fetching, FastAPI plus Jinja2 templates for the UI, Plotly CDN for charts, APScheduler for the nightly job. uv or plain venv for deps. Everything in one repo, runs with `python -m compwatch`.\n\nWhat it does:\n1. I maintain a `listings.csv` with columns: listing_id, label, platform, bedrooms, my_notes. These are comps I chose by hand in one market. The app never discovers listings on its own.\n2. Every night at a configurable hour, for each listing, fetch the next 120 nights of calendar and nightly price. Write one row per listing per night per snapshot_date into a `snapshots` table. Never overwrite: history is append-only and is the entire point.\n3. Fetching lives behind a single `providers/` interface with two implementations: `manual` (reads a folder of JSON files I drop in myself) and `http` (a stub with clear TODOs, a real User-Agent, per-listing delay, retries with backoff, and a hard fail-fast if the response shape changes). Default to `manual`. Do not pretend the http provider will keep working.\n4. Derive metrics from snapshot history: rolling occupancy proxy (share of near-term nights that flipped from available to unavailable), median ADR by month, weekday versus weekend spread, and a per-listing change log.\n5. Web UI at localhost:8787: a market overview page with occupancy and ADR charts, a per-listing detail page, and a CSV export of everything.\n\nBe explicit in the README that unavailable does not mean booked, so occupancy is a proxy and not a revenue estimate. State that no historical data exists before first run.\n\nOut of scope: authentication, multi-user, hosted deploy, revenue projections, market-wide discovery, anything resembling an investment recommendation.\n\nConfig in .env: DB_PATH, PROVIDER, SCRAPE_HOUR, REQUEST_DELAY_SECONDS. Ship .env.example, a seeded listings.csv with three fake rows, sample manual JSON fixtures, and pytest tests for the metrics math using those fixtures.",
+  "promptCurated": false
+}
