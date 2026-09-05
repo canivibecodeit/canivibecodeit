@@ -1,0 +1,51 @@
+{
+  "slug": "cashzilla",
+  "name": "Cashzilla",
+  "domain": "cashzilla.app",
+  "category": "personal-finance",
+  "subcategory": "net worth and multi-currency tracking",
+  "tagline": "Personal finance tracker that pulls transactions, accounts and assets into one multi-currency net worth picture with analytics on top.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://cashzilla.app/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The analytics layer here is not the hard part: bucketing transactions, netting assets against liabilities and normalizing everything to a base currency is a few hundred lines and some charts. What breaks a one-shot is everything upstream of the math, namely getting your actual bank and brokerage data in without typing it. Bank aggregation means Plaid or GoCardless or Salt Edge, which means an account, a review process and per-connection fees, and FX plus asset prices mean a rates feed you have to keep alive. Build it against CSV exports and manual asset entries and you get something genuinely useful in a weekend. Build it expecting live sync on your phone and you are now maintaining a data pipeline instead of looking at your money.",
+  "coreLoopDIY": "Import CSVs from your banks, log assets and liabilities manually, convert everything to one base currency with daily FX rates, then show net worth over time, spend by category and account balances.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a place to run it, local or a small VPS",
+    "CSV or OFX exports from your banks, or a paid aggregator key if you want live sync",
+    "An FX rates API key for historical currency conversion",
+    "Manual price entry or a quotes API for holdings and property values"
+  ],
+  "whatYouLose": [
+    "Automatic bank and brokerage sync, so you are exporting CSVs by hand every month",
+    "A real mobile app for logging a cash spend the second it happens",
+    "Transaction categorization rules that someone else has already tuned across thousands of merchants",
+    "Backed-up, cross-device state; your ledger lives wherever you put the SQLite file",
+    "Historical FX and asset price series maintained for you, including the awkward gaps and splits"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is the boring plumbing: aggregator contracts, merchant name normalization and a rates history that does not have holes in it.",
+  "whyPeopleStillPay": "Because the value of a finance tracker is proportional to how little effort it takes to keep current, and manual CSV imports decay fast. People pay so the transactions show up on their own, categorized well enough to be trusted, on a phone, in the right currency, without them thinking about it. A self-built version is honest and private and yours, and it will be three months stale by spring unless you actually enjoy the monthly export ritual. Some people do, and for them this is a fine trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The analytics are a weekend; keeping the data fresh is the subscription you are actually paying for.",
+  "prompt": "Build a local-first personal finance and net worth tracker. Single user, no auth, no cloud, no telemetry.\n\nStack, non-negotiable: Next.js 15 App Router with TypeScript, SQLite via better-sqlite3 with Drizzle ORM, Tailwind, Recharts. Everything runs with `npm run dev` on localhost. The database is a single file at ./data/finance.db, gitignored.\n\nData model:\n- accounts: id, name, type (checking, savings, credit, brokerage, cash, loan), currency, institution\n- transactions: id, accountId, date, description, rawDescription, amount (integer minor units, signed), currency, categoryId, transferGroupId nullable\n- categories: id, name, parentId nullable, kind (expense, income, transfer)\n- assets: id, name, kind (equity, crypto, property, vehicle, other), quantity, unitValue, currency, asOf\n- liabilities: id, name, balance, currency, asOf\n- fxRates: date, base, quote, rate (unique on date+base+quote)\n- rules: id, matchType (contains, regex), pattern, categoryId, priority\n\nFeatures in scope:\n1. CSV import: upload a file, map columns to date/description/amount/currency in the UI, remember the mapping per account, dedupe on (accountId, date, amount, description) hash, show a preview before commit.\n2. Categorization: run rules in priority order on import, uncategorized transactions land in a review queue where assigning a category offers to create a rule from the description.\n3. Transfer detection: opposite-sign amounts within 3 days and 1 percent tolerance across two accounts get grouped and excluded from spend and income totals.\n4. Multi-currency: a BASE_CURRENCY env var, daily rates fetched from an FX API using FX_API_KEY in .env, cached in fxRates, converted at transaction date not today. If a rate is missing, fall back to the nearest earlier date and mark the figure as approximate in the UI.\n5. Dashboard: net worth over time (accounts + assets - liabilities, all in base currency), monthly income vs expense bars, spend by category donut with drilldown, per-account balance list, and a top-merchants table.\n6. Manual entry forms for assets, liabilities and one-off cash transactions.\n\nOut of scope, do not build: bank aggregation or Plaid, user accounts, budgets, invoicing, tax reporting, mobile apps, any hosted deployment.\n\nRequirements: all money as integer minor units, never floats. Seed script with two accounts in different currencies and 200 fake transactions so the dashboard is populated on first run. Vitest tests for FX conversion, transfer detection and CSV dedupe. README with setup, .env.example listing BASE_CURRENCY and FX_API_KEY, and one paragraph on how to export CSVs from a bank.",
+  "promptCurated": false
+}
