@@ -1,0 +1,49 @@
+{
+  "slug": "soloterm",
+  "name": "Soloterm",
+  "domain": "soloterm.com",
+  "category": "dev-tools",
+  "subcategory": "terminal process manager",
+  "tagline": "Runs all of your project's long-running dev processes in one terminal window with switchable tabs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://soloterm.com/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is a process multiplexer with a nice face on it: spawn your dev server, queue worker, log tailer and asset watcher, then tab between their output instead of juggling eight terminal panes. Nothing about that requires a vendor, an account or anyone else's servers, and a coding agent that knows PTYs can put a working TUI in front of you in an afternoon. The real work is not the concept, it is the fiddly part: ANSI parsing, scrollback that does not corrupt on resize, mouse wheel, sending stdin to the focused process. You will hit those edges, and the paid version has already hit them for you. Also worth admitting that tmux, overmind and foreman have solved 80 percent of this for years, so the honest comparison is not build vs buy, it is build vs a config file you already know how to write.",
+  "coreLoopDIY": "Reads a config file of named commands, runs each in its own pseudo-terminal, and gives you a tabbed TUI to switch between their live output, scroll back, and restart any one of them.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Go toolchain and a 256-color terminal",
+    "a project with several long-running dev commands worth babysitting"
+  ],
+  "whatYouLose": [
+    "Someone else's years of ANSI and resize edge case fixes, which is most of the actual product",
+    "Framework-aware defaults and niceties tuned for a specific ecosystem",
+    "Polished keybindings, search and scroll behavior that feel right on the first try",
+    "Cross-platform testing you will not do on Windows or an exotic terminal",
+    "A maintainer to blame when output garbles inside a progress bar"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is entirely craft: nobody is locked in, they just like how it feels and would rather not debug PTY behavior on a Tuesday.",
+  "whyPeopleStillPay": "Because the thing you are buying is not the feature list, it is the absence of papercuts. Everyone who has written a terminal UI knows the first version works beautifully until you resize the window, or a subprocess emits a carriage return heavy progress bar, or you scroll up and the buffer eats itself. Paying once to skip that, for a tool you stare at all day, is a rational trade even for people fully capable of building it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare paid tools where the honest pitch is taste, not lock-in.",
+  "prompt": "Build a terminal UI process multiplexer for local development. Empty folder, start from scratch.\n\nStack, no substitutions:\n- Go, latest stable\n- charmbracelet/bubbletea for the TUI, bubbles/viewport for scrollback, lipgloss for styling\n- creack/pty to run each command in a pseudo-terminal so tools keep their colors\n- gopkg.in/yaml.v3 for config\n\nBehavior:\n- Read ./solo.yaml from the working directory. Shape: a top level \"commands\" map of name to shell command string, plus an optional per command \"autostart\" bool defaulting to true and optional \"cwd\".\n- On launch, start every autostart command in its own PTY sized to the current terminal.\n- Render a tab bar across the top listing every command name, with a colored dot for running, stopped, or exited nonzero.\n- The body shows the focused command's output in a scrollable viewport with a ring buffer of the last 5000 lines per process.\n- Keys: left and right arrows or Tab to change tabs, number keys 1 to 9 to jump directly, r to restart the focused process, s to stop it, / to filter the current buffer by substring, g and G for top and bottom, q to quit. Quitting must kill every child process and its process group, no orphans.\n- Follow mode: stay pinned to the bottom unless the user scrolls up, then show a \"paused\" indicator until they hit G.\n- Handle SIGWINCH: resize the PTYs and reflow the viewport without corrupting the buffer.\n- Strip cursor movement and clear-screen escape sequences from stored output but keep SGR color codes so output stays readable.\n\nOut of scope, do not build: sending stdin to child processes, web UI, config editor, telemetry, auto update, plugin system, accounts.\n\nDeliverables: main.go plus small packages, a working solo.yaml example with three commands, a Makefile with build and run targets, and a README that lists every keybinding. No secrets are needed, so no .env. Verify by hand that quitting leaves zero orphaned processes.",
+  "promptCurated": false
+}
