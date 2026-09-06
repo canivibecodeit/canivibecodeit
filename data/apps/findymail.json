@@ -1,0 +1,52 @@
+{
+  "slug": "findymail",
+  "name": "Findymail",
+  "domain": "findymail.com",
+  "category": "sales-outreach",
+  "subcategory": "email finding and verification",
+  "tagline": "Finds and verifies B2B work email addresses from names, domains, or LinkedIn profiles, with a bounce guarantee.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly credits",
+    "unit": "usage",
+    "source": "https://findymail.com/",
+    "checkedOn": "2026-09-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface here is a text box, and text boxes are trivial. What sits behind it is not: a large corpus of observed work emails, a stack of fallback data providers, and a verification pipeline that survives Google and Microsoft catch-all domains without burning its own IP reputation. An agent can absolutely write you a permutation guesser that tries firstname.lastname@company.com and probes MX and SMTP, and it will work for maybe the easy third of your list while quietly returning garbage on the rest. The bounce guarantee is the actual product, and you cannot guarantee anything with a script running from your laptop on a residential IP with port 25 blocked. Closest honest DIY is a local enrichment harness you can point at a real verification API when the guessing fails.",
+  "coreLoopDIY": "Takes a CSV of names and company domains, generates ranked email permutations, screens them with MX and cautious SMTP probes, and writes back a scored CSV with a clear unknown bucket.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a local terminal",
+    "Outbound port 25, which most home ISPs and cloud providers block",
+    "A tolerance for catch-all domains returning meaningless accept-all responses",
+    "Optionally an API key for a real verification service for the rows your guesser cannot resolve"
+  ],
+  "whatYouLose": [
+    "The email corpus itself: millions of previously observed and confirmed addresses you have no access to",
+    "Waterfall fallbacks across multiple data providers when the first source misses",
+    "Verification that actually holds up on Microsoft 365 and catch-all domains",
+    "The bounce guarantee and credit refunds when a verified address fails",
+    "LinkedIn and Sales Navigator export flows, plus CRM and sequencer integrations"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Email finders compete almost entirely on hit rate and bounce rate, both of which are functions of accumulated data rather than clever code.",
+  "whyPeopleStillPay": "Because a 3 percent bounce rate is the difference between a warm inbox and a burned sending domain, and nobody wants to learn that lesson at scale. Buying verified emails by the credit is cheap compared to rehabilitating a domain reputation or paying for a new one. The permutation trick people write themselves works well enough on small companies with obvious naming conventions and falls apart exactly where the money is, on large enterprises with non-obvious formats and catch-all mail servers. You are not paying for a lookup, you are paying for someone else to have already checked.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The guesser is an afternoon; the hit rate is not. The moat is a corpus of already-confirmed work emails plus a verification pipeline with enough IP reputation to keep telling the truth.",
+  "prompt": "Build a local CLI tool called \"mailguess\" that enriches a CSV of contacts with candidate work email addresses.\n\nStack: Node 20, TypeScript, no framework, no web UI, no database. Dependencies: papaparse for CSV, p-limit for concurrency, and Node's built-in dns and net modules. Nothing else.\n\nInput: a CSV path with columns first_name, last_name, domain. Ignore extra columns but carry them through to the output.\n\nCore behavior:\n1. For each row, generate a ranked list of candidate addresses from common patterns: first.last, flast, firstl, first, first_last, lastfirst, f.last, and initials. Rank by observed real-world frequency, first.last and flast highest.\n2. Resolve MX records for the domain. If there are none, mark the row status \"no_mx\" and stop.\n3. Detect catch-all: probe a random 16-character local part. If the server accepts it, mark the domain catch_all true and DO NOT claim any candidate is verified. Return the top-ranked pattern with status \"guess_catchall\" and confidence \"low\".\n4. If not catch-all, run a cautious SMTP RCPT TO probe per candidate: connect on port 25, EHLO with a hostname from .env, MAIL FROM with an address from .env, one RCPT TO, then QUIT. Never send data. Stop at the first accepted candidate.\n5. Concurrency capped at 3, one connection per domain at a time, 10 second timeouts, and a per-domain backoff after any 4xx or 5xx rate-limit style response.\n\nOutput: write results.csv with the original columns plus email, pattern, status, confidence, and catch_all. Statuses must be one of: verified, guess_catchall, guess_unverified, no_mx, blocked, error. Print a summary table of counts at the end.\n\nSecrets in .env: PROBE_HELO_HOST, PROBE_MAIL_FROM. Provide .env.example.\n\nExplicitly out of scope: any email database, LinkedIn scraping, sending email, a web server, telemetry, or accounts.\n\nIn the README, state plainly that most ISPs and cloud hosts block outbound port 25, that catch-all domains cannot be verified this way, and that this tool guesses rather than guarantees. Add a clearly marked stub function verifyWithProvider(email) that a user can wire to a paid verification API for rows that come back unverified.",
+  "promptCurated": false
+}
