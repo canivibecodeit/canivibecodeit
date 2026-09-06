@@ -1,0 +1,51 @@
+{
+  "slug": "deck-ai",
+  "name": "Deck AI",
+  "domain": "deckai.app",
+  "category": "presentations",
+  "subcategory": "AI slide generation",
+  "tagline": "Type a prompt or paste a doc, get a formatted slide deck back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://deckai.app/",
+    "checkedOn": "2026-09-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core trick here is not hard: an LLM writes an outline, a renderer turns it into slides, and you export something. A coding agent can get you from prompt to a browsing-in-the-browser deck plus a PPTX download in a weekend, and for personal use that covers most of the job. What it will not do in one sitting is make the output look designed: template systems, sane text overflow handling, chart layout, and image selection that does not look like clip art are all long tails of fiddly work. Export fidelity is the other trap, because PPTX and Google Slides both have opinions about how your carefully positioned boxes should behave. Build it if you mostly want first drafts you will edit anyway; pay if you need the deck to be presentable straight out of the machine.",
+  "coreLoopDIY": "Takes a prompt or a pasted document, has an LLM produce a structured slide outline, renders it into a themed deck you can view in the browser and export to PPTX.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (Anthropic or OpenAI)",
+    "Node 20+ and a browser",
+    "Optional image source: a stock image API key or your own asset folder"
+  ],
+  "whatYouLose": [
+    "Template design quality, the difference between slides and slides someone will not wince at",
+    "Reliable text fitting and overflow handling across long AI-generated bullets",
+    "High-fidelity PPTX and Google Slides export, including editable charts and shapes",
+    "Live collaborative editing, comments, and sharing links",
+    "Polished in-app editing, so you fix things in code or in PowerPoint instead"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-models"
+  ],
+  "moatNotes": "The defensible part of any AI deck tool is the template and layout engine, not the prompt. Everyone has the prompt.",
+  "whyPeopleStillPay": "Because the value is not the generation, it is not having to care about layout. A personal build happily produces twelve slides of text that overflow their boxes, and then you spend an hour in PowerPoint fixing it, which is the exact hour the product was supposed to save. Paid tools invest in constrained layout systems, decent typography defaults, and export that survives the round trip into someone else's PowerPoint. If your decks are internal and disposable, none of that matters. If you send them to clients, it does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Prompt to deck is a weekend; prompt to deck that does not need cleanup is the actual product.",
+  "prompt": "Build a local AI presentation generator. Empty folder, no accounts, no telemetry, no hosted backend.\n\nStack, non negotiable:\n- Next.js 15 App Router, TypeScript, Tailwind CSS.\n- Anthropic SDK for generation, key from ANTHROPIC_API_KEY in .env.local.\n- pptxgenjs for PPTX export.\n- SQLite via better-sqlite3 for saved decks. No ORM.\n\nCore loop:\n1. One page with a textarea: user pastes a prompt or a raw document, picks a slide count (5 to 20) and a theme name.\n2. Server action calls the LLM with a strict JSON schema: deck title, then slides with type of title, bullets, quote, two-column, or stats, plus fields for heading, body items, and optional speaker notes. Validate with zod and retry once on parse failure.\n3. Store the deck JSON in SQLite with an id.\n4. Render the deck at /deck/[id] as real HTML slides, one 16:9 section each, keyboard arrows to navigate, S toggles speaker notes, F fullscreens.\n5. Editing: each slide's JSON is editable in a side panel textarea, save writes back to SQLite and rerenders. No WYSIWYG dragging.\n6. Export button produces a .pptx via pptxgenjs, mapping each slide type to a fixed layout.\n\nLayout rules, do these properly, they are the whole point:\n- Three themes as plain TypeScript objects: fonts, two accent colors, background. No theme editor UI.\n- Fixed safe areas per layout. Auto shrink heading and body font size in defined steps until content fits, then truncate with a visible warning badge on the slide.\n- Cap bullets at 6 per slide and roughly 90 characters each in the prompt, and enforce it in code too.\n\nOut of scope, do not build: auth, multi user, sharing links, comments, image generation, stock photo search, charts, Google Slides export, PDF export, animations, mobile editing.\n\nDeliver a README with setup, an .env.local.example, and a seed script that generates one demo deck so the renderer can be checked without an API call.",
+  "promptCurated": false
+}
