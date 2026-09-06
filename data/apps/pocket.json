@@ -1,0 +1,51 @@
+{
+  "slug": "pocket",
+  "name": "Pocket",
+  "domain": "getpocket.com",
+  "category": "read-it-later",
+  "subcategory": "save-for-later with offline article archive",
+  "tagline": "Save articles from anywhere, strip the page down to text, read them later on any device.",
+  "priceMonthly": 4.99,
+  "pricing": {
+    "plan": "Pocket Premium",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://getpocket.com/home",
+    "checkedOn": "2026-09-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Historical figure: Mozilla shut Pocket down in July 2025, so no current plan exists."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Read-it-later is one of the most cloneable categories there is: a URL input, an article extractor, a SQLite row, and a clean reader view. Pocket's paid tier sold permanent page copies and full text search over your archive, both of which are a local file and an index away. The genuinely hard parts were never the software: native mobile apps, background sync, and being bundled into Firefox's new tab page. It is also worth noting that Mozilla killed Pocket in July 2025, so the question is less can you replace it and more where does your archive go now. A one-sitting build gets you a working personal archive; the polish gap is real but it lives entirely in mobile.",
+  "coreLoopDIY": "A local web app that takes a URL, extracts readable article text and images, stores it in SQLite with tags and full text search, and serves a clean reader view plus a Pocket CSV importer.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and a place to run it (laptop, Raspberry Pi, or a small VPS if you want it from your phone)",
+    "Nothing paid: extraction is done locally with trafilatura, no API keys",
+    "A Pocket CSV export if you have one to import",
+    "Tailscale or a reverse proxy with basic auth if you want to reach it off your home network"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps with real offline sync, plus the text to speech that made Pocket a commute tool",
+    "One-tap saving from inside every app on your phone; a PWA share target is workable but clumsier",
+    "The Discover feed and human-curated recommendations, which were the only part of Pocket that was not just your own stuff",
+    "Reliable extraction on paywalled, JS-heavy, or cookie-walled pages; you will hit articles that come back as three sentences and a cookie notice",
+    "Someone else worrying about backups, which now means you"
+  ],
+  "moatTags": [
+    "integrations",
+    "brand-trust",
+    "switching-costs"
+  ],
+  "moatNotes": "The real moat was distribution: a Pocket button in Firefox and in Kobo readers. It was rented, not owned, and when Mozilla stopped renting it to itself the product died.",
+  "whyPeopleStillPay": "They no longer can, which is itself the useful lesson. While it ran, Premium buyers were paying for two things: permanent copies of pages that rot or go behind paywalls, and search across years of saved reading. Both are real value, and both were more about somebody else keeping the archive alive than about clever code. That trust turned out to be misplaced, which is a decent argument for the archive living on a disk you control.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The unusual case where the DIY build is not a replacement so much as an evacuation route.",
+  "prompt": "Build a single-user, self-hosted read-it-later app. Empty folder, no scaffolding tools.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Uvicorn\n- SQLite via sqlite3 stdlib, with an FTS5 virtual table for full text search\n- trafilatura for article extraction, httpx for fetching\n- Jinja2 templates and one hand-written CSS file. No React, no build step, no npm.\n\nFeatures, in scope:\n1. POST /save takes a URL, fetches it with a normal browser user agent, extracts title, author, publish date, and article HTML with trafilatura, and stores it in SQLite. Also download images referenced in the article to ./data/media and rewrite their src to local paths so the copy survives link rot.\n2. Inbox list at / showing title, domain, estimated read time, and saved date. Filters: unread, archived, favorites, and by tag.\n3. Reader view at /read/{id}: serif body text, max 68ch line width, dark and light toggle stored in localStorage, keyboard shortcuts (j/k next and previous, a archive, f favorite, e edit tags).\n4. Full text search at /search backed by FTS5 over title and extracted text, with snippet highlighting.\n5. Tags: freeform, comma-entered, stored in a join table.\n6. Importer: a CLI command `python -m app.import_pocket path.csv` that reads the Pocket export CSV (url, title, time_added, tags, status) and enqueues each row for fetching, with a concurrency limit of 4 and a retry-once policy. Rows that fail extraction are still saved as URL-only stubs, flagged failed_extraction.\n7. A manifest.json plus service worker that makes the app installable as a PWA and registers a Web Share Target so Android sharing to it works. Cache the last 50 unread articles for offline reading.\n8. Export command that dumps everything to a folder of Markdown files with YAML frontmatter.\n\nOut of scope: accounts, multi-user, recommendations, telemetry, any cloud service, any paid API.\n\nSingle env var in .env: APP_TOKEN, required as a bearer token or cookie for all routes so the thing is not open to the internet. Ship a .env.example, not a .env.\n\nData lives in ./data/pocket.db and ./data/media. Write a Dockerfile and a docker-compose.yml that mounts ./data as a volume. Include a README with three commands: run, import, export. Include pytest tests for extraction of a saved HTML fixture, for the FTS query, and for the Pocket CSV parser.",
+  "promptCurated": false
+}
