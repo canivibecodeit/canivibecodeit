@@ -1,0 +1,51 @@
+{
+  "slug": "fluotest",
+  "name": "FluoTest",
+  "domain": "fluotest.com",
+  "category": "education",
+  "subcategory": "exam delivery and scoring",
+  "tagline": "An assessment platform that bundles test building, delivery, automatic scoring, and the customer records around it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://fluotest.com/",
+    "checkedOn": "2026-09-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not exotic: a question bank, a timed delivery surface, a scoring rule set, and a table of people with their results. An agent will produce that in a weekend, and for your own students, candidates, or internal team it will genuinely work. What it will not produce is the long tail that makes a commercial assessment product usable by strangers: partial credit rules, question randomization that does not leak answers, retake policy, mid-exam disconnects, dispute handling, and a CRM layer that someone other than you can navigate. None of that is hard individually, all of it is weeks of grinding, and it is where the product's actual hours went. Build it if the test is yours; buy it if you are grading other people's futures.",
+  "coreLoopDIY": "Builds a question bank, serves timed exams by link, auto-scores submissions against per-question rules, and keeps a searchable record of every attempt per person.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local machine or a small VPS",
+    "SQLite file plus a backup habit, since exam results are the only artifact that matters",
+    "An email provider key if you want to send exam invites instead of copying links by hand"
+  ],
+  "whatYouLose": [
+    "Scoring edge cases: partial credit, negative marking, weighted sections, curve adjustments, all of which you will discover by getting a score wrong",
+    "Anti-cheat and integrity: shuffled banks, one attempt enforcement, tab or timer abuse handling",
+    "Resilience during the one moment it matters, when a candidate's laptop dies at minute 38 and the attempt has to resume cleanly",
+    "The CRM half: pipelines, notes, segments, bulk actions, and reporting that a non-technical colleague can actually use",
+    "Someone to blame at 8am on exam day"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The moat is accumulated edge cases and the fact that historical results live inside it, not the feature list.",
+  "whyPeopleStillPay": "Because assessment software is judged entirely on the day it fails. A personal build handles the happy path fine, but institutions pay so that a disputed score, a dropped connection, or a data request has an answer that is not \"I wrote it myself on a weekend\". Add the switching cost of years of stored attempts and candidate records, and the price stops being about features.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine to self-build if you are the only examiner and the stakes are low. The moment other people's results depend on it, the boring reliability work is the product.",
+  "prompt": "Build a self-hosted assessment platform I run for my own tests. No accounts for me, single-admin, no telemetry.\n\nStack, non-negotiable: Next.js App Router with TypeScript, SQLite via better-sqlite3 with Drizzle, Tailwind, server actions. One repo, one process, npm run dev works with zero external services.\n\nData model:\n- questions: id, prompt (markdown), type (single_choice, multi_choice, numeric, short_text), options json, correct json, points, tags json\n- exams: id, title, description, duration_minutes, pass_score, shuffle_questions boolean\n- exam_questions: join table with explicit order\n- people: id, name, email, notes, tags json\n- attempts: id, exam_id, person_id, token, started_at, submitted_at, answers json, score, passed, status (invited, in_progress, submitted, expired)\n\nAdmin side, at /admin, protected by a single ADMIN_PASSWORD from .env in a signed cookie:\n- CRUD for questions with tag filtering and a markdown preview\n- exam builder: pick questions, reorder, set duration and pass score\n- people list with search, plus CSV import of name and email\n- issue attempts: generate one unguessable token per person per exam, show copyable links\n- results table: per attempt score, per question correctness, CSV export, and a per-person history view\n\nCandidate side, at /t/[token], no login:\n- shows exam title and rules, one explicit Start button that stamps started_at server side\n- one question per page with autosave of answers to the server on every change\n- server-authoritative countdown from started_at, so refreshing or closing the tab does not grant extra time and resuming restores previous answers\n- submit computes the score server side only; never send correct answers to the client, not even in props\n- auto-submit when the clock expires, then a plain result page honoring a show_score flag on the exam\n\nScoring: exact match for single_choice and numeric with an optional tolerance, all-or-nothing for multi_choice, short_text stored unscored and flagged for manual review in admin with an inline points field.\n\nExplicitly out of scope: email sending (print links instead), payments, proctoring, webcam, multi-tenant orgs, a real CRM pipeline, mobile apps.\n\nInclude seed data with one 5-question exam and two people, a scripts/backup.sh that copies the SQLite file with a timestamp, and a README covering setup, .env keys, backup, and how scoring works.",
+  "promptCurated": false
+}
