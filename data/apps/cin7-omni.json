@@ -1,0 +1,51 @@
+{
+  "slug": "cin7-omni",
+  "name": "Cin7 Omni",
+  "domain": "cin7.com",
+  "category": "commerce",
+  "subcategory": "inventory and order management",
+  "tagline": "Multichannel inventory, order, and warehouse management that syncs stock across sales channels, 3PLs, and accounting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.cin7.com/solutions/omni/",
+    "checkedOn": "2026-09-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of Cin7 Omni is a stock table, a purchase order, and a sales order, and yes, an agent can build that in an afternoon. The part people actually buy is the wiring: live inventory sync into Shopify, Amazon, eBay, and B2B channels, EDI onto retailer trading partners, 3PL and warehouse feeds, and two-way ledger sync into Xero or QuickBooks. Every one of those is a separate authenticated integration with its own rate limits, its own schema drift, and its own failure mode where you oversell and eat a chargeback. A personal build is fine if you sell on one channel and count stock yourself; it stops being fine the moment two channels can sell the same unit. Also worth saying: this is not a personal-use category, it is a business system of record, and the consolation build is a ledger, not a replacement.",
+  "coreLoopDIY": "A local single-warehouse inventory ledger that imports channel order CSVs, decrements stock, tracks purchase orders, and flags anything that went negative or fell below reorder point.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a local machine to run it on",
+    "CSV exports from whatever channels you sell on",
+    "Someone willing to do the imports manually, on a schedule, forever"
+  ],
+  "whatYouLose": [
+    "Live push of stock levels back to Shopify, Amazon, eBay and friends, so overselling is now your problem",
+    "EDI connections to retail trading partners, which is a specialist job and not a build",
+    "3PL and warehouse integrations, barcode scanning, pick and pack workflows",
+    "Two-way accounting sync, so COGS and inventory valuation stay a spreadsheet exercise",
+    "Multi-currency, multi-location, landed cost, and the audit trail an accountant will ask for"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "EDI in particular: the value is not the protocol, it is already being certified with the retailers you want to sell to.",
+  "whyPeopleStillPay": "Because the failure mode is expensive in a way that a bug in a personal tool is not. If your stock number is wrong for six hours across three channels you sell inventory you do not have, and then you are refunding customers and explaining yourself to a marketplace with a suspension button. Cin7 is priced for businesses where a single oversell event costs more than the annual subscription, and the integrations plus the support number are the actual product. Nobody self-hosts their system of record for a warehouse to save a subscription fee.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The stock table is a weekend, the channel sync is not. The moat is a certified integration layer into marketplaces, 3PLs, EDI trading partners, and accounting ledgers, plus the switching cost of moving your system of record while you are still shipping orders.",
+  "prompt": "Build a local, single-user inventory ledger called \"stockledger\" in an empty folder. It is a personal record of truth for a one-warehouse operation, not a channel sync tool.\n\nStack, no substitutions:\n- Next.js 15, App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/stock.db, schema created on first run\n- Zod for parsing, papaparse for CSV\n- Runs with `npm run dev` on localhost. No auth, no accounts, no cloud, no telemetry.\n\nData model:\n- products: sku (unique), name, unit_cost, reorder_point, notes\n- locations: just one seeded row, \"main\"\n- movements: id, sku, qty (signed), reason enum of purchase, sale, adjustment, return, shrinkage, ref (free text like an order number), occurred_at, created_at\n- purchase_orders and po_lines: supplier, expected_at, status of draft, ordered, received; receiving a PO writes purchase movements\n- On-hand is always derived by summing movements for a sku. Never store a stock column.\n\nScreens:\n1. Products list with derived on-hand, reorder flag when on-hand is at or below reorder_point, and negative-stock warnings in red\n2. Product detail with full movement history, newest first\n3. CSV import page: upload an order export, map columns to sku, qty, ref, date, preview the parsed rows, reject unknown SKUs with a clear error list, then commit as sale movements in a single transaction. Store an import hash so the same file cannot be committed twice\n4. Manual adjustment form with a required reason and note\n5. Purchase orders: create, mark ordered, receive full or partial\n\nAlso include: a /api/export route dumping movements as CSV, and a seed script with 20 fake SKUs and a few hundred movements.\n\nExplicitly out of scope, do not stub, do not fake: Shopify/Amazon/eBay APIs, EDI, 3PL feeds, accounting sync, multi-currency, landed cost, barcode hardware, multi-user permissions.\n\nSecrets, if any are ever added, live in .env and .env is gitignored. Write a README that says plainly: this tool does not know what your sales channels are doing, imports are manual, and it will not stop you overselling.",
+  "promptCurated": false
+}
