@@ -1,0 +1,51 @@
+{
+  "slug": "spendspace",
+  "name": "Spendspace",
+  "domain": "spendspace.io",
+  "category": "personal-finance",
+  "subcategory": "budgeting and expense tracking",
+  "tagline": "A hosted budgeting and spend tracking app that pulls transactions together and shows where the money went.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://spendspace.io/",
+    "checkedOn": "2026-09-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The part people think they are paying for, categorised transactions, budgets, a few charts, is a schema and some aggregation queries. An agent will hand you that in an afternoon and it will be more honest than most budgeting UIs because you wrote the category rules yourself. The gap is where the money comes from: bank feeds mean Plaid, TrueLayer or an equivalent aggregator, which means an account, per-connection fees, and a review process before you touch real institutions. You can dodge all of that with CSV and OFX imports from your bank, but then you are importing files on a Sunday instead of opening an app on a bus. Build it if you like a ledger you can query; keep paying if the automatic feed is the whole point.",
+  "coreLoopDIY": "Imports bank CSV or OFX exports into a local SQLite ledger, auto-categorises with editable rules, and renders monthly budgets, category breakdowns and a spend-over-time view.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a browser",
+    "CSV or OFX exports from your bank, or an aggregator API key if you want live feeds",
+    "Willingness to write your own categorisation rules for the first month or two"
+  ],
+  "whatYouLose": [
+    "Automatic bank connections and the maintenance when an institution changes its login flow",
+    "A real mobile app, so no logging a coffee at the counter",
+    "Multi-currency handling and FX rates unless you wire in a rate source",
+    "Shared household budgets, invites, and permissions",
+    "Receipt capture and OCR, and someone else worrying about backups"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The moat is not the budgeting math, it is the bank plumbing and the boring work of keeping hundreds of institution connections alive.",
+  "whyPeopleStillPay": "Budgeting apps live or die on friction. A ledger you have to feed manually gets abandoned around week three, which is why the paid version exists: it keeps the transaction pipe open, survives bank UI changes, and sits on your phone so categorising takes four seconds instead of a Sunday afternoon. The aggregator fees and compliance overhead are real costs that a personal build either eats or avoids by going manual. If your finances are simple and you actually enjoy running SQL against your own spending, the DIY version wins outright.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The math is trivial, the data ingestion is the entire product.",
+  "prompt": "Build a local-first personal spend tracker called \"ledger\" in an empty folder.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/ledger.db\n- Drizzle ORM for schema and migrations\n- Recharts for charts\n- Runs with `npm run dev` on localhost, single user, no auth, no telemetry, no cloud\n\nData model:\n- accounts: id, name, kind (checking, credit, cash), currency\n- transactions: id, account_id, posted_on (date), description, amount_cents (signed, negative is spend), category_id nullable, note, import_hash unique\n- categories: id, name, parent_id nullable, kind (spend, income, transfer)\n- rules: id, priority, match_type (contains, regex), pattern, category_id\n- budgets: id, category_id, month (YYYY-MM), limit_cents\n\nFeatures in scope:\n1. Import page: upload CSV or OFX/QFX. For CSV, let the user map columns (date, description, amount, or separate debit/credit) and remember the mapping per account. Dedupe on a hash of account_id + posted_on + amount_cents + normalised description.\n2. Rule engine: on import and on demand, apply rules in priority order to set category_id. Uncategorised transactions surface in an \"needs review\" queue where assigning a category offers to create a rule from the description.\n3. Transactions table: filter by date range, account, category, text search. Inline edit category and note. Split a transaction into multiple category lines.\n4. Dashboard: current month spend vs budget per category with progress bars, a 12 month spend line chart, top merchants for the selected month, and net cash flow.\n5. Budgets page: set monthly limits per category, copy last month's budgets forward.\n6. Export: dump all transactions to CSV, and a `npm run backup` script that copies the sqlite file with a timestamp.\n\nExplicitly out of scope: bank aggregator integrations, OAuth, mobile app, multi-user, receipt OCR, investment tracking, forecasting.\n\nDetails that matter: store money as integer cents everywhere, never floats. Dates as ISO strings, no timezone math. Seed a sensible default category tree (housing, groceries, dining, transport, utilities, health, subscriptions, income, transfers) plus five example rules. Include a `seed:demo` script that generates 18 months of fake transactions so the charts are not empty on first run. Any config goes in .env with a committed .env.example. Write a README with setup, the CSV mapping walkthrough, and how to restore from a backup.",
+  "promptCurated": false
+}
