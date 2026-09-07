@@ -1,0 +1,52 @@
+{
+  "slug": "woztell",
+  "name": "Woztell",
+  "domain": "woztell.com",
+  "category": "customer-support",
+  "subcategory": "WhatsApp chatbot and omnichannel inbox",
+  "tagline": "No-code chatbot builder and shared inbox for WhatsApp and other messaging channels, built on the official Meta APIs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://platform.woztell.com/",
+    "checkedOn": "2026-09-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics of a WhatsApp bot are not exotic: register on the Meta Cloud API, verify a webhook, receive JSON, send JSON back, keep a conversation state machine in a table. An agent can hand you a working personal bot with a small flow engine and a single-operator inbox in a weekend, and it will be cheaper than any per-seat plan. What it cannot hand you is Meta's side of the deal: business verification, phone number provisioning, message template review, quality ratings, and the sudden 24 hour customer service window rules that decide whether your message actually sends. Woztell also sells the multi-channel abstraction and a visual builder for people who will never open a terminal, which is a different product than a script that answers your own number. Build it if you are one person automating one number; keep paying if a non-technical team is handling real customer volume.",
+  "coreLoopDIY": "A self-hosted webhook service that receives WhatsApp Cloud API messages, runs them through a JSON-defined flow state machine, and exposes a minimal web inbox for manual replies.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Meta developer account with a WhatsApp Business account and a verified business",
+    "A phone number not already registered to the WhatsApp consumer app",
+    "A public HTTPS endpoint for the webhook (tunnel or small VPS)",
+    "Approved message templates for anything outside the 24 hour reply window"
+  ],
+  "whatYouLose": [
+    "Business verification, number provisioning and template submission handled for you",
+    "Channels beyond WhatsApp: Messenger, Instagram, web chat, all in one thread",
+    "A visual flow builder that non-developers can actually edit",
+    "Multi-agent inbox with assignment, notes, canned replies and reporting",
+    "Someone else absorbing Meta API changes, deprecations and quality rating drama"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "collaboration"
+  ],
+  "moatNotes": "The real gatekeeper is Meta, not Woztell. Partner status smooths verification and template approval, which is exactly the part you cannot code around.",
+  "whyPeopleStillPay": "Because the code is the easy half. Getting a number approved, keeping templates from being rejected, watching quality ratings, and giving five support agents a shared view of one WhatsApp number is operational work, not a weekend project. Teams also pay so the person editing the chatbot flow is not the person who has to redeploy it. A solo builder automating their own inbound messages gets most of the value from a script; a support team does not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The bot is trivial; the paperwork with Meta is the product.",
+  "prompt": "Build a self-hosted WhatsApp bot and single-operator inbox. No accounts, no cloud services beyond Meta's API, no telemetry.\n\nStack, no substitutions: Node 20, TypeScript, Express, SQLite via better-sqlite3, server-rendered HTML with a little vanilla JS. No React, no ORM, no Docker.\n\nWhat to build:\n1. POST /webhook and GET /webhook handlers for the WhatsApp Cloud API. GET verifies hub.challenge against VERIFY_TOKEN. POST validates the X-Hub-Signature-256 HMAC against APP_SECRET and returns 200 fast, then processes async.\n2. SQLite schema: contacts (wa_id, name, last_seen), messages (contact_id, direction, type, body, wa_message_id, status, created_at), sessions (contact_id, flow_id, current_node, vars_json, updated_at).\n3. A flow engine that loads flows/*.json. Each flow is a map of nodes. Node types: message (send text), question (send text, store the reply into a variable), choice (send interactive reply buttons, branch on button id), condition (branch on a JS-free expression over vars, use a tiny allowlisted comparator), handoff (mark the session as human-owned and stop auto-replies), end.\n4. An outbound sender module wrapping POST /{PHONE_NUMBER_ID}/messages: text, reply buttons, and template messages. Retry twice on 5xx with backoff. Log the raw request and response to a file for debugging.\n5. Respect the 24 hour window: if the last inbound message from a contact is older than 24 hours, refuse free-form text and require a template name, and say so clearly in the log and the UI.\n6. Inbox UI at /: left column of conversations sorted by last activity, right column of the thread, a reply box, and a toggle per conversation for bot on/off. Poll every 3 seconds. Single hardcoded operator, protected by HTTP basic auth from .env.\n7. Handle status webhooks (sent, delivered, read, failed) and show them on messages.\n\nSecrets in .env: WA_TOKEN, PHONE_NUMBER_ID, VERIFY_TOKEN, APP_SECRET, BASIC_AUTH_USER, BASIC_AUTH_PASS. Ship .env.example.\n\nOut of scope: other channels, multiple agents, visual flow editor, analytics dashboards, media message handling beyond storing the media id, template creation.\n\nDeliver: npm install, npm run dev, one example flow (greeting, three buttons, one handoff), a seed script that fakes an inbound message so the inbox is testable without Meta, and a README section listing the exact Meta setup steps a human must do by hand.",
+  "promptCurated": false
+}
