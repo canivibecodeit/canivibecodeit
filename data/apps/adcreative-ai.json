@@ -1,0 +1,52 @@
+{
+  "slug": "adcreative-ai",
+  "name": "AdCreative.ai",
+  "domain": "adcreative.ai",
+  "category": "generative-media",
+  "subcategory": "ad creative generation",
+  "tagline": "Generates ad banners, product visuals and ad copy variants, then scores them for predicted performance.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://adcreative.ai/",
+    "checkedOn": "2026-09-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The generation half of this is genuinely a one-shot build now: a script that takes a product image, a logo, some brand colors and a few headlines, then composes sized banner variants and exports PNGs for every ad slot you care about. Image models plus a templating layer get you close on the visuals, and an LLM writes the copy variants fine. What you cannot rebuild in a session is the conversion scoring, which is the actual pitch: their model claims to rank creatives by predicted performance based on data they have and you do not. You also lose the ad platform connectors that push assets straight into Meta and Google. So: build the generator, ignore the crystal ball, and let your own campaign data do the ranking after the fact.",
+  "coreLoopDIY": "A local tool that takes a product photo, logo, brand palette and a few text angles, then generates and exports a batch of correctly sized ad banners plus copy variants.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An image generation or editing API key, or a local diffusion setup",
+    "An LLM API key for copy variants",
+    "Node or Python, plus a headless browser for HTML-to-image rendering",
+    "Your own brand assets: logo, fonts, palette"
+  ],
+  "whatYouLose": [
+    "Predicted-performance scoring on each creative, which is the headline feature",
+    "Direct publishing into Meta, Google and other ad accounts",
+    "A large library of professionally tuned templates that already look like real ads",
+    "Team review, versioning and brand kits shared across an agency",
+    "Bulk generation at volume without babysitting rate limits and retries"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The scoring model is the only part that is not a templating exercise, and it lives on aggregate creative performance data you cannot collect alone.",
+  "whyPeopleStillPay": "Performance marketers do not buy image generation, they buy fewer decisions. Paying gets a big spread of on-brand, correctly sized creatives in minutes, a plausible ranking so nobody argues about which one to run, and a pipe into the ad accounts. A DIY generator handles the pixels but leaves you owning the taste, the sizes, the exports and the arguments. If you run one brand and a modest budget, that tradeoff is fine. If you ship hundreds of creatives a month for clients, the subscription is cheaper than the hours.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the banner factory, skip the confidence score, let your actual click data pick winners.",
+  "prompt": "Build a local ad creative generator called \"adfactory\". Stack: Python 3.11, single CLI entrypoint, no web UI, no accounts, no telemetry.\n\nInputs come from a brand.yaml in the project root:\n- brand name, logo path (PNG with transparency), 2 to 4 hex colors, headline font path, body font path\n- product image paths (one or more)\n- a short product description and target audience string\n\nWhat the CLI does, in order:\n1. `adfactory copy` calls an LLM (OpenAI-compatible, key from .env as LLM_API_KEY) and returns JSON with N copy sets: headline (max 40 chars), subhead (max 70 chars), CTA (max 20 chars). Cache results to ./out/copy.json so reruns cost nothing.\n2. `adfactory backgrounds` optionally calls an image API (key from .env as IMAGE_API_KEY) to generate plain background scenes, saved to ./assets/bg/. If no key is set, fall back to solid and gradient backgrounds built from the brand palette. Never hard-fail on a missing key.\n3. `adfactory render` composes creatives by rendering HTML templates with Jinja2 and screenshotting them with Playwright at exact pixel sizes. Ship 6 templates (hero-left, hero-center, split, badge-offer, testimonial-style, plain-text) and these sizes: 1080x1080, 1080x1350, 1080x1920, 1200x628, 300x250, 728x90. Output to ./out/{size}/{template}-{copyset}.png.\n4. `adfactory sheet` builds ./out/index.html: a contact sheet of every generated PNG grouped by size, with the copy text shown under each, so a human can pick winners.\n\nRules:\n- Text must never overflow its box: shrink font size to fit, and fail loudly in the console if it still does not fit.\n- Logo always placed with consistent padding, never stretched.\n- Deterministic filenames so reruns overwrite cleanly.\n- Secrets only in .env, .env.example committed, .env gitignored.\n\nExplicitly out of scope: no performance prediction or scoring, no ad platform APIs, no user auth, no database, no hosting. Write a README with a 4-command quickstart and be blunt that ranking creatives is your job, not the tool's.",
+  "promptCurated": false
+}
