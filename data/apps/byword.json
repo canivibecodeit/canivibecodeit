@@ -1,0 +1,52 @@
+{
+  "slug": "byword",
+  "name": "Byword",
+  "domain": "byword.ai",
+  "category": "ai-writing",
+  "subcategory": "bulk SEO article generation",
+  "tagline": "Generates SEO-targeted long-form articles in bulk from keywords and publishes them straight to your CMS.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://byword.ai/",
+    "checkedOn": "2026-09-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is a for-loop over a spreadsheet: take a keyword, ask a model for an outline, expand each section, stitch it into markdown, post it to WordPress. An agent will get you that in an afternoon, and honestly your prompts will probably be no worse than anyone else's. What you will not get in one sitting is the surrounding machinery: SERP scraping to see what actually ranks, keyword clustering, automatic internal linking across a few hundred existing URLs, image sourcing, schema markup, and a queue that does not die halfway through 200 articles. Those are each small and dull, which is exactly why paying for them is defensible. Also worth saying out loud: neither the SaaS nor your clone fixes the fact that mass-generated content is a shrinking bet.",
+  "coreLoopDIY": "Reads a CSV of keywords, generates an outline then section-by-section long-form drafts with an LLM, writes markdown to disk, and optionally publishes each one as a WordPress draft.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "Node 20+",
+    "A WordPress site with an application password, if you want auto-publishing",
+    "Your own keyword list; no research data included"
+  ],
+  "whatYouLose": [
+    "SERP analysis and competitor outline scraping, so your structure is a guess rather than a copy of what ranks",
+    "Automatic internal linking against a live sitemap of your existing posts",
+    "Keyword clustering and intent classification on bulk uploads",
+    "Featured images, alt text, and schema markup handled for you",
+    "Prompt and formatting tuning that has been beaten on across a lot of published articles"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-data"
+  ],
+  "moatNotes": "The differentiator is the boring perimeter: SERP data, CMS connectors, and bulk job reliability, not the generation step.",
+  "whyPeopleStillPay": "Because the value was never the text generation, it was not having to babysit 200 jobs, wire up five CMS integrations, and hand-maintain an internal linking map. Content teams buy throughput and a UI a non-developer can drive. If you are one person publishing on one site you own, that overhead mostly evaporates and a script is fine. If you are running content for clients, the script becomes a part-time job.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable in a sitting; the hard part is deciding whether you should be publishing this stuff at all.",
+  "prompt": "Build a local CLI tool that mass-generates long-form SEO articles from a keyword list. No web UI, no accounts, no telemetry, no hosted anything.\n\nStack, do not deviate: Node 20 with TypeScript, tsx to run it, commander for the CLI, the Anthropic SDK for generation, better-sqlite3 for job state, gray-matter for frontmatter. Plain files on disk for output.\n\nSecrets in .env, loaded with dotenv: ANTHROPIC_API_KEY, and optionally WP_URL, WP_USER, WP_APP_PASSWORD. Ship a .env.example.\n\nInput: ./keywords.csv with columns keyword,intent,notes where intent and notes may be blank.\n\nCommands:\n- init: creates the SQLite db at ./byword.db and an ./out directory\n- plan: for each keyword row, insert a job row with status pending, skipping keywords already in the db\n- run --limit N --concurrency 3: processes pending jobs\n- publish --limit N: pushes drafted articles to WordPress\n- status: prints counts by status and lists failures\n\nGeneration for one job, three model calls:\n1. Outline: return strict JSON with title, meta_description, slug, and an array of 6 to 10 sections each with an h2 heading and 2 or 3 bullet talking points.\n2. Sections: expand each section in a separate call, passing the full outline plus the previously written sections as context so it does not repeat itself. Target 250 to 400 words per section. Markdown only, no h1.\n3. Polish pass: intro and conclusion, plus a short FAQ block of 3 questions.\n\nStitch into ./out/{slug}.md with YAML frontmatter: title, description, keyword, date, status.\n\nInternal linking: if ./sitemap.txt exists, read it, and after drafting ask the model once to insert up to 5 markdown links to those URLs where genuinely relevant. Do not fabricate URLs that are not in the file.\n\nReliability requirements: retry each API call up to 3 times with exponential backoff, persist per-section output as you go so a crash does not lose work, mark jobs failed with the error text, and make run resumable.\n\npublish uses the WordPress REST API /wp/v2/posts with basic auth from .env, always status draft, never publish live. Store the returned post id on the job row and skip already-published jobs.\n\nOut of scope, do not build: SERP scraping, keyword research, image generation, schema markup, scheduling, multi-site management.\n\nInclude a README with setup steps, a sample keywords.csv with 3 rows, and a note that generated drafts need a human edit before anyone sees them.",
+  "promptCurated": false
+}
