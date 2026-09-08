@@ -1,0 +1,52 @@
+{
+  "slug": "supercut",
+  "name": "Supercut",
+  "domain": "supercut.ai",
+  "category": "audio-video",
+  "subcategory": "transcript-based video editing",
+  "tagline": "AI video editor that works off the transcript: cut filler, trim silence, and pull highlight clips out of long recordings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://supercut.ai/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core here is not mysterious: transcribe, find silences and filler words, compute a cut list, render with ffmpeg, and ask a model which passages are worth clipping. An agent can get you a working local pipeline in a session, and for a solo podcaster or a person with a folder of interview recordings that is genuinely most of the value. What you will not get in one shot is the editing experience: scrubbing a waveform, nudging a cut by 200ms, undoing, seeing captions render live, and re-exporting in seconds instead of minutes. Rendering long 4K footage on your laptop is also just slow, and you will feel it on the third pass. Buildable, useful, noticeably rougher than a product someone polished for a year.",
+  "coreLoopDIY": "Transcribes a video locally, removes silences and filler words, asks an LLM to pick highlight segments, and renders the cut plus clips with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "a machine that can run Whisper (GPU strongly preferred) or an API key",
+    "an LLM API key for highlight selection, in .env",
+    "patience for local render times"
+  ],
+  "whatYouLose": [
+    "A real timeline UI: frame-accurate nudging, undo, live preview",
+    "Fast cloud rendering instead of your laptop fans",
+    "Polished caption styles, brand templates, and vertical reframing that actually looks good",
+    "Shareable clip links and a team library others can browse",
+    "Direct pulls from Zoom, Meet, Drive, and podcast hosts"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "collaboration"
+  ],
+  "moatNotes": "Transcript-driven editing is a commodity idea. The difference between a script and a product is the 300 small interaction decisions around the cut.",
+  "whyPeopleStillPay": "Because editing is iterative and iteration speed is the whole product. A script that takes eleven minutes to re-render after you move one cut is not an editor, it is a batch job. People pay for the part where the change is instant, the captions already look right, the vertical crop tracks the face, and the clip has a link you can drop in Slack without exporting anything. If you edit video occasionally the DIY pipeline is fine; if you edit video weekly the friction compounds fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The transcript-to-cutlist part is a fun afternoon; the ten thousandth pixel of the timeline is the product.",
+  "prompt": "Build a local, single-user transcript-based video editor CLI called \"cutter\". No accounts, no cloud storage, no telemetry.\n\nStack, non negotiable: Python 3.11, Typer for the CLI, faster-whisper for transcription, ffmpeg via subprocess for all media work, SQLite for state, Jinja2 + plain HTML for a local review page served by Flask on 127.0.0.1:7777.\n\nCommands:\n1. `cutter ingest PATH` : probe the file with ffprobe, extract 16kHz mono wav, transcribe with faster-whisper (word-level timestamps), store video metadata, segments, and words in SQLite.\n2. `cutter tighten ID` : produce a cut list that removes (a) silences longer than a configurable threshold, keeping 150ms of padding on each side, and (b) filler words from a configurable list (um, uh, you know, like, sort of). Snap all cut boundaries to the nearest word gap, never mid-word. Write the cut list to the DB, do not render yet.\n3. `cutter highlights ID --count 5` : send the transcript with timestamps to an LLM (OpenAI, model and key from .env) and ask for N self-contained segments with start/end word indices and a suggested title. Store them as named clips.\n4. `cutter review ID` : serve a local page listing every proposed cut and clip with its transcript text, a checkbox to keep or drop, and an inline HTML5 video preview seeking to that timestamp. Saving writes decisions back to SQLite.\n5. `cutter render ID [--clip NAME]` : render the approved cut using ffmpeg. Use the concat demuxer over trimmed segments with stream copy when the source codec allows it, otherwise re-encode once with libx264 + aac. Optional `--srt` writes a sidecar subtitle file from the surviving words.\n\nRules: everything runs offline except the highlights command. Secrets only in .env, loaded with python-dotenv, and ship a .env.example. Idempotent commands, safe to re-run. Print real progress, including ffmpeg elapsed time.\n\nExplicitly out of scope: burned-in styled captions, vertical reframing or face tracking, multi-track editing, music beds, sharing links, any web upload.\n\nDeliver: README with install steps and one worked example, requirements.txt, and a fixture test that runs the tighten logic against a fake word list with no media files.",
+  "promptCurated": false
+}
