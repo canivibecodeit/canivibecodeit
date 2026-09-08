@@ -1,0 +1,51 @@
+{
+  "slug": "jam-dev",
+  "name": "Jam.dev",
+  "domain": "jam.dev",
+  "category": "dev-tools",
+  "subcategory": "bug reporting and repro capture",
+  "tagline": "Browser extension that captures a bug as a video plus console logs, network requests and device info, then hands you a shareable link.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://jam.dev/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The technically impressive part of Jam is not actually secret: Chrome gives extensions tab capture for video and the debugger API for console messages, network requests and device context, so a rolling buffer that dumps the last 30 seconds into a zip is a real weekend project. What you cannot one-shot is the part everyone else sees: a hosted link that opens in a browser, renders the video next to a filterable network waterfall, and drops a ticket into Linear or Jira with repro steps already written. A local zip is fine when you are the developer and the reporter. It stops being fine the moment a designer or a support agent has to file the bug. Build it if you want a better personal repro tool, keep paying if non-engineers are the ones pressing record.",
+  "coreLoopDIY": "A Chromium extension that continuously buffers the active tab's video, console output and network activity, then exports the last 30 seconds as a zip with a self-contained HTML viewer.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Chromium browser with developer mode for an unpacked MV3 extension",
+    "Node 20 to build",
+    "some file host or chat app if you want to actually share the export"
+  ],
+  "whatYouLose": [
+    "Hosted links that anyone can open with no install and no unzipping",
+    "One-click filing into Linear, Jira, GitHub, Slack and friends with the debug bundle attached",
+    "AI-written repro steps and bug summaries from the captured session",
+    "A team library of past bugs, permissions and retention instead of zips in your Downloads folder",
+    "Cross-browser support and a Chrome Web Store install your non-technical coworkers can actually complete"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is not the capture, it is that the output lands in the tracker your team already argues in.",
+  "whyPeopleStillPay": "Bug reports fail on the human side, not the technical side. Jam's real product is that a support rep or a PM installs one extension, clicks once, and an engineer receives something with console errors and failed requests already attached. A self-hosted version puts the friction back exactly where it hurts: someone has to install an unpacked extension, produce a zip, and upload it somewhere. Teams pay per seat to make that friction disappear for the people least willing to tolerate it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great personal debugging tool, mediocre team bug intake tool, and bug intake is what the money is for.",
+  "prompt": "Build a Chromium MV3 extension called \"Repro\" that captures the last 30 seconds of a bug as a shareable debug bundle. Local only: no accounts, no server, no telemetry, no analytics.\n\nStack: TypeScript, Vite with the CRXJS plugin, plain HTML and CSS for the popup. No React, no UI framework, no component library.\n\nBehavior:\n1. Popup has two states: Idle with an \"Arm\" button, and Armed with a \"Capture last 30s\" button plus a \"Disarm\" button.\n2. When armed on the active tab, start chrome.tabCapture video at 1280x720 and 15fps and feed it into MediaRecorder with a 30 second rolling buffer of timeslice chunks. Drop chunks older than 30 seconds.\n3. Also when armed, attach chrome.debugger to that tab and enable the Runtime, Log and Network CDP domains. Buffer, with monotonic timestamps relative to capture start: console messages including level, text and stack; uncaught exceptions; and one record per request with method, URL, status, mime type, duration, request headers and response headers. Skip response bodies. Keep only the last 30 seconds of events.\n4. On capture, write a zip to the downloads folder containing: recording.webm, console.json, network.json, meta.json with page URL, title, user agent, viewport, device pixel ratio, timezone and capture timestamp, and viewer.html.\n5. viewer.html is fully self-contained and offline: the video on the left, and on the right a tab switcher between console and network. Both lists are filterable by text and by level or status class. Clicking any row seeks the video to that event's timestamp, and the currently playing time highlights the nearest row. Inline the JSON into the HTML at export time so the viewer works when opened from disk with no fetch.\n\nExplicitly out of scope: uploading anywhere, hosted links, issue tracker integrations, AI summaries, screenshot annotation, Firefox and Safari, session replay of DOM mutations.\n\nDeliver a working manifest with the minimum permissions needed, a README with load-unpacked instructions, and a note in the README about what chrome.debugger being attached does to the tab's devtools.",
+  "promptCurated": false
+}
