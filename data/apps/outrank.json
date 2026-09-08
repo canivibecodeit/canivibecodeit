@@ -1,0 +1,52 @@
+{
+  "slug": "outrank",
+  "name": "Outrank",
+  "domain": "outrank.so",
+  "category": "seo-marketing",
+  "subcategory": "AI SEO content generation",
+  "tagline": "AI tool that does keyword research, writes long-form SEO articles, and auto-publishes them to your CMS.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://outrank.so/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The writing half is genuinely a one-shot: a prompt chain that turns a topic into an outline, then an outline into a 2000 word article with internal links and schema markup is a few hundred lines and a model API key. The publishing half is also easy if your site runs WordPress or Webflow, both have decent REST APIs and app-password auth. The part you cannot conjure is keyword and SERP data: search volume, difficulty, and what actually ranks today all come from paid data providers, and wiring one up turns your free build into a metered bill. You also lose the accumulated prompt tuning, which is the unglamorous thing these tools are actually selling. Build it if you publish for one or two sites you own; keep paying if you need volume estimates you can defend to a client.",
+  "coreLoopDIY": "Takes a topic or keyword list, plans an outline, generates a structured long-form article with headings, internal links, and JSON-LD, then publishes it as a draft to your WordPress site.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "A WordPress site with REST API and an application password, or another CMS with a write API",
+    "Optional: a keyword or SERP data API key if you want real search volumes",
+    "Somewhere to run it, local machine is fine"
+  ],
+  "whatYouLose": [
+    "Real keyword volume and difficulty data unless you rent it from a provider",
+    "SERP scraping and competitor gap analysis that keeps output current with what ranks",
+    "Months of prompt and template tuning that makes the output less obviously AI-shaped",
+    "Bulk queueing, scheduling, and multi-site management out of the box",
+    "Image generation, internal link graph suggestions, and other side features you will not bother rebuilding"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The data is mostly leased, not owned, which weakens the moat but does not make it free for you either.",
+  "whyPeopleStillPay": "Content volume is a chore, and chores get outsourced. If you are shipping thirty articles a month across five client sites, the value is the queue, the CMS connectors, the fact that someone else eats the keyword data bill, and the prompt scaffolding that stops every post from opening with 'In today's fast-paced digital landscape'. A personal script covers one site and one voice fine. It does not cover an agency workflow, and it will not give you a number to put in a client deck.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The writing is the easy part; the search data is the part with a meter on it.",
+  "prompt": "Build a local-only CLI tool called seoforge that drafts SEO articles and publishes them to WordPress as drafts.\n\nStack, no substitutions: TypeScript, Node 20+, tsx for running, Commander for the CLI, better-sqlite3 for storage, Zod for validating model output. No web UI, no server, no accounts, no telemetry.\n\nSecrets in .env, loaded with dotenv: ANTHROPIC_API_KEY (or OPENAI_API_KEY, pick Anthropic and document the swap), WP_BASE_URL, WP_USER, WP_APP_PASSWORD. Ship a .env.example. Never log key values.\n\nData model in a local sqlite file ./seoforge.db: topics (id, keyword, intent, status, created_at), articles (id, topic_id, title, slug, meta_description, outline_json, body_markdown, word_count, status, wp_post_id, created_at).\n\nCommands:\n- seoforge add \"primary keyword\" --intent informational|commercial : inserts a topic.\n- seoforge plan --id N : one model call that returns a JSON outline (title, meta description under 155 chars, 5 to 8 H2 sections each with 2 to 4 bullet talking points, suggested internal link anchors). Validate with Zod, retry once on parse failure, store as outline_json.\n- seoforge write --id N : section-by-section generation, one model call per H2, assembled into Markdown. Target 1600 to 2200 words. Enforce: one H1, no invented statistics, no citations to sources it cannot name, no \"in today's fast-paced world\" style openers. Store body_markdown and word_count.\n- seoforge links --id N : read a local ./sitemap.txt of your own URLs with titles, ask the model which 3 to 6 are relevant, and insert Markdown links inline.\n- seoforge publish --id N : convert Markdown to HTML with marked, POST to WP /wp-json/wp/v2/posts with status=draft, save wp_post_id. Never publish live.\n- seoforge list : table of topics and article status.\n\nAlso emit a JSON-LD Article block into the post content and write each article to ./out/SLUG.md on disk so nothing is trapped in sqlite.\n\nExplicitly out of scope: keyword volume and difficulty data, SERP scraping, competitor analysis, image generation, scheduling, multi-site support. Leave a documented stub interface named KeywordProvider with a single method lookup(keyword) so a paid data API can be dropped in later.\n\nInclude a README with setup in under ten lines, and one vitest test that checks the outline Zod schema rejects malformed model output.",
+  "promptCurated": false
+}
