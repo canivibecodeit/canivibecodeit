@@ -1,0 +1,52 @@
+{
+  "slug": "foxglove",
+  "name": "Foxglove",
+  "domain": "foxglove.dev",
+  "category": "dev-tools",
+  "subcategory": "robotics data visualization and log observability",
+  "tagline": "Visualization and data management for robotics logs: MCAP and ROS bag playback, panel layouts, and a cloud platform for storing and searching recordings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://foxglove.dev/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Foxglove has a free tier and paid team/enterprise tiers, exact figures not confirmed here.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If your actual need is \"open this MCAP file and look at a few topics,\" an agent gets you there fast: the MCAP and ROS decoding libraries are open source and well documented, and a timeline plus plots plus image frames is a normal weekend web app. What does not fall out of one session is the rest of Foxglove: the 3D scene with TF trees, URDF and point clouds, dozens of purpose-built panels, layout sharing, and hardware-accelerated rendering that stays smooth on a multi-gigabyte recording. The cloud half, ingest, indexing, and searching across a fleet's worth of recordings, is infrastructure work, not a prompt. Solo hobbyist with a handful of bags on a laptop: build it. Team debugging a robot fleet in production: you will rebuild Foxglove badly and slowly.",
+  "coreLoopDIY": "Opens a local MCAP or ROS bag, indexes the topics, and plays back a synchronized timeline with numeric plots, decoded camera frames, and a raw message inspector in the browser.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ with the mcap and mcap-ros2-support packages",
+    "Node 20+ to build the frontend",
+    "your own .mcap or ROS bag files on local disk",
+    "a modern browser"
+  ],
+  "whatYouLose": [
+    "The 3D panel: point clouds, TF frames, URDF models, markers, all of it",
+    "Smooth scrubbing on large recordings, naive decoding will stall the moment files get big",
+    "Cloud storage, ingest pipelines, and search across a whole fleet of recordings",
+    "The long tail of message schemas and panels other people already debugged for you",
+    "Shareable layouts, links to a timestamp, and anything resembling team workflow"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part is not reading MCAP, it is rendering ten thousand messages a second without dropping frames and doing it for every schema a robotics team throws at it.",
+  "whyPeopleStillPay": "Because robot debugging is a time-pressure activity and a half-finished viewer is worse than no viewer. When a machine misbehaves in the field, engineers want to load the recording, scrub to the moment, and see the camera, the plan, and the transform tree at once, without discovering that their homemade tool cannot decode compressed point clouds. Add the cloud side, where recordings get uploaded off the robot automatically and stay searchable, and the pitch shifts from \"a viewer\" to \"we do not lose data and we can find the incident.\" That is worth a seat price to anyone whose robots cost more than their tooling.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An app's own chatbot cheerfully agreeing that it can be replaced is not, it turns out, load-bearing evidence.",
+  "prompt": "Build a local robotics log viewer that runs entirely on my machine. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Backend: Python 3.11, FastAPI, uvicorn. Libraries: mcap, mcap-ros2-support, numpy, Pillow.\n- Frontend: single Vite + React + TypeScript app. uPlot for timeseries. Plain canvas for images. No component library, no 3D library.\n- No database. Index files in memory per session.\n\nBehavior:\n1. CLI entrypoint: `python -m logviewer /path/to/recording.mcap` starts the server and prints a localhost URL.\n2. On load, scan the file's summary section for channels, schemas, message counts, and the start/end timestamps. Do not decode the whole file up front.\n3. Frontend shows a topic sidebar (topic name, schema name, message count) and a global timeline with play, pause, scrub, and adjustable playback rate.\n4. Three panel types the user can add, arranged in a simple grid:\n   - Plot: pick a topic and a dot-path into the message (e.g. `twist.linear.x`), stream numeric values against time.\n   - Image: decode sensor_msgs/msg/CompressedImage and sensor_msgs/msg/Image (rgb8, bgr8, mono8) to a canvas at the current playhead.\n   - Raw: pretty-printed JSON of the latest message on a topic at the playhead.\n5. Backend endpoints: GET /api/info, GET /api/series?topic=&path=&start=&end=&maxPoints= (decimate server side, never return more than maxPoints), GET /api/message?topic=&time= (nearest message at or before time), GET /api/image?topic=&time= (returns PNG).\n6. Panel layout persists to localStorage. That is the only persistence.\n\nExplicitly out of scope, do not attempt: 3D scenes, TF trees, URDF, point clouds, live ROS connections, multi-file sessions, user auth, uploads.\n\nDeliverables: working code, a Makefile with `make dev`, a README stating what it does and the out-of-scope list, and one sample script that generates a small synthetic MCAP so the thing can be tested without my data.\nNo secrets are needed; if you add any config, read it from .env and commit a .env.example only.",
+  "promptCurated": false
+}
