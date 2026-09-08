@@ -1,0 +1,52 @@
+{
+  "slug": "pricklymails",
+  "name": "PricklyMails",
+  "domain": "pricklymails.com",
+  "category": "newsletter",
+  "subcategory": "email list and campaign sending",
+  "tagline": "Email marketing tool for managing subscriber lists and sending campaigns.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pricklymails.com/",
+    "checkedOn": "2026-09-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app layer here is genuinely small: a subscribers table, a campaign editor, a send queue, and an unsubscribe link. An agent will hand you all of that in an afternoon and it will work for a list of a few hundred people. What it cannot hand you is deliverability: reputation, warmed IPs, bounce and complaint feedback loops, and the boring hygiene that keeps you out of spam folders. You solve that by renting someone else's sending infrastructure, which means you never actually leave the SaaS layer, you just move down a tier to Resend or SES. Fine trade for a personal list, bad trade the moment revenue depends on the send landing.",
+  "coreLoopDIY": "Stores subscribers with confirmation and unsubscribe tokens, lets you write a campaign in markdown, and drips it through a transactional email API with per-recipient bounce and unsubscribe tracking.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A transactional email provider account, Resend or Amazon SES",
+    "A sending domain with SPF, DKIM and DMARC records configured",
+    "Somewhere to run a long-lived Node process, so the queue can drain",
+    "API keys in .env, never in the repo"
+  ],
+  "whatYouLose": [
+    "Deliverability as a service: no warmed reputation, no shared-IP tuning, no one watching your complaint rate for you",
+    "Automatic bounce and complaint processing wired to suppression lists, you have to consume webhooks yourself and you will get it wrong at first",
+    "Segmentation, tagging and automation flows, your version is one list and one send button",
+    "Click and open analytics with charts, plus link rewriting that does not break",
+    "A visual template editor, so every campaign is markdown and whatever CSS you hand-tune"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the CRUD, it is the mail reaching inboxes and the paperwork proving people asked for it.",
+  "whyPeopleStillPay": "Because sending bulk email badly has consequences that a self-hosted script cheerfully ignores until your domain is burned. Paid tools absorb bounce handling, suppression lists, double opt-in defaults, unsubscribe compliance and the reputation of the IPs your mail leaves from, and they do it across thousands of senders so the tuning is already done. A personal build is perfectly reasonable for a hobby list where the worst case is thirty people missing a post. It stops being reasonable the day a send is part of how you make money.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Cheap to rebuild, expensive to get delivered. Budget your weekend for DNS records and webhook plumbing, not for the editor.",
+  "prompt": "Build a self-hosted newsletter sender called Quill. One person, one machine, no accounts.\n\nStack, no substitutions: Node 20, TypeScript, Next.js App Router, SQLite via better-sqlite3, Tailwind for styling, Resend for delivery. No ORM, write plain SQL.\n\nData model in SQLite: subscribers (id, email unique, name, status of pending or active or unsubscribed or bounced, confirm_token, unsub_token, created_at, confirmed_at), campaigns (id, subject, markdown_body, status of draft or sending or sent, created_at, sent_at), sends (id, campaign_id, subscriber_id, status, provider_id, error, sent_at) with a unique index on campaign_id plus subscriber_id so retries never double-send.\n\nAdmin UI at /admin, protected by a single ADMIN_PASSWORD from .env checked in middleware with an httpOnly cookie. Screens: subscriber list with search and status filter, CSV import that upserts and skips malformed rows, campaign editor with a markdown textarea and a live HTML preview, and a campaign detail page showing per-recipient send status counts.\n\nPublic routes: POST /api/subscribe that creates a pending subscriber and emails a confirmation link, GET /confirm/[token] that flips status to active, GET /unsubscribe/[token] that flips status to unsubscribed with no login and no confirmation step. Include a copy-pasteable HTML signup snippet on the admin page.\n\nSending: a send job that selects active subscribers not already in sends for that campaign, batches them 20 at a time with a delay between batches to respect rate limits, records every result, and is safe to re-run after a crash. Render markdown to a plain responsive HTML email, inline the CSS, always append the unsubscribe link, and generate a text/plain alternative.\n\nWebhooks: POST /api/webhooks/resend verifying the signing secret, mapping bounce and complaint events to subscriber status bounced or unsubscribed. Treat this as required, not optional.\n\nOut of scope, do not build: open and click tracking, segmentation, automation sequences, A/B tests, drag and drop templates, multi-user roles, analytics dashboards, telemetry of any kind.\n\nSecrets in .env only: RESEND_API_KEY, RESEND_WEBHOOK_SECRET, ADMIN_PASSWORD, FROM_ADDRESS, PUBLIC_BASE_URL. Ship .env.example.\n\nDeliverables: npm run dev works from a clean clone, a migration script that creates the schema, a seed script with five fake subscribers, and a README with the exact SPF, DKIM and DMARC records to set before the first real send.",
+  "promptCurated": false
+}
