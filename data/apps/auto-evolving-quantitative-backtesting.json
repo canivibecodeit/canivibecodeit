@@ -1,0 +1,51 @@
+{
+  "slug": "auto-evolving-quantitative-backtesting",
+  "name": "Auto-evolving Quantitative Backtesting",
+  "domain": "auto-evolvingquantbacktest.com",
+  "category": "finance-accounting",
+  "subcategory": "quant trading / strategy backtesting",
+  "tagline": "Backtesting platform that mutates and re-scores trading strategies automatically instead of making you hand-tune each one.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://auto-evolvingquantbacktest.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A vectorized daily backtester plus an evolutionary search over strategy parameters is one of the most well-trodden builds in existence, and an agent will hand you a working version in a session. What it will not hand you is trustworthy data: point-in-time fundamentals, delisted tickers, split and dividend adjustments, and intraday bars are all either expensive or annoying, and free daily data quietly bakes in survivorship bias. It also will not hand you discipline, and an auto-evolving search on cheap data is a very efficient overfitting machine unless walk-forward splits and a deflated performance metric are wired in from the start. Build it if you want to understand the machinery and run your own ideas. Do not build it if the reason you were paying was that someone else already solved the data and the anti-overfit statistics.",
+  "coreLoopDIY": "Runs an evolutionary search over parameterized strategy rules against local OHLCV data, scores each candidate on walk-forward out-of-sample windows, and writes the survivors plus equity curves to a local report.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ locally",
+    "A market data source: free daily bars via a public API, or your own CSVs",
+    "Patience for the fact that most surviving strategies are noise"
+  ],
+  "whatYouLose": [
+    "Clean point-in-time data including delisted symbols, so your results will be optimistic by an unknown amount",
+    "Intraday and tick resolution, plus realistic fill and slippage modeling",
+    "Built-in statistical guardrails against multiple-testing and overfitting that a hosted platform can tune once and apply everywhere",
+    "Broker connectivity to take a survivor from backtest to paper or live trading",
+    "Someone else's compute for large parameter sweeps"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The engine is commodity. The data licensing and the honest scoring of thousands of candidate strategies are not.",
+  "whyPeopleStillPay": "Because the hard part of automated strategy search is not the search, it is knowing whether a result is real. Paying gets adjusted, survivorship-free data, a slippage model somebody already argued about, and a scoring pipeline that penalizes the fact that you tried ten thousand things. A local build can reproduce every mechanical piece and still be confidently wrong, and being confidently wrong about a trading strategy costs more than a subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The backtester is a weekend; the trustworthy backtest is not.",
+  "prompt": "Build a local auto-evolving backtesting tool in an empty folder. Stack: Python 3.11, pandas, numpy, yfinance for data, matplotlib for charts, Typer for the CLI. No web app, no accounts, no database server, no telemetry.\n\nLayout:\n- data.py: download daily OHLCV for a list of tickers via yfinance, cache each as parquet under ./data/, and load from cache if present. Adjust for splits and dividends. Print a loud warning that this data has survivorship bias and no delisted symbols.\n- strategies.py: define a Strategy as a dict of parameters plus a vectorized signal function returning target position in {-1, 0, 1} per bar. Ship three families: moving-average crossover (fast, slow), RSI mean reversion (period, low, high), and breakout (lookback, exit_lookback). Each family declares its parameter ranges.\n- engine.py: vectorized backtest. Inputs: price series, signal series, per-trade cost in basis points, and one-bar execution lag so signals trade on the next open. Outputs: equity curve, CAGR, annualized vol, Sharpe, max drawdown, trade count, and average holding period.\n- evolve.py: genetic search. Population of N random parameter sets per family, tournament selection, mutation by jittering parameters within declared ranges, single-point crossover within a family, elitism. Fitness must be computed on walk-forward out-of-sample windows only: split history into K contiguous folds, optimize on fold i, score on fold i+1, average the out-of-sample Sharpes. Penalize candidates with fewer than 30 trades.\n- report.py: write ./reports/run-TIMESTAMP.html with a leaderboard table of the top 20 survivors, equity curve PNGs for the top 5, and the parameter values for each.\n\nAlso implement, and do not skip this: a null baseline. For each run, evolve on shuffled returns as well as real returns and print both best scores side by side. If the real result is not clearly above the shuffled result, print \"this is probably noise\" at the top of the report.\n\nCLI: `python -m app evolve --tickers SPY,QQQ,IWM --start 2005-01-01 --generations 20 --population 100 --cost-bps 5`. Add `python -m app inspect RUN_ID PARAM_HASH` to print the full trade list for one survivor.\n\nAny API keys go in .env, read with python-dotenv, and .env is gitignored. Include a README that states plainly what this tool cannot tell you: nothing about intraday fills, nothing about delisted names, nothing about live execution. No live trading, no broker integration, no paper trading. Write pytest tests for engine.py against a hand-computed three-bar example so the return math is verifiably correct.",
+  "promptCurated": false
+}
