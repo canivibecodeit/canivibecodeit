@@ -1,0 +1,51 @@
+{
+  "slug": "everank",
+  "name": "Everank",
+  "domain": "everank.com",
+  "category": "seo-marketing",
+  "subcategory": "rank tracking",
+  "tagline": "A search visibility tracker: you feed it keywords and domains, it reports where you rank and how that moves.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://everank.com/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software part of a rank tracker is genuinely small: a keyword table, a scheduled job, a positions table, a line chart. An agent will hand you that in an afternoon and it will work. The part that does not survive is the data: scraping search results yourself gets you rate limited, captcha walled, and geographically wrong, so you end up renting a SERP API and paying per query anyway. That means your self-hosted version has a hard third-party dependency and a bill that scales with keyword count, which is exactly the thing you were trying to avoid. Worth building if you track twenty keywords for one site; not worth it if you track hundreds across clients.",
+  "coreLoopDIY": "Stores your keyword and domain pairs, runs a daily job that queries a SERP API for each one, records the position, and charts the history.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a SERP API key (SerpAPI, DataForSEO, Serper or similar) with credits",
+    "somewhere to run a daily cron, a small VPS or a laptop that is usually on",
+    "Node 20+ and SQLite"
+  ],
+  "whatYouLose": [
+    "Reliable, geo and device specific SERP data at volume without babysitting a scraping stack",
+    "Anything beyond position: SERP feature detection, competitor sets, share of voice, keyword suggestions",
+    "Historical data from before the day you built it, which is most of the value of a rank tracker",
+    "Client-facing reports, scheduled emails, shareable dashboards",
+    "Someone else absorbing the cost and breakage when search result layouts change again"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible asset in this category is years of stored positions plus the plumbing to fetch results at scale without getting blocked. Neither of those is code you can write in a session.",
+  "whyPeopleStillPay": "Because per-query SERP data is cheaper in bulk than retail, and because a rank tracker is only useful once it has months of history behind it. Paying a tool means the history accumulates whether or not your cron job survived the last OS update, and it means someone else deals with captchas, proxy pools, and the fact that search results now differ per user, per device, and per city. If you are doing SEO as a job rather than as a hobby on one site, the subscription is smaller than the maintenance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you have one site and twenty keywords; rent it the moment there is a client involved.",
+  "prompt": "Build a self-hosted keyword rank tracker as a single Node 20 + TypeScript project. No accounts, no telemetry, no cloud services beyond one SERP data provider.\n\nStack, non-negotiable:\n- TypeScript, Node 20, ESM\n- Hono for the HTTP server\n- better-sqlite3 for storage, file at ./data/ranks.db\n- node-cron for scheduling\n- Server-rendered HTML with plain CSS, plus Chart.js from a CDN for the graphs. No React, no build step for the frontend.\n\nData model:\n- sites: id, domain, label\n- keywords: id, site_id, phrase, locale (default \"en-US\"), device (\"desktop\" | \"mobile\"), active\n- checks: id, keyword_id, checked_at, position (nullable when not found in top 100), url_found, raw_json\n\nBehaviour:\n- SERP data comes from one provider read from .env: SERP_API_KEY and SERP_PROVIDER. Implement a single fetchSerp(phrase, locale, device) function behind an interface, with one concrete implementation for Serper.dev and a MockProvider that returns fake results so the app runs with no key.\n- A cron job at 06:00 local time iterates active keywords, calls the provider with a small concurrency limit (max 2) and a 1.5s delay between calls, finds the first result whose hostname matches the site domain, and writes a checks row. Store the raw response JSON so you can re-parse later.\n- Never fail the whole run because one keyword failed. Log the error, write no row, continue.\n\nUI, four pages:\n- / : list of sites with current average position and 7-day delta\n- /sites/:id : keyword table with latest position, change vs 7 and 30 days ago, and a sparkline\n- /keywords/:id : full position history line chart, y-axis inverted so rank 1 is at the top, plus a table of the last 30 checks\n- /admin : forms to add or remove sites and keywords, and a \"run check now\" button that triggers the job for one site\n\nAlso include:\n- A CSV export endpoint at /export.csv covering all checks\n- npm scripts: dev, start, check:now\n- A README with setup, .env.example, and one blunt paragraph on how SERP scraping costs money and why positions will disagree with what you see in your own browser\n\nOut of scope: multi-user auth, email reports, competitor tracking, keyword suggestions, backlink data, anything Google Search Console.",
+  "promptCurated": false
+}
