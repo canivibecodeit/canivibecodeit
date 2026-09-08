@@ -1,0 +1,51 @@
+{
+  "slug": "changedetection-io",
+  "name": "ChangeDetection.io",
+  "domain": "changedetection.io",
+  "category": "monitoring",
+  "subcategory": "website change detection",
+  "tagline": "Watches web pages and alerts you when the parts you care about change.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://changedetection.io/",
+    "checkedOn": "2026-09-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop is a cron job, an HTTP fetch, a CSS selector, a diff, and an email. That is a genuinely small program, and an agent can produce a working version with a web UI and a SQLite store in one sitting. The awkward part of the pitch is that ChangeDetection.io is itself open source, so the honest comparison is not DIY versus SaaS but self-hosting versus paying someone to run the container and the browser fleet. If you monitor a handful of static pages, roll your own or run theirs locally. If you need JS rendering, proxies, and captcha-adjacent nonsense at scale, the paid tier is buying infrastructure, not software.",
+  "coreLoopDIY": "Polls a list of URLs on a schedule, extracts a CSS-selected chunk of the page, diffs it against the last snapshot, and emails you the changed lines.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.12 and a box that stays on, or a small VPS",
+    "SMTP credentials or a webhook URL for alerts",
+    "Playwright plus a headless Chromium if you need JavaScript-rendered pages"
+  ],
+  "whatYouLose": [
+    "Browser rendering, proxy rotation, and residential IPs for pages that fight scrapers",
+    "Visual selector picking: you will be writing CSS selectors and xpath by hand",
+    "Restock and price watch templates, plus the accumulated hacks for common hostile sites",
+    "Hosted uptime, so your monitor is down whenever your laptop or VPS is",
+    "Notification fan-out to dozens of services out of the box"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The paid product mostly sells someone else running headless browsers and clean egress IPs, which is the part that is annoying rather than hard.",
+  "whyPeopleStillPay": "Because the failure mode of self-hosted page watching is silence: the scraper breaks, the cron dies, the VPS reboots, and you find out weeks later that the thing you were watching changed. Paying means someone else keeps the browser pool warm, rotates IPs when a site starts blocking, and keeps the notification integrations working. For price watching and restock alerts against sites that actively resist bots, that operational layer is the entire product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth remembering the upstream project is open source, so the cheapest fork of this decision is docker compose up.",
+  "prompt": "Build a self-hosted web page change monitor. Single Python 3.12 project, no accounts, no cloud services, no telemetry.\n\nStack, no substitutions:\n- Flask for the web UI, server rendered Jinja templates, plain CSS, no build step\n- SQLite via sqlite3 for storage, file at ./data/watches.db\n- httpx for fetching, selectolax for HTML parsing, difflib for diffs\n- APScheduler running in-process for the polling loop\n- uv for dependency management, single `uv run app.py` entrypoint\n\nData model:\n- watch: id, url, label, css_selector (nullable), interval_minutes, ignore_regex (nullable), last_checked_at, last_changed_at, active\n- snapshot: id, watch_id, fetched_at, extracted_text, sha256\n\nBehavior:\n- Fetch each active watch on its own interval, with a browser-like User-Agent and a 20 second timeout\n- Extract text from css_selector if set, otherwise the whole body; collapse whitespace; drop lines matching ignore_regex\n- Hash the extracted text. If the hash differs from the newest snapshot, insert a new snapshot and send an alert\n- Keep the 20 most recent snapshots per watch, prune older ones\n- Alerts: send a plain text email via SMTP with a unified diff, and POST the same payload to an optional webhook URL. Both configured in .env, both skipped silently if unset\n- Retry a failed fetch twice with backoff, then record the error on the watch and surface it in the UI. Never treat a fetch error as a change\n\nUI at /:\n- Table of watches with label, last checked, last changed, error state, and add / edit / pause / delete\n- /watch/id shows the snapshot history and a side by side or unified diff between any two snapshots\n- A form field to test a selector against a live fetch and preview the extracted text before saving\n\nExplicitly out of scope: JavaScript rendering, headless browsers, proxy rotation, multi-user auth, mobile apps, visual selector picking.\n\nDeliver .env.example, a README with setup and a systemd unit example, and seed the database with two example watches on stable public pages.",
+  "promptCurated": false
+}
