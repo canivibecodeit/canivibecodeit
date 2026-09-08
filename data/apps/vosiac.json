@@ -1,0 +1,52 @@
+{
+  "slug": "vosiac",
+  "name": "Vosaic",
+  "domain": "vosaic.com",
+  "category": "audio-video",
+  "subcategory": "video coaching and observation",
+  "tagline": "Video analysis platform for tagging, timestamping and sharing coaching or classroom observation moments.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://vosaic.com/",
+    "checkedOn": "2026-09-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not exotic: play a video, hit a hotkey, stamp a labeled marker at that second, write a note, jump back to it later, cut a clip. An agent can build that in a weekend with a local video player, a SQLite table of markers and ffmpeg for clip export. Where it falls apart is everything institutional: hosted storage and transcoding for hundreds of hour-long classroom videos, iPad live tagging while you stand in the back of a room, shared rubric libraries, and the student-privacy paperwork a school district will ask about before anyone uploads a minute of footage. If you are one coach or one teacher reviewing your own tape, the DIY build is genuinely fine. If you are buying this for a department, you are buying the hosting, the rubrics and the compliance answers, not the tagging UI.",
+  "coreLoopDIY": "Loads local video files, lets you stamp labeled timestamped markers with keyboard shortcuts while it plays, stores notes per marker, and exports any marker as a trimmed clip.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "ffmpeg installed locally",
+    "local disk space for video files",
+    "optional: whisper.cpp or an API key in .env for transcripts"
+  ],
+  "whatYouLose": [
+    "Cloud storage and transcoding, you are now the person who lost the hard drive with the footage",
+    "Mobile and tablet capture plus live tagging from the back of a gym or classroom",
+    "Prebuilt observation rubrics and frameworks that institutions actually standardize on",
+    "Sharing and commenting with a mentor or evaluator who is not sitting at your machine",
+    "Student privacy and district procurement answers, which are a real product feature even though they are boring"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "switching-costs"
+  ],
+  "moatNotes": "Selling into schools and athletic departments means the buyer cares about data handling and references more than about the timeline widget.",
+  "whyPeopleStillPay": "Institutions do not buy the tagging interface, they buy someone to be responsible for the video. A district uploading teacher observation footage needs storage that survives staff turnover, access controls per building, a rubric everyone in the department uses the same way, and a vendor who will answer a privacy questionnaire. An individual coach reviewing their own game film has none of those constraints and is exactly the person who should self-host. The gap between those two buyers is the whole business.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Solo review tape is a weekend project; a district video library is a procurement process.",
+  "prompt": "Build a local-only video review and tagging app called Marker. Single user, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Vite + React + TypeScript for the UI\n- Express (TypeScript) API on port 5175\n- better-sqlite3 for storage, single file data/marker.db\n- native HTML5 video element for playback, no video libraries\n- ffmpeg via child_process for clip export, assume ffmpeg is on PATH and fail with a clear message if it is not\n\nData model:\n- sessions: id, title, file_path, duration_seconds, created_at\n- tag_types: id, label, color, hotkey (single char), session_scoped false (global list, seeded with Question, Praise, Transition, Off Task, Good Rep, Mistake)\n- markers: id, session_id, tag_type_id, t_seconds (float), note (text), created_at\n\nFeatures in scope:\n1. Add a session by pasting or picking a local absolute file path. Read duration with ffprobe. Do not copy or upload the file, store the path.\n2. Review screen: video player, spacebar play/pause, J/L to seek 5s back/forward, comma and period to step one frame-ish (0.04s).\n3. Pressing a tag hotkey while playing inserts a marker at the current time immediately, no modal, and shows a toast. Playback never stops.\n4. Right rail lists markers in time order, grouped by tag type, click to seek. Inline editable note field per marker, autosaved on blur.\n5. Timeline strip under the video rendering markers as colored ticks at proportional positions, clickable.\n6. Export: per marker, POST /export/:markerId with pre/post padding seconds (default 5 and 10) runs ffmpeg -ss -t with stream copy into exports/, returns the output path. Also an \"export all markers of tag X\" button that loops.\n7. Session summary: count per tag type, plus a CSV download of all markers (timestamp, tag, note).\n8. Tag type editor: add, rename, recolor, reassign hotkey. Reject duplicate hotkeys.\n\nExplicitly out of scope: authentication, sharing, transcription, rubrics, mobile layout, multi-user comments, anything that uploads a file anywhere.\n\nSecrets: none needed. Still create .env with PORT and DB_PATH and read them.\n\nDeliver a README with exact run commands, seed the tag types on first boot, and make `npm run dev` start both the API and the UI concurrently.",
+  "promptCurated": false
+}
