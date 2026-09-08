@@ -1,0 +1,50 @@
+{
+  "slug": "dovey",
+  "name": "Dovey",
+  "domain": "apps.apple.com",
+  "category": "wellness",
+  "subcategory": "couples / relationship prompts",
+  "tagline": "An iOS app that serves couples a daily question and reveals both partners' answers once you've both replied.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://apps.apple.com/us/app/dovey-couples-questions/id6759009985",
+    "checkedOn": "2026-09-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanic is thin on purpose: a question bank, a two-person room, a blind reveal once both have answered, and an archive of past answers. An agent can build that as a shared web app in a sitting, and an LLM can generate a few hundred passable questions in the same breath. What you cannot one-shot is the part that makes it actually get used: a native app on both phones, a daily push notification that arrives at the same time for both people, and a question bank that has been edited rather than generated. The build also has an unusual dependency, which is a partner who agrees to open your homemade web app every night. Treat the DIY version as a working prototype of the ritual, not a replacement for the habit.",
+  "coreLoopDIY": "Spins up a two-person web app with a room code, one shared question per day, answers hidden until both partners submit, and a scrollable archive.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on host or VPS so both phones hit the same instance",
+    "An LLM pass to generate and then hand-prune the question bank",
+    "Web push or a scheduled email/SMS nudge if you want the daily reminder to land"
+  ],
+  "whatYouLose": [
+    "Native iOS app with proper reliable push notifications at a chosen time",
+    "A question bank someone actually wrote and edited, instead of 300 LLM variations on 'what makes you feel loved'",
+    "Streaks, App Store polish, and the small design touches that make a couples app feel intimate rather than like a form",
+    "Cross-device sync and backups you did not have to think about",
+    "Any chance of your partner taking it seriously if it lives at an IP address"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The defensible part is the writing and the daily-reveal timing, not the schema. Both are cheap to copy badly and expensive to copy well.",
+  "whyPeopleStillPay": "Because the value is habit, not software. People pay a few dollars so the prompt shows up on both phones at 9pm without anyone maintaining anything, and so the questions feel written by an adult rather than autocompleted. A homemade version competes with that on features and loses on friction, which is the only axis that matters for a nightly ritual.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The code is trivial; the question bank and the 9pm ping are the product.",
+  "prompt": "Build a two-person daily question app called \"pair\" as a self-hosted web app.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind CSS\n- SQLite via better-sqlite3, file at ./data/pair.db, migrations run on boot\n- No auth provider, no third-party services, no analytics, no telemetry\n\nData model:\n- rooms: id, code (6 chars, uppercase, unguessable), created_at\n- members: id, room_id, display_name, device_token (random, stored in an httpOnly cookie)\n- questions: id, text, tags\n- answers: id, room_id, question_id, member_id, body, created_at\n- assignments: id, room_id, question_id, date (YYYY-MM-DD), unique on (room_id, date)\n\nBehaviour:\n- Landing page: \"Create a room\" or \"Join with a code\". Joining sets the cookie and asks for a display name. Hard-cap a room at 2 members.\n- Each room gets exactly one question per local day, assigned deterministically the first time either member loads the page, never repeating a question until the bank is exhausted.\n- Today's page shows the question and a textarea. After you submit, your own answer is visible but your partner's is masked with \"waiting for [name]\" until they submit too. Then both reveal on the same screen.\n- Answers are editable for 10 minutes after submitting, then frozen.\n- /history lists past days newest first with both answers, revealed only for days where both answered.\n- Add a \"skip\" action that rerolls today's question once per room per day.\n\nContent:\n- Seed questions.json with 250 questions across tags: memory, future, gratitude, conflict, silly, spicy-lite. Write them as short single sentences. Do not pad the file with rephrasings of the same three questions.\n\nExtras:\n- Ship a web app manifest and icons so it installs to the iOS home screen.\n- Reminders: a single /api/cron/nudge route, protected by CRON_SECRET from .env, that sends an email nudge per member via SMTP creds in .env if they have not answered today. Document the crontab line in the README. Skip web push entirely.\n- Out of scope: accounts, passwords, multi-couple dashboards, streak gamification, AI-generated questions at runtime, payments.\n\nDeliver a README with setup, the crontab line, and a one-command dev start.",
+  "promptCurated": false
+}
