@@ -1,0 +1,52 @@
+{
+  "slug": "cin7-core",
+  "name": "Cin7 Core",
+  "domain": "cin7.com",
+  "category": "commerce",
+  "subcategory": "inventory management / light ERP",
+  "tagline": "Cloud inventory and order management for product sellers: stock across warehouses, purchasing, sales orders, and sync to sales channels and accounting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription, tiered by features and users",
+    "unit": "custom",
+    "source": "https://cin7.com/",
+    "checkedOn": "2026-09-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The data model underneath Cin7 Core is not exotic: products, variants, warehouses, an append-only stock movement ledger, purchase orders in, sales orders out, and a cost method that survives audit. An agent will get you a working single-user version of that in a sitting, and a decent one over a weekend. What it will not get you is the part you are actually renting: live connectors to Shopify, Amazon, eBay, and the shipping carriers, plus two-way sync into Xero or QuickBooks that reconciles without a human crying. If you sell on one channel and count stock in one room, the DIY build is genuinely fine. If your stock levels feed three marketplaces and your accountant, the connectors are the product and you are not one-shotting those.",
+  "coreLoopDIY": "A local inventory system with SKUs, multiple warehouses, an append-only stock ledger, purchase and sales orders, weighted average cost, and CSV import/export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine that stays on, or a cheap VPS",
+    "CSV exports of your current product catalog and on-hand quantities",
+    "Someone disciplined enough to actually record movements, since nothing syncs automatically",
+    "Optional: a USB barcode scanner, which acts as a keyboard and needs no code"
+  ],
+  "whatYouLose": [
+    "Channel connectors: Shopify, Amazon, eBay, and marketplace order pulls with stock pushed back out",
+    "Accounting sync to Xero or QuickBooks, including COGS journals and invoice matching",
+    "Mobile WMS app for pick, pack, and stocktake with barcode scanning",
+    "Batch, serial, and expiry tracking with landed costs and multi-currency purchasing",
+    "Support, uptime, and someone other than you to blame when a stock count goes sideways"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Every ERM-adjacent tool sells the same tables; the price tag is on the API glue and the fact that ripping it out mid-quarter means re-baselining your stock.",
+  "whyPeopleStillPay": "Because inventory software fails in an expensive direction. Oversell on Amazon because your stock push lagged and you eat the penalty, not a bug ticket. The connectors need constant maintenance as marketplace APIs churn, the accounting mapping needs to be defensible at year end, and warehouse staff need an app that works on a beat-up Android scanner. Paying is mostly paying for someone else to keep all of that from breaking while you sell things.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ledger is a weekend; the connector fleet is a permanent job.",
+  "prompt": "Build a local-first inventory and order management app for a single small business operator. No cloud, no accounts, no telemetry.\n\nStack, non negotiable: Next.js 15 App Router with TypeScript, Tailwind, SQLite via better-sqlite3 with Drizzle ORM, server actions for all mutations. Single process, runs with `npm run dev` or `npm run build && npm start`. Data file at ./data/inventory.db, created and migrated on first boot. Any secret goes in .env.local, and there should be exactly one: an APP_PASSWORD gate via middleware, cookie session, no user table.\n\nData model:\n- products: sku unique, name, barcode, unit, reorder_point, active flag\n- warehouses: code, name\n- stock_movements: append only, never edited or deleted. product_id, warehouse_id, qty_delta, unit_cost, reason enum (purchase_receipt, sale_ship, adjustment, transfer_in, transfer_out, count), ref_type, ref_id, note, created_at\n- purchase_orders and purchase_order_lines: supplier name, status draft/ordered/received, qty ordered, qty received, unit cost\n- sales_orders and sales_order_lines: customer name, status draft/confirmed/shipped, qty, unit price\n- suppliers and customers as plain name records\n\nRules:\n- On hand per product per warehouse is always SUM(qty_delta) from stock_movements. Never store a mutable quantity column.\n- Cost method is weighted average per product, recomputed from the movement history. Show COGS on shipped sales orders.\n- Receiving a PO line and shipping a SO line each write movements in one transaction. Partial receipts and partial shipments must work.\n- Transfers write two movements. Stock counts write a single adjustment movement equal to counted minus computed.\n- Block shipping that would push on hand negative, with an override checkbox that logs the override in the note.\n\nUI: sidebar app with pages for Dashboard (low stock vs reorder_point, open POs, open SOs), Products, Stock (on hand by warehouse, filterable, with a movement drill down), Purchase Orders, Sales Orders, Transfers, Stock Count, Settings. Every list has search and CSV export. Products and opening stock support CSV import with a dry-run preview that reports row errors before committing. All barcode inputs are plain text fields that autofocus, so a USB scanner just works.\n\nExplicitly out of scope, do not scaffold or stub: marketplace or Shopify connectors, accounting integrations, shipping carrier labels, multi currency, batch and serial tracking, manufacturing BOMs, multi user roles, mobile app.\n\nDeliver a seed script with 20 sample products, 2 warehouses, and a few historical movements, plus a README covering backup (copy the .db file) and restore.",
+  "promptCurated": false
+}
