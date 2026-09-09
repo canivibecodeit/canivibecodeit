@@ -1,0 +1,52 @@
+{
+  "slug": "scapingbee",
+  "name": "ScrapingBee",
+  "domain": "scrapingbee.com",
+  "category": "dev-tools",
+  "subcategory": "web scraping API",
+  "tagline": "A hosted HTTP API that fetches pages for you, renders JavaScript, rotates proxies, and tries to look like a real browser.",
+  "priceMonthly": 49,
+  "pricing": {
+    "plan": "Freelance",
+    "basis": "monthly, credit-based",
+    "unit": "usage",
+    "source": "https://scrapingbee.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The API surface is trivially cloneable: an agent can give you a local endpoint that takes a URL, drives headless Chromium, waits for a selector, and returns HTML, JSON, or a screenshot in one sitting. What you cannot clone in an afternoon is the part you are actually paying for, which is a large pool of rotating datacenter and residential IPs plus the ongoing cat-and-mouse work of not getting fingerprinted by Cloudflare, DataDome, and friends. For scraping your own dashboards, small sites, docs, and anything without aggressive bot defense, the DIY version is genuinely fine and cheaper. For scraping anyone who does not want to be scraped at volume, your local build will work for a week and then start returning 403s. You can rent proxies separately and glue them in, at which point you have rebuilt half of it and now maintain it forever.",
+  "coreLoopDIY": "A local HTTP service that takes a URL plus extraction rules, renders it in headless Chromium, and returns cleaned HTML, structured JSON, or a screenshot.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node or Python runtime with Playwright and a Chromium download",
+    "A machine or small VPS willing to run a browser",
+    "Your own proxy credentials if you need IP rotation",
+    "Patience for retries and rate limits you now own"
+  ],
+  "whatYouLose": [
+    "A large rotating IP pool, including residential exits, that you are not going to assemble yourself",
+    "Continuous anti-bot evasion updates as fingerprinting checks change",
+    "Geotargeting by country on demand",
+    "Concurrency without you provisioning and babysitting browser instances",
+    "Someone else's uptime and someone else's problem when a target site changes its defenses"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is an IP pool and a maintenance treadmill, not code. Both are boring and both are expensive.",
+  "whyPeopleStillPay": "Because scraping at any real volume is an operations problem disguised as a code problem. Playwright is free and one import away, but the moment a target starts blocking you, the work becomes acquiring clean IPs, mimicking browser fingerprints, handling per-site quirks, and doing that again next quarter when the defenses update. Paying per request converts an unbounded maintenance liability into a line item, which is a very reasonable trade if scraping is a means to an end rather than your product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Clone the endpoint, rent the IPs, accept that the cat-and-mouse game is now your hobby.",
+  "prompt": "Build a local web scraping service called \"beelite\" in this empty folder.\n\nStack, no substitutions: Python 3.11, FastAPI, Uvicorn, Playwright with Chromium, httpx for non-JS fetches, selectolax for HTML parsing, SQLite via stdlib sqlite3 for the response cache. Dependencies pinned in requirements.txt. No Docker required, but include a Dockerfile that installs Playwright browsers.\n\nExpose one endpoint: GET/POST /scrape with these params: url (required), render_js (bool, default false), wait_for (CSS selector, optional), wait_ms (int, optional), extract (optional JSON map of name to CSS selector, returns text by default, supports \"selector@attr\" syntax), screenshot (bool, returns base64 PNG), country (string, only used to pick a proxy from config), cache_ttl (seconds, default 0).\n\nBehavior: when render_js is false, fetch with httpx and a realistic desktop User-Agent. When true, launch a shared Chromium browser instance at startup, open a new context per request, set a realistic viewport and User-Agent, block images and fonts to save bandwidth unless screenshot is requested, wait for wait_for or wait_ms, then return content. Return JSON with status_code, final_url, timing_ms, and either html, data (from extract), or screenshot_b64.\n\nReliability: retry twice on 429, 500, 502, 503 with exponential backoff and jitter. Enforce a global concurrency cap via asyncio.Semaphore, default 4, configurable. Enforce a per-domain minimum delay, default 1000ms. Cache successful responses in SQLite keyed by a hash of the full request when cache_ttl is greater than zero.\n\nProxies: read an optional PROXIES env var containing a comma separated list of proxy URLs, optionally tagged like \"us=http://user:pass@host:port\". Pick round robin, filtered by country when requested. If no proxies are configured, go direct and say so in the response metadata. Never hardcode credentials; use .env with python-dotenv and ship a .env.example.\n\nAlso ship: a robots.txt check helper that logs a warning when a fetch is disallowed, a /healthz endpoint, a CLI script scrape.py for one-off command line use, and a README with three curl examples.\n\nExplicitly out of scope: user accounts, billing, dashboards, telemetry, CAPTCHA solving, buying or rotating residential IPs, and anti-fingerprinting beyond a plausible User-Agent and viewport. Do not pretend the service defeats Cloudflare or DataDome; note that limitation in the README.",
+  "promptCurated": false
+}
