@@ -1,0 +1,52 @@
+{
+  "slug": "launchdarkly",
+  "name": "LaunchDarkly",
+  "domain": "launchdarkly.com",
+  "category": "dev-tools",
+  "subcategory": "feature flags and experimentation",
+  "tagline": "Hosted feature flag management with targeting rules, percentage rollouts, and experimentation on top.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per seat per month, plus usage tiers on contexts and events",
+    "unit": "per-seat",
+    "source": "https://launchdarkly.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core of a feature flag service is embarrassingly simple: a key-value store of flag rules, an evaluation function, and a way to push changes to running processes. An agent can produce that in a sitting, including consistent hash bucketing for percentage rollouts and an SSE stream so your app picks up changes without a redeploy. What it cannot produce in a sitting is the boring half: SDKs for every language you ship in, sane offline and bootstrap behavior when the flag service is down, an experimentation stats engine that will not lie to you, and the audit trail your auditor asks about. If you are one person shipping one or two services, the DIY version is genuinely fine and arguably better than paying per seat. If flags gate revenue paths across a dozen services and several teams, the outage blast radius is the whole product and you are paying for someone else's SLA.",
+  "coreLoopDIY": "A self-hosted flag service with a rules editor, deterministic percentage rollouts, per-environment values, an HTTP evaluation endpoint plus SSE change stream, and a small TypeScript client SDK with local caching and a hardcoded fallback.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or container that your apps can reach",
+    "SQLite or Postgres for flag state",
+    "A shared secret or token per environment for SDK and admin auth",
+    "A pinned default value in code for every flag so the service failing does not take your app with it"
+  ],
+  "whatYouLose": [
+    "Official SDKs for the twenty-odd languages and mobile platforms, each with tested caching, streaming reconnect, and offline behavior",
+    "Globally distributed edge delivery, so a flag change propagates fast and does not depend on your one box in one region",
+    "An experimentation layer that computes results properly instead of you eyeballing two conversion rates",
+    "Audit logs, approval workflows, scheduled and temporary flags, and RBAC that satisfies a compliance review",
+    "Integrations that make flags visible where work happens: Slack, Jira, Terraform, Datadog, error trackers linking releases to spikes"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The SDK matrix is the real product. Every language, framework and mobile platform you support is another client library that has to behave correctly during network failures, and that is where the years went.",
+  "whyPeopleStillPay": "Because a flag system is infrastructure that sits in the request path of everything, and nobody wants their homemade config service to be the reason checkout returns 500. Teams pay for the SDK behavior under failure, for propagation that is fast everywhere rather than fast near one server, and for the paper trail when someone asks who turned on the flag that broke billing at 2am. Add multiple teams needing approvals and role separation and the per-seat bill starts looking cheaper than the process you would have to invent yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Flag evaluation is a weekend; flag delivery that never fails is not. Build it for one service and keep hardcoded defaults in code.",
+  "prompt": "Build a self-hosted feature flag service, single repo, no accounts, no cloud, no telemetry.\n\nStack, non negotiable: TypeScript, Node 20, Fastify, SQLite via better-sqlite3, Zod for validation. Admin UI is server-rendered HTML with a little vanilla JS, no React, no build step. Package manager: pnpm.\n\nData model: projects have environments (default: development, production). A flag has a key, description, type (boolean, string, number, json), an archived flag, and per-environment config: enabled, default value, off value, an ordered list of targeting rules, and a percentage rollout map of variation to weight.\n\nTargeting rules evaluate against a context object supplied by the caller: { key, ...attributes }. Support operators: equals, notEquals, in, notIn, contains, semverGreaterThan, greaterThan, lessThan, matchesRegex. First matching rule wins. If no rule matches, apply the percentage rollout using a deterministic bucket: sha1(flagKey + \":\" + environmentKey + \":\" + context.key), take the first 8 hex chars, mod 100000, so the same context always lands in the same bucket and adding an unrelated flag never reshuffles it.\n\nAPI:\n- POST /api/evaluate/:envKey with a context, returns all non-archived flag values plus a reason string per flag (rule_match, rollout, default, off).\n- GET /api/stream/:envKey, Server Sent Events, emits a \"flags\" event with the full evaluated payload on every admin write, plus a heartbeat comment every 20 seconds.\n- Admin CRUD for projects, environments, flags, and per-environment config.\nAuth: SDK routes take an env token from an Authorization header; admin routes take an admin token. Both tokens come from .env, never hardcoded, and .env.example is committed.\n\nWrite an append-only audit table: timestamp, actor label from .env, flag key, environment, before JSON, after JSON. Show it on a /audit page. No edits or deletes on that table.\n\nAlso build packages/sdk, a TypeScript client: init({ url, envToken, fallbacks }), fetches once, subscribes to the SSE stream, caches the last good payload in memory and on disk, and returns the caller-provided fallback if the service is unreachable or the flag is unknown. Never throw from a variation() call. Log a single warning on degraded mode, not per call.\n\nIn scope: the above, a seed script with three example flags, Vitest tests covering bucket stability, rule precedence, and SDK fallback behavior, a Dockerfile, and a README with a curl example and an SDK snippet.\n\nOut of scope: experimentation and stats, multi-user login and RBAC, approval workflows, scheduled flag changes, mobile SDKs, edge replication, webhooks. Do not stub these; leave them out and say so in the README under a Limitations heading, including the warning that every flag must have a hardcoded fallback in application code.",
+  "promptCurated": false
+}
