@@ -1,0 +1,52 @@
+{
+  "slug": "elfsight",
+  "name": "Elfsight",
+  "domain": "elfsight.com",
+  "category": "website-builder",
+  "subcategory": "embeddable widgets",
+  "tagline": "A hosted library of drop-in website widgets: reviews, social feeds, forms, popups, chat buttons, all installed with one script tag.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly, tiered by widget views",
+    "unit": "usage",
+    "source": "https://elfsight.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Nobody uses eighty widgets. Most people pay Elfsight for one or two: a Google Reviews block, an Instagram grid, an announcement bar, and an agent can produce a decent self-hosted version of any single one of those in an afternoon. The friction is not the HTML, it is the plumbing behind the feeds: Google Places needs an API key with billing attached, Instagram needs a Business account and a Graph API app that Meta may or may not approve, and both will change under you without warning. You also lose the point-and-click editor, which matters if the person maintaining the site is not you. Build it if you need two widgets and can hold an API token; keep paying if you need a catalog and a dashboard.",
+  "coreLoopDIY": "A tiny Node service that fetches and caches your Google reviews and Instagram posts, plus a single embeddable script that renders them as styled shadow-DOM web components on any page.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and somewhere to run a small always-on server or cron job",
+    "Google Places API key with billing enabled, for the reviews widget",
+    "Instagram Business account plus a Meta app and long-lived token, for the feed widget",
+    "Any static host or CDN for the widget bundle"
+  ],
+  "whatYouLose": [
+    "The catalog: dozens of widgets you might want later, all one click away",
+    "The visual editor, so every color and layout tweak becomes a code change",
+    "Someone else babysitting API breakages, token expiry, and platform policy changes",
+    "Hosted CDN delivery, caching, and uptime for the embed script",
+    "Prebuilt themes and layouts that already look finished"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The real product is dozens of maintained third-party integrations that keep working after each platform changes its API. That is ongoing labor, not code you write once.",
+  "whyPeopleStillPay": "Because widgets are boring and breaking widgets are worse. Elfsight absorbs the part nobody wants: keeping Instagram tokens alive, tracking Google's review API terms, making sure the embed still renders on some ancient theme on some client's site. If you run one site you control, self-hosting two widgets is fine. If you run twelve client sites, or hand the site to a marketer who wants to change the button color themselves, the subscription is cheaper than your time.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The widget is trivial; the feed behind it is the whole job.",
+  "prompt": "Build a self-hosted embeddable website widget kit. Empty folder, no framework menus.\n\nStack, fixed: Node 20, TypeScript, Express for the server, esbuild to bundle one browser file. No React, no database, no accounts, no telemetry.\n\nDeliver two parts.\n\nPart 1, server (src/server.ts):\n- GET /api/reviews returns normalized Google reviews for one place: author, rating, text, relative time, profile photo url. Source: Google Places Details API using GOOGLE_PLACES_KEY and GOOGLE_PLACE_ID from .env.\n- GET /api/instagram returns the latest 12 media items: id, permalink, media_url, caption, media_type. Source: Instagram Graph API using IG_USER_ID and IG_TOKEN from .env.\n- Cache both responses to a JSON file on disk with a 6 hour TTL. Serve stale cache with a warning field if the upstream call fails. Never let a dead API blank the widget.\n- CORS: allow only origins listed in ALLOWED_ORIGINS.\n- Serve the built widget bundle at /widget.js with long cache headers.\n\nPart 2, widget (src/widget.ts), bundled to dist/widget.js:\n- Define three custom elements using shadow DOM so host page CSS cannot leak in: my-reviews, my-insta-feed, my-announce-bar.\n- my-reviews: attributes for limit, min-rating, layout of \"grid\" or \"carousel\". Renders stars, truncates long text with a show more toggle.\n- my-insta-feed: attributes for columns and limit, square thumbnails, links out to permalink, lazy loaded images.\n- my-announce-bar: attributes for message, link, bg, dismissible. Dismissal remembered in localStorage.\n- All three read a data-api base url attribute, show a skeleton while loading, and render nothing but a silent console warning on failure.\n\nAlso include:\n- demo/index.html embedding all three via one script tag plus the elements, as the integration test.\n- .env.example with every key, and a README with exactly what to do in Google Cloud Console and the Meta app dashboard to get credentials, plus how to refresh a long-lived Instagram token.\n- npm scripts: dev, build, start.\n\nOut of scope, do not build: a visual editor, a widget catalog, multi-tenant config, analytics, forms, chat, or anything requiring user login.\nPrint a short honest list at the end of what will break first, and why.",
+  "promptCurated": false
+}
