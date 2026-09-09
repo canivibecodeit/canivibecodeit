@@ -1,0 +1,52 @@
+{
+  "slug": "submagic",
+  "name": "Submagic",
+  "domain": "submagic.co",
+  "category": "audio-video",
+  "subcategory": "short-form video captions and editing",
+  "tagline": "Browser tool that auto-captions, trims and dresses up vertical short-form video with animated subtitles, b-roll and effects.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://submagic.co/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The technical core is not a secret: Whisper gives you word-level timestamps, ffmpeg with libass burns karaoke-style captions, and a coding agent can wire that into a script in an afternoon. What you cannot one-shot is the taste layer: dozens of tuned caption templates, emoji placement that lands on the right word, auto zoom cuts, b-roll that matches what was said, and a render farm that returns a finished vertical video in a minute instead of ten. If you post one style of video and want burned-in animated captions, the local build genuinely replaces the subscription. If you are shipping daily clips for clients and picking a look per video, you are paying for the templates and the render speed, not the transcription.",
+  "coreLoopDIY": "Transcribes a video locally with word-level timestamps, generates an animated ASS subtitle file in a chosen preset style, and burns it into a vertical export with ffmpeg.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "ffmpeg with libass compiled in",
+    "Python 3.11 and faster-whisper (runs on CPU, much faster with a GPU)",
+    "a few GB of disk for model weights",
+    "fonts installed locally for the caption styles"
+  ],
+  "whatYouLose": [
+    "The template gallery: dozens of caption looks that already read well on phone screens",
+    "Auto b-roll, stock footage matching and AI sound effects",
+    "Auto zoom, silence removal and highlight clip detection tuned for retention",
+    "Cloud rendering, so long videos tie up your own machine",
+    "Multi-language translation and dubbing in one click, plus a shareable web editor for clients"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is aesthetic defaults plus render latency. Both are real, neither is patentable.",
+  "whyPeopleStillPay": "Because the difference between a caption file and a caption that looks good is a hundred small decisions about font weight, stroke, vertical position, word grouping and highlight timing, and Submagic has already made them for you in a dozen flavors. Volume creators are also buying throughput: uploading, picking a preset and getting back a rendered file while they do something else beats babysitting a local ffmpeg job. The local build wins if you have exactly one look you like and enough patience to tune it once.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Transcription is commodity, caption taste is not, and you can borrow taste by copying one template you like and never changing it.",
+  "prompt": "Build a local command line tool called \"clipcap\" that burns animated word-by-word captions into short vertical videos. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, single package, dependencies managed with uv\n- faster-whisper for transcription with word level timestamps\n- ffmpeg (must be on PATH, with libass) for all video work\n- typer for the CLI, rich for progress output\n\nCommands:\n1. `clipcap caption INPUT.mp4 --style bold-yellow --out OUT.mp4`\n   - extract audio to 16k mono wav with ffmpeg\n   - transcribe with faster-whisper, model configurable via .env (default \"small\"), word_timestamps=True\n   - cache the transcript as INPUT.words.json so re-renders skip transcription\n   - group words into caption lines of at most 3 words or 1.2 seconds\n   - emit an .ass subtitle file where the currently spoken word is highlighted using per-word \\k karaoke timing plus an inline color override\n   - burn in with `ffmpeg -vf ass=...`, copy audio, output h264 yuv420p\n2. `clipcap crop INPUT.mp4 --out OUT.mp4` : center crop to 9:16, scale to 1080x1920\n3. `clipcap styles` : list available presets\n4. `clipcap edit INPUT.words.json` : open the transcript in $EDITOR so typos can be fixed before rendering\n\nStyles live in styles/*.toml with font, size, primary color, highlight color, outline width, shadow, vertical margin, uppercase bool. Ship exactly three presets: bold-yellow, clean-white, karaoke-green. Validate that the font resolves and fail loudly if not.\n\nOut of scope, do not build: b-roll insertion, stock footage, emoji generation, auto zoom, silence trimming, translation, any web UI, any API server.\n\nDeliverables: pyproject.toml, README with a 60 second quickstart, .env.example with WHISPER_MODEL and WHISPER_DEVICE, and one sample invocation that works end to end on a 30 second test clip you generate with ffmpeg's testsrc plus a spoken audio file the user supplies. Exit codes non zero on failure, no silent fallbacks.",
+  "promptCurated": false
+}
