@@ -1,0 +1,51 @@
+{
+  "slug": "wan-3-0",
+  "name": "Wan 3.0",
+  "domain": "wan-30.com",
+  "category": "ai-video",
+  "subcategory": "text-to-video generation",
+  "tagline": "Web app that runs Alibaba's Wan video model for you and sells generations by credit.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://wan-30.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The Wan family of video models has open weights, so nothing about the generation itself is a secret this site owns. What it sells is a queue, a GPU fleet, and a text box you do not have to install, which is a real service even if it is a thin one. An agent can absolutely build you a local prompt-to-video queue with a job list, seeds, and an mp4 gallery in a weekend. The catch is inference: text-to-video at usable resolution wants a fat GPU and patience, and if you rent one you have re-created a smaller, worse version of what you were paying for. Build it if you already own the hardware or generate enough clips to care about per-credit pricing.",
+  "coreLoopDIY": "A local web UI that takes a prompt, queues it against a locally loaded Wan text-to-video pipeline, and drops finished mp4 files into a browsable gallery with the seed and settings attached.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with a lot of VRAM, or a rented GPU box billed by the hour",
+    "Model weights downloaded locally (tens of GB)",
+    "Python, CUDA drivers, ffmpeg",
+    "Tolerance for multi-minute renders and out-of-memory errors"
+  ],
+  "whatYouLose": [
+    "Instant results: their fleet parallelizes, your single card does not",
+    "Whatever prompt presets, resolution ladders, and upscale or audio passes they bolted on top",
+    "Free upgrades when a new model version lands, and someone else's job tuning it",
+    "Generating anything from your phone without exposing a home server",
+    "A support channel when the pipeline breaks after a dependency bump"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The GPU fleet is the product. The model underneath is open weights that anyone, including you, can download.",
+  "whyPeopleStillPay": "Video inference is the rare workload where renting genuinely beats owning for most people. A card that renders Wan clips at a tolerable speed costs more than years of credits, sits idle between sessions, and needs a person who enjoys debugging CUDA. Paying per clip converts a hardware purchase plus a hobby into a line item, and hosted wrappers also absorb the churn every time the upstream model changes shape. The value is convenience and amortized silicon, not cleverness.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Unofficial wrapper around open-weight Wan models, so the only thing you cannot clone is the hardware bill.",
+  "prompt": "Build a local text-to-video studio for open-weight Wan models. Single machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Uvicorn\n- diffusers plus torch with CUDA for inference\n- SQLite via sqlite3 for the job table\n- One static index.html with vanilla JS and fetch polling, no build step\n- ffmpeg via subprocess for frame-to-mp4 encoding\n\nBehavior:\n- POST /jobs accepts prompt, negative_prompt, num_frames, fps, steps, guidance, seed (null means random) and inserts a row with status queued\n- A single background worker thread processes jobs one at a time, FIFO, loading the pipeline once and keeping it resident\n- Job statuses: queued, running, done, failed. Store the error string on failure\n- Finished videos land in ./outputs/{job_id}.mp4 alongside a {job_id}.json with every setting and the resolved seed\n- GET /jobs returns the list newest first, GET /outputs serves the files\n- UI: prompt box, collapsible advanced settings, a queue list that polls every 2 seconds, and a gallery of finished clips with inline video players and a \"reuse settings\" button that refills the form\n\nRules:\n- Model id or local weights path comes from .env (MODEL_PATH, DEVICE, DTYPE). Ship .env.example, never hardcode paths\n- On startup, log VRAM available and fail loudly with a readable message if the model cannot load\n- Support offload flags for low-VRAM cards, read from .env\n- Out of scope: users, auth, billing, image-to-video, upscaling, audio, multi-GPU, remote API fallbacks\n- README with exact install commands, the weights download step, and a note that a first render may take many minutes",
+  "promptCurated": false
+}
