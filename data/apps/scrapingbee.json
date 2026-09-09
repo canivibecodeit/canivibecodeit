@@ -1,0 +1,51 @@
+{
+  "slug": "scrapingbee",
+  "name": "ScrapingBee",
+  "domain": "scrapingbee.com",
+  "category": "dev-tools",
+  "subcategory": "web scraping API",
+  "tagline": "An HTTP API that fetches web pages for you with headless browser rendering, proxy rotation, and anti-bot handling.",
+  "priceMonthly": 49,
+  "pricing": {
+    "plan": "Freelance",
+    "basis": "monthly, credit-based",
+    "unit": "usage",
+    "source": "https://scrapingbee.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The API surface is genuinely trivial: an agent can hand you a local Playwright service with URL fetching, JS rendering, CSS/XPath extraction, screenshots, caching, and a retry queue in one sitting. For scraping your own dashboards, docs sites, sleepy blogs, and anything without a bot wall, that local service is strictly better because it is free and you control it. What you cannot one-shot is the part people actually buy: a large rotating pool of datacenter and residential IPs, plus the constantly maintained fingerprinting and challenge-solving tricks that keep Cloudflare and DataDome from returning a 403. You can rent proxies separately and bolt them on, but then you are maintaining an anti-bot arms race as a hobby. Build it for the easy 80 percent, pay someone when a target starts fighting back.",
+  "coreLoopDIY": "A local HTTP service that takes a URL plus extraction rules and returns rendered HTML, structured JSON, or a screenshot via a pooled headless browser.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and enough disk for a Chromium download",
+    "A machine that can stay on if you want it always available",
+    "Optional: your own proxy credentials in .env if targets block your IP"
+  ],
+  "whatYouLose": [
+    "A rotating IP pool, which is the actual product; your home or VPS IP gets burned fast",
+    "Ongoing anti-bot maintenance: fingerprint patching, TLS/JA3 shaping, challenge handling",
+    "Concurrency at scale without you babysitting browser memory",
+    "Geo-targeted requests from arbitrary countries",
+    "Someone else's problem when a scrape starts silently returning captcha pages"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is IP inventory and the unglamorous ban-rate tuning behind it, not the API design, which is about nine endpoints of surface area.",
+  "whyPeopleStillPay": "Because scraping is not a code problem, it is an adversarial infrastructure problem. The Playwright part takes an afternoon; keeping a stable success rate against targets that actively hunt automated traffic takes a proxy budget and someone whose job it is to notice when the success rate drops from 97 to 60 percent. Paying per successful request also turns an unbounded maintenance liability into a line item, which is why teams keep the subscription even after building their own scraper twice.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the local version first and see how far your own IP gets you · the answer varies wildly by target.",
+  "prompt": "Build a local web scraping service called \"beelocal\" in an empty folder.\n\nStack, no substitutions: Node 20, TypeScript, Express, Playwright (Chromium only), better-sqlite3 for the cache. No Docker, no cloud, no accounts, no telemetry.\n\nWhat it does:\n1. POST /scrape accepting JSON: { url, render (bool, default true), waitFor (CSS selector, optional), timeoutMs (default 30000), extract (optional map of name to { selector, attr, all }), screenshot (bool), blockResources (bool, default true, blocks images/fonts/media) }.\n2. If render is false, do a plain fetch with a realistic User-Agent and return the raw HTML.\n3. If render is true, use a persistent pool of at most 3 Chromium contexts, reused across requests, with a queue so extra requests wait instead of spawning browsers.\n4. Response JSON: { url, finalUrl, status, html (omitted when extract is present unless includeHtml is true), data (extraction results), screenshotPath, timingMs, cached (bool) }.\n5. Cache successful responses in SQLite keyed by a hash of the request body, with a TTL from CACHE_TTL_SECONDS in .env, default 3600. Support a \"noCache\": true override.\n6. Retry twice on network errors or 5xx with exponential backoff. Do not retry 4xx.\n7. If PROXY_URL is set in .env, route Chromium and fetch through it. If it is empty, go direct. Never hardcode credentials.\n8. GET /health returns pool status and queue depth.\n\nHonesty requirements:\n- Detect likely bot walls: if the response body matches known challenge markers (Cloudflare, DataDome, PerimeterX, \"Just a moment\", captcha iframes), return status 200 with { blocked: true, reason } instead of pretending success.\n- Respect a ROBOTS_MODE env var: \"warn\" (default, log a warning) or \"enforce\" (refuse disallowed paths). Fetch and cache robots.txt per host.\n- Rate limit per hostname: at most 1 request per second by default, configurable.\n\nAlso produce: a .env.example, a CLI script \"npm run scrape -- URL --selector X\" that hits the local server, and a README that states plainly this uses your own IP, has no proxy rotation, and will get blocked by well defended sites.\n\nOut of scope: user accounts, a web UI, distributed workers, captcha solving, residential proxy management.",
+  "promptCurated": false
+}
