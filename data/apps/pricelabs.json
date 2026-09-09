@@ -1,0 +1,52 @@
+{
+  "slug": "pricelabs",
+  "name": "PriceLabs",
+  "domain": "pricelabs.co",
+  "category": "travel",
+  "subcategory": "short-term rental revenue management",
+  "tagline": "Dynamic pricing and market data for short-term rental hosts, with automatic price pushes to Airbnb, Vrbo and PMS platforms.",
+  "priceMonthly": 19.99,
+  "pricing": {
+    "plan": "Dynamic Pricing",
+    "basis": "monthly per listing",
+    "unit": "usage",
+    "source": "https://hello.pricelabs.co/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Billed per listing, with separate cheaper market dashboard tiers and volume discounts.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of PriceLabs, a seasonality curve, a day of week multiplier, a last minute discount ramp and a min/max floor, is genuinely simple math you could write in an afternoon. The part you cannot write is the market data: comp set occupancy, forward looking booking pace and realized rates across hundreds of thousands of listings, gathered continuously. The other part you cannot write is the write path, since pushing a nightly price into Airbnb or Vrbo happens through partner level API access that individual hosts do not get. So a DIY build ends as a spreadsheet with opinions: it can suggest, it cannot see the market and it cannot execute. For one or two listings that may be fine, and for ten it turns into a daily copy paste chore.",
+  "coreLoopDIY": "A local tool that ingests your own booking and calendar history plus manually entered competitor prices, then generates a 365 day suggested nightly rate calendar you enter into Airbnb by hand.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and SQLite locally",
+    "Your Airbnb or Vrbo calendar iCal export URL for your own listing",
+    "A CSV export of your past reservations and payouts",
+    "Willingness to hand enter or spot check competitor prices"
+  ],
+  "whatYouLose": [
+    "Automatic price pushes to Airbnb, Vrbo and Booking.com, which need partner API access you cannot get as an individual",
+    "Real market data: comp set occupancy, forward booking pace and realized ADR for your neighborhood",
+    "Event and holiday detection that actually knows a marathon is in town next April",
+    "Continuous daily repricing without you sitting down to paste numbers",
+    "Portfolio views, min stay rules synced to channels, and a support team when a rule misfires"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The pricing model is the cheap half. The data pipeline and the partner integrations that let a third party write prices into a booking channel are the expensive half.",
+  "whyPeopleStillPay": "Because the alternative is not a nicer algorithm, it is you checking prices every morning. Hosts pay roughly the cost of one extra booked night per month to have prices move while they sleep, informed by what comparable listings in their market are actually getting rather than what they guess. The moment you own more than a couple of units, the manual version stops being a hobby project and becomes an unpaid job with a revenue penalty attached.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pricing curve is a weekend build; the market it prices against is not. The moat is a continuously harvested comp set plus channel partner access that lets prices actually get written back.",
+  "prompt": "Build a local short-term rental pricing assistant called \"rateplan\". Single user, runs on my laptop, no accounts, no cloud, no telemetry.\n\nStack, no substitutions: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, plain CSS. Charts with a single inline SVG helper, no JS frameworks. requirements.txt only.\n\nData in:\n1. An iCal URL for my own listing (Airbnb and Vrbo both expose one). Fetch it, parse blocked vs booked ranges, store as occupancy history.\n2. A reservations CSV importer: columns date_from, date_to, nights, payout, channel. Map to realized nightly rate.\n3. A manual comp table: I add competitor listings by name and enter observed nightly prices for a date and a snapshot day. This is hand entered on purpose. Do not scrape Airbnb, do not pretend to have market data.\n\nPricing engine, pure Python, deterministic, in one file with unit tests:\n- base_rate configurable per listing\n- month seasonality multipliers (12 values, editable in the UI)\n- day of week multipliers (7 values)\n- last minute ramp: discount curve by days-until-arrival, applied only to unbooked nights\n- orphan gap bump for 1 and 2 night holes between bookings\n- manual date overrides table for known events and holidays\n- hard min and max price clamps, applied last\n- output: suggested price per night for the next 365 days, plus a reason string per night explaining which rules fired\n\nUI, four pages: dashboard (occupancy and realized ADR by month), calendar (365 day grid, suggested price, reason on hover), settings (all multipliers and clamps), comps (enter and view competitor observations next to my suggestion for the same night).\n\nExport: CSV and a printable \"changes only\" list showing nights where the suggestion differs from my last exported value by more than 5 percent, so hand entry stays short.\n\nExplicitly out of scope: any write path to Airbnb, Vrbo or a PMS, any scraping, any real market dataset, multi-user auth, mobile app.\n\nSecrets and config in .env (ICAL_URL, DB_PATH). Ship a README with setup, a seed script with fake data, and be blunt in the README that prices must be entered into the channel by hand.",
+  "promptCurated": false
+}
