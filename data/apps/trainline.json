@@ -1,0 +1,52 @@
+{
+  "slug": "trainline",
+  "name": "Trainline",
+  "domain": "thetrainline.com",
+  "category": "travel",
+  "subcategory": "rail ticket retail",
+  "tagline": "Search, book and hold train and coach tickets across UK and European rail operators in one app.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://trainline.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Trainline is free to install and monetises through booking fees, card fees and business accounts, so there is no meaningful monthly figure.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Trainline is not really software you replace, it is a licensed ticket retailer with software attached. The hard part is not the journey planner, it is being accredited to issue valid tickets on dozens of national operators, settle money with them, and hand you a barcode a guard will accept. An agent can absolutely build you a timetable search and a fare watcher on top of public rail data, and that covers a surprising amount of daily use. What it cannot do is sell you the ticket, refund it, or rebook you when the 07:42 is cancelled. Build the planner, keep the app for the actual purchase.",
+  "coreLoopDIY": "A local journey planner and fare watcher that queries public rail timetable and live departure feeds, saves your regular routes, and emails you when a watched fare or schedule changes.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API credentials for a rail data feed (for the UK, Rail Data Marketplace / Darwin live departures)",
+    "A static timetable dataset for offline planning, loaded into SQLite",
+    "An SMTP account or local mail sink for alerts",
+    "Node 20 and a machine or small VPS that can run a scheduled job"
+  ],
+  "whatYouLose": [
+    "Actually buying a ticket: no retailing licence, no barcode, no ticket on rails",
+    "Split ticketing and advance fare optimisation across operators, which is where most of the money is saved",
+    "Refunds, changes, Delay Repay claims and anything involving customer service",
+    "Pan-European coverage: Renfe, SNCF, Trenitalia, DB and friends all under one search",
+    "Mobile ticket wallet, offline barcodes and Apple/Google Pay checkout"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Ticket retail accreditation plus settlement with each operator is the whole business. The consumer app is the thin part.",
+  "whyPeopleStillPay": "Most people do not pay Trainline anything obvious, they pay a small booking fee and get a barcode that works at a barrier, which is worth more than it sounds. The value is that one interface covers dozens of operators with different fare rules, one refund flow covers all of them, and someone else absorbed the years of commercial agreements needed to make that legal. Your self-built planner can tell you exactly which train to catch and what it should cost, and that genuinely reduces how often you open the app. It just cannot be the thing you show a guard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The journey planner is a weekend build; the ticket is not. The moat is being an accredited rail retailer with settlement deals across every operator, which no amount of code gets you.",
+  "prompt": "Build a local rail journey planner and fare watcher. Single stack, no menus: TypeScript, Node 20, Fastify for the HTTP layer, SQLite via better-sqlite3, server-rendered HTML with plain templates and a little vanilla JS. No React, no Docker, no cloud accounts.\n\nWhat it does:\n1. Ingest a static rail timetable dataset (GTFS-style zip: stops, trips, stop_times, calendar) from a local ./data folder into SQLite with a one-command importer: npm run import.\n2. Offer a search page: origin station, destination station, date, time, and direction (depart after / arrive before). Return candidate journeys with changes, using a simple time-expanded search over stop_times. Cap at 3 legs and 10 results.\n3. Fetch live departure boards for a station from a configured rail data API when credentials exist in .env (RAIL_API_URL, RAIL_API_KEY). If credentials are missing, show timetable-only results and say so plainly on the page. Cache live responses for 60 seconds.\n4. Let me save named routes (\"home to work\") and show a dashboard with the next four departures for each, including live delay or cancellation status when available.\n5. A fare watcher: for each saved route I can record a fare I saw, with a note and a date. A scheduled job (node-cron, hourly) re-checks any configured fare endpoint if one is set in .env, stores a history row, and emails me via SMTP when a fare drops more than a configured percentage or a saved departure is cancelled. If no fare endpoint is configured, the watcher only monitors schedule and cancellation changes.\n6. Store everything in ./rail.db. Every table gets created by a migration script run at boot.\n\nExplicitly out of scope: buying tickets, payment, seat reservations, barcodes, refunds, accounts, multi-user auth, telemetry, and any scraping of retailer websites. This is a planner, not a retailer. Do not pretend otherwise in the UI.\n\nDeliverables: README with setup steps, .env.example listing RAIL_API_URL, RAIL_API_KEY, SMTP_URL, ALERT_EMAIL, FARE_DROP_PERCENT. Seed script that imports a small sample timetable so the app runs before I supply real data. Keep the whole thing under about 1200 lines and comment the journey search function, because that is the part I will want to change.",
+  "promptCurated": false
+}
