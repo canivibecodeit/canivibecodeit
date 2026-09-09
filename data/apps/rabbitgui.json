@@ -1,0 +1,50 @@
+{
+  "slug": "rabbitgui",
+  "name": "RabbitGUI",
+  "domain": "rabbitgui.com",
+  "category": "dev-tools",
+  "subcategory": "message queue client",
+  "tagline": "A desktop client for inspecting and managing RabbitMQ brokers without living in the management plugin.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://rabbitgui.com/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "RabbitMQ already exposes everything a client like this needs over a documented HTTP management API, plus AMQP itself for publishing and consuming. That means the entire product surface is a UI over an API you can call from any language, with no proprietary data, no network effect, and no vendor lock-in. An agent can produce a local web UI that lists queues, exchanges and connections, peeks at messages, publishes test payloads and purges queues in a single session. What you will not match quickly is the polish: keyboard-driven navigation, saved connection profiles, message search and replay ergonomics, and the small guardrails that stop you nuking a production queue by accident. If you poke at a broker once a month, build it. If it is your daily cockpit, the polish is worth money.",
+  "coreLoopDIY": "Runs a local web app that proxies the RabbitMQ management API so you can browse vhosts, queues and exchanges, peek and publish messages, and purge or delete queues from a browser tab.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A reachable RabbitMQ broker with the rabbitmq_management plugin enabled",
+    "Broker host, user and password in .env",
+    "Node 20 and a browser"
+  ],
+  "whatYouLose": [
+    "A real desktop app with saved, encrypted connection profiles instead of one broker per .env file",
+    "Message search, replay and shovel-style requeue flows that are fiddly to get right",
+    "Guardrails and confirmations around destructive actions on production brokers",
+    "Multi-cluster and multi-vhost switching that feels fast rather than reloaded",
+    "Someone else keeping up with RabbitMQ 4.x API and stream queue changes"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The management HTTP API is the moat killer here: it is public, stable and complete, so the only defensible part is how good the client feels at 200 queues.",
+  "whyPeopleStillPay": "Because the management plugin UI is fine and also miserable, and a purpose-built client saves ten minutes every time something is stuck in a dead letter queue at an inconvenient hour. Paid clients handle saved profiles, SSH tunnels, TLS quirks and awkward broker versions without you thinking about it, and they treat destructive operations with appropriate paranoia. A local build covers the happy path; the money buys the unhappy paths.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Any product that is a UI over a fully documented open source admin API is structurally one-shottable; the question is only whether you want to maintain it.",
+  "prompt": "Build a local RabbitMQ inspection and management UI. Single project, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- TypeScript everywhere.\n- Backend: Node 20 with Express. It proxies the RabbitMQ HTTP management API (default http://localhost:15672/api) using basic auth.\n- Frontend: Vite + React + plain CSS. No component library, no Tailwind.\n- amqplib for publish and get operations that the management API handles badly.\n- No database. Everything is read live from the broker.\n\nConfig:\n- .env with RABBIT_MGMT_URL, RABBIT_AMQP_URL, RABBIT_USER, RABBIT_PASS, PORT. Ship .env.example, gitignore .env.\n- Credentials never reach the browser. The browser only talks to the local Express server.\n\nFeatures, in scope:\n- Overview page: broker version, node status, message rates, total queue depth.\n- Vhost selector.\n- Queue list: name, messages ready, unacked, consumers, memory. Sortable, filterable by substring.\n- Queue detail: bindings, arguments, consumer list.\n- Peek messages: get up to N messages with requeue true, render payload as text or pretty JSON, show headers and routing key.\n- Publish: pick exchange, routing key, headers, JSON or text body, send via amqplib.\n- Purge queue and delete queue, each behind a typed confirmation of the queue name.\n- Exchange list and connection/channel list, read only.\n- Clear error surfacing when the broker refuses or the management plugin is missing.\n\nOut of scope, do not build:\n- User and permission administration, policies, federation, shovels.\n- Multi-cluster profiles, SSH tunnels, desktop packaging.\n- Auth on the local app itself. Bind to 127.0.0.1 and say so in the README.\n\nDeliver: README with setup, npm run dev starting both servers, and a docker-compose.yml that boots rabbitmq:3-management for local testing.",
+  "promptCurated": false
+}
