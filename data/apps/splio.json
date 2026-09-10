@@ -1,0 +1,52 @@
+{
+  "slug": "splio",
+  "name": "Splio",
+  "domain": "splio.com",
+  "category": "crm",
+  "subcategory": "loyalty and mobile wallet marketing",
+  "tagline": "Customer marketing and loyalty platform for retail brands, including Apple Wallet and Google Wallet loyalty cards with push updates.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://splio.com/en/mobile-wallets/",
+    "checkedOn": "2026-09-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mobile wallet piece looks deceptively small: sign a .pkpass, mint a Google Wallet loyalty object, push an update when points change. An agent can do that in a sitting, but only after you personally join the Apple Developer Program, generate a Pass Type ID certificate, and get approved as a Google Wallet issuer, which is paperwork, not code. The rest of Splio is the actual product: customer data unification, segmentation, consent and GDPR handling, email and SMS delivery at retail volume, and connectors into POS and ecommerce stacks that a brand's ops team already depends on. Nobody buys Splio because generating a pass file is hard. They buy it because the loyalty program, the customer base, and the compliance trail all live in one place that legal has already signed off on.",
+  "coreLoopDIY": "Issues signed Apple Wallet and Google Wallet loyalty cards from a local store of members and points, and pushes an update to the card when the balance changes.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Apple Developer Program membership plus a Pass Type ID certificate and the WWDR intermediate cert",
+    "A Google Wallet API issuer account and a service account key",
+    "A publicly reachable HTTPS host for the Apple pass web service (registration and push endpoints)",
+    "APNs credentials for pass update pushes"
+  ],
+  "whatYouLose": [
+    "Bulk email and SMS sending with deliverability, suppression lists, and consent records",
+    "Segmentation and campaign orchestration over a unified customer profile",
+    "POS, ecommerce, and CRM connectors that keep points in sync with real transactions",
+    "GDPR tooling: consent capture, data subject requests, retention policy, auditability",
+    "Someone to call when Apple or Google changes pass rules and every card in the field breaks"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The wallet SDK is the demo. The connectors into POS and ecommerce, plus the consent and retention plumbing, are what make it a purchase.",
+  "whyPeopleStillPay": "A loyalty program is a promise to customers that their points still exist tomorrow, which means the boring parts matter more than the card. Brands pay for consent records that survive an audit, for sends that land in inboxes rather than spam, for point balances that reconcile with the till at the end of the day, and for a vendor who handles it when Apple deprecates something. A self-hosted pass issuer covers exactly the fun part and none of that. It is genuinely useful if you run a small shop, a climbing gym, or a coffee subscription and want cards in phones without paying per member, but it is not a replacement for a retail marketing stack.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pass generator is a weekend, and it is a real weekend well spent if you have twenty members and not twenty thousand. The moat is the consent trail, the POS connectors, and the fact that a brand's legal team already approved the vendor.",
+  "prompt": "Build a self-hosted loyalty card issuer for a single small business. Stack: TypeScript, Node 20, Fastify, SQLite via better-sqlite3, no ORM. No frontend framework: server-rendered HTML with plain forms and a little vanilla JS.\n\nIn scope:\n1. A members table: id, name, email, points, card serial number, created_at. A simple admin page at /admin to add a member, adjust points, and see a list. Protect /admin with basic auth from ADMIN_USER and ADMIN_PASS in .env.\n2. Apple Wallet: generate a signed .pkpass storeCard using the passkit-generator package. Read APPLE_TEAM_ID, APPLE_PASS_TYPE_ID, and paths to the signer cert, signer key, key passphrase, and WWDR cert from .env. Serve it at /pass/apple/:memberId with the correct content type.\n3. Implement the Apple pass web service endpoints so cards can update: device registration, unregister, list updatable passes, and latest pass. Store device registrations in SQLite. On a points change, send an APNs push to the registered devices for that serial using the pass cert, then let the device refetch.\n4. Google Wallet: create or patch a loyalty class and loyalty object through the Google Wallet REST API using a service account key from GOOGLE_APPLICATION_CREDENTIALS and GOOGLE_ISSUER_ID. Serve an Add to Google Wallet link at /pass/google/:memberId built from a signed JWT.\n5. A public /card/:token page a member can open on a phone showing their balance and both wallet buttons. Tokens are random, unguessable, stored per member.\n\nOut of scope, do not build: email or SMS sending, segmentation, campaign scheduling, analytics dashboards, multi-tenancy, hosted signup flows, any telemetry.\n\nRequirements: all secrets in .env, with a .env.example listing every variable. A README that states plainly that this needs a paid Apple Developer account, a Pass Type ID cert, and an approved Google Wallet issuer account, and that Apple pass updates require a publicly reachable HTTPS host. Include a seed script with three fake members and one integration test that asserts the generated .pkpass is a valid zip containing manifest.json, signature, and pass.json.",
+  "promptCurated": false
+}
