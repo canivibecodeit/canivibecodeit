@@ -1,0 +1,51 @@
+{
+  "slug": "peekly",
+  "name": "Peekly",
+  "domain": "peekly.app",
+  "category": "analytics",
+  "subcategory": "lightweight metrics dashboard",
+  "tagline": "A small app for peeking at your product and site metrics in one place without opening five dashboards.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://peekly.app/",
+    "checkedOn": "2026-09-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The concept is a thin read-only layer over other people's APIs, and that layer is genuinely easy: fetch numbers on a schedule, store them, draw sparklines. An agent will get you a working personal dashboard in a weekend, and for two or three data sources you actually care about it will be fine. The work you are signing up for is not the chart code, it is every connector after the first one: OAuth dances, pagination, rate limits, metric definitions that quietly disagree with each other. You also lose the part that makes a peeking app worth using, which is the two second glance from a phone or a menu bar rather than a browser tab you forget to open. Build it if you want three numbers; pay if you want fifteen.",
+  "coreLoopDIY": "Polls a handful of APIs you hold keys for on a schedule, stores the daily numbers in SQLite, and renders one dense dashboard page with current values and sparklines.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys or tokens for each data source you want, in .env",
+    "Node 20 and a machine or cheap VPS that stays awake to run the poller",
+    "Willingness to write one adapter per source by hand"
+  ],
+  "whatYouLose": [
+    "Prebuilt, maintained connectors: your adapters break silently when an API changes",
+    "Glanceability: no menu bar app, no mobile app, no widget, no push",
+    "Someone else handling rate limits, token refresh and backfill",
+    "Normalized metric definitions across sources, so your numbers may not match the vendor dashboards",
+    "Design polish, which matters more than usual for something whose entire job is being scanned in two seconds"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible part is a long tail of connectors plus a UI tight enough to check reflexively. Neither is hard, both are tedious forever.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Because a metrics peeking tool is only valuable if it is effortless, and effortless means it already speaks to the services you use and lives somewhere you look anyway. A self-hosted dashboard that requires you to open a tab, remember the port and rotate a token every few months is not a peeking tool, it is a chore with charts. The price of these apps is usually small enough that the maintenance you avoid is worth more than the code you would write.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Details here are thin and the category is provisional until someone verifies the current product. The honest gap is connector maintenance, not the dashboard itself.",
+  "prompt": "Build a personal metrics dashboard that runs on my own machine. No accounts, no multi-tenancy, no telemetry, no cloud services beyond the third party APIs I supply keys for.\n\nStack, use exactly this:\n- Next.js 15 with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, file at ./data/metrics.db.\n- node-cron inside a small standalone poller script, run with tsx.\n- No auth. It binds to localhost only.\n\nData model:\n- sources table: id, name, kind, enabled.\n- samples table: id, source_id, metric_key, value (real), captured_at (ISO string). Unique index on (source_id, metric_key, captured_at date).\n\nAdapters:\n- Create src/adapters/ with a single interface: fetchMetrics() returns an array of { metric_key, value }.\n- Implement exactly three adapters as examples: Stripe (net revenue in the last 24h, active subscriptions), GitHub (stars and open issues for one repo), and a generic JSON adapter that hits a URL from config and reads a value out by dot path.\n- Every credential comes from .env. Ship .env.example, never a real key. If a key is missing, the adapter is skipped, not crashed.\n\nPoller:\n- Runs every 30 minutes, writes one sample per metric per run, upserts so reruns do not duplicate the same day.\n- Retries twice with backoff, logs failures to a runs table with the error string. Never lose old samples on failure.\n\nUI, one page at /:\n- A dense grid of cards, one per metric: current value, delta versus 7 days ago, and an inline SVG sparkline of the last 30 days. No chart library.\n- Compact by default, readable at a glance, dark mode on.\n- A /health route returning last successful poll time per source.\n\nOut of scope, do not build: a mobile app, email digests, alerting, user management, an adapter marketplace, or any settings UI. Config lives in config.ts and .env.\n\nFinish with a README: how to add a new adapter in under 20 lines, and how to run the poller under launchd or systemd.",
+  "promptCurated": false
+}
