@@ -1,0 +1,52 @@
+{
+  "slug": "cola",
+  "name": "Cola",
+  "domain": "colaos.ai",
+  "category": "ai-assistant",
+  "subcategory": "multi-model chat and coding workspace",
+  "tagline": "One subscription that fronts several AI models, with a quick mode for one-liners and a deeper mode for grinding through complex coding tasks.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://colaos.ai/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A personal multi-model chat client with your own API keys is genuinely a one-session build: streaming, model switcher, conversation history in SQLite, a two-mode UI. Where it stops being a one-shot is everything that makes it a product for other people: auth, billing, usage metering, per-provider quirks around context limits, rate limits, tool calling, and the specific failure modes each API invents. The bundled-subscription angle also does not survive DIY, because you go back to paying each provider directly at token rates. If you are a heavy single user, that is often cheaper anyway. If you want the deeper iterative mode to actually feel tuned rather than just a longer prompt loop, budget a weekend and expect to keep tinkering.",
+  "coreLoopDIY": "A local web app that talks to several model providers with your own keys, keeps threads in SQLite, and offers a fast one-shot mode plus an iterative refine mode that carries diffs and context forward.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for at least two providers, in .env",
+    "Node 20 and a local SQLite file",
+    "Willingness to pay per token instead of a flat subscription",
+    "Patience for each provider's streaming and error format differences"
+  ],
+  "whatYouLose": [
+    "One bill covering multiple frontier models instead of several metered accounts",
+    "Provider failover, retry, and rate-limit handling that someone else maintains",
+    "Mobile and desktop clients with synced history",
+    "A refine mode that has been tuned against real usage, not just a loop you wrote on Sunday",
+    "Somebody else noticing when a provider silently changes an API or deprecates a model"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part is not the chat box, it is keeping six moving provider APIs from breaking in six different ways on the same afternoon.",
+  "whyPeopleStillPay": "Because model aggregation is boring maintenance work that never ends. Every provider ships a new model, changes a parameter, tightens a rate limit, or invents a new streaming quirk, and a paid product absorbs that so you do not spend Tuesday debugging a 429. Add a single bill, apps on more than one device, and a refinement workflow that has been shaped by other people's complaints, and the subscription is a reasonable trade for anyone who wants to use the tool rather than own it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat UI is a Saturday; the ten years of provider edge cases arrive one incident at a time.",
+  "prompt": "Build a local multi-model AI chat and coding workspace. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Vite + React + TypeScript on the front end, Hono on Node 20 for the API, SQLite via better-sqlite3, Tailwind for styling. Single repo, one npm run dev that starts both.\n\nProviders: read keys from .env (OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY). Write one thin adapter interface with send(messages, model, opts) returning an async iterator of text chunks, then implement it once per provider against their HTTP streaming endpoints. Do not use a giant abstraction library. If a key is missing, hide that provider in the UI instead of crashing.\n\nData model in SQLite: threads (id, title, mode, created_at), messages (id, thread_id, role, content, model, tokens_in, tokens_out, created_at), artifacts (id, thread_id, filename, content, version).\n\nUI, two modes only:\n1. Quick: single input box, one model, streamed answer, no thread sidebar clutter. Enter sends, Cmd+Enter sends and copies the reply.\n2. Deep: left sidebar of threads, main pane chat, right pane an artifact editor. In Deep mode every assistant reply may emit fenced code blocks; parse them, save each as a new artifact version, and show a diff against the previous version. A Refine button resends the current artifact plus the last user instruction so iterations build on the file, not the transcript.\n\nAlso required: model picker per message, per-thread model default, token counts and a running cost estimate using a hardcoded price table in one file, streaming cancel button, retry with exponential backoff on 429 and 5xx, export a thread to markdown.\n\nExplicitly out of scope: auth, billing, usage limits, multi-user, hosted deploy, mobile app, RAG, vector search, agent tool execution.\n\nWrite a README with setup steps, an .env.example, and a note that costs are billed directly by each provider. Keep it runnable after npm install and one migration step.",
+  "promptCurated": false
+}
