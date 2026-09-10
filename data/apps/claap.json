@@ -1,0 +1,53 @@
+{
+  "slug": "claap",
+  "name": "Claap",
+  "domain": "claap.io",
+  "category": "meeting-notes",
+  "subcategory": "sales call recording and deal intelligence",
+  "tagline": "Records sales calls, transcribes and summarizes them with AI, and pushes the notes and deal signals into your CRM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://www.claap.io/",
+    "checkedOn": "2026-09-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is record, transcribe, summarize, file it somewhere searchable, and that is now a solved weekend project: local audio capture, Whisper, one LLM call per transcript, SQLite. Where it stops being easy is everything around the loop: getting a bot reliably into Google Meet, Zoom and Teams calls, surviving each platform's recording consent and API rules, and writing structured fields back into Salesforce or HubSpot without corrupting anyone's pipeline. The deal analytics are less magic than they look, they are mostly prompts run over transcripts you already own, but they only mean anything when a whole team's calls land in one place. A solo build gets you excellent personal call notes and a searchable archive. It does not get you a desktop app, a Chrome extension, a mobile app and a team's shared deal history, and if you are the one person doing this on a sales team, you are the one person doing this on a sales team.",
+  "coreLoopDIY": "Captures your call audio locally, transcribes it with Whisper, generates a structured summary with action items and deal signals, and stores everything in a searchable local archive.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine that can capture system audio plus mic (macOS needs a virtual audio device, Linux needs PulseAudio loopback)",
+    "Whisper running locally or an API key for a hosted transcription service",
+    "An LLM API key, or Ollama if you want it fully offline",
+    "Consent from whoever is on the call, which is a legal requirement in plenty of places, not a nicety",
+    "CRM API credentials if you want writeback, which is the part that will eat your weekend"
+  ],
+  "whatYouLose": [
+    "Meeting bots that join Meet, Zoom and Teams on their own and record without you babysitting a local recorder",
+    "CRM writeback that actually maps to your objects and fields instead of dumping a text blob into a note",
+    "Team-wide rollups: coaching views, talk ratios across reps, pipeline risk across everyone's calls, not just yours",
+    "Desktop app, Chrome extension and mobile, so no call notes on your phone in the parking lot",
+    "Email and calendar context stitched onto the same account timeline, which is where most of the deal narrative actually lives"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "switching-costs"
+  ],
+  "moatNotes": "The hard engineering is not the AI, it is the meeting bot fleet and the CRM object mapping. Both are maintenance forever, not a one-time build.",
+  "whyPeopleStillPay": "Sales teams pay for this because the value is aggregation, not transcription. One rep's call notes are a nice-to-have; every rep's calls, indexed and linked to CRM opportunities, is how a manager runs a forecast and coaches a team. On top of that, the recording plumbing is genuinely miserable: platform APIs change, bots get kicked, consent rules differ by jurisdiction, and CRM field mapping is a project. Paying per seat is cheaper than owning that treadmill, and the archive itself becomes the switching cost within about a quarter.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Your own call notes are a weekend. A team's shared deal history plus working CRM writeback is the actual product.",
+  "prompt": "Build a local-first sales call recorder and AI note taker. Single user, runs on my laptop, no accounts, no cloud dashboard, no telemetry.\n\nStack, non-negotiable: Python 3.11, FastAPI backend, SQLite via sqlite3 (no ORM), server-rendered Jinja2 templates with a little vanilla JS. ffmpeg for audio. faster-whisper for transcription. One LLM provider called over HTTP.\n\nWhat it does:\n1. A record page with Start and Stop. Start shells out to ffmpeg to capture the selected input device to a mono 16kHz WAV in ./recordings. Let me pick the device from a dropdown populated by ffmpeg device enumeration. Document in the README how to route system audio into that input on macOS (BlackHole) and Linux (PulseAudio loopback module).\n2. On Stop, queue the file for processing in a background thread. Transcribe with faster-whisper, small model by default, model name in .env. Store segments with start time, end time, and speaker label if diarization is available, otherwise a single speaker.\n3. Send the transcript to the LLM with one prompt that returns strict JSON: summary, bullet key points, action items with owner, questions the prospect asked, objections raised, next step, and a deal risk note. Store the raw JSON and render it.\n4. Meeting list page: title, date, duration, summary snippet, search box. Search over transcript text using SQLite FTS5.\n5. Meeting detail page: summary panel, action items as checkboxes that persist, full transcript with clickable timestamps that seek an audio player.\n6. Export: a Markdown file per meeting on demand, plus a copy-to-clipboard button.\n\nExplicitly out of scope, do not build: meeting bots that join Zoom, Meet or Teams; CRM integrations; auth; multi-user; mobile; browser extension; speaker identity across meetings.\n\nSecrets: LLM_API_KEY, LLM_MODEL, WHISPER_MODEL in .env, loaded with python-dotenv, .env in .gitignore with a .env.example committed.\n\nDeliver: requirements.txt, a single `python -m app` entry point serving on localhost:8000, schema created on first run, and a README that includes a blunt one-paragraph warning that recording calls without telling the other party is illegal in a lot of places.",
+  "promptCurated": false
+}
