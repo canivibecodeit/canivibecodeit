@@ -1,0 +1,51 @@
+{
+  "slug": "power-bi",
+  "name": "Power BI",
+  "domain": "powerbi.com",
+  "category": "analytics",
+  "subcategory": "business intelligence",
+  "tagline": "Microsoft's BI platform for modeling, dashboards and shared reports over enterprise data.",
+  "priceMonthly": 14,
+  "pricing": {
+    "plan": "Power BI Pro",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://app.powerbi.com/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a personal dashboard app that reads a CSV or a Postgres table and draws charts, and for one person that is often enough. What you cannot one-shot is the rest of Power BI: the DAX engine, incremental refresh over billions of rows, row-level security, dataset sharing, gateways to on-prem SQL, and the Entra ID tenant that makes IT sign off on it. Most people who pay for Power BI are not paying for charts, they are paying because the company's data already lives in the Microsoft estate and the governance story is already approved. A local build replaces your own analysis loop, not the org's reporting layer. Honest answer: build the dashboard, keep the license if anyone else has to read it.",
+  "coreLoopDIY": "A local web app that connects to your Postgres or a folder of CSVs, lets you write SQL, and pins the results as saved charts on a dashboard grid.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node or Python runtime locally",
+    "a data source you already control: Postgres, SQLite or CSV files",
+    "some willingness to write SQL instead of clicking a visual query builder"
+  ],
+  "whatYouLose": [
+    "DAX, measures and the semantic model layer that non-SQL people can actually use",
+    "Refresh scheduling and gateways into on-prem or cloud enterprise sources",
+    "Row-level security, workspaces, and sharing a report with 200 colleagues",
+    "Excel and Teams integration, which is the real reason it spread inside companies",
+    "Mobile apps and the polished visual library nobody wants to reimplement"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The product is welded to the Microsoft tenant: identity, Excel, Teams, Fabric, Azure data sources. That bundle is the feature.",
+  "whyPeopleStillPay": "Power BI wins on procurement, not on charting. If a company already pays Microsoft, a Pro seat is a rounding error and the security review is already done, so the marginal cost of the official tool is lower than the political cost of introducing anything else. On top of that, reports are consumed by people who will never write SQL, and the semantic model plus refresh plus permissions is exactly the boring plumbing that a personal build skips. You can replace your own analysis. You cannot replace your finance director's bookmarked dashboard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Charting is a weekend; the semantic model, the refresh pipeline and the tenant are not. The moat is that it ships inside the Microsoft estate, with identity, Excel and governance already approved.",
+  "prompt": "Build a local single-user BI dashboard called \"minibi\". Stack: Python 3.11, FastAPI backend, SQLite for app state, Vite + React + TypeScript frontend, ECharts for visuals. No accounts, no cloud, no telemetry.\n\nData sources:\n- Read connection settings from .env: DATABASE_URL for an optional Postgres source, and DATA_DIR for a folder of CSV/Parquet files.\n- Use DuckDB as the query engine. Register every file in DATA_DIR as a view named after the file. If DATABASE_URL is set, attach it via the DuckDB postgres extension.\n- Expose GET /api/schema returning tables and columns.\n\nQuerying:\n- POST /api/query takes raw SQL, runs it read-only against DuckDB with a row cap of 50000 and a 30 second timeout, returns columns plus rows plus timing.\n- Reject anything that is not a SELECT or WITH statement.\n\nDashboards:\n- SQLite tables: dashboards, cards. A card stores title, SQL, chart type (table, line, bar, area, pie, big-number), x field, y fields, and grid position.\n- CRUD endpoints for dashboards and cards.\n- Frontend: a SQL editor page with results table and a \"pin to dashboard\" action, and a dashboard page rendering cards in a draggable, resizable grid (react-grid-layout). Cards refetch on load and on a manual refresh button.\n- Add one dashboard-level date range filter that is injected as :start and :end bind parameters when the SQL references them.\n\nExport: a button per card to download results as CSV, and one to copy the SQL.\n\nExplicitly out of scope: multi-user auth, sharing links, scheduled refresh, a drag-and-drop visual query builder, DAX or any measure language, mobile layouts.\n\nDeliver: docker-compose.yml, .env.example, README with a quickstart, and seed script that drops two sample CSVs into DATA_DIR so the app is useful on first run. Include a smoke test that boots the API, runs a query, and creates a card.",
+  "promptCurated": false
+}
