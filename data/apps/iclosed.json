@@ -1,0 +1,54 @@
+{
+  "slug": "iclosed",
+  "name": "iClosed",
+  "domain": "iclosed.io",
+  "category": "scheduling",
+  "subcategory": "sales booking and lead qualification",
+  "tagline": "Booking pages for sales teams that qualify, route and track leads before the call gets on the calendar.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.iclosed.io/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible surface is a booking page: availability rules, a qualification form, a confirmation email, a calendar hold. An agent will get you that in a session, and for one person selling one thing it is genuinely enough. The gaps are the boring parts that eat a weekend and then some: two way Google or Microsoft calendar sync, timezone and DST correctness, reschedule and cancel links, SMS reminders, and the lead routing logic that decides who gets the call. iClosed's actual pitch is the layer after booking, disqualifying junk leads, tracking show rate and closed revenue per traffic source, which is a data plumbing job rather than a UI job. Solo consultant: build it. Sales team with paid traffic and a CRM: you are rebuilding a pipeline tool, not a booking page.",
+  "coreLoopDIY": "Publishes a personal booking page with weekly availability, a qualification questionnaire that can auto reject, and confirmation plus reminder emails, with events written to your calendar via an ICS feed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node hosting somewhere always on",
+    "SQLite file or Postgres",
+    "SMTP credentials for transactional email",
+    "Optional Google Calendar OAuth refresh token for real two way sync",
+    "A domain if you want the link to look legitimate"
+  ],
+  "whatYouLose": [
+    "Round robin and priority routing across a team of reps",
+    "CRM and ad platform attribution, so no revenue per lead source reporting",
+    "SMS reminders and no show workflows that actually reduce no shows",
+    "Payment collection or deposits at booking time",
+    "Video conferencing links created automatically per meeting",
+    "Someone else owning timezone, DST and double booking edge cases"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the calendar grid, it is being wired into calendars, CRMs, ad pixels and payment rails at the same time without breaking.",
+  "whyPeopleStillPay": "Because a missed or double booked sales call costs more than the subscription, and because the reporting is what justifies ad spend. A homegrown page that silently drops a DST edge case or fails to write to a rep's calendar is a revenue bug, not a side project bug. Teams also pay for the qualification and attribution layer: knowing which campaign produced calls that closed is the thing being sold, and that requires plumbing into systems you do not control.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for one person and one call type; the moment a second rep needs routing you are writing a scheduler, not a form.",
+  "prompt": "Build a self hosted personal booking page. Stack: Next.js App Router with TypeScript, SQLite via better-sqlite3, Tailwind for styling, nodemailer for email. No auth provider, no analytics, no telemetry.\n\nIn scope:\n1. Config file config.ts for my name, timezone, meeting types (name, duration, buffer minutes), and weekly availability windows per weekday.\n2. Public page /book/[meetingType] showing the next 21 days of open slots, rendered in the visitor's detected timezone with an explicit timezone selector. Use date-fns-tz for all conversions and do every internal calculation in UTC.\n3. Slot generation excludes existing bookings, buffers, and a blackout_dates table.\n4. Qualification step before slot selection: questions defined in config, each with optional disqualify rules (for example budget answer below a threshold). Disqualified submissions get a polite decline page and are still stored with status 'rejected' so I can review them.\n5. Booking writes to SQLite, sends confirmation email to me and the invitee via SMTP, and includes signed reschedule and cancel links (HMAC token, no login).\n6. An authenticated ICS feed at /api/calendar.ics?key=... listing confirmed bookings, so I can subscribe from Google or Apple Calendar. Read only sync only, do not attempt OAuth.\n7. Admin page at /admin protected by a single password in .env: list bookings, see qualification answers, cancel a booking, add blackout dates.\n8. Simple stats on /admin: bookings per week, rejected count, cancellation count, and a utm_source field captured from the booking URL query string.\n\nOut of scope: team routing, payments, SMS, video links, CRM sync, two way calendar write.\n\nSecrets in .env: SMTP_URL, ADMIN_PASSWORD, ICS_KEY, HMAC_SECRET. Ship a .env.example, a seed script with one meeting type, and a README with local run and deploy steps. Include tests for slot generation across a DST boundary and for double booking prevention.",
+  "promptCurated": false
+}
