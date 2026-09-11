@@ -1,0 +1,53 @@
+{
+  "slug": "tagadapay",
+  "name": "TagadaPay",
+  "domain": "tagadapay.io",
+  "category": "commerce",
+  "subcategory": "payments and checkout infrastructure",
+  "tagline": "Payment and checkout infrastructure for ecommerce brands: hosted checkout, card processing, subscriptions and payout plumbing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://tagadapay.io/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Payment platforms in this space usually price per transaction plus a percentage rather than a flat monthly fee.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "You cannot one-shot a payments company, because the product is not the checkout page. The product is acquiring relationships, card network rules, PCI scope, fraud and chargeback handling, 3DS flows, retries, payouts and the regulatory paperwork that lets money legally move. An agent will happily generate a beautiful checkout UI in twenty minutes, and that UI is the cheapest part of the stack. What you can build is a thin storefront and checkout on top of someone else's licensed processor, which is a real and useful thing to build, just not a replacement. If your actual complaint is the fee percentage, no amount of code fixes that: the fee is rent on a license you do not have.",
+  "coreLoopDIY": "A self-hosted product catalog plus a hosted checkout handoff to Stripe, with webhook-driven order records, receipts and a tiny admin view of orders and refunds.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Stripe account in good standing (or another licensed PSP) with API keys",
+    "A real domain with HTTPS for webhook delivery",
+    "Node 20 and a Postgres or SQLite database",
+    "Somewhere to run a long-lived server, since webhooks do not reach localhost",
+    "Patience for tax, VAT and invoicing rules that you will end up handling by hand"
+  ],
+  "whatYouLose": [
+    "Merchant of record status: chargebacks, disputes and tax liability land on you",
+    "Card network and PCI compliance work, which you now scope yourself or inherit from your PSP",
+    "Smart retries, network tokenization, account updater and the recovery logic that quietly rescues failed subscription charges",
+    "Multi-processor routing and fallback when one acquirer throttles or drops you",
+    "Fraud scoring, velocity rules and the accumulated knowledge of what a bad order looks like"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The interesting moat is boring: banking relationships and the ability to keep an account alive for high-risk or high-volume merchants. Code is not the constraint.",
+  "whyPeopleStillPay": "Because moving money is a licensed activity with counterparties who can turn you off without explanation. People pay a payments platform to be the entity that argues with acquirers, absorbs PCI scope, handles disputes, files the tax paperwork and keeps conversion up through retries and localized payment methods. Every one of those is a process with humans and contracts behind it, not a feature you ship. Self-hosting the checkout form saves you nothing, since the form was never the expensive part.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The checkout page is a weekend; the license to take the card is not. The moat is acquiring relationships, PCI scope and being the legal entity that eats the chargeback.",
+  "prompt": "Build a self-hosted storefront and checkout service. This is a consolation build: it does NOT process cards itself, it hands off to Stripe, which stays the licensed processor.\n\nStack, no substitutions:\n- Node 20, TypeScript, Fastify for the API\n- SQLite via better-sqlite3, single file at ./data/store.db, migrations as plain .sql files run at boot\n- Server-rendered pages with Eta templates and plain CSS, no frontend framework\n- Stripe Node SDK, Stripe Checkout Sessions in hosted mode\n\nWhat is in scope:\n1. Product catalog: products and prices in SQLite, seeded from ./seed/products.json. Fields: sku, name, description, unit amount in minor units, currency, active, optional recurring interval.\n2. Public pages: product list, product detail, cart held in a signed cookie.\n3. Checkout: POST /checkout creates a Stripe Checkout Session from cart contents, supports one-time and subscription line items, redirects to the Stripe hosted page. Success and cancel URLs return to local pages.\n4. Webhook endpoint POST /webhooks/stripe with signature verification using the raw body. Handle checkout.session.completed, invoice.paid, invoice.payment_failed, charge.refunded, customer.subscription.deleted. Idempotent by Stripe event id, stored in a processed_events table.\n5. Orders and customers tables written from webhook data only, never from the browser redirect. Redirect pages read state, they do not mutate it.\n6. Receipt emails via a pluggable sender: default writes .eml files to ./outbox, optional SMTP if SMTP_URL is set.\n7. Admin at /admin behind HTTP basic auth from env: order list, order detail, issue a full or partial refund through the Stripe API, CSV export of orders.\n8. A scripts/replay.ts that re-fetches recent Stripe events and replays any this instance missed.\n\nExplicitly out of scope, do not build it: card fields or any PAN touching code, stored payment methods, dunning logic, tax calculation, multi-currency conversion, analytics, telemetry, user accounts for shoppers.\n\nConfig only via .env, read with a fail-fast schema check at boot: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, BASE_URL, ADMIN_USER, ADMIN_PASS, COOKIE_SECRET, optional SMTP_URL. Commit .env.example, never .env.\n\nDeliver a README that states plainly: Stripe is the merchant of record boundary here, disputes and tax are the operator's problem, and webhooks require a public HTTPS URL so document the stripe CLI listen command for local work. Include a test suite with node:test covering webhook signature rejection, event idempotency, and cart total math.",
+  "promptCurated": false
+}
