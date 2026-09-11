@@ -1,0 +1,52 @@
+{
+  "slug": "whmcs",
+  "name": "WHMCS",
+  "domain": "whmcs.com",
+  "category": "hosting",
+  "subcategory": "billing and client automation for hosts",
+  "tagline": "Self-hosted billing, provisioning and support platform for web hosting and domain resellers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly license tiered by client count",
+    "unit": "custom",
+    "source": "https://whmcs.com/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If you resell hosting to a dozen clients, the part of WHMCS you actually touch is small: recurring invoices, a card on file, an account created on the server when payment clears, and an email when it fails. That is a weekend build with Stripe plus the WHM API, and it will feel faster than WHMCS because it does one-tenth as much. The gap opens the moment you sell domains, because registrar automation means EPP codes, transfer states, renewal windows and a different API per registrar, none of which you want to own. Add tax rules, dunning, proration on upgrades, a client portal and a ticket system and you are rebuilding a product, not a script. Verdict: fine for your own small book of clients, bad idea for a business you want to grow.",
+  "coreLoopDIY": "Bills a small client list on recurring Stripe subscriptions and provisions or suspends their cPanel accounts automatically based on payment status.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account with webhooks",
+    "WHM/cPanel API token on your server (or another provisioning target)",
+    "SMTP or a transactional email API key",
+    "A small always-on server to host it"
+  ],
+  "whatYouLose": [
+    "Domain registrar automation: registrations, transfers, EPP codes, renewal windows, per-registrar APIs",
+    "Dozens of pre-built payment gateway modules, plus fraud checks and dunning workflows that already work",
+    "The addon and module ecosystem, where someone else has already built your weird edge case",
+    "Tax and invoice compliance across jurisdictions: VAT rules, sequential invoice numbering, credit notes",
+    "A polished client portal with tickets, upgrades, proration and self-service everything"
+  ],
+  "moatTags": [
+    "integrations",
+    "marketplace-liquidity",
+    "switching-costs"
+  ],
+  "moatNotes": "The license fee mostly buys the long tail: registrars, gateways, control panels and third-party modules you would otherwise maintain yourself.",
+  "whyPeopleStillPay": "Because hosting is a low-margin business where the billing system has to be boring and correct, and WHMCS has spent years absorbing the ugly details: a registrar changing its API, a gateway adding 3DS, a tax rule changing in one country, a client who wants to downgrade mid-cycle. A solo reseller can skip all of that with a script. Anyone with real clients and real revenue finds that the license costs less than one weekend a quarter of maintenance, and the module ecosystem means someone else already solved the thing they need next week.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great for the guy reselling hosting to his five freelance clients, bad for anyone who wants to sell domains.",
+  "prompt": "Build a minimal self-hosted hosting billing and provisioning app for a single admin (me) managing a small list of clients.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, schema created on boot with plain SQL migrations in /db\n- Stripe for subscriptions and Checkout, webhooks for payment events\n- Nodemailer over SMTP for email\n- Single admin login: one bcrypt password hash in .env, cookie session, no user table\n\nData model: clients (name, email, stripe_customer_id, status), services (client_id, plan, price, cpanel_username, domain, stripe_subscription_id, status), invoices mirrored from Stripe (id, client_id, amount, status, hosted_url), events (append-only audit log of every provisioning action).\n\nFeatures in scope:\n1. Admin dashboard: list clients, services, and the last 50 events.\n2. Create a client, create a Stripe customer, generate a Stripe Checkout link for a chosen plan, email it.\n3. Webhook handler for checkout.session.completed, invoice.paid, invoice.payment_failed, customer.subscription.deleted.\n4. Provisioning adapter at /lib/provision.ts with createAccount, suspendAccount, unsuspendAccount, terminateAccount. Implement one real adapter against the cPanel WHM JSON API using WHM_HOST and WHM_API_TOKEN, plus a FakeAdapter used when PROVISION_DRIVER=fake.\n5. On first successful payment, create the cPanel account and email credentials. On payment_failed, wait 7 days (a cron route hit by an external scheduler), then suspend. On subscription deleted, suspend immediately and never auto-terminate.\n6. Read-only client page at /c/[token] showing services, status, invoice links and a Stripe billing portal link.\n\nExplicitly out of scope: domain registrar APIs, tax and VAT calculation, ticket system, multi-currency, proration logic, affiliate program, plugin system, multi-admin roles.\n\nAll secrets in .env (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, WHM_HOST, WHM_API_TOKEN, SMTP_URL, ADMIN_PASSWORD_HASH, APP_URL). No telemetry, no analytics, no external services beyond Stripe, SMTP and the WHM host. Include a README with setup steps, how to add a plan, and how to point a cron service at the dunning route.",
+  "promptCurated": false
+}
