@@ -1,0 +1,53 @@
+{
+  "slug": "dropzone",
+  "name": "Dropzone",
+  "domain": "aptonic.com",
+  "category": "productivity-utilities",
+  "subcategory": "macOS drag-and-drop utility",
+  "tagline": "A macOS drop target that runs file actions: move, upload, resize, share, whatever you script.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://aptonic.com/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea is small: a floating grid of tiles, you drop files on a tile, a script runs with those file paths. An agent can get that working in AppKit in a session, and if your real use is \"move these to the archive folder\" or \"upload and copy the link\", you are basically done. What you will not get in one shot is the feel: the grid appearing exactly when you start a drag, the tiles that hold state, the per-action progress and error reporting, the dozens of prebuilt actions that already handle S3, Imgur, Drive, and image conversion. You will also be hand-rolling app bundling and Gatekeeper workarounds, which is where most Mac utility side projects quietly die. Buildable, genuinely useful, noticeably rougher than the thing you were paying for.",
+  "coreLoopDIY": "A menu bar app that pops a grid of user-defined action tiles and pipes dropped file paths into shell scripts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS with Xcode command line tools",
+    "Swift and AppKit basics if you want to change behavior",
+    "Willingness to write your own shell scripts per action",
+    "Ad hoc signing or right-click-open to get past Gatekeeper",
+    "Your own API keys in .env for any upload actions"
+  ],
+  "whatYouLose": [
+    "The library of prebuilt actions and the community action catalog",
+    "Drag-aware UI that appears the moment you pick up a file, not after a hotkey",
+    "Per-tile state, queued transfers, progress bars, and useful failure messages",
+    "Image and file conversion niceties that are already tested against weird inputs",
+    "Signed, notarized, auto-updating builds that just keep working after an OS update"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The value is a decade of small interaction decisions plus a stack of upload integrations nobody wants to re-implement one OAuth flow at a time.",
+  "whyPeopleStillPay": "Because native macOS interaction polish is expensive to reproduce and cheap to buy. A personal clone gets you 70 percent of the function and maybe 20 percent of the feel, and the missing feel is precisely why you liked the app: it is a thing you touch forty times a day. Paying also outsources the annual chore of chasing whatever AppKit and permissions changed in the new OS release.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "If your actual usage is three actions you could write as shell scripts, the clone is a good trade. If it is twelve, buy the thing.",
+  "prompt": "Build a macOS menu bar utility called DropBar: a floating grid of drop tiles that run shell scripts on dropped files.\n\nStack, no alternatives: Swift 5.9+, AppKit, Swift Package Manager executable target. No Xcode project, no SwiftUI, no third party dependencies. Include a build.sh that compiles in release mode and assembles DropBar.app with an Info.plist containing LSUIElement true, then ad hoc signs it with codesign -s -.\n\nBehavior:\n- NSStatusItem in the menu bar with a simple template icon.\n- Clicking the status item, or pressing a global hotkey (Control Shift D, registered via a Carbon hotkey or NSEvent global monitor), shows a borderless always-on-top NSPanel near the mouse containing a grid of tiles, 3 columns, sized to content.\n- The status item itself also accepts dropped files: dropping on the icon opens the grid so the user can then drop on a tile.\n- Each tile shows a name and an emoji or letter glyph. Dragging files over a tile highlights it. Dropping runs that tile's action.\n- Clicking a tile with no drag runs the action with zero file arguments (useful for \"open my downloads folder\" style actions).\n- Esc or clicking outside dismisses the panel.\n\nActions:\n- Loaded from ~/.dropbar/actions/*.sh at launch and on a \"Reload actions\" menu item.\n- Metadata read from leading comment lines: # name:, # glyph:, # accepts: files|folders|any.\n- Executed via /bin/bash with absolute file paths as positional arguments, cwd set to the user's home, environment loaded from ~/.dropbar/.env if present.\n- Run off the main thread. Capture stdout and stderr. On exit code 0 post a user notification with the first line of stdout; on failure post the last line of stderr and log the full output to ~/.dropbar/log.txt.\n- Ship four example actions in a seeds/ folder that build.sh copies to ~/.dropbar/actions if empty: Move to Archive (mkdir and mv into ~/Archive/YYYY-MM), Copy Paths (pbcopy), Resize to 1200px (sips), Open in Terminal.\n\nIn scope: the grid, drag and drop, script execution, notifications, reload, quit.\nOut of scope: cloud upload integrations, OAuth, preferences window, auto-update, notarization, telemetry, analytics, any network calls of any kind. No secrets in code; upload scripts are the user's problem and read keys from ~/.dropbar/.env.\n\nDeliver a README with build steps, the exact right-click-open Gatekeeper instructions, and the action metadata format. Keep the whole thing under roughly 600 lines of Swift and make it actually compile.",
+  "promptCurated": false
+}
