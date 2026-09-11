@@ -1,0 +1,51 @@
+{
+  "slug": "alcove",
+  "name": "Alcove",
+  "domain": "tryalcove.com",
+  "category": "productivity-utilities",
+  "subcategory": "macOS notch widget",
+  "tagline": "A Mac menu bar app that turns the MacBook notch into a Dynamic Island style panel for now playing, media controls, AirDrop and system HUDs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://tryalcove.com/download",
+    "checkedOn": "2026-09-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The concept is a floating borderless window pinned under the notch that expands on hover, which an agent can absolutely scaffold in one sitting. The trouble starts immediately after: now playing metadata and artwork on macOS means the private MediaRemote framework or per-app AppleScript fallbacks, and suppressing the stock volume and brightness HUD is a hack that Apple breaks on a schedule. Then there is the part that is the actual product, which is animation timing, spring curves, hover hysteresis so it does not flicker, and correct behavior across notch and non-notch displays, external monitors, fullscreen apps and Stage Manager. You will get something that works on your machine and looks 80 percent right, and the last 20 percent is where all the time goes. Fine as a weekend toy, annoying as a daily driver unless you enjoy maintaining it.",
+  "coreLoopDIY": "A SwiftUI menu bar app that draws a black panel over the notch area, expands on hover, and shows now playing plus transport controls with a small set of custom widgets.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Mac with Apple silicon and macOS 14 or later",
+    "Xcode 15+ and a free Apple developer account for local signing",
+    "Comfort disabling System Integrity checks is NOT needed, but you will touch private frameworks for now playing",
+    "Accessibility or Screen Recording permission depending on which HUD tricks you use"
+  ],
+  "whatYouLose": [
+    "Reliable now playing across every audio app instead of just Music, Spotify and whatever else you hardcode",
+    "Clean replacement of the system volume and brightness HUD without visual double-draws",
+    "Correct multi-display, fullscreen and non-notch Mac handling out of the box",
+    "Animation polish: the expand and collapse feel is the whole point and it is hard to match",
+    "Updates when a macOS release moves the private APIs or changes notch geometry"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is entirely feel. Nobody buys a notch widget for its feature list, they buy it because the animation does not stutter.",
+  "whyPeopleStillPay": "Because this is a cosmetic utility that lives on screen all day, and a jittery homemade version is worse than nothing. The paid app has already eaten the private API breakage, the external monitor edge cases and the hover thresholds that stop it from flapping open when your cursor passes by. It is also the kind of thing you install once and forget, so a one-time price against a weekend of Swift debugging plus ongoing maintenance is a genuinely reasonable trade unless you specifically want to learn AppKit window hacks.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scaffold is a weekend; the last ten percent of the animation is the product.",
+  "prompt": "Build a macOS menu bar utility called NotchPanel that turns the MacBook notch area into an expandable widget panel.\n\nStack, no alternatives:\n- Swift 5.9+, SwiftUI for views, AppKit for windowing\n- Xcode project, minimum target macOS 14, Apple silicon only\n- No third party dependencies, no network calls, no analytics, no accounts\n\nWhat to build:\n1. An LSUIElement app (no Dock icon) with an NSStatusItem for quit and preferences.\n2. A borderless, non-activating NSPanel at .statusBar window level, ignoresMouseEvents false, opaque black background, positioned centered on the built-in display's notch. Read the display's safeAreaInsets / auxiliaryTopLeftArea to compute notch width and height. If the display has no notch, place the panel flush against the top edge with the same size and log that fact.\n3. Two states: collapsed (matches notch bounds exactly, invisible against the black notch) and expanded (grows down and outward). Drive the transition with a single SwiftUI matchedGeometry-free layout plus .spring(response: 0.35, dampingFraction: 0.72). Resize the NSPanel frame with animation, do not clip content.\n4. Hover detection: an NSTrackingArea over the collapsed region, 0.15s open delay and 0.35s close delay so the panel does not flap. Keep the panel open while the cursor is inside the expanded frame.\n5. Expanded content: now playing (title, artist, artwork, scrubber), previous/play/next buttons, and a volume slider bound to the default output device via CoreAudio.\n6. Now playing source: use ScriptingBridge/AppleScript against Music.app and Spotify.app, polled every 1s while expanded. Put the fetch behind a NowPlayingSource protocol so a MediaRemote implementation can be dropped in later. Do NOT link private frameworks in this build.\n7. Preferences window: toggle for launch at login (SMAppService), expanded panel width, and a toggle to hide the panel while any app is fullscreen on the built-in display.\n\nExplicitly out of scope: replacing or suppressing the system volume/brightness HUD, AirDrop targets, battery or calendar widgets, external display support, notarization, auto-update.\n\nDeliverables: buildable Xcode project, README with exact build and run steps, and a KNOWN-ISSUES.md listing every place the notch geometry or ScriptingBridge assumptions could break. No secrets are needed; if you ever add any, read them from .env.",
+  "promptCurated": false
+}
