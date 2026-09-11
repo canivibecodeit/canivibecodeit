@@ -1,0 +1,50 @@
+{
+  "slug": "can-ai-read-me",
+  "name": "Can AI Read Me",
+  "domain": "canairead.me",
+  "category": "seo-marketing",
+  "subcategory": "AI crawler readability audit",
+  "tagline": "Checks whether AI crawlers and LLM answer engines can actually read your site, then tells you what is blocking them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://canairead.me/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The audit itself is not hard: fetch a page with a normal client, fetch it again spoofing GPTBot and friends, compare what comes back, parse robots.txt, look for llms.txt, diff the raw HTML text against the rendered DOM text to see how much of your content only exists after JavaScript. An agent can write that in a session and it will be genuinely useful on your own handful of domains. The gap is everything past the single-URL check: scheduled crawls of a whole site, historical tracking, and the part people actually want, which is whether ChatGPT or Perplexity cites you when someone asks about your category. That last piece needs paid model calls, query lists, and repeated sampling, and your one-shot build will not have it. Build the reader, not the visibility tracker.",
+  "coreLoopDIY": "Fetches a URL as a browser and as each major AI crawler user agent, parses robots.txt and llms.txt, measures how much text survives without JavaScript, and prints a scored report of what is blocking machine reading.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 or newer",
+    "Playwright browser download for the rendered-DOM comparison",
+    "Outbound network access, and patience with sites behind bot protection"
+  ],
+  "whatYouLose": [
+    "No AI answer visibility tracking: you learn if you are readable, not if you are cited",
+    "No scheduled monitoring or history, so regressions go unnoticed until you re-run it manually",
+    "Site-wide crawling with rate limits and sitemap traversal is extra work past the one-shot",
+    "Bot-protection nuance: real crawler behavior differs from a spoofed user agent, and your results will sometimes lie",
+    "No shareable report link for a client or a boss"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The defensible version of this category is longitudinal data on who gets cited for which prompts. A one-page readability check is a commodity and always has been.",
+  "whyPeopleStillPay": "Because the report is the product, not the code. Paying means someone else keeps up with which crawler user agents matter this quarter, which blocks are Cloudflare's fault versus yours, and what a passing grade even looks like as the answer engines change their ingestion. A local CLI you wrote in an afternoon tells you the truth about one URL today and then quietly rots while the crawler landscape moves. There is also the client-facing angle: a hosted scored report with a URL is worth money in a way that terminal output is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The readability half is a solved afternoon; the citation half is the actual business.",
+  "prompt": "Build a local CLI tool called \"botread\" that audits whether AI crawlers can read a web page.\n\nStack, no substitutions: Node 20, TypeScript, tsx for running, commander for args, undici for HTTP, cheerio for HTML parsing, playwright-chromium for the rendered DOM. No server, no database, no accounts, no telemetry.\n\nUsage: `npx tsx src/index.ts https://example.com --json report.json`\n\nWhat it must do:\n1. Fetch the URL with a normal Chrome user agent. Record status, final URL after redirects, content type, byte size, response time.\n2. Re-fetch the same URL once per bot identity: GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, PerplexityBot, Google-Extended, CCBot, Bingbot. Flag any identity that gets a different status, a challenge page, or a body more than 20 percent smaller than the browser fetch.\n3. Fetch /robots.txt from the origin and evaluate allow/deny for each of those agents against the target path. Handle wildcards and the bare User-agent asterisk group. Report missing robots.txt as fine, not as an error.\n4. Check for /llms.txt and /llms-full.txt and report presence plus first 200 characters.\n5. Extract visible text from the raw HTML with cheerio, dropping script, style, noscript, nav, and footer. Then load the page in Playwright, wait for network idle, and extract visible text from the rendered DOM. Report both word counts and the ratio. A ratio under 0.5 means the content is JavaScript-only, which is the headline finding.\n6. Parse and report: title, meta description, canonical link, h1 list, any JSON-LD blocks with their @type values, and whether a sitemap is declared in robots.txt.\n7. Score the page out of 100 with a fixed, documented rubric in README.md. Print a human-readable report to stdout with clear pass/warn/fail lines, and write full raw findings to the --json path when given.\n\nExplicitly out of scope: site-wide crawling, scheduling, AI answer or citation tracking, hosted reports, any LLM API calls.\n\nHandle timeouts and non-HTML responses without crashing. Ten second cap per request. No secrets needed, but still create an empty .env.example and read nothing else from the environment. Include a README with install steps, the scoring rubric, and an honest limitations section stating that spoofing a user agent is not the same as being the real crawler.",
+  "promptCurated": false
+}
