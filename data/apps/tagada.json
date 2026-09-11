@@ -1,0 +1,52 @@
+{
+  "slug": "tagada",
+  "name": "Tagada",
+  "domain": "tagada.io",
+  "category": "commerce",
+  "subcategory": "checkout and payments",
+  "tagline": "A hosted checkout and payment platform for online sellers: pages, subscriptions, and payment processing in one stack.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://tagada.io/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "You can absolutely one-shot a checkout page. What you cannot one-shot is being allowed to take money. Anything in this category is really a bundle of processor relationships, PCI scope, fraud rules, dispute handling, tax and refund plumbing, and the boring operational muscle that keeps a payout arriving on time. An agent will happily hand you a beautiful Stripe-backed checkout in an afternoon, and that is genuinely useful, but you have not replaced the platform, you have replaced the front end and outsourced the hard part to another payments company. If your volume is small and your needs are plain, the DIY version is fine; if payments failing costs you real revenue, it is not.",
+  "coreLoopDIY": "A self-hosted checkout page plus subscription and order dashboard that wraps Stripe, so you own the storefront logic while Stripe still does the regulated part.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Stripe account (or equivalent processor) with live keys",
+    "A domain and HTTPS hosting for webhooks to reach",
+    "Business entity and tax setup wherever you sell",
+    "Somewhere durable to store orders, not just local SQLite, once real money moves"
+  ],
+  "whatYouLose": [
+    "Payment orchestration: multiple processors, smart routing, retry cascades when one declines",
+    "Fraud and chargeback tooling, plus someone whose job is fighting disputes",
+    "PCI scope offload and audited hosted fields, which you now inherit or push onto your processor",
+    "Local payment methods, currencies, and tax handling for markets you did not think about",
+    "Subscription edge cases: dunning, proration, plan changes, failed renewal recovery"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The interesting assets are processor and acquirer relationships plus risk history, none of which are code.",
+  "whyPeopleStillPay": "Because money moving is the one part of a product where a bug is not a bug, it is a refund, a chargeback fee, a frozen payout, or a regulator. Paying a percentage to a platform that has already argued with acquirers, absorbed fraud patterns across thousands of merchants, and handles dunning without you thinking about it is straightforwardly cheaper than learning those lessons yourself at your own expense. The DIY build is not hard, it is just uninsured.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The checkout UI is a weekend; the ability to get paid reliably is not. The moat is processor relationships, PCI scope, and years of accumulated fraud and dispute handling.",
+  "prompt": "Build a self-hosted checkout and subscription dashboard that wraps Stripe. This is the honest consolation build: Stripe still does the regulated part, I own the storefront and order logic.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript\n- SQLite via Prisma\n- Stripe Node SDK, test mode only\n- Tailwind for styling, no component library\n- Runs with `npm run dev`, deploys as a single Node process\n\nIn scope:\n- Products table: name, description, price in cents, currency, mode (one_time or subscription), interval if subscription\n- Admin page at /admin behind a single password from .env (basic cookie session, no user accounts)\n- Admin can create, edit, archive products, and each product gets a public checkout URL at /p/[slug]\n- /p/[slug] renders a clean product page with a Buy button that creates a Stripe Checkout Session server-side and redirects\n- Stripe webhook route at /api/stripe/webhook that verifies the signature and handles checkout.session.completed, invoice.paid, invoice.payment_failed, customer.subscription.deleted\n- Orders and Subscriptions tables updated only from webhooks, never from the browser redirect\n- /admin/orders list with customer email, amount, status, created date, and Stripe dashboard deep link\n- Customer portal button that creates a Stripe Billing Portal session so people can cancel without emailing me\n- Receipt emails: rely on Stripe's built-in receipts, do not build an email system\n\nOut of scope, do not build: multi-processor routing, fraud scoring, tax calculation, coupon engine, cart with multiple line items, analytics, telemetry.\n\nRules: all secrets in .env (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_PASSWORD), .env.example committed, .env gitignored. Store money as integer cents, never floats. Make webhook handlers idempotent by recording the Stripe event id and ignoring repeats. Write a README with exact steps to run `stripe listen --forward-to` for local webhook testing, and a blunt paragraph on what PCI and dispute responsibilities I am taking on by self-hosting this.",
+  "promptCurated": false
+}
