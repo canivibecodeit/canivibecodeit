@@ -1,0 +1,50 @@
+{
+  "slug": "twitter-api",
+  "name": "TwitterAPI.io",
+  "domain": "twitterapi.io",
+  "category": "dev-tools",
+  "subcategory": "social data API",
+  "tagline": "Third-party REST API for reading X/Twitter tweets, users, followers and search results without the official API's pricing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://twitterapi.io/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit-based usage pricing, no monthly figure confirmed.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The code here is trivial: an HTTP endpoint that returns tweets as JSON. What you are actually buying is continuous, unblocked read access to a platform that spends real money trying to stop exactly that. Replicating it means rotating residential proxies, a pool of warm sessions, and someone on call the night X changes its GraphQL payloads again. An agent can write you a scraper in one sitting and it will work beautifully for about a week. If you need X data as an input to something, pay for the pipe and spend your build time on the thing you actually care about.",
+  "coreLoopDIY": "A local Python CLI that pulls tweets and user timelines from whatever access you already have, official API key or your own archive export, into SQLite with dedupe and full text search.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+",
+    "An official X API bearer token, or a downloaded X archive export, or your own scraping setup you accept full responsibility for",
+    "SQLite (bundled)"
+  ],
+  "whatYouLose": [
+    "Unblocked access at volume: no proxy pool, no session rotation, no one absorbing the ban risk",
+    "Maintenance when X changes its internal endpoints, which is a when and not an if",
+    "Coverage of endpoints the official API gates or prices out of reach, like deep follower lists and historical search",
+    "Predictable latency and uptime under bursty load",
+    "Someone else being the party that violated the terms of service"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The hard part is not parsing JSON, it is staying logged in at scale against a hostile counterparty.",
+  "whyPeopleStillPay": "Because the alternative is either the official API at prices designed to discourage you, or running your own scraping fleet and becoming a part time adversarial infrastructure engineer. Services like this exist in the gap and their whole value proposition is that the breakage is their problem, not yours. For a personal project that needs a few thousand tweets a month, usage pricing on someone else's proxies is almost always cheaper than your weekend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The client library is a fifteen minute build; the ability to keep fetching is not. The moat is a maintained pool of proxies and live sessions plus willingness to be the one breaking the terms of service.",
+  "prompt": "Build a local X/Twitter data cache and search tool in Python 3.11. Empty folder, no framework beyond what is listed.\n\nStack: Python 3.11, httpx, SQLite via the stdlib sqlite3 module, Typer for the CLI, Rich for output. No web UI, no server, no accounts, no telemetry.\n\nData sources, support exactly two and no others:\n1. Official X API v2 with a bearer token from .env (X_BEARER_TOKEN). Implement user lookup by username, user tweet timeline with pagination, and recent search.\n2. A local X archive export directory: parse the tweets.js / tweet.js file (strip the JS assignment prefix, then JSON parse) and import it.\n\nSchema: tables for users (id, username, name, bio, followers_count, fetched_at) and tweets (id, author_id, created_at, text, reply_to_id, like_count, retweet_count, source, raw_json). Add an FTS5 virtual table over tweet text, kept in sync with triggers.\n\nCLI commands:\n- init: create the database at ./data/x.db\n- import-archive PATH: bulk insert from an archive export, idempotent on tweet id\n- fetch-user USERNAME: upsert the user record\n- fetch-timeline USERNAME --max N: page through the timeline, stop at N or when the API stops returning cursors\n- search QUERY: FTS5 search over the local cache, print with Rich, --limit flag\n- fetch-search QUERY --max N: hit the API recent search endpoint and store results\n- stats: row counts, date range, per author totals\n\nRules:\n- All inserts idempotent via INSERT OR REPLACE on id. Never lose raw_json.\n- Respect rate limits: read the x-rate-limit-remaining and x-rate-limit-reset headers, sleep until reset, log what it is doing.\n- Retry 429 and 5xx with exponential backoff, max 5 attempts.\n- Secrets only in .env, loaded with python-dotenv. Ship .env.example.\n- If X_BEARER_TOKEN is missing, the API commands should fail with a clear message, not a stack trace.\n\nExplicitly out of scope: scraping logged-out or logged-in web endpoints, proxy rotation, cookie or session pools, posting, DMs, and follower graph crawling. Do not write those and do not stub them.\n\nDeliver: pyproject.toml, README with setup and every command shown once, and a smoke test that imports a small fixture archive and runs a search offline.",
+  "promptCurated": false
+}
