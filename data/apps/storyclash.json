@@ -1,0 +1,52 @@
+{
+  "slug": "storyclash",
+  "name": "Storyclash",
+  "domain": "storyclash.com",
+  "category": "social-media",
+  "subcategory": "influencer marketing platform",
+  "tagline": "AI influencer discovery and campaign tracking built on a crawled database of creator profiles and their post history.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.storyclash.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Sales-led enterprise pricing, no public number.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is a searchable creator database plus a campaign dashboard, and yes, an agent can build both in an afternoon. The problem is that both are empty. Storyclash's actual product is a continuously crawled corpus of millions of creator profiles with historical posts, stories, audience data and brand mention detection, which exists because they have been ingesting social platforms at scale for years and paying for the access to do it. You cannot recreate discovery ('find me German skincare creators with 3 to 8 percent engagement who have mentioned a competitor') without that corpus, and stories in particular vanish in 24 hours unless someone was watching. What you can build is a tracker for creators you already know by name, which is a genuinely different and much smaller job.",
+  "coreLoopDIY": "A local dashboard that tracks a hand-curated list of creator handles and campaign posts you paste in, computing engagement rates and campaign totals over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A manually curated list of creator handles you already care about",
+    "Official platform API access or tokens where you can get them, plus manual post URL entry as the fallback",
+    "Somewhere to run a nightly job so history accumulates",
+    "Acceptance that story tracking is effectively impossible without constant polling"
+  ],
+  "whatYouLose": [
+    "Discovery: searching creators you have never heard of by niche, country, audience or engagement band",
+    "The historical archive, so your charts start the day you run the script and not before",
+    "Automated brand mention detection across the whole platform, including mentions by creators outside your list",
+    "Story monitoring, which requires 24/7 polling and dies the moment your token or scraper breaks",
+    "Audience demographics and fake-follower scoring, which come from data you do not have"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The corpus compounds daily and the platform API access is a relationship, not an endpoint. Both are things a weekend project structurally cannot start.",
+  "whyPeopleStillPay": "Because the question a marketing team actually asks is 'who should we work with', not 'how did the five creators I already booked perform'. Answering the first one requires a population-level dataset with history, and the second one is a spreadsheet. Add that agencies need to show clients defensible numbers pulled from a third party rather than a self-built script, and that story screenshots are legally the only proof a paid story ever ran, and the invoice stops looking silly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the database behind it is not. The moat is years of continuous social crawling plus the platform access that makes it legal and stable.",
+  "prompt": "Build a local influencer campaign tracker. This is a consolation tool, not a Storyclash clone: it tracks creators I already know by name and has no discovery feature.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, single file at ./data/tracker.db, schema in a migrations file that runs on boot.\n- No auth, no accounts, no telemetry, no hosted services. It runs on localhost.\n\nData model:\n- creators: handle, platform (instagram | tiktok | youtube), display name, notes, tags.\n- snapshots: creator_id, captured_at, follower_count, source ('api' | 'manual').\n- posts: creator_id, platform, url, posted_at, caption, likes, comments, views, is_campaign, campaign_id.\n- campaigns: name, brand, start, end, budget_cents.\n\nIngestion, in priority order:\n1. Paste-a-URL form: I drop in a post URL and type the metrics by hand. This path must always work and must be the fastest one in the UI.\n2. A CSV importer matching the columns above, because platform data exports and agency spreadsheets are how this data actually arrives.\n3. An optional adapter interface for official platform APIs, with tokens read from .env (INSTAGRAM_TOKEN, TIKTOK_TOKEN, YOUTUBE_API_KEY). Ship the interface plus a YouTube Data API implementation only. Stub the others and throw a clear 'not configured' error. Do not write scrapers.\n\nUI, four pages:\n- Creators list with latest follower count, 30-day follower delta, median engagement rate.\n- Creator detail with a follower sparkline and a post table.\n- Campaigns view: posts grouped by campaign, totals for reach proxy, engagements, cost per engagement using budget_cents.\n- Import page for CSV and manual entry.\n\nAlso: a `npm run refresh` script that walks configured adapters, writes new snapshots, and logs failures without crashing. Engagement rate = (likes + comments) / follower_count at capture time; put the formula in a comment so I can argue with it later.\n\nIn the README, state plainly that this tool cannot discover creators, cannot see stories, and has no history before today.",
+  "promptCurated": false
+}
