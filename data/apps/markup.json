@@ -1,0 +1,52 @@
+{
+  "slug": "markup",
+  "name": "Markup",
+  "domain": "markup.io",
+  "category": "design",
+  "subcategory": "visual feedback and annotation",
+  "tagline": "Pin comments directly on websites, images, PDFs and videos so reviewers stop sending vague emails.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.markup.io/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is a pin with a comment thread anchored to coordinates on an asset, and that is genuinely a weekend build. Images and PDFs are easy: upload, render, click to drop a pin, store x/y plus a thread, share a read-write link. Live website review is where it gets ugly, because proxying someone else's site into an iframe fights CSP, breaks on auth walls, and re-anchoring pins across viewport widths is a real engineering problem rather than a Saturday one. You can dodge that by screenshotting the URL with Playwright and annotating the capture, which covers most actual design feedback but loses the interactive click-through review. Video annotation with timestamped pins is doable but adds another day.",
+  "coreLoopDIY": "A self-hosted review board where you upload an image or PDF or paste a URL for a Playwright screenshot, then anyone with the share link drops numbered pins with comment threads and resolves them.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a place to run it that reviewers can reach (VPS or a tunnel)",
+    "Playwright with Chromium installed for URL screenshots",
+    "Local disk or S3-compatible storage for uploads and captures",
+    "Reviewers willing to use a link with a shared secret instead of real accounts"
+  ],
+  "whatYouLose": [
+    "True live-site review: clicking through real pages, hover states, logged-in flows, mobile/tablet/desktop breakpoints with pins that survive reflow",
+    "Video review with timestamped comments and frame-accurate scrubbing",
+    "Integrations that push comments into Jira, Asana, Trello, Slack, so feedback never leaves the tool",
+    "Email notification plumbing, digests, @mentions and the nagging that actually makes reviewers respond",
+    "Client-facing polish: someone non-technical opening the link on a phone and it just working, plus a browser extension"
+  ],
+  "moatTags": [
+    "collaboration",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the pin, it is that a client with no account can open a link on any device and it never glitches. That reliability is what you are actually paying for.",
+  "whyPeopleStillPay": "Markup sits between you and a paying client, which means every rough edge in your DIY version becomes an awkward email. A self-hosted board is fine for your own team and terrible for the moment a stakeholder says the link is broken on their iPad. Add the Jira and Slack pushes, the notification emails that keep a review from stalling for a week, and the fact that live interactive review is a genuinely hard rendering problem, and the seat fee stops looking like laziness.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pin-and-thread part is a weekend; the part where a client's browser cooperates is the whole product.",
+  "prompt": "Build a self-hosted visual feedback tool called Pinboard in this empty folder.\n\nStack, no substitutions: Next.js 15 App Router with TypeScript, Tailwind, SQLite via better-sqlite3, Playwright with Chromium for URL captures. No auth provider, no cloud services, no telemetry, no analytics.\n\nData model in SQLite:\n- projects: id, name, created_at\n- assets: id, project_id, kind ('image' | 'pdf' | 'url_capture'), source_url (nullable), file_path, width, height, page_count, created_at\n- pins: id, asset_id, page (default 1), x_pct, y_pct, number, status ('open' | 'resolved'), created_at\n- comments: id, pin_id, author_name, body, created_at\nStore x and y as percentages of rendered asset width/height so pins stay put when the viewer is resized.\n\nFeatures that are in scope:\n1. Create a project. Upload PNG/JPG/PDF, or paste a URL and capture a full-page screenshot with Playwright at 1440px wide, saved to ./storage/captures.\n2. Asset viewer: render the image, or render PDFs page by page (server-side rasterize to PNG at load time is fine, keep it simple). Click anywhere to drop a numbered pin and open a comment composer.\n3. Pins render as numbered dots. Clicking one opens a side panel with the thread, a reply box, and a Resolve toggle. Resolved pins render hollow and can be hidden via a filter.\n4. Author name is stored in localStorage and prompted once, no accounts.\n5. Share links: /a/[assetId]?t=TOKEN where the token is a per-project random string stored in the projects table. No token, no access. Anyone with the token can read and comment.\n6. Project dashboard listing assets with open pin counts.\n7. Export a project's pins and comments as JSON and as a plain markdown checklist.\n\nExplicitly out of scope, do not attempt: live iframe proxying of third-party sites, responsive breakpoint switching, video annotation, email notifications, real user accounts, roles, Jira/Slack integrations, mobile app.\n\nConfig: .env with STORAGE_DIR and SQLITE_PATH, plus a generated APP_SECRET. Ship .env.example, never commit .env.\n\nDeliver a README with setup, npx playwright install chromium, dev and prod commands, and a one-paragraph honest note that URL captures are static screenshots and not interactive site review. Seed script that creates one demo project with a sample image and two pins.",
+  "promptCurated": false
+}
