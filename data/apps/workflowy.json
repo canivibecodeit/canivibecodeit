@@ -1,0 +1,51 @@
+{
+  "slug": "workflowy",
+  "name": "Workflowy",
+  "domain": "workflowy.com",
+  "category": "notes-knowledge",
+  "subcategory": "infinite outliner",
+  "tagline": "An infinitely nested bulleted list you can zoom into, used as a notes app, task manager and second brain.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://workflowy.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core of Workflowy is a nested list with zoom, collapse, search and fast keyboard editing, and that is genuinely one-sitting work for a coding agent. What takes longer is everything around it: multi-device sync that never eats a keystroke, real mobile apps, offline conflict handling, shared links, mirrors and backlinks. A local build is fine for one person on one machine and starts to hurt the moment you want the same outline on a phone at the grocery store. The other half of the product is invisible polish: cursor behavior on indent, undo across moves, paste of multi-level text, and not choking on a fifty thousand node document. Buildable, but you will spend your weekend on the boring correctness instead of the fun part.",
+  "coreLoopDIY": "A local web app storing one big outline in SQLite, with infinite nesting, zoom into any bullet, collapse, tags, full text search and Workflowy-style keyboard shortcuts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "a machine you leave running if you want to reach it from a phone on the same network",
+    "a backup habit, because it is one SQLite file"
+  ],
+  "whatYouLose": [
+    "Real iOS and Android apps with offline editing and sync",
+    "Conflict-free sync across devices, which is the actual hard engineering",
+    "Shared and published outlines, plus collaborator editing",
+    "Mirrors, backlinks, boards and the other power features layered on top of the outline",
+    "Someone else worrying about your data surviving a disk failure"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "collaboration"
+  ],
+  "moatNotes": "Fifteen years of keyboard edge cases and a sync engine that people trust with their entire task list. Neither shows up in a feature comparison.",
+  "whyPeopleStillPay": "Because an outliner is only useful if it is everywhere and instant, and Workflowy has quietly solved the parts that are unglamorous: sync that does not lose a bullet, a mobile app that opens fast, undo that behaves after you drag a subtree three levels up. People also have a decade of nested life in there, which makes any migration feel like moving house. The paid tier mostly buys unlimited bullets and backups, which is a small price against the risk of your own build corrupting the tree at 11pm.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The outline is easy, the sync engine is the product.",
+  "prompt": "Build a local-first infinite outliner, a personal Workflowy replacement, in an empty folder.\n\nStack, no substitutions:\n- Vite + React + TypeScript for the client.\n- Express (Node 20+) + better-sqlite3 for the server.\n- One SQLite file at ./data/outline.db, created on first run.\n- No accounts, no cloud, no telemetry, no analytics. Single user.\n\nData model:\n- nodes table: id (uuid), parent_id (nullable), position (float for cheap reordering), text, collapsed (bool), completed (bool), note (nullable), created_at, updated_at.\n- One implicit root. Arbitrary nesting depth.\n\nServer:\n- GET /api/tree returns the whole outline as nested JSON.\n- POST /api/ops accepts a batch of operations: create, update_text, indent, outdent, move, toggle_collapse, toggle_complete, delete_subtree. Apply in a transaction.\n- GET /api/search?q= does substring and #tag matching, returns matching nodes with their ancestor breadcrumb.\n- GET /api/export returns the outline as indented Markdown. POST /api/import accepts indented Markdown and appends it.\n\nClient behavior, this is the part that matters:\n- Single editable outline view. Enter creates a sibling, Tab indents, Shift+Tab outdents, Backspace at start of an empty bullet deletes and merges upward.\n- Cmd/Ctrl+Up and Down move the current subtree. Cmd/Ctrl+Enter toggles complete. Click a bullet to zoom into it, with a breadcrumb trail back to root.\n- Arrow keys move between bullets and preserve caret column. Local undo stack for at least 50 operations, including moves and deletes.\n- Pasting multi-line indented text creates the matching subtree instead of one giant bullet.\n- Optimistic local state, debounced batched writes to /api/ops, so typing never waits on the network.\n- #tags are highlighted and clickable, filtering to matching bullets.\n- Virtualize rendering so a 20,000 node outline stays smooth.\n\nOut of scope: mobile apps, real-time collaboration, sharing links, mirrors, backlinks, boards, any auth.\n\nAlso write: a seed script that generates a 20,000 node outline for performance testing, a nightly cron-friendly script that copies the SQLite file into ./backups with a timestamp, and a README with run instructions and a blunt note that this is single-device and the database file is the only copy of the data.",
+  "promptCurated": false
+}
