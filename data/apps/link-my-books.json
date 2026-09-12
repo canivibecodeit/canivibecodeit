@@ -1,0 +1,53 @@
+{
+  "slug": "link-my-books",
+  "name": "Link My Books",
+  "domain": "linkmybooks.com",
+  "category": "finance-accounting",
+  "subcategory": "ecommerce bookkeeping and VAT",
+  "tagline": "Pulls Amazon, Shopify and eBay payouts into Xero or QuickBooks as tax-accurate summary journals.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://linkmybooks.com/",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanical core is genuinely scriptable: fetch settlement reports from a marketplace API, bucket the line items into sales, refunds, fees and tax, then post one balanced summary journal per payout so the bank line reconciles cleanly. An agent can build that for a single channel and a single tax regime in a weekend. What it cannot one-shot is the tax logic: marketplace facilitator rules, VAT treatment by country and scheme, OSS, reverse charge, and the dozens of Amazon fee types that change names without warning. You also inherit two OAuth integrations that both expire tokens and rate limit you, plus a permanent maintenance duty every time Amazon renames a transaction type. Fine if you sell on one channel in one country and your accountant will sanity check the mapping; not fine if you are the kind of seller who gets asked for evidence.",
+  "coreLoopDIY": "Fetches marketplace settlement reports, classifies each line into a chart-of-accounts bucket, and posts a balanced summary journal per payout to Xero via API so the bank deposit reconciles to the penny.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Amazon SP-API or Shopify Admin API credentials, plus developer app registration",
+    "Xero or QuickBooks OAuth2 app and a live accounting file to post into",
+    "A mapping table you build yourself for fee types and tax codes",
+    "An accountant or bookkeeper to review the mapping before you trust a single journal",
+    "Somewhere to run a scheduled job and store tokens"
+  ],
+  "whatYouLose": [
+    "Maintained tax logic for marketplace facilitator rules, VAT schemes, OSS and reverse charge",
+    "Automatic handling of new or renamed marketplace fee types you never anticipated",
+    "Multi-channel and multi-country coverage out of one place",
+    "Support from people who have seen your exact reconciliation mismatch before",
+    "Any credible audit trail if a tax authority asks how the numbers were derived"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "proprietary-data"
+  ],
+  "moatNotes": "The product is mostly a very well maintained mapping table wrapped in two brittle APIs. Boring, and hard to keep correct.",
+  "whyPeopleStillPay": "Because the failure mode is not a broken app, it is a wrong VAT return. The value is not the fetch-and-post loop, which is a few hundred lines, it is someone else owning the classification rules across marketplaces and jurisdictions and updating them when Amazon quietly adds a fee code. Sellers pay a small monthly fee to make bookkeeping a non-event and to have their accountant stop complaining, which is cheap next to an hour of accountant time or a filing correction.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable for one channel in one country, then you own the tax mapping forever.",
+  "prompt": "Build a self-hosted Shopify to Xero payout reconciler in TypeScript on Node 20. Single repo, no framework beyond what is listed.\n\nStack: TypeScript, Node 20, SQLite via better-sqlite3, a small CLI using commander, undici for HTTP. No web UI, no accounts, no telemetry, no hosted service.\n\nWhat it does:\n1. `sync` command: pull Shopify payouts and their transactions from the Shopify Admin GraphQL API for a date range, store raw JSON in SQLite keyed by payout id so reruns are idempotent.\n2. `classify` command: map every transaction line into buckets: gross sales, refunds, shipping income, sales tax collected, marketplace-remitted tax, processing fees, chargebacks, adjustments. Buckets and their target Xero account codes and tax codes come from a `mapping.yml` file that ships with sensible defaults and loud comments saying an accountant must review it.\n3. Any transaction type not present in mapping.yml is a hard failure: print the unknown type, the payout id and the amount, exit non-zero. Never silently dump to a suspense account.\n4. `journal --payout ID` command: emit a balanced manual journal where the sum of debits equals credits and the net equals the payout amount to the cent. Refuse to emit if it does not balance.\n5. `post --payout ID` command: post that journal to Xero via the Accounting API using OAuth2 with refresh token rotation, tokens stored in SQLite. Store the returned Xero journal id, and refuse to post a payout twice.\n6. `status` command: table of payouts, classified yes/no, posted yes/no, variance.\n\nRules:\n- Money as integer minor units everywhere. No floats. Currency code stored per payout, fail if a payout mixes currencies.\n- Secrets in .env: SHOPIFY_SHOP, SHOPIFY_TOKEN, XERO_CLIENT_ID, XERO_CLIENT_SECRET, XERO_TENANT_ID. Provide .env.example.\n- Include a `--dry-run` flag on post that prints the exact payload.\n- Vitest tests: one balancing test with a fixture payout containing a refund and a marketplace-remitted tax line, one unknown-type failure test.\n\nOut of scope, do not build: Amazon or eBay, QuickBooks, multi-currency conversion, VAT scheme logic beyond what mapping.yml states, COGS or inventory, any UI.\n\nREADME must open with a warning that the tax mapping is the user's responsibility and that no output should be filed without a bookkeeper reviewing mapping.yml.",
+  "promptCurated": false
+}
