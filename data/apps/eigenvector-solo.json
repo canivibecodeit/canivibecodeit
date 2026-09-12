@@ -1,0 +1,52 @@
+{
+  "slug": "eigenvector-solo",
+  "name": "Eigenvector Solo",
+  "domain": "eigenvector.com",
+  "category": "analytics",
+  "subcategory": "chemometrics / multivariate analysis",
+  "tagline": "Standalone chemometrics and multivariate analysis software for spectroscopy and process data: PCA, PLS, classification, model deployment.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://eigenvector.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math here is not secret: PCA, PLS, cross-validation, SNV, MSC, Savitzky-Golay derivatives and Hotelling T2 versus Q residuals are all textbook and all sitting in scikit-learn and scipy already. An agent can absolutely give you a local app that ingests a spectra matrix, preprocesses it, fits a PLS model, picks components by RMSECV and scores new samples. What it will not give you is the boring load-bearing part: readers for a pile of proprietary instrument formats, decades of method defaults that match what your field expects, and a GUI that a spectroscopist who does not write Python can actually drive. If your models end up in a regulated pharma or process environment, the validation paperwork and the vendor name on it are the actual product. Fine for a personal or research workflow, not fine as a drop-in for a validated lab.",
+  "coreLoopDIY": "Load a CSV of spectra plus reference values, apply standard preprocessing, fit and cross-validate PCA and PLS models with diagnostic plots, then save the model and score new spectra.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with numpy, scipy, scikit-learn, pandas, plotly, streamlit",
+    "Your data already exported to CSV, since instrument format readers are out of scope",
+    "Enough chemometrics knowledge to know when a model is lying to you"
+  ],
+  "whatYouLose": [
+    "Readers for proprietary instrument and spectrometer file formats, which is most of the real-world friction",
+    "Validated, documented algorithm implementations you can point an auditor at",
+    "Advanced methods beyond the basics: MCR, PARAFAC and other multiway tools, robust variants, batch process modeling",
+    "A GUI that non-programmer analysts can use without your help",
+    "Online or at-line prediction deployment against live instrument streams",
+    "Support, training and a decades-deep body of worked examples"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The algorithms are public domain in practice; the trust, the file plumbing and the audit trail are what get purchased.",
+  "whyPeopleStillPay": "Because in a regulated lab, nobody wants to defend a homemade PLS script to an auditor, and because the twenty minutes it takes to open a vendor's binary spectra file in a supported tool would be two days of reverse engineering otherwise. The buyers are usually chemists and process engineers, not developers, so a Streamlit app that requires a virtualenv is already a non-starter for the person who needs it. And there is a real professional cost to a subtly wrong preprocessing default that a mature package would have gotten right.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A weekend gets you working PCA and PLS; it does not get you a signature on a validation report.",
+  "prompt": "Build a local desktop-style chemometrics workbench. Single Python 3.11 project, no cloud, no accounts, no telemetry.\n\nStack: streamlit for the UI, numpy, scipy, pandas, scikit-learn, plotly for charts, joblib for model persistence. One requirements.txt, one `app.py` plus a `chemo/` package. No database: everything is files on disk.\n\nData model: input is a CSV where rows are samples and columns are wavelengths or variables, first column is a sample ID. An optional second CSV holds reference y values keyed by sample ID. Validate shapes and give clear errors instead of tracebacks.\n\nPreprocessing pipeline builder (order matters, user picks a stack):\n- mean centering, autoscaling\n- SNV, and multiplicative scatter correction with a chosen or computed reference spectrum\n- Savitzky-Golay smoothing and first/second derivative with window and polynomial order\n- baseline: simple asymmetric least squares\nImplement these as sklearn-compatible transformers in `chemo/preprocess.py` with unit tests in `tests/`.\n\nModels:\n- PCA: scores plot with sample labels, loadings plot, explained variance, Hotelling T2 versus Q residuals plot with 95 and 99 percent limits, outlier table\n- PLS regression: cross-validation with leave-one-out, random k-fold and contiguous blocks; RMSECV versus number of components plot with a suggested component count; measured versus predicted plot with R2, RMSEC, RMSECV, bias; regression vector and VIP scores\n- PLS-DA for a categorical target, with a confusion matrix on cross-validated predictions\n\nDeployment: save the fitted preprocessing plus model as a single .joblib artifact with a JSON sidecar recording preprocessing steps, component count and training data hash. A separate `predict.py` CLI takes an artifact and a new CSV and writes predictions plus T2/Q diagnostics so you can flag samples outside the model space.\n\nOut of scope, do not attempt: readers for proprietary instrument binary formats, MCR, PARAFAC and other multiway methods, batch process modeling, user accounts, audit trails, any 21 CFR Part 11 claims. Put that list in the README as explicit limitations.\n\nShip with a `make_sample_data.py` that generates synthetic NIR-like spectra with known analyte concentrations so the whole app is demoable immediately. Any config or paths go in .env, read with python-dotenv. README: install, run, and one worked example end to end.",
+  "promptCurated": false
+}
