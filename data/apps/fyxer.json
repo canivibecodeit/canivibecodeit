@@ -1,0 +1,52 @@
+{
+  "slug": "fyxer",
+  "name": "Fyxer",
+  "domain": "fyxer.com",
+  "category": "email",
+  "subcategory": "AI email assistant",
+  "tagline": "An AI executive assistant that sorts your inbox, drafts replies in your voice, and writes up your meetings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://www.fyxer.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The email half of this is genuinely a weekend build: Gmail API, a few-shot prompt seeded with your own sent mail, a loop that labels threads and parks drafts in the Drafts folder. Reply quality gets surprisingly close because the hard input, your writing history, is sitting in your own mailbox and not in theirs. Where it falls apart is everything around the edges: Google OAuth app verification if you want this to touch a real inbox without scary consent screens, Outlook as a second backend, and the meeting notetaker, which means a bot that joins Zoom, Meet, and Teams calls and survives their UI changes forever. You will also be running a cron job you have to babysit rather than a service that quietly works on your phone. Build the email agent, keep paying someone else for calls, or accept notes from whatever meeting tool you already have.",
+  "coreLoopDIY": "A local job that polls your Gmail, classifies new threads into labels, and writes reply drafts using your own sent mail as style examples, leaving everything in Drafts for you to approve.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with Gmail API enabled and OAuth credentials",
+    "An LLM API key (Anthropic or OpenAI)",
+    "A machine or small VM that can run a scheduled job",
+    "Tolerance for reading and approving every draft for the first few weeks"
+  ],
+  "whatYouLose": [
+    "The meeting notetaker: joining calls, diarizing speakers, and producing follow-up emails is a separate product hiding inside this one",
+    "Outlook and Microsoft 365 support, which is a whole second OAuth and API grind",
+    "Mobile: your drafts appear in Gmail, but there is no app nudging you or learning from taps",
+    "Someone else handling Google's OAuth verification, security review, and the rate limits",
+    "Continuous tuning from millions of other people's accept and reject signals"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the model, it is being trusted with write access to an executive's inbox and calendar and never embarrassing them.",
+  "whyPeopleStillPay": "People pay because email assistance is only valuable if it is invisible and always on. A cron job you maintain is a hobby; the moment it breaks mid-week you are back to triaging 200 threads by hand, and the whole point was to stop doing that. The bundle also matters more than it looks: inbox triage plus drafting plus meeting notes plus follow-ups is one workflow, and stitching your own version of all four means owning four fragile integrations instead of one subscription. For someone billing real hourly rates, a seat price is rounding error against the risk of the thing quietly not running.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The drafting is the easy part; the calendar bot and the OAuth paperwork are where weekend projects go to die.",
+  "prompt": "Build a local Gmail triage and draft assistant. No web UI, no accounts, no telemetry, no hosted database.\n\nStack: TypeScript on Node 20, run as a CLI. googleapis for Gmail, @anthropic-ai/sdk for the model, better-sqlite3 for local state, tsx for running. Nothing else.\n\nSetup:\n- Read GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ANTHROPIC_API_KEY from .env. Commit a .env.example, never a real .env.\n- Command `auth` runs the OAuth desktop flow on localhost, stores the refresh token in ./data/token.json, scopes: gmail.modify only.\n- SQLite file at ./data/state.db tracks processed thread ids, assigned label, whether a draft was created, and a timestamp.\n\nCommand `learn`:\n- Pull the 300 most recent messages from SENT, strip quoted text and signatures, and write ./data/style.md containing 20 representative excerpts plus a short auto-generated summary of tone, greeting habits, sign-offs, and typical length.\n\nCommand `triage`:\n- Fetch unread INBOX threads from the last 7 days that are not already in state.db.\n- For each thread, send the trimmed thread text to the model and get back JSON: category (one of to-respond, fyi, newsletter, calendar, spam-ish), urgency 1-3, one-line summary, and needsReply boolean.\n- Create the labels `AI/to-respond`, `AI/fyi`, `AI/newsletter`, `AI/calendar`, `AI/spam-ish` if missing and apply exactly one.\n\nCommand `draft`:\n- For every thread labeled AI/to-respond with no draft yet, generate a reply using style.md as few-shot examples plus the thread history.\n- Create it as a real Gmail draft on the correct thread with correct In-Reply-To and References headers so it threads properly. Never send. Sending is out of scope, permanently.\n- Mark nothing as read. The human stays in control.\n\nCommand `report`: print a table of today's threads, category, urgency, summary, and whether a draft exists.\n\nExplicitly out of scope: Outlook, calendar scheduling, meeting transcription or any bot joining calls, mobile, multi-user, auto-send.\n\nWrite a README covering the Google Cloud project setup, the test-user consent screen caveat, a cron example running triage then draft every 30 minutes, and a loud warning that drafts must be reviewed before sending.",
+  "promptCurated": false
+}
