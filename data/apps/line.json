@@ -1,0 +1,52 @@
+{
+  "slug": "line",
+  "name": "LINE",
+  "domain": "line.me",
+  "category": "social-media",
+  "subcategory": "messaging",
+  "tagline": "Messaging, voice and video calls, stickers, and a whole app ecosystem that doubles as the default communication layer in Japan, Thailand and Taiwan.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.line.me/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Core messaging is free; money moves through sticker subscriptions, LINE Music, official accounts and payments.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can build a chat app. You cannot build the fact that your landlord, your dentist, your kid's school and your local ramen shop all reply on LINE and nowhere else. The technical core here is genuinely unremarkable: sockets, a message table, push notifications, some media handling. The product is the address book of an entire region, plus payments, official accounts and a sticker economy nobody is going to migrate. A personal replacement is only useful if you can get every one of your contacts to install it, which is the actual problem and the one code does not solve.",
+  "coreLoopDIY": "A self-hosted group chat server with real-time messages, image and sticker uploads, and a web client, for the handful of people you can actually convince to sign up.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS with a domain and TLS",
+    "Object storage or a local disk for media uploads",
+    "Willingness to run your own push notification setup if you want mobile alerts",
+    "Every single contact you care about agreeing to leave LINE, which they will not"
+  ],
+  "whatYouLose": [
+    "Everyone you know, which is the entire point of a messaging app",
+    "Official accounts: banks, delivery services, government notices, shops that only talk to you through LINE",
+    "LINE Pay and the rest of the in-app financial and ticketing plumbing",
+    "Polished native iOS and Android clients with reliable background push and years of battery tuning",
+    "The sticker library, which sounds trivial until you realise it carries most of the tone in a LINE conversation"
+  ],
+  "moatTags": [
+    "network-effects",
+    "switching-costs",
+    "scale-infra"
+  ],
+  "moatNotes": "Regional messaging monopolies are the purest network-effect asset in consumer software: the switching cost is not your data, it is everybody else's habits.",
+  "whyPeopleStillPay": "Almost nobody pays for LINE messaging, and that is the trap. The free tier owns the social graph, and then charges for stickers, music, official account tooling and payment volume on top of a base nobody can leave. Individual users buy sticker subscriptions because expressiveness is the currency of the app; businesses buy official accounts because it is the only reliable channel to reach customers in those markets. None of that is a feature you can reimplement, it is rent on a communication default.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The chat server is a weekend, the sticker packs are an afternoon. The moat is that an entire country's plumbers, banks and grandmothers already have the app installed.",
+  "prompt": "Build a self-hosted group chat server and web client for a small private circle, maybe ten people. This is a consolation build for a messaging app whose real value is its network, so keep it small and honest.\n\nStack, no substitutions:\n- Node 20 with TypeScript, Fastify for HTTP, plain ws for websockets\n- SQLite via better-sqlite3, schema in migrations/001_init.sql, no ORM\n- Server-rendered HTML with htmx for the shell, one small vanilla TS bundle for the socket client\n- Media stored on local disk under ./uploads, served behind an auth check\n\nIn scope:\n- Invite-only accounts: an admin CLI script creates invite codes, signup exchanges a code for a username, password and session cookie\n- Rooms: create, rename, invite existing users, leave. One-to-one DMs are just two-person rooms\n- Real-time messages over websocket with optimistic send, server-assigned ids and timestamps\n- Message history with cursor pagination, newest first on load\n- Image and short video uploads with a size cap, thumbnails generated with sharp\n- Sticker packs: a stickers/ folder of PNGs loaded at boot, a picker in the composer, stickers sent as a message type not as a file upload\n- Typing indicators, read markers per room, unread counts\n- Full-text search over messages using SQLite FTS5\n- Offline delivery: messages queued in the database, delivered on reconnect\n\nOut of scope, do not build:\n- Native mobile apps, push notifications, voice or video calls\n- Payments, official accounts, bots, federation\n- End-to-end encryption. Use TLS in front and say plainly in the README that the server can read messages\n\nRules:\n- Secrets in .env: SESSION_SECRET, PORT, UPLOAD_MAX_MB. Ship .env.example\n- No third-party accounts, no analytics, no telemetry\n- One npm run dev that migrates, seeds an admin invite code and starts on localhost\n- README covers deploying behind a reverse proxy with TLS and taking a backup of the SQLite file plus uploads\n- Include a script that exports one room to JSON so nobody is locked in",
+  "promptCurated": false
+}
