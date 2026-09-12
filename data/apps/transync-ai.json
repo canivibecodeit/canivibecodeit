@@ -1,0 +1,52 @@
+{
+  "slug": "transync-ai",
+  "name": "Transync AI",
+  "domain": "transyncai.com",
+  "category": "localization",
+  "subcategory": "AI transcription and translation for media",
+  "tagline": "AI tool for turning spoken audio and video into transcripts and translated versions, by its own positioning.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://transyncai.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The underlying pipeline here is unusually commoditized: Whisper-class models transcribe, any decent LLM translates, ffmpeg does the muxing, and all three are a pip install away. An agent can wire that into a local CLI or small web UI in a sitting and get subtitles and translated tracks out the other end, which covers the bulk of what most people actually want. Where the DIY version thins out is everything past the transcript: speaker labels that hold up, timing that survives languages with different word counts, voice cloning and lip sync if the product does dubbing, and a browser editor for fixing the 5 percent the model got wrong. This is a small, thinly documented product, so the honest read is that you are buying convenience and a hosted GPU rather than anything you cannot replicate. Score it a weekend build with real polish gaps.",
+  "coreLoopDIY": "Drops a media file in, transcribes it locally with Whisper, translates the segments through an LLM, and writes out timed SRT/VTT plus an optional dubbed audio track.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg installed locally",
+    "A machine that can run faster-whisper (GPU strongly preferred, CPU works slowly)",
+    "An OpenAI-compatible API key for translation, or a local model if you want zero cloud",
+    "Optionally Piper or another local TTS for dubbing"
+  ],
+  "whatYouLose": [
+    "A subtitle editor: no waveform view, no drag-to-retime, no fixing a bad line in two clicks",
+    "Reliable speaker diarization and consistent speaker naming across long files",
+    "Any voice cloning or lip sync, if that is part of the paid product",
+    "Batch processing, job queues, and someone else's GPU when your laptop fans give up",
+    "Format breadth: broadcast caption standards, burn-in styling presets, platform-specific quirks"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models",
+    "integrations"
+  ],
+  "moatNotes": "Nothing here is a real moat so much as a head start: the models are rented, the value is the editor and the queue.",
+  "whyPeopleStillPay": "Because transcription and translation are 90 percent solved by open models and 100 percent ruined by the last 10 percent. The paid version exists so you do not have to babysit a GPU, hunt down segment timings that drifted after translation, or manually fix the twelve lines where the model heard a product name wrong. If you process one video a month, the local build is genuinely fine. If you ship localized media on a schedule for clients, the hosted editor and the batch queue are the whole product and the models are just plumbing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Small product sitting on top of very available models, so the interesting question is not whether you can build it but whether you want to own the editing UI.",
+  "prompt": "Build a local media transcription and translation tool. Empty folder, Python 3.11, no accounts, no telemetry, no cloud storage.\n\nStack, non-negotiable:\n- Python 3.11 with a Typer CLI plus a tiny FastAPI + vanilla JS page for reviewing output\n- faster-whisper for speech to text, model size configurable, default \"medium\"\n- ffmpeg via subprocess for audio extraction and muxing\n- Translation through an OpenAI-compatible chat endpoint, base URL and key from .env\n- SQLite for job records, files on disk under ./work/{job_id}/\n\nCLI commands:\n1. `transync ingest PATH` : accept mp4, mov, mkv, mp3, wav, m4a. Extract 16kHz mono wav with ffmpeg, create a job row.\n2. `transync transcribe JOB_ID` : run faster-whisper with word timestamps, store segments (start, end, text) in SQLite, write source.srt and source.vtt.\n3. `transync translate JOB_ID --to es` : translate in batches of 20 segments, one API call per batch, send the whole batch as numbered lines so the model keeps context, require the same number of lines back or retry once with a stricter instruction. Never merge or split segments. Write {lang}.srt and {lang}.vtt reusing the original timings.\n4. `transync burn JOB_ID --lang es` : ffmpeg soft-mux the subtitle track into a copy of the original, plus a `--hard` flag that burns it in.\n5. `transync dub JOB_ID --lang es` : optional, only if piper is on PATH. Synthesize per segment, pad or lightly time-stretch with ffmpeg atempo to fit the original slot, concatenate, mux as a second audio track. If piper is missing, print that and exit 0.\n\nWeb UI at /jobs: list jobs, open one, show a two-column table of source and translated segments with timecodes, allow inline text edits that write straight back to SQLite, and a button to re-export the SRT. That is the entire UI, no auth, localhost only.\n\nRules: put OPENAI_API_KEY and OPENAI_BASE_URL in .env with a committed .env.example. All long steps stream progress to stdout. Make every step resumable and idempotent, keyed on job id, so a crash mid-translate does not redo finished batches. Write a README with install steps, the ffmpeg and piper prerequisites, and one worked example end to end. No speaker diarization, no voice cloning, no lip sync, no Docker, no hosted deployment.",
+  "promptCurated": false
+}
