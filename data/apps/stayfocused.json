@@ -1,0 +1,51 @@
+{
+  "slug": "stayfocused",
+  "name": "StayFocused",
+  "domain": "stayfocused.me",
+  "category": "productivity-utilities",
+  "subcategory": "app and website blocking",
+  "tagline": "Android app and website blocker with schedules, daily usage limits and strict modes that make it hard to cheat.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.stayfocused.me/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free tier plus a paid Pro unlock, exact amount not confirmed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is not exotic: read UsageStatsManager to see what app is in the foreground, and throw a full-screen overlay when it is on your blocklist. An agent can get that working on a real device in a weekend, plus schedules, daily quotas and a launch counter. The gaps are all in the part that matters, which is stopping you specifically: strict modes you cannot disable, uninstall resistance via device admin, blocking a keyword inside an app rather than the whole app, and surviving whatever aggressive OEM battery killer your phone ships with. You also inherit the maintenance tax, because Android quietly reshapes accessibility and usage-stats policy every couple of releases. Good weekend build if you mostly need a speed bump, weak substitute if you are actually addicted and good at rationalizing.",
+  "coreLoopDIY": "A local Android app that polls the foreground app, and if it is on your blocklist or past its daily time budget, covers the screen with a blocking overlay until you back out.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An Android phone you can sideload to, plus JDK and Android SDK on a machine",
+    "Manually granted Usage Access, Accessibility and Draw Over Other Apps permissions",
+    "Willingness to whitelist the app from your phone's battery optimizer",
+    "No iOS story at all, Screen Time APIs are a different world"
+  ],
+  "whatYouLose": [
+    "Bypass resistance: your own build has an off switch you know about, and you will find it at 11pm",
+    "In-app content blocking, like killing Shorts or Reels without killing the whole app",
+    "Website and keyword blocking across browsers, which needs accessibility text scraping done carefully",
+    "Robustness against OEM task killers, Doze and background restrictions across dozens of vendor skins",
+    "Ongoing upkeep when Android changes accessibility rules or Play policy shifts under it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not technology, it is a thousand small hostile-to-the-user-in-a-good-way details, plus your accumulated blocklists and usage history.",
+  "whyPeopleStillPay": "Blockers are one of the rare categories where you are paying for a product that works against your own short-term will, and self-built software fails exactly there. A commercial blocker has spent years adding friction layers, uninstall protection, per-app timers, strict sessions you cannot cancel, and workarounds for every phone vendor that murders background services. It also has your history and lists already in it, which is dull but real switching cost. A DIY overlay is a speed bump, and a speed bump you wrote is a speed bump you know how to remove.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, but the honest failure mode is that you ship it and then disable it three days later.",
+  "prompt": "Build a local-only Android app called \"Blockade\" that blocks distracting apps. No backend, no accounts, no analytics, no network calls at all.\n\nStack, non-negotiable: Kotlin, Gradle Kotlin DSL, single module, Jetpack Compose with Material 3, Room for persistence, Kotlin coroutines and Flow, minSdk 26, targetSdk current stable.\n\nFeatures in scope:\n1. Onboarding screen that requests, one at a time, PACKAGE_USAGE_STATS, SYSTEM_ALERT_WINDOW and an AccessibilityService enable prompt, each with a short plain explanation and a deep link to the right settings screen. Show a live checklist of which are granted.\n2. App picker listing installed launchable apps with icon and label, searchable, with a checkbox to add to the blocklist. Persist to Room.\n3. Per-app rules: always blocked, blocked during schedules (weekday and time-of-day windows), or a daily time budget in minutes.\n4. A foreground service with a persistent notification that samples the current foreground app every second using UsageStatsManager.queryEvents over a short window. Also implement an AccessibilityService listening to TYPE_WINDOW_STATE_CHANGED as the faster path, and prefer it when enabled.\n5. When the foreground package violates a rule, launch a full-screen blocking Activity (single instance, excluded from recents) that shows the app name, why it is blocked, minutes used today, and a single button that calls the home intent. No dismiss-and-continue button.\n6. Track daily foreground time per blocked app in Room, reset at local midnight via WorkManager. A Today screen showing usage bars and how many times each block fired.\n7. Settings: a \"strict window\" toggle that stores an end timestamp and makes rule editing and blocklist removal read-only until that timestamp passes.\n\nOut of scope, do not attempt: website or in-app keyword blocking, device admin uninstall protection, cloud sync, widgets, iOS.\n\nEngineering requirements: handle service restart on boot with RECEIVE_BOOT_COMPLETED, survive process death, keep battery cost sane by backing off sampling when the screen is off, and put a README section listing the exact manual permission steps and how to whitelist the app from battery optimization. No secrets needed; if you add any config, use local.properties, not hardcoded values.\n\nDeliver a project that builds with ./gradlew assembleDebug and installs on a real device. Include a short README with build steps and known limitations, stated bluntly.",
+  "promptCurated": false
+}
