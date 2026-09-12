@@ -1,0 +1,52 @@
+{
+  "slug": "scispace",
+  "name": "SciSpace",
+  "domain": "scispace.com",
+  "category": "ai-search",
+  "subcategory": "literature search and chat-with-paper",
+  "tagline": "AI research assistant that searches a large academic corpus, chats with PDFs, and extracts structured data from papers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://scispace.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The two halves of this product have very different difficulty. Chat-with-PDF, grounded citations, and a table that extracts \"method / sample size / limitations\" across a stack of papers is a well-trodden RAG build an agent can get working in a sitting. The literature search half is harder, but not closed: OpenAlex, Crossref, and Semantic Scholar hand you tens of millions of records and metadata for free, and Unpaywall finds the open-access PDF when there is one. What you cannot replicate is their parsed full-text layer and the extraction quality tuned on it, plus access to anything behind a publisher paywall. Call it a weekend that gets you 70 percent for your own reading list.",
+  "coreLoopDIY": "Search open academic metadata APIs, pull the open-access PDFs, index them locally, then answer questions and fill a comparison table with per-claim citations back to the exact page.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for chat and embeddings",
+    "Polite-use contact email for OpenAlex, Crossref, and Unpaywall APIs",
+    "Local disk for PDFs and the vector index",
+    "Institutional access if you want anything paywalled, which the build will not fetch for you"
+  ],
+  "whatYouLose": [
+    "Full text of paywalled papers: your index is open-access only, which is a real hole in some fields",
+    "Their pre-parsed corpus, so your figure, table, and equation extraction will be visibly worse on messy PDFs",
+    "Polished mobile and browser-extension flows for grabbing a paper mid-browse",
+    "Reference-manager and Word/Overleaf style integrations for citation insertion",
+    "Whatever tuning they have done to reduce hallucinated citations, which is the failure mode that actually matters here"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The corpus and its parsed full text are the asset. The chat wrapper around it is the commodity part, which is why every lab has a homegrown version.",
+  "whyPeopleStillPay": "Because a researcher's bottleneck is not \"can I run a RAG pipeline\", it is \"is the paper I need in here and did you quote it correctly\". Paying gets breadth including material your open-access-only index will silently miss, extraction that does not fall apart on two-column PDFs with nested tables, and a citation trail you can defend to a supervisor. The DIY build is genuinely good for a fixed reading list of 200 PDFs you already have. It is bad at the discovery step, which is the part people are actually buying.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The reading half is a weekend; the finding half depends on whether your field publishes open access. Fields where it does, you barely need this.",
+  "prompt": "Build a local research assistant called \"paperdesk\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.12, FastAPI backend, SQLite with the sqlite-vec extension for embeddings, PyMuPDF for PDF text extraction, plain server-rendered Jinja2 templates plus htmx for the UI. No React, no Docker, no Postgres.\n\nSecrets in .env: OPENAI_API_KEY, CONTACT_EMAIL (used as the polite-pool identifier for external APIs). Read them with python-dotenv and fail loudly at startup if missing.\n\nFeatures, in scope:\n1. Search: a query box that hits the OpenAlex works API and shows title, authors, year, venue, citation count, DOI, and whether an open-access PDF location exists. Paginate.\n2. Add to library: clicking a result stores metadata in SQLite and, if OpenAlex or Unpaywall reports an OA PDF URL, downloads it to ./papers/. If there is no OA PDF, store the record and mark it \"metadata only\".\n3. Manual upload: drag-drop a local PDF, extract title from metadata or first page, allow editing fields.\n4. Index: chunk extracted text at roughly 1200 characters with 200 overlap, keep page number and paper id on every chunk, embed with text-embedding-3-small, store vectors in sqlite-vec. Make indexing idempotent and resumable.\n5. Ask: a question box scoped either to one paper or to the whole library. Retrieve top 12 chunks, send to gpt-4o-mini with a system prompt that forbids any claim without a bracketed [paper_id p.N] marker. Render each marker as a link that opens the PDF at that page.\n6. Extract table: user picks papers plus free-text column names like \"sample size\", \"method\", \"main limitation\". For each paper-column cell, run one scoped retrieval and one short LLM call, and store the source chunk. Show cells with a hover source and an explicit \"not found\" state rather than a guess. Export CSV.\n7. Library view with filters by year and tag, and a delete that removes rows, vectors, and the file.\n\nOut of scope, do not build: user auth, paywall bypass, any scraping of publisher sites, figure or table image parsing, citation-style formatting, reference-manager sync, mobile app.\n\nCorrectness rules: rate-limit external API calls to 5 per second and send CONTACT_EMAIL in the User-Agent. Cache API responses in SQLite. Never invent a DOI or a page number; if retrieval returns nothing above a similarity floor, answer \"no supporting passage found in the library\".\n\nDeliver: requirements.txt, a single `python -m paperdesk` entrypoint that runs migrations and serves on localhost:8000, a seeded demo using three known open-access DOIs, and a README that states plainly that only open-access full text is available and what that means for coverage.",
+  "promptCurated": false
+}
