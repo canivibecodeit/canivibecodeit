@@ -1,0 +1,52 @@
+{
+  "slug": "wan-2-2-video-lora-generator-online-loraai",
+  "name": "LoraAI Wan 2.2 Video LoRA Generator",
+  "domain": "loraai.me",
+  "category": "ai-video",
+  "subcategory": "LoRA training and video generation",
+  "tagline": "Hosted web tool for training LoRAs on Wan 2.2 and generating video with them, no local GPU needed.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://loraai.me/wan-2-2-video-lora-generator",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Everything this sells is open source underneath: Wan 2.2 weights are public, and LoRA training for it is a solved recipe via musubi-tuner, diffusion-pipe, or ComfyUI nodes. An agent can absolutely build you the wrapper: dataset intake, captioning, a training config generator, a job queue, and a generate tab. What it cannot build is the GPU. Wan 2.2 video training and sampling wants serious VRAM and hours of it, so your personal version either lives on a 4090-class card with quantized runs and long waits, or on rented H100 time where you are now paying per hour and doing your own driver babysitting. The software is a weekend; the compute economics are the actual product.",
+  "coreLoopDIY": "A local FastAPI app that takes a folder of clips or images, writes a musubi-tuner training config, queues the LoRA run on your GPU, then loads the resulting LoRA into a Wan 2.2 inference pipeline for text-to-video and image-to-video sampling.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with 24GB VRAM minimum, more is genuinely better, or a rented cloud instance",
+    "Wan 2.2 weights downloaded from Hugging Face, plus acceptance of their license",
+    "Python 3.11, CUDA toolchain, and tolerance for dependency resolution pain",
+    "Patience: training runs are measured in hours, not minutes"
+  ],
+  "whatYouLose": [
+    "Someone else's GPU fleet, and the queue that hides how expensive it is",
+    "Preset training hyperparameters that were tuned by someone who has burned hundreds of runs",
+    "Working out of the box on a laptop or phone browser",
+    "Automatic captioning, bucketing, and resolution handling that you now hand-tune",
+    "A place to store and re-use trained LoRAs without thinking about disk"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "hardware",
+    "execution-polish"
+  ],
+  "moatNotes": "The model is public, the training script is public, the H100 is not.",
+  "whyPeopleStillPay": "Because renting GPU time yourself is a project, and most people who want a custom video LoRA want one LoRA, not a hobby in CUDA archaeology. Paying per run converts a weekend of setup plus a hardware purchase into a credit card charge, and if the run fails you did not eat the electricity. That trade holds until you are training regularly, at which point the math flips hard and local becomes the obvious answer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wrapper is trivial, the hardware bill is not, so the honest verdict depends entirely on what is under your desk.",
+  "prompt": "Build a local Wan 2.2 video LoRA studio. Single machine, single user, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, uv for deps\n- FastAPI backend, Jinja2 templates plus HTMX for the UI, no React\n- SQLite for job state via sqlite3, no ORM\n- Training delegated to musubi-tuner (Wan video branch) invoked as a subprocess\n- Inference via ComfyUI running headless on localhost, driven through its /prompt HTTP API and a saved workflow JSON\n\nFeatures in scope:\n1. Dataset page: upload or point at a local folder of clips and stills, show thumbnails, per item caption text box, save captions as sidecar .txt files next to each asset.\n2. Auto caption button: call a local VLM through Ollama (model name in .env), fill empty captions, always editable afterwards.\n3. Training page: form for LoRA name, rank, learning rate, steps, resolution buckets, frame count, save-every-N. Write the musubi-tuner TOML dataset config and launch command, then enqueue.\n4. Job runner: one background worker, one job at a time, stream stdout to a log file and tail it into the browser with an HTMX polling endpoint. Show step count and elapsed time. Support cancel via process kill.\n5. Generate page: pick a trained LoRA safetensors from the output dir, set strength, prompt, negative prompt, frames, steps, seed. Submit to ComfyUI, poll for completion, show the resulting mp4 inline with a download link.\n6. Library page: list trained LoRAs and generated videos with timestamps, delete buttons, and disk usage totals.\n\nExplicitly out of scope: multi user auth, payments, queue fairness, distributed training, model downloading (assume weights already on disk at paths from .env).\n\nAll paths, the Ollama model, and the ComfyUI base URL come from .env with a committed .env.example. Include a README with the exact uv commands, the required weight files and where they go, VRAM expectations, and a warning that a full training run takes hours. Ship a smoke test that verifies the ComfyUI connection and one 8 frame generation before touching training.",
+  "promptCurated": false
+}
