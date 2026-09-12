@@ -1,0 +1,52 @@
+{
+  "slug": "daloopa",
+  "name": "Daloopa",
+  "domain": "daloopa.com",
+  "category": "finance-accounting",
+  "subcategory": "fundamental data for equity research",
+  "tagline": "Machine-extracted, human-checked fundamental and KPI data from company filings, piped into analyst spreadsheets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://daloopa.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Daloopa sells on enterprise contracts and does not publish per-seat rates.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a personal fundamentals database in an afternoon: the SEC's XBRL company facts API is free, structured, and covers every US filer's tagged financials. What you cannot build is the part people actually pay for: the non-XBRL stuff buried in earnings decks, MD&A tables, and 8-K exhibits, segment and KPI detail like same-store sales or ARPU or bookings by region, normalized across a decade of restatements and presentation changes, with a click-through to the exact source page. That corpus is extraction plus human QA plus continuous maintenance every earnings season, and it only has value because someone else eats that cost. Add the Excel add-in that keeps a live model tied to updating cells, and switching away means re-linking your whole model. The DIY version is a decent free XBRL browser, which is a different product.",
+  "coreLoopDIY": "Pulls SEC XBRL company facts for a watchlist of tickers into a local SQLite database and exports tidy quarterly and annual time series to CSV or Excel with a link back to the source filing.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.12 and a local disk, no cloud account",
+    "A declared User-Agent string for SEC EDGAR requests (they block anonymous traffic)",
+    "Tolerance for XBRL tag chaos: companies use different tags for the same concept",
+    "US filers only, since this rides on EDGAR"
+  ],
+  "whatYouLose": [
+    "Non-XBRL data: KPIs and segment tables that only exist in earnings presentations, press release exhibits, and transcripts",
+    "Human normalization across restatements, fiscal calendar changes, and renamed line items",
+    "Source citations at the cell level, which is the part that survives a compliance review or a PM asking where a number came from",
+    "The Excel add-in and live model refresh, so your model does not silently break each quarter",
+    "Non-US coverage, and same-day turnaround during earnings season"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The extraction is increasingly commoditized by better models. The normalized, audited, decade-deep KPI history and the models already wired to it are not.",
+  "whyPeopleStillPay": "An analyst's time is worth more than the subscription, and the alternative to Daloopa is not a Python script, it is a junior spending three days hand-keying ten years of segment detail out of PDFs and getting two cells wrong. The value is that the tedium already happened, was checked by a human, is cited back to the filing page, and updates within hours of a print. A personal XBRL scraper covers the income statement you could have read anyway and none of the KPIs anyone is actually competing on.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An XBRL puller is a one-sitting build; a normalized KPI history is not. The moat is a decade of hand-checked, source-linked data that never existed in machine-readable form plus the models already plugged into it.",
+  "prompt": "Build a local SEC fundamentals extractor. No web app, no accounts, no telemetry, no cloud.\n\nStack, non-negotiable:\n- Python 3.12, uv for deps\n- httpx for requests, SQLite via stdlib sqlite3, Typer for the CLI, polars for reshaping, openpyxl for the Excel export\n- Single package `secfacts/`, one SQLite file `data/secfacts.db`\n\nData source: SEC EDGAR, free and unauthenticated.\n- Ticker to CIK map: https://www.sec.gov/files/company_tickers.json\n- Facts: https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json\n- Send a User-Agent read from .env as SEC_USER_AGENT (format: \"Name email\"). Write .env.example, gitignore .env.\n- Rate limit to under 8 requests per second, retry on 429 with backoff, cache raw JSON to data/raw/ so reruns are offline.\n\nCLI:\n- `secfacts sync AAPL MSFT` fetches and upserts facts\n- `secfacts series AAPL --tag Revenues --freq Q` prints a tidy time series\n- `secfacts export AAPL --out out/AAPL.xlsx` writes one sheet of quarterly and one of annual values\n- `secfacts tags AAPL` lists every us-gaap tag that filer actually reports, with observation counts\n\nSchema: filers(cik, ticker, name), facts(cif, taxonomy, tag, unit, fiscal_year, fiscal_period, start_date, end_date, value, form, filed_date, accession, frame_key). Primary key on (cik, tag, unit, start_date, end_date, accession). Keep the latest filed value per period but retain prior ones so restatements are visible; add an `is_current` flag.\n\nEvery exported row must carry the accession number and a clickable EDGAR URL for that filing. That citation column is the point; do not drop it.\n\nDeliberately out of scope, say so in the README: PDF and earnings-deck parsing, KPI normalization across companies, non-US filers, any Excel add-in or live refresh. This gets you tagged financials with sources, nothing more.\n\nInclude pytest tests against one committed fixture JSON so tests run with no network. README with setup, three example commands, and a short honest \"what this is not\" section.",
+  "promptCurated": false
+}
