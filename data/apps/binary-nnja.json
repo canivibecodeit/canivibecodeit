@@ -1,0 +1,52 @@
+{
+  "slug": "binary-nnja",
+  "name": "Binary Ninja",
+  "domain": "binary.ninja",
+  "category": "dev-tools",
+  "subcategory": "reverse engineering / decompiler",
+  "tagline": "A commercial reverse engineering platform: disassembler, multi-level IL, decompiler, and a scriptable analysis API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Personal",
+    "basis": "one-time license with a bundled update window",
+    "unit": "one-time",
+    "source": "https://binary.ninja/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "Binary Ninja is not a UI wrapper around a disassembly library, it is a decompiler stack: lifting machine code into several intermediate languages, then propagating types, values and stack layouts until the output reads like C. That pipeline is a decade of compiler engineering across x86, ARM, MIPS, RISC-V and friends, plus the unglamorous work of not falling over on a 400MB stripped binary. An agent can absolutely build you a useful local binary inspector in a sitting: headers, sections, symbols, strings, linear disassembly, a control flow graph. It cannot build the part people actually pay for, which is pseudo-C that is correct often enough to trust. Ghidra exists and is free if the license is the problem, which tells you the moat is quality and workflow, not availability.",
+  "coreLoopDIY": "Parses a binary's headers, sections, symbols and strings, disassembles selected functions with Capstone, and renders a per-function control flow graph in a local web UI.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12",
+    "LIEF and Capstone",
+    "Graphviz installed locally",
+    "a browser"
+  ],
+  "whatYouLose": [
+    "Decompilation to readable pseudo-C, which is the entire product",
+    "The multi-level IL stack that makes type propagation, value set analysis and variable recovery possible",
+    "Broad architecture coverage beyond whatever Capstone gives you for free",
+    "Interactive renaming, retyping and cross-reference tracking that persists across a whole analysis session",
+    "Plugin ecosystem, headless scripting API, debugger integration, and analysis that scales past toy binaries"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "brand-trust"
+  ],
+  "moatNotes": "The competitive set is IDA Pro and Ghidra, both serious. Binary Ninja wins on IL design and API ergonomics, which are exactly the things you cannot shortcut.",
+  "whyPeopleStillPay": "Because reverse engineering time is expensive and decompiler quality directly converts into hours. A tool that recovers a function's arguments and structure correctly the first time saves an afternoon of squinting at registers, and doing that reliably across architectures is a research problem people have been grinding on for twenty years. The scripting API is the other half: analysis pipelines get written against BNIL and then never move, because rewriting them against a hand-rolled lifter is a project, not a task. A one-time license priced below a week of an analyst's salary is not a subscription anyone bothers to fight.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can one-shot a binary inspector, not a decompiler. The moat is a multi-level IL and the type and value propagation built on top of it, which is compiler research with a GUI attached.",
+  "prompt": "Build a local static binary inspector called \"peek\" in an empty folder. This is a triage tool, explicitly not a decompiler.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, uvicorn\n- LIEF for parsing, Capstone for disassembly, Graphviz (the dot binary) for graph layout\n- Frontend: one static index.html with vanilla JS and plain CSS, no build step, no framework\n- No database. Analysis is per-request against a file path passed on the CLI.\n\nRun as: python -m peek /path/to/binary, which starts the server on 127.0.0.1:8321 and prints the URL.\n\nFeatures, in scope:\n1. Overview panel: format (ELF/PE/Mach-O), architecture, bitness, endianness, entry point, whether stripped, and any detected security flags LIEF exposes (NX, PIE, RELRO, canary).\n2. Sections and segments table: name, virtual address, size, permissions, entropy per section.\n3. Symbols and imports/exports tables, filterable by substring.\n4. Strings view: extract ASCII and UTF-16LE runs of length 4 or more, show offset and containing section, filterable.\n5. Function list: use symbol table entries where present; where stripped, fall back to entry point plus targets of direct call instructions found during a linear sweep. Label these \"heuristic\".\n6. Disassembly view for a selected function: Capstone output with address, bytes, mnemonic, operands. Resolve direct call and jump targets to symbol names when known.\n7. Control flow graph for the selected function: split basic blocks on branches and branch targets, emit DOT, shell out to dot -Tsvg, inline the SVG in the page. Cap at 400 blocks and say so when you truncate.\n\nOut of scope, do not attempt: decompilation, pseudo-C output, intermediate languages, type recovery, indirect call resolution, dynamic analysis, debugging, packer unpacking, signature databases.\n\nCorrectness rules: never trust the file, wrap all parsing in try/except and surface errors in the UI rather than crashing the server. Cap file size at 200MB and stream string extraction rather than reading whole sections into memory twice.\n\nNo accounts, no telemetry, no network calls of any kind. Bind to localhost only. If you need config, use a .env read via os.environ with sane defaults, and commit a .env.example only.\n\nDeliver: pyproject.toml, peek/ package, static/index.html, and a README with install steps, one example invocation, and an explicit \"what this does not do\" section.",
+  "promptCurated": false
+}
