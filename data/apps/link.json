@@ -1,0 +1,51 @@
+{
+  "slug": "link",
+  "name": "Link",
+  "domain": "link.com",
+  "category": "commerce",
+  "subcategory": "one-click checkout wallet",
+  "tagline": "Stripe's consumer wallet that saves your card and address so you can check out in one tap on any site that supports it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://link.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free for shoppers, monetized through merchant payment processing.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Link is not a tool you buy, it is a payment credential that other people's checkout pages recognize. You can absolutely build a local vault that remembers your name, email, shipping address and phone, and you can even autofill them faster than most sites deserve. What you cannot build is acceptance: the reason Link works is that a very large number of merchants already run Stripe and render the Link button. Add card tokenization, fraud scoring, SMS verification across devices and PCI scope, and the personal version stops being a weekend project and starts being a regulated business. Build the autofill vault if form filling annoys you, but do not pretend it is the same product.",
+  "coreLoopDIY": "Keeps your checkout details encrypted on your own machine and fills merchant address and contact fields through a local browser extension, never touching card numbers.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Chromium browser for the MV3 extension",
+    "A passphrase you will actually remember, since there is no reset",
+    "Your browser or password manager for card numbers, which the DIY build deliberately does not store"
+  ],
+  "whatYouLose": [
+    "Acceptance: no merchant checkout will ever show your button",
+    "Card tokenization and PCI handling, which is the expensive, boring part",
+    "Fraud detection and chargeback machinery",
+    "One-tap payment on mobile, including saved cards synced across devices",
+    "Identity verification by SMS code, which is what makes it usable on a new laptop"
+  ],
+  "moatTags": [
+    "network-effects",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "The distribution rides on Stripe's existing merchant base, which is not a thing you can clone with a Postgres table.",
+  "whyPeopleStillPay": "Shoppers do not pay for Link at all, merchants do, folded into processing fees, because a saved wallet measurably reduces abandoned carts. That is the whole economic story: the value flows to the side with the conversion data, and the side with the conversion data is the side with the merchant network. A personal build has no merchants and therefore no value to capture. You are not competing on features, you are competing on how many checkout pages in the world have heard of you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Autofill is a weekend extension; being on file at millions of checkouts is not. The moat is Stripe's merchant network plus PCI scope you genuinely do not want to own.",
+  "prompt": "Build a local-only checkout autofill vault. No accounts, no cloud, no telemetry.\n\nStack: a Chrome MV3 extension written in TypeScript, bundled with Vite. No backend, no server, no external API calls of any kind.\n\nWhat it does:\n1. A popup UI where I can create and edit one or more \"checkout profiles\": full name, email, phone, street address lines, city, region, postal code, country.\n2. All profile data is encrypted at rest with WebCrypto AES-GCM, key derived from a passphrase via PBKDF2 with at least 200k iterations. Store only ciphertext in chrome.storage.local.\n3. The vault locks on browser restart and after 15 minutes idle. Unlock prompt in the popup. No passphrase recovery, say so in the UI.\n4. On any page, a content script detects address and contact form fields using autocomplete attributes first, then name/id/label heuristics as fallback. Fill on explicit user action only, never automatically.\n5. Keyboard shortcut to fill with the default profile. Highlight filled fields briefly so I can see what it touched.\n6. An \"export\" button that dumps a decrypted JSON file to disk, and a matching import.\n\nExplicitly out of scope, do not implement:\n- Storing card numbers, CVCs or any PAN data. If a card field is detected, skip it and log that it was skipped.\n- Any payment initiation, tokenization or merchant integration.\n- Sync, hosted storage, analytics, crash reporting, update pings.\n\nDeliver: working extension loadable unpacked, a README with load instructions and a short threat model paragraph, and unit tests for the crypto helpers and the field matcher. Put nothing secret in source; if you add any config, read it from .env at build time.",
+  "promptCurated": false
+}
