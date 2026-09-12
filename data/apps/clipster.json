@@ -1,0 +1,52 @@
+{
+  "slug": "clipster",
+  "name": "Clipster",
+  "domain": "clipster.gg",
+  "category": "audio-video",
+  "subcategory": "gaming clip capture and discovery",
+  "tagline": "Capture, auto-trim and share gameplay clips, with a public feed for discovering other people's highlights.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.clipster.gg/discover",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical half of this is genuinely a weekend build: a replay buffer, an audio loudness pass over the recording, ffmpeg cuts around the spikes, a local gallery. The half you cannot build is the /discover part, because a feed with nobody in it is a folder with extra steps. If all you want is 'stop scrubbing three hour VODs looking for the good bits', a local script covers it and costs nothing per month. If you post clips so other people watch them, you are paying for hosting, transcoding, a share URL that renders nicely in Discord, and an audience that already exists. Decide which of those two people you are before you open an editor.",
+  "coreLoopDIY": "Watches a recordings folder, scores audio loudness and scene changes to find likely highlights, cuts padded clips with ffmpeg, and indexes them in a local browsable gallery.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11",
+    "ffmpeg and ffprobe on PATH",
+    "A recorder that produces files, OBS replay buffer or ShadowPlay",
+    "Local disk, video eats it fast"
+  ],
+  "whatYouLose": [
+    "The discovery feed and anyone who would ever watch your clips",
+    "Hosted share links with proper embeds in Discord, X and Twitch chat",
+    "Cloud transcoding to multiple resolutions and mobile playback",
+    "Phone access to your library",
+    "Whatever game or platform hooks the product has that a folder watcher does not"
+  ],
+  "moatTags": [
+    "network-effects",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "Clip sites live or die on the feed and on cheap transcoding at volume. Neither is something you install.",
+  "whyPeopleStillPay": "Because clips are social objects. The value is not the cut, it is the link you paste somewhere and the chance a stranger sees it, and that requires a CDN, a transcode pipeline and a population of other posters. A local script gives you clean files on your own disk, which is great for editing and useless for reach. People also pay to not think about storage, formats or codec arguments, which is a real and boring reason.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The clipping is a solved ffmpeg problem; the feed is the product.",
+  "prompt": "Build a local gameplay highlight clipper in Python 3.11. No accounts, no cloud, no telemetry.\n\nStack: Python 3.11, ffmpeg and ffprobe via subprocess, SQLite for the index, FastAPI plus Jinja2 templates for a local gallery, watchdog for folder watching. Standard library where possible. No frontend framework.\n\nBehaviour:\n1. Read config from .env: WATCH_DIR, CLIP_DIR, DB_PATH, PRE_ROLL_SECONDS (default 8), POST_ROLL_SECONDS (default 4), MIN_GAP_SECONDS (default 20), MAX_CLIPS_PER_VIDEO (default 12).\n2. Watch WATCH_DIR for new .mp4 and .mkv files. Wait until a file stops growing before processing it.\n3. For each video, extract an audio loudness timeline: run ffmpeg with the ebur128 filter, parse per-second momentary loudness from stderr into a list of (timestamp, lufs).\n4. Score highlights: compute a rolling median, mark peaks that exceed the median by a configurable margin, merge peaks closer than MIN_GAP_SECONDS, keep the top MAX_CLIPS_PER_VIDEO by peak height.\n5. Cut each highlight with ffmpeg using stream copy where keyframes allow, otherwise re-encode with libx264 crf 20 and aac 128k. Pad with PRE_ROLL_SECONDS before and POST_ROLL_SECONDS after, clamped to the video bounds.\n6. Generate a jpg thumbnail at the peak frame of each clip.\n7. Insert rows into SQLite: source path, clip path, start, end, peak score, duration, created_at, title (editable), starred (bool).\n\nLocal web UI on 127.0.0.1:8080: grid of thumbnails newest first, HTML5 video playback of the local file, inline title rename, star toggle, delete clip file plus row, filter by starred and by source video, and a button to re-run detection on one source with a different loudness margin.\n\nAlso ship a CLI: `clipster scan PATH` processes one file or directory synchronously and prints the clips it made.\n\nOut of scope, do not build: uploading, share links, a public feed, user accounts, game integrations, mobile apps, editing timelines.\n\nInclude: requirements.txt, .env.example, a README with the ffmpeg install line and one example run, and pytest tests for the peak detection and merging logic using a synthetic loudness list so tests do not need ffmpeg.",
+  "promptCurated": false
+}
