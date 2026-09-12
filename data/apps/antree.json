@@ -1,0 +1,51 @@
+{
+  "slug": "antree",
+  "name": "Antree",
+  "domain": "antree.com",
+  "category": "scheduling",
+  "subcategory": "queue and appointment management",
+  "tagline": "Queue and appointment management: customers book or take a ticket, staff call the next one, a screen shows who is up.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://antree.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The data model here is small: services, time slots, tickets, a counter that increments. An agent can produce a working booking page, a staff console, and a waiting room display in one sitting, and it will genuinely work for a single location. The gaps are all at the edges: SMS or WhatsApp notifications need a paid gateway and a verified sender, kiosk tablets and ticket printers need hardware babysitting, and multi-branch staff roles turn a toy into a real permissions problem. It also has to be up and correct while a line of actual humans is standing in a room, which is a different reliability bar than a side project usually meets. Build it for your own clinic or barbershop, not for three sites and twelve staff.",
+  "coreLoopDIY": "A self-hosted queue system: public booking and walk-in ticket page, staff console to call and serve next, and a live display screen driven by server-sent events.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that stays on during business hours",
+    "A screen or spare tablet for the waiting room display",
+    "An SMS or WhatsApp provider account if you want notifications instead of a screen"
+  ],
+  "whatYouLose": [
+    "Outbound SMS and WhatsApp notifications, including sender verification and delivery retries",
+    "Kiosk apps, ticket printers, and display hardware that someone else supports",
+    "Multi-branch setup with staff roles, shifts, and per-counter routing",
+    "Reporting on wait times and no-shows that management will actually ask for",
+    "Someone to call when the queue freezes with people standing in front of it"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The software is easy. Messaging deliverability and hardware that survives being poked all day are not.",
+  "whyPeopleStillPay": "Because the failure mode is public. A booking bug on a personal tool means you missed a haircut; a queue bug in a clinic means twenty annoyed people and a receptionist writing numbers on paper. Paid tools bundle the boring parts nobody wants to own: message delivery, tablets that reboot cleanly, wait time reports, and a support line during opening hours. If you run one small location and are the only staff member, the DIY build is fine and probably nicer than what you would rent.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a one-location build; the moment a second branch appears you have signed up to write an admin panel.",
+  "prompt": "Build a self-hosted queue and appointment system for a single location. Stack: Next.js 15 App Router with TypeScript, Tailwind, SQLite via better-sqlite3, no ORM, no external services.\n\nData model in SQLite, created by a migration script on first run:\n- services: id, name, avg_minutes, active\n- slots: generated from business hours config, per service, per day\n- appointments: id, service_id, customer_name, phone, slot_start, status (booked, arrived, serving, done, no_show)\n- tickets: id, service_id, number, kind (walkin or appointment), created_at, called_at, served_at, status\n- config: single row for business name, opening hours, slot length, timezone\n\nPages:\n1. / : public booking. Pick a service, see the next 7 days of open slots, submit name and phone, get a confirmation code. Block double booking with a unique constraint on (service_id, slot_start).\n2. /walkin : tap a service, issue the next ticket number for today, show a big number and the count ahead.\n3. /staff : password-gated by a single STAFF_PASSWORD from .env, stored in an httpOnly cookie. Shows today's queue in order, buttons for Call Next, Serving, Done, No Show. Shows the currently called ticket per counter (counters 1 to 3, hardcoded in config).\n4. /display : full screen dark page for a TV. Shows the current number per counter plus the next five waiting. Updates over Server-Sent Events from /api/events, no polling.\n5. /admin : edit config, services, and business hours. Same password gate.\n\nRules:\n- Ticket numbers reset daily per service, prefixed with a service letter, e.g. A014.\n- All times stored UTC, rendered in the configured timezone.\n- Seed the database with two services and sane hours so it is usable immediately.\n\nExplicitly out of scope: SMS, WhatsApp, email, payments, multi-branch, staff accounts, analytics dashboards, telemetry.\n\nDeliver a README with run instructions, a .env.example containing STAFF_PASSWORD, and a one-command dev start. Keep it under roughly 1200 lines of app code and prefer server actions over API routes where possible.",
+  "promptCurated": false
+}
