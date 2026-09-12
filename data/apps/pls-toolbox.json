@@ -1,0 +1,51 @@
+{
+  "slug": "pls-toolbox",
+  "name": "PLS_Toolbox",
+  "domain": "eigenvector.com",
+  "category": "dev-tools",
+  "subcategory": "chemometrics / multivariate analysis",
+  "tagline": "MATLAB toolbox for chemometrics: PLS, PCA, MCR, classification and spectroscopic preprocessing with a GUI on top.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://eigenvector.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The math here is not secret: PLS, PCA, MCR-ALS, SIMCA, SNV, Savitzky-Golay derivatives and EMSC are all published algorithms with reference implementations in scikit-learn, scipy and a pile of papers. An agent can absolutely produce a Python notebook or small Streamlit app that loads your spectra, preprocesses them, fits a PLS regression model with cross-validation and plots scores, loadings and residuals in one session. What it cannot produce in one session is twenty-plus years of numerical edge case handling, the validated model export path, and the specific behaviors that regulated labs cite in method documents. If you are a grad student fitting calibration models on your own data, DIY is genuinely fine. If you are shipping a validated method to a QC lab or an instrument vendor's runtime, you are buying the paper trail, not the code.",
+  "coreLoopDIY": "Loads spectral data plus reference values, applies a chosen preprocessing chain, fits and cross-validates a PLS or PCA model, and shows the standard diagnostic plots and prediction outputs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with numpy, scipy, scikit-learn, pandas, matplotlib",
+    "Your own spectra in CSV or a readable instrument export",
+    "Enough chemometrics literacy to know when a model is lying to you"
+  ],
+  "whatYouLose": [
+    "Instrument file format readers, which are a long tail of proprietary binary formats",
+    "Validated, citable implementations that reviewers and auditors already trust",
+    "The full model zoo: MCR-ALS variants, PARAFAC, MIA, batch tools, robust outlier methods",
+    "Model deployment to instrument runtimes and Solo_Predictor-style prediction engines",
+    "Support from people who actually write chemometrics papers when your model misbehaves"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat is not the algorithms, it is being the implementation that appears in method documents, validation packages and two decades of papers.",
+  "whyPeopleStillPay": "Chemometrics lives inside regulated and instrument-coupled workflows. When a pharma QC method or an at-line NIR calibration is written up, the software gets named, and swapping in your own PLS script means re-validating the method. Add the file format readers for every spectrometer vendor, the deployment path to instrument runtimes, and the fact that the authors are recognized names in the field, and the license fee stops looking like a fee for code. It is a fee for not having to defend your own linear algebra to an auditor.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The algorithms are in textbooks; the credibility is not. Fine for your own research, not for a validated method.",
+  "prompt": "Build a local chemometrics workbench for spectroscopic calibration modeling. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, Streamlit for the UI, numpy, scipy, pandas, scikit-learn, matplotlib. Single repo, run with `streamlit run app.py`. Use a venv and requirements.txt. No database: everything is files on disk under ./data and ./models.\n\nData in: a CSV where rows are samples and columns are wavelengths or wavenumbers, plus an optional CSV of reference values (y) keyed by sample id. Support loading a second CSV as a held-out test set. Parse the wavelength axis from the header row.\n\nPreprocessing, implemented as a chainable pipeline the user builds in the UI, in order:\n- mean centering, autoscaling\n- SNV, MSC\n- Savitzky-Golay smoothing and 1st/2nd derivative (expose window and polyorder)\n- baseline removal via asymmetric least squares\n- wavelength range selection and column masking\nEach step must be a scikit-learn compatible transformer so the whole chain composes into a Pipeline.\n\nModels: PCA (exploratory) and PLS regression (PLSRegression from sklearn), plus PLS-DA implemented as PLS on dummy-coded classes with a threshold.\n\nValidation: k-fold and contiguous-block cross-validation, RMSECV and R2 vs number of latent variables, with a plot so the user picks components honestly instead of by vibes.\n\nDiagnostics that must exist: scores plot with Hotelling T2 ellipse, loadings plot, Q residuals vs T2 with 95 and 99 percent limits, regression coefficients, measured vs predicted with RMSEC/RMSECV/RMSEP, and a leverage plot. Flag outliers in a table.\n\nExport: save the fitted pipeline with joblib into ./models with a JSON sidecar recording preprocessing steps, component count, training file hash and metrics. Provide a `predict.py` CLI that takes a model folder and a CSV and writes predictions plus T2 and Q values.\n\nOut of scope, do not attempt: proprietary instrument file readers, PARAFAC and multiway methods, MCR-ALS, live instrument acquisition, any GxP validation claims.\n\nWrite a README that states plainly this is a personal research tool and not a validated analytical package. Include a synthetic dataset generator so the app is demoable with zero real data. Add pytest tests for each transformer against hand-computed small cases.",
+  "promptCurated": false
+}
