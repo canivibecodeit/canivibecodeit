@@ -1,0 +1,51 @@
+{
+  "slug": "someposter",
+  "name": "someposter",
+  "domain": "someposter.ai",
+  "category": "social-media",
+  "subcategory": "AI post generation and scheduling",
+  "tagline": "AI writes your social posts and queues them out to your accounts on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://someposter.ai/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The generation half of this is a prompt and a text box, and an agent will hand you a working version before lunch. The scheduling half is a cron job and a queue table, also trivial. What is not trivial is the plumbing: every platform gates posting behind OAuth apps, review processes, token refresh, media upload endpoints that each work differently, and rate limits that change without warning. X and LinkedIn are doable if you are patient; Instagram and TikTok will eat your weekend and may still say no. Build it if you post to one or two platforms and enjoy reading API docs, buy it if you post to five.",
+  "coreLoopDIY": "A local web app that generates post drafts from a topic or a URL, lets you edit and approve them into a queue, and a cron worker that publishes each one at its scheduled time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "A developer app plus OAuth credentials for each platform you want to post to",
+    "Somewhere that stays awake to run the scheduler: a cheap VPS, a Raspberry Pi, or a hosted cron",
+    "Patience for platform API review if you want Instagram or TikTok"
+  ],
+  "whatYouLose": [
+    "Working connectors for every platform, maintained by someone else when the APIs break",
+    "Media handling: image and video upload quirks, aspect ratios, thumbnails, alt text",
+    "Analytics on what actually performed, and any recommendation loop built on top of it",
+    "A mobile app for approving drafts from the couch",
+    "Someone else's problem when a token expires at 3am and the queue silently stops"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the AI. It is being the party that already survived every platform's app review and keeps the connectors alive.",
+  "whyPeopleStillPay": "Nobody pays for the text generation, they pay to never think about OAuth token refresh again. A one person posting habit spread across four networks means four developer apps, four sets of scopes, four upload flows, and four ways for things to break quietly. The SaaS absorbs that maintenance tax and gives you one approval inbox. If you are down to one platform, the tax is small enough to pay yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The generator is a weekend; the connectors are a subscription to someone else's ongoing pain.",
+  "prompt": "Build a self-hosted AI social post generator and scheduler. Single stack, no alternatives.\n\nStack: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling, Zod for validation. No auth, no accounts, no telemetry: this runs on localhost or a private VPS behind a firewall and is single user.\n\nData model in SQLite:\n- accounts: id, platform ('x' | 'linkedin'), handle, access_token, refresh_token, expires_at\n- drafts: id, source_topic, source_url, body, created_at, status ('draft' | 'approved' | 'posted' | 'failed')\n- queue: id, draft_id, account_id, scheduled_at (UTC ISO), posted_at, remote_id, error\n\nFeatures, in scope:\n1. A /compose page: paste a topic or a URL, pick a tone from a fixed list (plain, punchy, technical), pick target platforms, and generate 5 candidate posts. Fetch and strip the URL to text server side if a URL is given. Call the LLM with the API key from .env. Respect per-platform character limits in the prompt and validate them after.\n2. An editable draft list. Edit body text, approve, or delete.\n3. A /schedule page: assign approved drafts to accounts and datetimes. Also a 'fill posting slots' button that spreads approved drafts across a weekly slot config stored in a JSON file (e.g. Tue and Thu at 09:00 local).\n4. A worker at scripts/worker.ts run by node-cron every minute: pick due queue rows, post them, record remote_id or error, retry up to 3 times with backoff.\n5. Real posting for exactly two platforms: X via API v2 create-tweet, and LinkedIn via the UGC posts endpoint. Implement OAuth2 with PKCE for both, store and refresh tokens. Put client ids and secrets in .env.\n6. A dry-run mode via DRY_RUN=1 that logs the payload instead of posting, so it is testable without real credentials.\n\nOut of scope, do not build: Instagram, TikTok, Threads, Mastodon, image or video upload, analytics dashboards, multi user support, billing, a mobile app.\n\nDeliverables: working app, .env.example listing every variable, a README with exact steps to register the X and LinkedIn developer apps and the callback URLs to use, seed script with 3 fake drafts, and a make-style npm script set (dev, worker, seed). Commit nothing secret.",
+  "promptCurated": false
+}
