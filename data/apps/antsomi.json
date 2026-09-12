@@ -1,0 +1,52 @@
+{
+  "slug": "antsomi",
+  "name": "Antsomi",
+  "domain": "antsomi.com",
+  "category": "crm",
+  "subcategory": "customer data platform",
+  "tagline": "Enterprise customer data platform (CDP 365) that unifies customer profiles across channels and runs omnichannel marketing campaigns off them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://antsomi.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise CDP pricing is quote-based and usually scales with profile count and event volume.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "A CDP is not a feature, it is a pipe that swallows every event your business emits and stitches it into one identity per human. You can absolutely build the toy version: an events table, a rules-based segment builder, a few charts. What you cannot one-shot is deterministic and probabilistic identity resolution across web, app, POS, Zalo, Facebook, and ad platforms, connectors that keep working when those APIs change quarterly, or real-time segment evaluation over tens of millions of profiles. Also worth noting: this is sold to enterprises in Southeast Asia, where the local channel integrations (Zalo especially) are much of the point, and where the buyer wants an SLA and someone to yell at. A personal replacement is a category error unless your \"personal\" use is a single small site with one traffic source.",
+  "coreLoopDIY": "Stands up a self-hosted event pipeline that ingests tracked events, merges them into unified profiles by email or phone, and lets you define SQL-backed segments you can export or email.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker and Docker Compose",
+    "Postgres (via Compose)",
+    "A site or app you can add a tracking snippet to",
+    "SMTP credentials if you want the segment email step"
+  ],
+  "whatYouLose": [
+    "Identity resolution across channels and devices beyond simple email or phone matching",
+    "Prebuilt connectors to ad platforms, Zalo, Facebook, ecommerce carts, and POS systems",
+    "Real-time segment evaluation and journey orchestration at enterprise volumes",
+    "Consent management, audit trails, and the compliance paperwork an enterprise buyer demands",
+    "Support, onboarding, and someone accountable when the pipeline drops events"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The connector fleet is the product. Every channel added is another API contract someone else has to babysit forever.",
+  "whyPeopleStillPay": "Nobody buys a CDP because segmentation logic is hard. They buy it because thirty data sources need to arrive in one profile, the marketing team needs to act on those profiles without filing a ticket, and legal needs to see consent state per channel. That is an operations commitment, not a build. The moment your DIY pipeline drops a day of orders or double-counts a customer, the value of the whole thing inverts, and you are the on-call engineer for a system that only exists so a campaign can go out on Tuesday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The segment builder is a weekend; the pipe is not. The moat is the connector fleet plus the identity graph, and the enterprise appetite for someone else owning both.",
+  "prompt": "Build a self-hosted mini customer data platform called \"tinycdp\". Local only, no cloud accounts, no telemetry.\n\nStack, no substitutions:\n- TypeScript, Node 20, Fastify for the API\n- Postgres 16 (JSONB for event payloads)\n- Drizzle ORM for schema and migrations\n- Plain server-rendered pages with Fastify + EJS and a little vanilla JS. No React.\n- Docker Compose brings up Postgres and the app with one command\n- All secrets in .env, .env.example committed, real .env gitignored\n\nData model:\n- events: id, received_at, event_name, anonymous_id, email (nullable), phone (nullable), properties JSONB, source\n- profiles: id, primary_email, primary_phone, first_seen, last_seen, traits JSONB, event_count\n- profile_identifiers: profile_id, kind (email | phone | anonymous_id), value, unique on (kind, value)\n- segments: id, name, sql_where (a stored SQL fragment over a profiles view), created_at\n\nIngest:\n- POST /collect accepts { event, anonymousId, email?, phone?, properties?, source? } with a shared write key from .env\n- Serve /tinycdp.js, a ~40 line browser snippet that sets a first-party anonymousId cookie and posts page views and custom events\n- Identity stitching, deterministic only: when an event carries an email or phone, upsert a profile, attach the anonymous_id as an identifier, and backfill earlier events with that anonymous_id onto the profile. If two identifiers point at different profiles, merge the newer into the older and log the merge. No probabilistic matching.\n\nUI at /admin, no auth beyond a single password from .env:\n- Profiles list with search by email or phone, and a profile detail page showing merged identifiers and a reverse-chronological event timeline\n- Segment builder: name plus a SQL WHERE fragment against a documented profiles_enriched view (event_count, days_since_last_seen, has_event('purchase'), total_revenue from properties). Validate by running it with a LIMIT.\n- Segment page shows the matched count, a sample of 50 rows, and a CSV download\n- One optional action: send a plain-text email to a segment via SMTP creds in .env, with a dry-run mode that prints recipients instead\n\nExplicitly out of scope, do not build: ad platform or social connectors, journey orchestration, real-time streaming, consent management, multi-tenancy, probabilistic identity matching, dashboards beyond a single events-per-day chart.\n\nDeliver: docker-compose.yml, migrations, a seed script that generates 2000 fake events across 300 fake people so the UI is not empty, and a README with the curl command to send a test event and a note that identity stitching here is deterministic and will happily miss people who never identify themselves.",
+  "promptCurated": false
+}
