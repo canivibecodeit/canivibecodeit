@@ -1,0 +1,52 @@
+{
+  "slug": "semanticsx",
+  "name": "SemanticsX",
+  "domain": "semanticsx.com",
+  "category": "seo-marketing",
+  "subcategory": "semantic content optimization",
+  "tagline": "An SEO tool that analyzes the semantics of search results and tells you which terms, entities and subtopics your page is missing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://semanticsx.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The analysis layer here is genuinely commodity: fetch the pages currently ranking, pull their text, extract terms and entities, embed everything, diff against your draft, print a gap list. An agent can build that loop in a session and it will produce output that looks a lot like the real thing. The part that does not survive is the input: you need live search results and clean page text, which means an SERP API key, a scraper that survives Cloudflare, and a willingness to babysit both. This is a small, obscure product rather than a category-defining one, so we are not confident about its exact feature set or price, and the verdict is about the category as much as the app. Build it if you optimize a handful of pages a month; pay if you do this daily and want someone else to own the scraping.",
+  "coreLoopDIY": "Takes a keyword and your draft, pulls the top ranking pages, extracts their shared terms and entities, and prints a ranked list of what your draft is missing.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An SERP API key (Serper, SerpAPI or similar) in .env",
+    "An OpenAI or local embedding model for similarity scoring",
+    "Node 20+",
+    "Tolerance for pages that block scraping"
+  ],
+  "whatYouLose": [
+    "Reliable page fetching: their scraping infrastructure eats bot walls that your fetch() will not",
+    "Historical data, so no sense of whether a topic is rising or already saturated",
+    "A polished editor with inline suggestions instead of a terminal dump",
+    "Whatever tuned scoring model they use, yours will be raw TF-IDF plus embeddings and will be noisier",
+    "Nobody maintaining it when Google changes result markup"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the NLP, it is owning a scraping pipeline that does not break every Tuesday.",
+  "whyPeopleStillPay": "Because the boring half is the expensive half. Semantic scoring is a hundred lines of embedding math, but getting clean text out of the top twenty results for a thousand keywords without getting blocked, rate limited or fed a cookie banner is an ongoing operational job. People also pay for the verdict: a number on a dashboard that ends the argument about whether the draft is ready to publish. A local script gives you the same terms and none of that finality.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scoring is a weekend of math, the scraping is a permanent tax.",
+  "prompt": "Build a local CLI tool called \"semgap\" that does semantic content gap analysis for SEO.\n\nStack: TypeScript on Node 20, run with tsx, no framework, no web UI, no database beyond files on disk. Output goes to stdout and to a markdown file.\n\nBehavior:\n1. Command: `npx tsx src/index.ts --keyword \"best espresso machine\" --draft ./my-draft.md --top 10`\n2. Call an SERP API (use Serper.dev, key from SERPER_API_KEY in .env) to get the top N organic results for the keyword.\n3. Fetch each result URL with a normal browser User-Agent and a 10 second timeout. Extract main article text using @mozilla/readability plus jsdom. Skip and log any URL that fails, do not crash the run.\n4. Cache raw HTML and extracted text under ./cache keyed by a hash of the URL so repeat runs are cheap.\n5. Build a corpus term profile: tokenize, drop stopwords, compute unigram/bigram/trigram frequencies and document frequency across the competitor set. Rank candidate terms by how many competitor pages use them, then by frequency.\n6. Also extract likely entities with a simple heuristic: capitalized multi-word sequences and terms that appear in headings (h1-h3) of competitor pages.\n7. Read the draft markdown, build the same profile for it.\n8. Compute embeddings for competitor headings and for the draft's headings using OpenAI text-embedding-3-small (OPENAI_API_KEY in .env). Cluster competitor headings by cosine similarity into subtopics and mark any cluster whose nearest draft heading is below 0.75 similarity as a missing subtopic.\n9. Write ./reports/{slugified-keyword}.md containing: word count of draft vs median competitor, a table of the top 40 missing terms with competitor page counts, a list of missing subtopics with example competitor headings, and a list of terms the draft over-uses relative to the corpus.\n\nIn scope: one keyword per run, deterministic caching, clear error logs, a .env.example, a README with setup and one example run.\nOut of scope: rank tracking, scheduling, multi-keyword projects, any dashboard, any auth, any telemetry, headless browser rendering. If a site blocks the fetch, print the domain and move on.\nNo secrets in code. No analytics. Include a small unit test for the tokenizer and the term-diff function.",
+  "promptCurated": false
+}
