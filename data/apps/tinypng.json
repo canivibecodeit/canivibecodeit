@@ -1,0 +1,51 @@
+{
+  "slug": "tinypng",
+  "name": "TinyPNG",
+  "domain": "tinypng.com",
+  "category": "dev-tools",
+  "subcategory": "image compression",
+  "tagline": "Browser drag-and-drop compressor for PNG, JPEG and WebP, plus a developer API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://tinypng.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "Free web tool with monthly limits, a paid annual web plan, and a usage-priced developer API. AI-drafted from a site submission; price unverified."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The clever part of TinyPNG, lossy palette quantization for PNG and smart re-encoding for JPEG, has been open source for years: pngquant, oxipng, mozjpeg, and libvips all ship it. An agent can wire sharp plus a couple of binaries into a local drop-zone page in an afternoon and land within a few percent of TinyPNG's output on most real images. What you are actually paying for is that it works on any machine with a browser, with no install, no Node version fight, and a very well behaved API for build pipelines. If your use is \"squash the images in this folder before I ship\", the DIY build wins outright because it can run on a whole directory without an upload queue. If your use is \"non-technical teammate needs to shrink a hero image right now\", keep the bookmark.",
+  "coreLoopDIY": "A local web page and CLI that take images, run them through sharp plus pngquant and mozjpeg-style settings, and hand back optimized files with a before/after size table.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+",
+    "sharp (bundles libvips)",
+    "local disk, no cloud anything",
+    "optional: oxipng and pngquant binaries for the last few percent"
+  ],
+  "whatYouLose": [
+    "A hosted URL you can open on any machine, including one where you cannot install things",
+    "The production-grade API with client libraries, retries and predictable per-image billing",
+    "Photoshop, Figma, WordPress and CMS plugin ecosystem",
+    "Their tuned per-image quality decisions, which are quietly better than defaults on gradients and screenshots",
+    "Someone else worrying about weird inputs: CMYK JPEGs, animated PNGs, broken metadata, huge uploads"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is convenience and tuning, not technology. Every compression algorithm involved is public.",
+  "whyPeopleStillPay": "Because image compression is a chore nobody wants to own. TinyPNG is a URL you already remember, it never breaks, and the API is boring in the good way, which matters when it sits in a deploy pipeline that must not fail at 2am. Designers pay for the plugins, developers pay to not benchmark encoders. A local script covers your own images perfectly well, but it does not cover the marketing person who needs one PNG under 200KB in the next thirty seconds.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare paid tools where the algorithm is fully open and the product is the packaging.",
+  "prompt": "Build a local image optimizer called \"squash\": a CLI plus a tiny local web UI. No accounts, no cloud, no telemetry, no uploads to anywhere.\n\nStack, non-negotiable:\n- Node 20+, TypeScript, ESM.\n- sharp for decode/encode (it bundles libvips, so no system deps required).\n- Fastify for the local server, plain HTML/CSS/vanilla JS for the UI. No React, no build step for the frontend.\n- Optional external binaries: if `oxipng` and `pngquant` are on PATH, use them for a second PNG pass; otherwise skip silently and note it in output.\n\nCLI:\n- `squash ./images --out ./out --quality 78 --webp` optimizes every png/jpg/jpeg/webp/avif in a folder, recursively, in parallel (concurrency = cpu count).\n- PNG path: sharp palette quantization (palette: true, quality from flag, dither default), then oxipng -o 3 if available.\n- JPEG path: sharp mozjpeg: true, quality from flag, progressive, chromaSubsampling 4:2:0 unless --keep-chroma.\n- WebP path: sharp webp effort 6.\n- `--webp` additionally writes a .webp sibling for every input.\n- Strip metadata by default, `--keep-metadata` to preserve EXIF/ICC.\n- Never write an output larger than the input: if the optimized file is bigger, copy the original and mark it \"skipped (already optimal)\".\n- Print a table: file, before, after, saved %, and a total line at the end.\n\nWeb UI at `squash serve` on 127.0.0.1:4321:\n- Drag-and-drop or file picker, multiple files, processed in-memory by the same pipeline.\n- Show before/after size, saved %, and a side-by-side preview with a draggable split slider so quality loss is visible.\n- Quality slider that re-runs the current batch.\n- \"Download all\" as a zip (archiver or built-in zlib, your call).\n- Hard cap of 50 files and 25MB per file, with a clear error, not a crash.\n\nAlso: `.env.example` with PORT only, a README with install and three real example commands, and vitest tests covering the \"never larger than input\" rule and folder recursion using two small generated fixture images.\n\nOut of scope, do not build: hosted deployment, auth, an HTTP API for third parties, SVG optimization, animated GIF/APNG handling, Photoshop or CMS plugins. If a format is unsupported, say so and move on.",
+  "promptCurated": false
+}
