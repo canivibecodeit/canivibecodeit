@@ -1,0 +1,52 @@
+{
+  "slug": "pre-oder",
+  "name": "Pre-Order",
+  "domain": "apps.shopify.com",
+  "category": "commerce",
+  "subcategory": "Shopify pre-orders and backorders",
+  "tagline": "A Shopify app that turns out-of-stock or unreleased products into pre-orders, with badges, buttons and order tagging.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://apps.shopify.com/pre-order",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible part of a pre-order app is small: swap the add-to-cart button when inventory is zero or a release date is in the future, stamp the line item, tag the order, tell the customer when it ships. An agent can build that for one store in a weekend using a custom app token, a metafield per product and a theme snippet, no app store listing required. What does not come for free is everything money-adjacent: deposits and partial payments lean on Shopify's deferred purchase options and selling plans, which is where most of the paid app's actual complexity lives. You also inherit maintenance: Shopify bumps API versions on a schedule and your snippet breaks the day someone changes themes. Fine if you run one store and like editing Liquid, annoying otherwise.",
+  "coreLoopDIY": "Marks chosen products as pre-order via metafields, rewrites the product page buy button and cart line items accordingly, then tags incoming orders and emails the buyer an expected ship date.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Shopify store you admin, with an Online Store 2.0 theme you can edit",
+    "A custom app with Admin API access (products, orders, metafields, webhooks)",
+    "A public HTTPS endpoint for order webhooks (a small VPS or a tunnel)",
+    "SMTP credentials for the pre-order confirmation email",
+    "Node 20 and comfort reading Liquid"
+  ],
+  "whatYouLose": [
+    "Deposits, split payments and pay-later flows, which need Shopify selling plans and Shopify Payments rather than a snippet",
+    "Per-variant pre-order caps, waitlists and back-in-stock notify flows",
+    "Theme compatibility work: the paid app has been beaten against hundreds of themes, yours has been tested against one",
+    "Merchant-facing UI, so every rule change is a code change or a metafield edit",
+    "Someone else tracking Shopify API deprecations for you"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the idea, it is living inside Shopify's checkout rules and surviving theme variety.",
+  "whyPeopleStillPay": "Because a store owner's time is worth more than a weekend of Liquid debugging, and because the moment they want a 20 percent deposit instead of a full charge, the DIY version stops being a snippet and starts being a payments integration. Pre-order apps also fail loudly: a broken buy button is lost revenue on the exact products people are most excited about, so paying ten or twenty dollars a month for someone else's regression testing is easy math.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you want a pre-order button; buy it if you want to take deposits.",
+  "prompt": "Build a single-store Shopify pre-order system. No app store listing, no OAuth, no multi-tenant, no telemetry.\n\nStack: Node 20 with Fastify, plain TypeScript, SQLite via better-sqlite3 for logs, nodemailer for email. Shopify Admin GraphQL API 2024-10 called with a custom app access token. Theme changes as a Liquid snippet plus a small vanilla JS file, no framework in the storefront.\n\nSecrets in .env only: SHOP_DOMAIN, ADMIN_API_TOKEN, WEBHOOK_SECRET, SMTP_URL, FROM_EMAIL.\n\nIn scope:\n1. A setup script that creates product metafield definitions in namespace preorder: enabled (boolean), release_date (date), message (single_line_text_field), button_label (single_line_text_field).\n2. A CLI: 'npm run preorder -- enable --handle some-product --release 2026-11-01' that writes those metafields via metafieldsSet, plus a 'list' command that prints every product currently flagged.\n3. A Liquid snippet 'preorder-button.liquid' plus install instructions for the product template: if the product metafield is enabled, or inventory is zero and continue-selling is on, replace the add-to-cart label, show the release message, and add a line item property _preorder_release with the date. Keep it working when JS is off by rendering the label server side in Liquid.\n4. A webhook endpoint POST /webhooks/orders-create that verifies the HMAC against WEBHOOK_SECRET, detects any line item carrying _preorder_release, tags the order 'pre-order' and adds an order note listing the affected items, then sends one confirmation email with the earliest release date. Log every processed order id in SQLite and ignore duplicates.\n5. A webhook registration script and a health endpoint.\n\nOut of scope, and say so in the README rather than faking it: deposits or partial payments (that requires Shopify selling plans and deferred purchase options), pre-order quantity caps, back-in-stock waitlists, a merchant admin UI, and support for vintage non-2.0 themes.\n\nDeliver: README with exact install steps for the theme snippet, .env.example, the setup and webhook scripts, and one integration test that posts a signed sample order payload and asserts the tag call and the email were attempted.",
+  "promptCurated": false
+}
