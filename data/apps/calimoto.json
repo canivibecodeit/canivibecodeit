@@ -1,0 +1,51 @@
+{
+  "slug": "calimoto",
+  "name": "calimoto",
+  "domain": "calimoto.com",
+  "category": "travel",
+  "subcategory": "motorcycle route planning and navigation",
+  "tagline": "Route planner and turn-by-turn navigation app that deliberately routes motorcyclists onto twisty roads.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://calimoto.com/en",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interesting half of calimoto is a routing preference: score road segments by curvature and elevation change, then bias the router toward the wiggly ones instead of the fast ones. That is genuinely reproducible, because OpenStreetMap geometry is open and GraphHopper already supports custom weighting models, so a local planner that spits out GPX files is a weekend project. The half you cannot rebuild in a sitting is the part you actually use at 60 mph: a hardened mobile app with offline vector tiles, voice prompts, rerouting when you miss a turn, and a UI you can operate with gloves on. You also lose the community route library, which is other people's riding, not code. Build the planner, keep a real nav app on the handlebars.",
+  "coreLoopDIY": "Runs a local GraphHopper with a curvature-biased custom profile so you can drop pins on a map, generate a deliberately twisty loop, and export it as GPX.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker and roughly 8 GB of free RAM",
+    "A regional OpenStreetMap extract, e.g. a Geofabrik .osm.pbf for your area",
+    "A phone GPS app that imports GPX and caches offline maps, for the actual riding part"
+  ],
+  "whatYouLose": [
+    "A polished, glove-usable mobile navigation app with voice guidance and off-route recalculation",
+    "Offline map packs that work in valleys with no signal",
+    "Community-shared routes and ratings from riders who know the roads",
+    "Motorcycle-specific extras like weather along the route, fuel stops, and trip logging",
+    "Anything resembling support when your route sends you down a gravel farm track"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "network-effects",
+    "proprietary-data"
+  ],
+  "moatNotes": "The curvature heuristic is the least defensible part. The mobile nav experience and the shared route corpus are the parts that took years.",
+  "whyPeopleStillPay": "Because a GPX file on a laptop is not navigation. Riders pay for an app that survives rain, dead cell coverage, and a wrong turn 200 km from home, plus the reassurance that a few hundred thousand other riders have already vetted the good roads. A self-hosted planner covers the fun of planning on a Thursday night; it does not cover Sunday morning.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Curvy-road routing is a weighting function, not a secret; the app around it is the product.",
+  "prompt": "Build a local, self-hosted motorcycle route planner that favors twisty roads and exports GPX. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Routing engine: GraphHopper (open source), run via Docker Compose.\n- Backend: Python 3.11 + FastAPI, talking to GraphHopper over HTTP.\n- Frontend: a single static HTML page with Leaflet and vanilla JS, served by FastAPI.\n- No database. Saved routes are GPX files on disk in ./routes.\n\nWhat to do:\n1. docker-compose.yml runs GraphHopper with a local OSM extract mounted from ./data/region.osm.pbf. Do NOT download map data yourself; print clear instructions telling the user to grab a .osm.pbf from Geofabrik and drop it in ./data.\n2. Write a GraphHopper config that enables a custom profile named \"curvy\" based on the motorcycle/car vehicle, with a custom model that rewards residential/tertiary/secondary and sinuous geometry, penalizes motorway, trunk, ferry, and unpaved surfaces, and allows a max-detour multiplier read from an env var CURVY_DETOUR (default 1.6).\n3. FastAPI endpoints: POST /route takes an ordered list of lat/lng waypoints plus a curviness slider value 0-1, maps that slider onto the custom model weights, calls GraphHopper, returns geometry plus distance, duration, and a simple curviness score (total absolute heading change per km).\n4. POST /save writes the route to ./routes/{name}.gpx as a valid GPX 1.1 track. GET /routes lists saved files. GET /routes/{name} returns the file.\n5. Frontend: map, click to add waypoints, drag to reorder in a sidebar list, curviness slider, a Round Trip toggle that asks GraphHopper for a loop of a target distance, stats readout, Save and Download GPX buttons.\n6. Read GRAPHHOPPER_URL and CURVY_DETOUR from .env via python-dotenv. Ship .env.example, never commit .env.\n\nExplicitly out of scope: mobile app, turn-by-turn voice navigation, offline tile packs, live weather, user accounts, route sharing.\n\nDeliverables: docker-compose.yml, graphhopper config, app/main.py, static/index.html, requirements.txt, .env.example, and a README that states the RAM and import-time expectations for a regional extract and tells the user to load the exported GPX into a real navigation app for actual riding.",
+  "promptCurated": false
+}
