@@ -1,0 +1,52 @@
+{
+  "slug": "uptodate",
+  "name": "UpToDate",
+  "domain": "uptodate.com",
+  "category": "education",
+  "subcategory": "clinical decision support",
+  "tagline": "Subscription clinical reference: physician-authored, continuously revised topic reviews with graded treatment recommendations and a drug database.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "annual individual subscription, tiered by specialty and trainee status",
+    "unit": "per-seat",
+    "source": "https://www.uptodate.com/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Individual clinician plans are billed annually and institutional licensing is quoted, so a monthly figure is not published.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is a search box and a document viewer, and yes, an agent will hand you both before lunch. The product is roughly ten thousand topic reviews written and re-reviewed by thousands of named physician authors and editors, with explicit recommendation grading and dated revision histories, plus a licensed drug database bolted to it. None of that is on the open web in a form you can scrape, and the parts that are open (guidelines, package inserts, PubMed abstracts) are exactly the raw material UpToDate exists to synthesize for you. Add that people use this at 2am to decide what to do to a human body, and that hospitals buy it partly so there is a citable, auditable, malpractice-defensible source in the chart. A personal RAG pipeline over PDFs is a fine study tool and a terrible substitute.",
+  "coreLoopDIY": "A local, cited search-and-summarize app over guideline PDFs and open drug label data that you personally chose and vetted, with a loud banner saying it is not clinical advice.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "An LLM API key in .env, or a local model via Ollama",
+    "Your own legally obtained PDFs of guidelines and reference material",
+    "Enough clinical training to notice when the output is wrong"
+  ],
+  "whatYouLose": [
+    "The actual corpus: physician-authored, editor-reviewed topic reviews with graded recommendations and revision dates",
+    "Currency: a standing editorial process that revises topics when evidence changes, instead of whatever PDFs you dumped in a folder last year",
+    "The integrated drug database, interaction checking, and dosing tables",
+    "EHR integration, institutional single sign-on, and CME credit tracking",
+    "A citable authority in the chart, which is half of why hospitals pay"
+  ],
+  "moatTags": [
+    "content-rights",
+    "brand-trust",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The editorial pipeline is the product. Thousands of contributing authors and section editors, with attribution and revision dates attached, is not something a scraper or a model reproduces.",
+  "whyPeopleStillPay": "Because the alternative is synthesizing the literature yourself, at the bedside, under time pressure, with liability attached. Clinicians pay for a pre-chewed, attributed, recently-reviewed answer that they can act on and then cite. Institutions pay because a shared authoritative source reduces variation in care and looks good in a review of the chart. A model that confidently hallucinates a dose is worse than no tool at all, and everyone in this market knows it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The search UI is an afternoon; the ten thousand reviewed topic articles are not. The moat is a permanent editorial staff of practicing physicians plus the liability comfort of citing them.",
+  "prompt": "Build a local, offline-first clinical reference search tool. It is a personal study and lookup aid over documents I supply myself. It is explicitly NOT a clinical decision support system and the UI must say so.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, server-rendered Jinja2 templates, vanilla JS. No React.\n- SQLite for everything: documents, chunks, FTS5 full-text index, and embeddings stored as BLOBs.\n- pypdf for PDF text extraction.\n- Embeddings and answer synthesis via an OpenAI-compatible endpoint. Read OPENAI_API_KEY and OPENAI_BASE_URL from .env via python-dotenv. Default OPENAI_BASE_URL to http://localhost:11434/v1 so Ollama works with no key.\n\nIngestion:\n- CLI: `python -m app.ingest ./library` walks a folder of PDFs, TXT and MD files.\n- Extract text, chunk to roughly 1200 characters with 200 character overlap, keep page numbers.\n- Store source filename, title (first heading or filename), page, chunk text, and embedding.\n- Idempotent: hash file contents, skip unchanged files, re-index changed ones.\n\nSearch:\n- Hybrid retrieval: SQLite FTS5 BM25 plus cosine similarity over embeddings, merged with reciprocal rank fusion. Return top 8 chunks.\n- Answer mode: send retrieved chunks to the model with a strict prompt: answer ONLY from the provided excerpts, quote the relevant sentence, and if the excerpts do not cover it, reply exactly \"Not covered by the indexed documents.\"\n- Every claim in the answer must carry an inline citation as [filename p.N] and the UI must render those as links that open the source chunk text.\n\nUI:\n- One page: search box, answer panel, and a list of retrieved excerpts with source and page.\n- A persistent red banner: \"Study aid only. Not clinical advice. Verify against primary sources.\"\n- A /library page listing indexed documents, file dates, and chunk counts, so I can see how stale my corpus is.\n\nExplicitly out of scope: user accounts, telemetry, any cloud database, any bundled medical content, any drug interaction logic, any scraping of paywalled or licensed sources. Ship no documents in the repo, only an empty ./library folder and a README explaining that the corpus is my responsibility.\n\nDeliver: requirements.txt, .env.example, README with run commands, and a smoke test that ingests a tiny fixture PDF and asserts a cited answer comes back.",
+  "promptCurated": false
+}
