@@ -1,0 +1,52 @@
+{
+  "slug": "funliday",
+  "name": "Funliday",
+  "domain": "funliday.com",
+  "category": "travel",
+  "subcategory": "trip itinerary planner",
+  "tagline": "Map-based trip planner that turns a pile of places into a day-by-day itinerary with travel times between stops.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://funliday.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core of Funliday is not exotic: a map, a list of places per day, drag to reorder, and a travel time estimate between consecutive stops. An agent can build that on MapLibre with OSM tiles, Nominatim search for places, and a routing call for the legs, and it will genuinely work for planning your own trip. What it will not have is the mobile app you actually carry around, offline maps in a country where your data plan gave up, and the pile of public itineraries other people already made for the city you are visiting. Free geocoding and routing endpoints also have usage policies that make a hobby build fine and a shared build rude. So: a weekend build covers the planning, not the traveling.",
+  "coreLoopDIY": "Search places, drop them into numbered days on a map, drag to reorder, and see driving or walking time between each consecutive stop with a running daily total.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "A map tile source (OSM raster tiles or a MapTiler key in .env)",
+    "Nominatim or Photon for place search, respecting rate limits",
+    "A routing endpoint (public OSRM demo for dev, self-hosted OSRM or a keyed provider for real use)"
+  ],
+  "whatYouLose": [
+    "A real mobile app with offline maps, which is the half of trip planning that happens while you are lost",
+    "Curated POI data with hours, photos, and ratings; OSM coverage is uneven and sometimes wrong about whether a place still exists",
+    "Thousands of public itineraries you can copy for a city you have never visited",
+    "Shared editing with the friend who is also planning the trip",
+    "Reliable routing at scale without paying someone for an API key"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "execution-polish"
+  ],
+  "moatNotes": "The POI records plus user-published itineraries are the asset. The drag-and-drop is not.",
+  "whyPeopleStillPay": "Because trip planning is a mobile activity with a desktop prologue, and the paid tiers buy the part you cannot fake alone: offline maps, unlimited trips, and a POI dataset that knows the opening hours of a noodle shop in Tainan. A self-hosted planner is great the week before departure and useless in a taxi with no signal. People also pay to skip the cold start, because copying a stranger's well-sequenced four-day itinerary is worth more than any UI feature.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The planner is a weekend; the offline mobile app and the POI corpus are not.",
+  "prompt": "Build a local, single-user trip itinerary planner. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Vite + React + TypeScript\n- MapLibre GL JS for the map, OSM raster tiles by default; read an optional MAPTILER_KEY from .env and use vector tiles if present\n- Zustand for state, dnd-kit for drag and drop, Tailwind for styling\n- Persistence: single JSON file per trip on disk via a tiny Express server (port 8787) with GET/PUT /api/trips/:id. No database.\n\nFeatures in scope:\n1. Create a trip: name, start date, number of days.\n2. Place search box: query Photon (photon.komoot.io) or Nominatim, debounce 600ms, send a descriptive User-Agent, show 8 results with name and address.\n3. Add a result to a chosen day. Each place stores name, lat, lng, address, notes, plannedMinutes (default 60).\n4. Left panel: day tabs, ordered place list per day, drag to reorder within a day and across days.\n5. Right panel: map with numbered markers for the selected day and a polyline connecting them in order. Clicking a marker selects the place.\n6. Travel legs: for each consecutive pair, call the public OSRM demo (router.project-osrm.org) for driving and foot profiles, cache results in memory keyed by coordinate pair, and show duration and distance between rows. If the request fails, fall back to haversine distance at 40 km/h and label it \"estimated\".\n7. Per-day footer: total visit time + total travel time, and a warning if the day exceeds 12 hours.\n8. Export the trip as JSON and as a printable plain-text day-by-day list.\n\nOut of scope, do not build: authentication, sharing links, opening-hours data, hotel or flight booking, mobile app, offline tiles, real-time collaboration.\n\nDeliver: working app on npm run dev (server and client concurrently), a README with tile and routing attribution plus a plain note that the public OSRM and Photon endpoints are dev-only and must be self-hosted or replaced with a keyed provider for anything beyond personal use, and .env.example containing MAPTILER_KEY=.",
+  "promptCurated": false
+}
