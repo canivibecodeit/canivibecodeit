@@ -1,0 +1,50 @@
+{
+  "slug": "fastlane",
+  "name": "Fastlane",
+  "domain": "usefastlane.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI workflow automation",
+  "tagline": "An AI agent product pitched as a fast lane through repetitive work; the publicly verifiable details are thin.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.usefastlane.ai/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "We know this one mostly from the outside, so treat the confidence rating as load-bearing: it reads as an AI agent layer that runs repeatable work on your behalf. Products in that shape are usually a prompt chain, a queue, a small database, and a handful of OAuth connections to whatever systems the work actually lives in. The prompt chain and the queue are a one-session build. The OAuth connections, the retries, and the part where it does not quietly hallucinate a wrong action into a live system are the weekend, and then some. Build the local version to find out how much of the value was the model and how much was the plumbing.",
+  "coreLoopDIY": "A local web app where you define multi-step AI workflows in YAML, feed them inputs, and watch each step run with its output logged and editable before the next step fires.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (Anthropic or OpenAI) in .env",
+    "Node 20+",
+    "Willingness to hand-wire any integration you actually need, since nothing here talks to your real accounts out of the box"
+  ],
+  "whatYouLose": [
+    "Prebuilt connectors to the tools where your work actually lives, which is probably most of what you were paying for",
+    "Someone else's prompt tuning, which is boring, unglamorous, and worth more than it sounds",
+    "A hosted queue that keeps running when your laptop sleeps",
+    "Guardrails against an agent taking a confident wrong action in a live system",
+    "Any support channel other than reading your own logs"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "Agent wrappers live and die on connector breadth. The model is a commodity, the OAuth screens are not.",
+  "whyPeopleStillPay": "Because the demo is not the product. Getting an agent to draft a plausible step is trivial now; getting it to touch six external systems, fail gracefully on the fourth, and not do something irreversible is the actual engineering. If your use case is one workflow against one system you already have an API key for, the DIY build is genuinely fine. If it is nine workflows across nine SaaS tools with real consequences, you are paying for someone else to maintain nine sets of auth tokens and edge cases, and that is a reasonable trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Graded on the shape of the category rather than deep familiarity with this specific product, so weigh it accordingly.",
+  "prompt": "Build a local-first AI workflow runner called \"sidestreet\". Empty folder, no accounts, no telemetry, no cloud.\n\nStack, no substitutions: TypeScript, Node 20, Express for the API, better-sqlite3 for storage, Vite + React + plain CSS for the UI. Single repo, npm scripts only, no Docker, no ORM.\n\nData model in SQLite:\n- workflows: id, name, yaml_source, created_at\n- runs: id, workflow_id, input_json, status (pending|running|done|failed), created_at\n- steps: id, run_id, index, name, prompt_rendered, output_text, status, tokens, error, started_at, finished_at\n\nWorkflow format: a YAML file with a name, an inputs list, and an ordered steps list. Each step has a name, a prompt template using {{input.field}} and {{steps.previous_step_name}} placeholders, and an optional mode of \"llm\" or \"shell\". Load .yaml files from ./workflows on boot and also allow pasting YAML into the UI.\n\nExecution: a single in-process worker that walks steps in order, renders each template, calls the LLM (Anthropic messages API, model and key from .env), writes output to the steps table, then continues. Shell steps run a whitelisted command from the YAML and capture stdout. On any step failure, mark the run failed and stop; do not auto-retry.\n\nHuman in the loop, this is the point of the build: any step can set approve: true. The worker pauses there and waits for an approve or edit action from the UI. Editing rewrites the step output before the next step renders.\n\nUI, three views: workflow list with a Run button and an input form generated from the inputs list; run detail showing each step as a card with rendered prompt, output, status, and approve/edit controls, polling every second; run history.\n\nExplicitly out of scope: user accounts, OAuth, third-party connectors, scheduling, webhooks, streaming responses, multi-tenant anything, mobile.\n\nSecrets in .env only: ANTHROPIC_API_KEY, MODEL. Commit .env.example, gitignore .env.\n\nShip a README with setup in under five commands and two example workflows in ./workflows: one that summarises a pasted block of text into three bullets, one that drafts an email and pauses for approval before a shell step writes it to a file.",
+  "promptCurated": false
+}
