@@ -1,0 +1,51 @@
+{
+  "slug": "abridge",
+  "name": "Abridge",
+  "domain": "abridge.com",
+  "category": "voice-ai",
+  "subcategory": "ambient clinical documentation",
+  "tagline": "Ambient AI that listens to a patient visit and drafts the clinical note, wired into the hospital's EHR.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.abridge.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Abridge sells to health systems under enterprise contracts and does not publish per-seat pricing.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The transcribe-then-summarize loop is genuinely a one-sitting build now: Whisper plus a decent model will turn a recorded conversation into a passable SOAP note. That is also the least valuable part of Abridge. What health systems actually buy is a HIPAA posture with a signed BAA, note drafts that land inside Epic where the clinician already works, medical vocabulary and drug name accuracy tuned on an enormous volume of real encounters, and coding support that survives an audit. None of that is code you write on a Saturday, and a personal replacement that touches real patient audio is a compliance problem, not a side project. Build the toy if you are a clinician who wants to see the shape of it, then keep it on synthetic or self-recorded audio.",
+  "coreLoopDIY": "Records or ingests a conversation, transcribes it locally with Whisper, and drafts a structured SOAP note plus a problem list you can copy out.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A machine that can run Whisper locally, ideally with a GPU",
+    "An LLM: local via Ollama, or an API key in .env if you accept the data path",
+    "Microphone access, and synthetic or consented audio only"
+  ],
+  "whatYouLose": [
+    "EHR integration: no Epic or Cerner write-back, so someone still retypes or pastes the note",
+    "HIPAA compliance, BAAs, audit logging, and the legal cover a health system requires before real patient audio touches anything",
+    "Accuracy on drug names, dosages, and specialty jargon that comes from training on a huge clinical corpus, not a generic model",
+    "Billing and coding support, plus the note templates that were shaped by actual clinician review cycles",
+    "Reliability in a noisy exam room with two speakers, an interpreter, and a door opening"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "Healthcare is the rare vertical where the paperwork around the product is harder to reproduce than the product.",
+  "whyPeopleStillPay": "Clinicians do not buy Abridge, hospitals do, and hospitals are buying an indemnified vendor as much as a transcription engine. The note has to appear in the chart in the right field, the audio has to be handled under a BAA, the output has to hold up if a coder or a lawyer reads it later, and the whole thing has to work for a thousand physicians who will abandon it the first time it garbles a dosage. A local script solves one doctor's typing problem and creates a new privacy problem, which is a bad trade for anyone practicing medicine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The transcript-to-SOAP-note pipeline is a one-sitting build; the thing being sold is not the pipeline. The moat is a HIPAA-compliant path into Epic plus millions of real encounters worth of clinical language tuning, and no personal build gets either.",
+  "prompt": "Build a local-only ambient clinical note drafter. Single Python project, no web accounts, no telemetry, no cloud storage.\n\nStack, no substitutions:\n- Python 3.11+\n- faster-whisper for transcription (model size configurable, default \"medium\")\n- sounddevice for microphone capture, writing 16kHz mono WAV\n- Ollama for note generation, default model \"llama3.1:8b\", talked to over its local HTTP API\n- Typer for the CLI, Rich for terminal output\n- SQLite via stdlib sqlite3 for the local encounter log\n\nCommands:\n- `scribe record --label NAME` : record from the default mic until Ctrl-C, save WAV under ./encounters/\n- `scribe ingest PATH` : accept an existing audio file instead\n- `scribe note ENCOUNTER_ID` : transcribe, then generate the note\n- `scribe list` and `scribe show ID` : browse past encounters\n- `scribe export ID --format md` : write a markdown file to ./out/\n\nNote generation:\n- Diarize crudely by pause-and-turn heuristics only. Do not pretend it is speaker ID; label turns SPEAKER_A / SPEAKER_B and say so in the output header.\n- Prompt the model for a SOAP note: Subjective, Objective, Assessment, Plan, plus a problem list and a \"follow-up items\" list.\n- Add an \"uncertain terms\" section listing any drug names, dosages, or numbers the transcript rendered with low confidence, taken from faster-whisper word probabilities. Never silently normalize a dosage.\n- Every generated file gets a header: DRAFT, MODEL-GENERATED, NOT A MEDICAL RECORD, REVIEW BEFORE USE.\n\nIn scope: local recording, local transcription, local generation, local SQLite log, markdown export.\nOut of scope, do not build or stub: any EHR/FHIR/Epic integration, cloud upload, user accounts, multi-user sync, billing or ICD/CPT code suggestion, mobile app.\n\nSecrets: none required. If an OLLAMA_HOST override is needed, read it from .env via python-dotenv. Commit a .env.example, gitignore .env, ./encounters/, and ./out/.\n\nREADME must state plainly: this stores raw audio unencrypted on disk, it is not HIPAA compliant, and it must only be used with synthetic or self-recorded audio.",
+  "promptCurated": false
+}
