@@ -1,0 +1,51 @@
+{
+  "slug": "trendtrack",
+  "name": "Trendtrack",
+  "domain": "trendtrack.io",
+  "category": "analytics",
+  "subcategory": "ecommerce competitor tracking",
+  "tagline": "Tracks competitor Shopify stores: their products, prices, ad creatives and estimated sales.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://trendtrack.io/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The scraping half of this is genuinely easy: public Shopify stores leak products.json, sitemaps and variant inventory, so an agent can build you a watcher that snapshots a competitor's catalog daily and diffs price and stock changes. Where it stops being easy is everything Trendtrack sells on top: a database of hundreds of thousands of stores you did not have to find yourself, ad library scraping across Meta and TikTok, and revenue estimates built from long time series you do not have on day one. Your DIY version tracks the stores you already know about and starts its history at zero. If you only care about five competitors, that is fine and arguably better. If you wanted discovery, you are paying for their crawl, not their charts.",
+  "coreLoopDIY": "Polls a list of competitor Shopify domains on a schedule, snapshots products, variants, prices and inventory levels, and shows a dashboard of what changed and what is selling out.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that can run a scheduled job",
+    "A Postgres or SQLite database",
+    "A list of competitor store domains you actually care about",
+    "Tolerance for scrapers breaking when stores change themes or block you"
+  ],
+  "whatYouLose": [
+    "Store discovery: their crawl of hundreds of thousands of shops, so you can only track domains you already know",
+    "Ad creative tracking across Meta and TikTok libraries, which is a separate and much uglier scraping project",
+    "Revenue and sales estimates, which need historical inventory series you will not have for months",
+    "Non-Shopify platforms and any store that hides its product endpoints",
+    "Someone else maintaining the scrapers when they break, which they will"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is the crawl and its history, not the UI. Every day you do not run your scraper is data you can never backfill.",
+  "whyPeopleStillPay": "Dropshippers and ecommerce operators are not paying for a price diff table, they are paying for the ability to type a niche and get a list of stores they had never heard of, ranked by estimated sales, with ad creatives attached. That requires crawling the long tail of Shopify continuously and keeping years of inventory snapshots so the sales math has something to chew on. A personal build gives you excellent depth on the ten stores you already watch and zero breadth, which is exactly backwards for the discovery use case. If your job is competitive monitoring rather than niche hunting, the tradeoff flips and self-hosting wins.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the diff tool, keep the subscription if you need discovery. Backfilled history is the thing you cannot code your way to.",
+  "prompt": "Build a local competitor store tracker for Shopify shops. Single project, no cloud services, no accounts, no telemetry.\n\nStack, non negotiable:\n- TypeScript, Node 20\n- SQLite via better-sqlite3 for storage\n- A small Fastify server for the dashboard\n- Server rendered HTML with plain templates and a little vanilla JS, no React\n- node-cron for scheduling inside the same process\n\nWhat it does:\n1. Reads a stores.json file listing competitor domains to watch, plus an optional label per store.\n2. For each store, fetches /products.json with pagination (limit 250) and also parses /sitemap_products_1.xml as a fallback when products.json is blocked.\n3. Normalizes each product: handle, title, product type, tags, vendor, created_at, published_at, image URL, and for every variant: variant id, title, price, compare_at_price, available flag, and inventory_quantity when exposed.\n4. Writes a timestamped snapshot row per variant into SQLite. Never overwrite history, always append.\n5. Computes diffs against the previous snapshot for that store: new products, removed or unpublished products, price increases and decreases, variants that went out of stock, variants that came back, and inventory drops. Treat a downward inventory move as an estimated units sold signal and store it.\n6. Runs the whole sweep on a cron schedule from .env (default daily at 06:00 local), with a manual \"run now\" button in the UI.\n\nDashboard routes:\n- / : all tracked stores, product counts, number of changes in the last 7 days\n- /store/:domain : product table with current prices, sortable, plus a change feed\n- /changes : global reverse chronological feed of every diff, filterable by store and change type\n- /product/:storeId/:handle : price history line chart and inventory history for each variant, rendered with a tiny inline SVG chart, no chart library\n\nNon negotiable behavior:\n- Polite scraping: configurable delay between requests (default 2000ms), a custom User-Agent from .env, respect HTTP 429 with exponential backoff, and hard fail loudly per store without killing the whole sweep.\n- Store raw JSON responses gzipped on disk under ./raw/ so you can reprocess without refetching.\n- Export: /export.csv for the change feed and a `npm run backup` script that copies the SQLite file.\n\nExplicitly out of scope, do not build:\n- Meta or TikTok ad library scraping\n- Any store discovery or niche search, the store list is manual\n- Revenue estimates beyond raw inventory-drop unit counts, do not invent a dollar model\n- User accounts, multi tenancy, or any hosted deployment config\n\nDeliverables: README with setup in under five commands, .env.example with CRON_SCHEDULE, REQUEST_DELAY_MS and USER_AGENT, a seeded stores.json with three example domains, and one npm script that runs a sweep immediately so I can see data on first launch.",
+  "promptCurated": false
+}
