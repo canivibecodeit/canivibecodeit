@@ -1,0 +1,53 @@
+{
+  "slug": "purevpn",
+  "name": "PureVPN",
+  "domain": "purevpn.com",
+  "category": "security",
+  "subcategory": "consumer VPN",
+  "tagline": "Consumer VPN subscription with apps for every platform and thousands of servers across dozens of countries.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://purevpn.com/",
+    "checkedOn": "2026-09-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Consumer VPN pricing is promo-driven and changes constantly, so any number here would be fiction.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can absolutely stand up your own WireGuard server in an afternoon, and for the coffee-shop-wifi threat model it is strictly better: you control the box, there is no third party logging anything, and it costs the price of a small VPS. What you cannot build is the thing people actually buy a VPN for, which is somebody else's IP address in a country you are not in, shared with thousands of strangers. A personal tunnel gives you one static IP that is trivially attributable to you, which is worse than useless for geo-unblocking and anonymity. The server fleet, the peering deals, the residential and streaming-friendly IP ranges, the audited no-logs posture, and the native apps on phones and TVs are the product. Build the tunnel, keep the subscription if you wanted the other thing.",
+  "coreLoopDIY": "Provisions a WireGuard server on a VPS you rent, generates client configs with QR codes, and routes all your traffic through your own box.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A VPS from any provider, cheapest tier is fine",
+    "A domain or just the VPS IP",
+    "SSH access and basic comfort with a Linux shell",
+    "WireGuard client app on each device, official ones are free"
+  ],
+  "whatYouLose": [
+    "IP diversity: one static IP tied to your payment method instead of a rotating pool across 60+ countries",
+    "Crowd anonymity: on a shared VPN your traffic blends into thousands of users, on your own box every packet is yours",
+    "Streaming and geo-unblocking, since datacenter IP ranges get blocklisted fast and nobody is playing whack-a-mole for you",
+    "Native apps with kill switches, split tunneling, and auto-connect on untrusted wifi, on iOS, Android, TV boxes and routers",
+    "Third-party no-logs audits and a jurisdiction story, which is the whole compliance pitch",
+    "Somebody to keep the server patched, up, and not oversubscribed"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "brand-trust",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "A VPN's product is literally a fleet of IP addresses in places you are not, plus the ongoing fight to keep those addresses off blocklists. That is a logistics business wearing a software costume.",
+  "whyPeopleStillPay": "Because the encryption was never the hard part. WireGuard is a few hundred lines and a free client, and your own tunnel handles hostile networks fine. People pay for exit points: an IP in Tokyo, an IP in Berlin, an IP that is not obviously yours, and an app on a phone that reconnects itself without being asked. Renting that fleet and keeping it from getting blocklisted is an operations treadmill nobody wants to run personally, and a self-hosted tunnel actively de-anonymizes you compared to hiding in a shared pool.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The tunnel is an afternoon; the fleet of exit IPs in forty countries is not. The moat is scale infrastructure plus the endless blocklist war, sold as a checkbox.",
+  "prompt": "Build me a self-hosted WireGuard VPN so I can tunnel my devices through a VPS I control.\n\nStack, no debate:\n- Target OS: Ubuntu 24.04 LTS on a fresh VPS (assume root SSH access).\n- WireGuard via the wg-quick tooling, installed from apt. No Docker, no orchestration, no control panel.\n- Plain bash scripts plus a tiny Python 3 helper for config and QR generation. Standard library only where possible; qrencode from apt for QR codes.\n\nDeliverables in this folder:\n1. install-server.sh: idempotent script that installs wireguard and qrencode, enables net.ipv4.ip_forward and IPv6 forwarding, generates the server keypair into /etc/wireguard/ with 0600 perms, writes /etc/wireguard/wg0.conf listening on the port from .env, sets up nftables masquerade on the default egress interface, and enables wg-quick@wg0 via systemd.\n2. add-client.sh NAME: allocates the next free IP in the 10.8.0.0/24 pool, generates a client keypair and preshared key, appends the peer block to wg0.conf, applies it live with wg syncconf (no full restart, no dropped peers), writes clients/NAME.conf, and prints the config as a terminal QR code.\n3. remove-client.sh NAME: removes the peer, frees the IP, applies live, deletes the config file.\n4. status.sh: wraps wg show with last-handshake and transfer counters in a readable table.\n5. .env.example with SERVER_PUBLIC_HOST, WG_PORT, WG_INTERFACE, DNS_SERVERS. Read from .env at runtime; never commit .env; never hardcode keys or hosts.\n6. README.md: VPS provisioning steps, the one firewall rule to open (UDP on WG_PORT), how to import configs on iOS, Android, macOS and Windows, and how to verify the tunnel with a curl to an IP echo service.\n\nExplicitly in scope: full-tunnel routing (AllowedIPs 0.0.0.0/0, ::/0), per-client keys with preshared keys, IPv6 support if the VPS has it, a kill-switch note using the client apps' own toggles.\n\nExplicitly out of scope: a web UI, user accounts, billing, multi-region anything, telemetry, log shipping, obfuscation or protocol camouflage against DPI. Do not pretend this hides my identity: put a short section in the README stating plainly that this is one static IP traceable to me, that it is good for hostile wifi and bad for anonymity or geo-unblocking, and that no logs are written by default but the VPS host can see everything.\n\nIdempotency matters: re-running install-server.sh must not clobber existing keys or peers. Fail loudly with a clear message if .env is missing a value.",
+  "promptCurated": false
+}
