@@ -1,0 +1,52 @@
+{
+  "slug": "exocharts",
+  "name": "Exocharts",
+  "domain": "exocharts.com",
+  "category": "finance-accounting",
+  "subcategory": "order flow charting",
+  "tagline": "Browser-based order flow terminal: footprint charts, volume profiles, and orderbook heatmaps for crypto and futures.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://exocharts.com/",
+    "checkedOn": "2026-08-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The chart itself is not the hard part: a footprint grid, a volume profile and a depth heatmap are canvas rendering plus bucketing arithmetic, and an agent will get you there. The hard part is the data behind it. Crypto venues give you live trades and depth over public websockets for free, but they do not hand you years of tick-level history, and the moment you want CME or other regulated futures you are in licensed-feed territory with per-venue fees and redistribution rules. A local build starts with an empty database and only knows what happened after you launched it, which is the opposite of what traders open this kind of tool for. You can absolutely have a personal live order flow window; you cannot one-shot the archive or the license.",
+  "coreLoopDIY": "Subscribes to a public exchange websocket, records every trade and depth update to a local database, and renders live footprint, volume profile and orderbook heatmap panels on a canvas.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Always-on machine or VPS to accumulate tick history",
+    "Public exchange websocket access (no key needed for crypto market data)",
+    "Local disk for tick storage, gigabytes per symbol per month",
+    "Licensed data vendor if you want anything beyond crypto"
+  ],
+  "whatYouLose": [
+    "Historical tick data from before you turned your recorder on, which is most of the point",
+    "Regulated futures feeds (CME and friends) that require paid licenses, not scraping",
+    "Multi-venue aggregation with normalized symbols, funding, liquidations and open interest in one view",
+    "Render performance and interaction polish at millions of prints per session",
+    "Saved layouts, alerts, and a tool that works from any browser without babysitting a process"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "content-rights",
+    "scale-infra"
+  ],
+  "moatNotes": "Two separate moats stacked: the tick archive nobody can backfill, and the exchange licensing that makes redistributing futures data a contract problem instead of a code problem.",
+  "whyPeopleStillPay": "Order flow traders are paying for a data pipe with a chart bolted on. Someone else runs the collectors across venues, keeps the history queryable back further than you have been trading, pays the exchange license fees, and renders millions of prints without freezing the tab. Your local build competes fine on the live tape for one crypto symbol and loses instantly the moment you want to scroll back to last quarter or look at ES. That gap is measured in storage bills and legal agreements, not in prompt quality.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A live footprint chart off a public websocket is a weekend of work, and it will only ever know what happened after you turned it on. The moat is licensed exchange feeds plus years of archived tick data, billed per venue.",
+  "prompt": "Build a local order flow terminal for crypto perpetuals. Single repo, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable: TypeScript everywhere. Node 20 backend, Vite + vanilla TS frontend, rendering to a single HTML canvas (no charting library). SQLite via better-sqlite3 for storage. pnpm. No React, no Docker.\n\nBackend:\n- Connect to Binance USD-M futures public websockets for a symbol list from .env (default BTCUSDT, ETHUSDT): aggTrade stream and depth@100ms diff stream, plus a REST depth snapshot on connect to seed the book.\n- Maintain an in-memory order book per symbol from snapshot + diffs, with correct sequence gap handling (resnapshot on gap).\n- Persist every aggTrade to a trades table (symbol, ts, price, qty, isBuyerMaker) with indexes on (symbol, ts). Persist a depth ladder snapshot every 500ms to a book_snaps table as a compact JSON blob.\n- Auto reconnect with backoff. Log dropped messages, do not silently swallow them.\n- Expose an HTTP + websocket API on localhost: /api/footprint?symbol=&interval=&from=&to= returning bid/ask volume bucketed by price tick and time bar, /api/profile for session volume profile, and a websocket that pushes live trades and the current book ladder.\n\nFrontend:\n- Three panels: footprint chart (per-bar price rows showing bid volume vs ask volume, delta colored), a horizontal volume profile for the visible range, and an orderbook heatmap strip showing resting size over time.\n- Time interval and price tick aggregation are user-adjustable via a toolbar. Mouse wheel zooms time, drag pans, and it must stay smooth with 500k prints loaded.\n- Read historical bars from the API, then append live prints from the websocket. Draw with requestAnimationFrame, one canvas, devicePixelRatio aware.\n\nExplicitly out of scope: user auth, hosted deployment, CME or any licensed non-crypto feed, indicators beyond delta and cumulative delta, alerts, mobile layout.\n\nSecrets and config in .env (symbols, tick sizes, db path). Ship a README that says plainly: history starts the moment you first run the recorder, and estimates disk usage per symbol per day.",
+  "promptCurated": false
+}
