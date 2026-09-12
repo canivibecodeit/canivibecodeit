@@ -1,0 +1,52 @@
+{
+  "slug": "rotki",
+  "name": "Rotki",
+  "domain": "rotki.com",
+  "category": "personal-finance",
+  "subcategory": "crypto portfolio tracking and tax accounting",
+  "tagline": "Local-first crypto portfolio tracker and tax accounting tool that pulls from exchanges and on-chain addresses.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://rotki.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard part is easy: a table of holdings, a price feed, a chart. The part that actually matters is the ingestion and accounting layer: dozens of exchange APIs with dozens of quirky CSV formats, on-chain transaction decoding that knows a Uniswap swap from a staking reward from an internal transfer, and cost basis logic that survives contact with a tax authority. An agent will happily generate all of that and quietly get the edge cases wrong, which is the worst possible failure mode for something you file taxes against. There is also a specific reason not to bother: Rotki is open source and runs locally already, with the paid tier buying extra features rather than access to your own data. Cloning it is rebuilding a free local app badly.",
+  "coreLoopDIY": "Import exchange CSVs and one or two on-chain addresses into SQLite, price them against a public API, and compute FIFO realized and unrealized gains with a CSV export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "CoinGecko or similar price API",
+    "Etherscan-style block explorer API key for on-chain addresses",
+    "Manual CSV exports from each exchange",
+    "Willingness to hand-check every number before trusting it"
+  ],
+  "whatYouLose": [
+    "Direct API connections to a long list of exchanges, so you go back to downloading CSVs by hand every quarter",
+    "On-chain transaction decoding: your build sees token transfers, not swaps, LP positions, airdrops or staking rewards",
+    "Accounting settings that map to actual jurisdictions, plus years of bug reports from people who hit the weird cases first",
+    "Historical price coverage for illiquid or delisted assets, where naive API lookups return nothing",
+    "DeFi protocol coverage that changes every month without you maintaining it"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "proprietary-data"
+  ],
+  "moatNotes": "The integration surface is not glamorous and it never stops moving, which is exactly why it holds.",
+  "whyPeopleStillPay": "Because the alternative to correct crypto accounting is a spreadsheet you do not trust in April. Rotki's paid tier is not selling you a dashboard, it is selling continued maintenance of a very boring, very large surface area: exchange endpoints that change, tokens that get renamed, protocols that appear, tax rules that shift. Anyone who has tried to reconcile three years of transactions across four exchanges and two chains knows the labor is in the reconciliation, not the UI. And since the base app is open source and local, you are paying for upkeep rather than for permission.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can already run this locally for free, so a clone is effort spent moving sideways. The moat is the integration and decoding layer: hundreds of exchange formats, on-chain event decoding, and accounting logic that has been argued over by actual taxpayers.",
+  "prompt": "Build a local-first crypto cost-basis tracker. This is a personal tool, not a product. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, uv for deps\n- SQLite via sqlite3, schema in schema.sql, no ORM\n- Typer for the CLI\n- FastAPI plus one Jinja2 template and plain HTML for a read-only dashboard on localhost\n- httpx for API calls\n\nIn scope:\n1. Importers for CSV trade history in three shapes, each a separate module under importers/: a generic buy/sell/fee format, a generic deposit/withdrawal format, and a raw ERC-20 transfer list. Every importer normalizes into one transactions table: timestamp, asset, amount, direction, quote_asset, quote_amount, fee_asset, fee_amount, source, external_id. Deduplicate on (source, external_id).\n2. An on-chain fetcher that takes an EVM address and pulls native and ERC-20 transfers from an Etherscan-style API. Treat everything as a plain transfer. Do not attempt to decode swaps or contract calls; tag anything you cannot classify as \"needs-review\" and surface the count loudly.\n3. Daily historical prices from CoinGecko, cached in a prices table so you never refetch. If a price is missing, store NULL and report it instead of guessing zero.\n4. FIFO cost basis engine in accounting.py: realized gains per disposal, unrealized position per asset, running average cost. Pure functions over lists of transactions so it can be tested without a database.\n5. Commands: import, sync-address, fetch-prices, report --year, serve.\n6. Reports write CSV to ./out/: realized_gains_YEAR.csv and holdings.csv. The dashboard shows holdings, unrealized PnL, and the needs-review queue.\n\nOut of scope, do not build: exchange API integrations, DeFi protocol decoding, LIFO or HIFO or per-jurisdiction rulesets, tax form generation, multi-user support, auth, Docker.\n\nSecrets: ETHERSCAN_API_KEY and optional COINGECKO_API_KEY in .env, loaded with python-dotenv, .env in .gitignore with a committed .env.example.\n\nTests: pytest covering the FIFO engine with at least six cases, including partial disposals, fees added to basis, a disposal with no matching acquisition, and a missing price. Include a fixtures/ folder with small fake CSVs.\n\nEnd with a README that states plainly that the output is an estimate for personal review, not tax advice, and lists every case the importers ignore.",
+  "promptCurated": false
+}
