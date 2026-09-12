@@ -1,0 +1,51 @@
+{
+  "slug": "rappi",
+  "name": "Rappi",
+  "domain": "rappi.com",
+  "category": "commerce",
+  "subcategory": "on-demand delivery marketplace",
+  "tagline": "Latin American on-demand app for food, groceries, pharmacy and errands delivered by couriers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://rappi.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Rappi is free to install with per-order fees and a paid Prime subscription that varies by country.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Rappi is not software you replace, it is thousands of couriers on motorbikes plus signed contracts with restaurants, supermarkets and pharmacies in a dozen countries. The app on your phone is the thinnest part of the product: a catalog, a cart, a map and a payment sheet. An agent can absolutely build that shell in an afternoon, and it will be an empty shell, because you cannot one-shot merchant inventory, real-time courier supply, card processing in Colombia and Brazil, or a support team that refunds your melted ice cream. Even the parts that look like pure software, ETA prediction and batching orders, run on years of trip data you do not have. The only honest DIY here is a household tool for coordinating your own runs, which is a different product wearing the same hat.",
+  "coreLoopDIY": "A local app where a household or friend group saves favorite menus, collects everyone's order for a shop or restaurant run, and splits the total when someone volunteers to go.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a machine or cheap VPS to run it on",
+    "Manually entered menus and prices, no merchant APIs",
+    "Everyone on the same local network or a tunnel if you want phone access"
+  ],
+  "whatYouLose": [
+    "Actual couriers: nobody brings you anything, someone in your group still has to go",
+    "Live merchant catalogs, real prices and stock, which change daily and are not scrapeable in good faith",
+    "Payments, invoicing and local tax handling across multiple countries",
+    "Live tracking, ETAs and order batching, all of which lean on historical trip data",
+    "Refunds, fraud handling and a human to complain to when the order is wrong"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "scale-infra"
+  ],
+  "moatNotes": "Two-sided liquidity per city block: couriers show up because orders exist, orders exist because couriers show up. Nothing you build in a folder touches that.",
+  "whyPeopleStillPay": "Because the fee buys physical labor and a working supply chain, not features. The value is that at 9pm on a Tuesday somebody is willing to ride across town with your groceries, the store already agreed to hand them over, and your card works. People also pay for the boring middle layer: the merchant onboarding, the courier payouts, the dispute process. A personal build can organize intent, it cannot manufacture a courier.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the screens in an afternoon and the app will still deliver nothing. The moat is courier density plus signed merchant contracts in every city, which is logistics, not code.",
+  "prompt": "Build a local-only \"run coordinator\" web app for a household or friend group. This is NOT a delivery marketplace: there are no couriers, no merchant APIs, no payments. One person volunteers to go somewhere, everyone else piles their requests into a shared list.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/runs.db, schema created on boot in a migration script\n- No auth provider. A single shared PIN read from .env (APP_PIN) gates the app, stored in an httpOnly cookie\n- No external services, no telemetry, no analytics\n\nData model:\n- places: id, name, kind (restaurant | grocery | pharmacy | other), notes\n- items: id, placeId, name, unitPrice (integer cents, nullable), notes\n- people: id, name\n- runs: id, placeId, runnerPersonId (nullable), status (open | shopping | closed), createdAt, closedAt\n- orderLines: id, runId, personId, itemId (nullable), freeText (nullable), qty, actualPriceCents (nullable), fulfilled (bool)\n\nFeatures, in scope:\n1. CRUD for places, items and people. Prices are typed by hand, they are estimates.\n2. Start a run for a place. While it is open, anyone can add lines: pick a saved item or type free text.\n3. Runner view: a checklist of all lines grouped by item, with a tick box and a field for the real price paid.\n4. Close a run, then show a settlement page: what each person owes, plus a shared-cost field (delivery, parking, tip) split evenly. Round to cents, dump the leftover cent on the runner.\n5. History page listing past runs with totals and a per-person running balance across all runs.\n6. Mobile-first layout. Big tap targets. Works fine in a phone browser on the LAN.\n\nOut of scope, do not build: courier dispatch, maps, ETAs, live tracking, card payments, push notifications, scraping any store site, multi-tenant accounts.\n\nDeliverables: working app, migration script, seed script with two fake places and three people, README with setup and a note that prices are manual and this replaces group chat, not a delivery company.",
+  "promptCurated": false
+}
