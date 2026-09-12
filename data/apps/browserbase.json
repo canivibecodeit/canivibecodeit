@@ -1,0 +1,53 @@
+{
+  "slug": "browserbase",
+  "name": "Browserbase",
+  "domain": "browserbase.com",
+  "category": "dev-tools",
+  "subcategory": "headless browser infrastructure",
+  "tagline": "Managed cloud browsers for AI agents and scrapers, with Playwright/Puppeteer endpoints, proxies, stealth, and session replay.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.browserbase.com/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The thing Browserbase sells is a browser you did not have to babysit, and a coding agent can absolutely hand you one: Chromium in a container, a Playwright server listening on a websocket, a small API that hands out session IDs and cleans up after itself. For personal use, one or two concurrent browsers driving sites you are allowed to drive, that is genuinely enough and you will save real money. What does not survive the copy is everything that makes scraping hostile targets work: residential proxy rotation, fingerprint and stealth patching that gets updated when Cloudflare ships a new check, captcha handling, and the ability to burst to hundreds of parallel sessions without your laptop fan taking off. You also inherit the chore of keeping Chromium and Playwright versions in sync forever. So: a weekend build that covers the boring 80 percent, with a hard wall the moment your target actively does not want you there.",
+  "coreLoopDIY": "Spins up disposable Dockerized Chromium sessions behind a tiny API that returns a CDP websocket URL your existing Playwright code can connect to, with recordings and traces saved to disk.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker and a host that stays online, ideally a small VPS rather than your laptop",
+    "Node 20 and existing Playwright or Puppeteer scripts",
+    "a few GB of RAM per concurrent browser",
+    "your own proxy credentials if you need a non-datacenter IP",
+    "tolerance for pinning and upgrading Chromium yourself"
+  ],
+  "whatYouLose": [
+    "Residential and geo-targeted proxy pools, maintained for you",
+    "Stealth and fingerprint patching that keeps pace with anti-bot vendors",
+    "Captcha solving and human-in-the-loop unblocking",
+    "Elastic concurrency: dozens or hundreds of browsers on demand, no capacity planning",
+    "The hosted dashboard: live session view, replay, logs, and debugging you did not build"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The real product is an arms race against bot detection plus a fleet you do not have to operate. Neither of those is a code problem.",
+  "whyPeopleStillPay": "Because running one browser is easy and running four hundred is an operations job. Teams pay Browserbase to avoid owning Chromium upgrades, memory leaks, zombie processes, proxy contracts, and the weekly surprise of a target site shipping a new detection layer. Add the debugging surface, live view and replay, which is the part everyone underestimates until an agent silently fails at 3am, and the hosted version stops looking expensive the moment browser automation is load-bearing for revenue.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a personal Playwright farm, useless as a way to win fights with Cloudflare.",
+  "prompt": "Build a self-hosted headless browser session service. Stack: TypeScript, Node 20, Fastify, Playwright, Docker Compose. No other frameworks, no cloud accounts, no telemetry.\n\nDeliver two pieces:\n1. A Docker image based on mcr.microsoft.com/playwright with a pinned Playwright version, running a small session manager process.\n2. A Fastify HTTP API on port 8080, auth via a single bearer token read from API_TOKEN in .env.\n\nEndpoints:\n- POST /sessions: launches a fresh Chromium browser with an isolated user data dir and a persistent context, returns { id, cdpUrl, expiresAt }. Accept optional body fields: viewport, userAgent, proxy (server, username, password), timeoutMs, recordVideo (bool).\n- GET /sessions: list live sessions with age, memory RSS, and page count.\n- GET /sessions/:id: status plus paths to artifacts.\n- DELETE /sessions/:id: close the browser, flush artifacts, remove the profile dir.\n- GET /sessions/:id/screenshot: current screenshot of the first page as PNG.\n\nRequirements:\n- Expose Chromium over CDP so existing code can call playwright.chromium.connectOverCDP(cdpUrl) unchanged.\n- Hard concurrency cap from MAX_SESSIONS in .env, default 3. Return 429 when full, do not queue.\n- Idle reaper: kill any session past its timeout or with no CDP client attached for 60 seconds. Log every kill.\n- Store video, trace, and console logs per session under ./artifacts/:id. Delete artifacts older than ARTIFACT_TTL_HOURS.\n- Graceful shutdown: SIGTERM closes all browsers before exit, no orphaned Chromium processes.\n\nExplicitly out of scope, do not attempt: stealth or fingerprint spoofing plugins, captcha solving, proxy pool rotation, a web dashboard, multi-host scheduling.\n\nInclude a README with docker compose up, a curl example creating a session, and a 15 line Node script that connects over CDP, loads a page, and screenshots it. Include a .env.example. Add a smoke test script that creates three sessions, asserts the fourth returns 429, then tears everything down and asserts zero Chromium processes remain.",
+  "promptCurated": false
+}
