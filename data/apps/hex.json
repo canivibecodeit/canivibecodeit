@@ -1,0 +1,52 @@
+{
+  "slug": "hex",
+  "name": "Hex",
+  "domain": "hex.tech",
+  "category": "analytics",
+  "subcategory": "collaborative data notebooks",
+  "tagline": "A collaborative workspace where SQL and Python notebooks turn into shareable interactive data apps.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://hex.tech/",
+    "checkedOn": "2026-09-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic, cells that mix SQL against a warehouse with Python that reads the query results as dataframes, is not exotic: DuckDB plus a notebook kernel plus a chart library gets you most of the analysis loop in a weekend. What you cannot one-shot is the part Hex actually sells, which is the layer above the notebook: multiplayer editing, a published app view your non-technical coworkers can use without seeing code, scheduled runs, permissions, and connection management across Snowflake and BigQuery and Postgres. For a solo analyst poking at their own data, a local notebook is honestly fine and faster. For a team where the deliverable is a link someone else trusts, the DIY version falls over on day two. So: buildable, with the gaps sitting exactly where the money is.",
+  "coreLoopDIY": "A local notebook where SQL cells run against DuckDB or your Postgres, Python cells read the results as dataframes, and a toggle hides the code to render just the charts and inputs as a shareable page.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and Node installed locally",
+    "DuckDB for local files, plus connection strings for any real database you want to query",
+    "Warehouse credentials in .env if you are hitting Snowflake or BigQuery",
+    "Comfort running a dev server whenever you want to open your own notebooks"
+  ],
+  "whatYouLose": [
+    "Real-time multiplayer editing and comment threads on cells",
+    "A published app view with access controls that non-technical people can open on their own",
+    "Scheduled runs, caching, and alerting when a query result changes",
+    "Maintained connectors and query pushdown for Snowflake, BigQuery, Databricks and friends",
+    "Version history, review flows, and the general confidence that a shared dashboard is not silently broken"
+  ],
+  "moatTags": [
+    "collaboration",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The notebook is the commodity. The published-app-with-permissions layer and the warehouse connectors are the product.",
+  "whyPeopleStillPay": "Because the artifact that matters is not the notebook, it is the link. Hex exists so an analyst can hand a stakeholder something interactive that queries live data, refreshes on a schedule, respects row permissions, and does not require the stakeholder to know what a kernel is. Getting a self-hosted notebook to serve that reliably to a dozen people means auth, a scheduler, connection pooling, result caching, and somebody on call when the Snowflake credentials rotate. That is a job, not a weekend, and per-seat pricing is cheaper than the job.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Personal data exploration is a solved local problem; the moment you need to share it with someone who does not write code, the weekend build stops being enough.",
+  "prompt": "Build a local, single-user hybrid SQL and Python notebook that can publish itself as a read-only data app.\n\nStack, no substitutions:\n- Backend: Python 3.11, FastAPI, uvicorn.\n- Execution: one long-lived Python process per notebook using a single shared globals dict. No Jupyter, no ipykernel.\n- SQL engine: DuckDB in-process. It reads local CSV and Parquet files directly, and can ATTACH a Postgres database if POSTGRES_URL is set in .env.\n- Frontend: React with Vite and TypeScript. CodeMirror 6 for the editors. Vega-Lite via react-vega for charts. Plain CSS, no UI framework.\n- Storage: notebooks are .json files in ./notebooks/. No database, no accounts, no telemetry.\n\nData model: a notebook is an ordered list of cells. Cell types are sql, python, markdown, and input. Each cell has an id, a type, source text, an optional name, and a hideCode flag.\n\nBehavior:\n- SQL cells run against DuckDB. The result is registered back into the Python globals as a pandas DataFrame under the cell's name, and DuckDB can query any prior named DataFrame by that name. This round trip is the whole point, make it work.\n- Python cells run in the shared globals and can reference any named SQL result. Capture stdout, exceptions with tracebacks, and the value of the last expression.\n- If a Python cell's last expression is a Vega-Lite spec dict or a DataFrame, render it as a chart or a paged table rather than text.\n- Input cells define a named widget: text, number, date, or select with a static option list. Their value lands in globals and is interpolated into SQL via a {{name}} placeholder using DuckDB prepared parameters, not string concatenation.\n- Run a single cell, or run all cells top to bottom. Show per cell status: idle, running, error, and last run duration.\n- App mode: a /app/:notebookId route that renders only markdown, inputs, charts and tables, hiding every cell marked hideCode, with a Refresh button that re-runs everything. It is served by the same local process, it is not published anywhere.\n\nExplicitly out of scope, do not build: authentication, multiplayer or CRDTs, scheduled runs, Snowflake or BigQuery connectors, cloud deploy, sharing links, version history, package installation UI.\n\nDeliver a README with setup steps, a .env.example containing POSTGRES_URL, one example notebook that loads a bundled sample CSV, filters it with an input cell, and renders one chart, plus pytest coverage of the SQL to DataFrame to SQL round trip and of parameter interpolation.",
+  "promptCurated": false
+}
