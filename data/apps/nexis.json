@@ -1,0 +1,52 @@
+{
+  "slug": "nexis",
+  "name": "Nexis",
+  "domain": "lexisnexis.com",
+  "category": "rss-research",
+  "subcategory": "licensed news and business research archive",
+  "tagline": "Searchable archive of licensed news, company, legal and public records content for research and due diligence.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.lexisnexis.com/en-us/products/nexis.page",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Nexis is sold via enterprise contracts and quotes, not public per-seat pricing.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software layer here is a search box over a document store, and yes, an agent can build that before lunch. The product is not the search box: it is decades of licensing deals with thousands of newspapers, wires, trade journals, court systems and company registries, much of it not on the open web and none of it legally scrapeable at volume. You cannot one-shot the right to redistribute Le Monde's 1997 archive or a paywalled trade weekly. Add the parts researchers actually pay for: source-level provenance, dedup across syndicated reprints, defensible citations, and audit trails that survive a compliance review. A personal build gets you a decent open-web clipping service, which is a different product wearing the same UI.",
+  "coreLoopDIY": "Pulls RSS, sitemaps and free APIs into a local SQLite full-text index with saved boolean queries, dedup and email digests.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "a machine or cheap VPS to run a scheduled fetcher",
+    "SMTP credentials for digests",
+    "optional API keys for free news sources"
+  ],
+  "whatYouLose": [
+    "Paywalled and print-only archives going back decades, which is most of the actual corpus",
+    "Legal clearance to store and quote licensed content",
+    "Company, litigation and public-records datasets that are not on the open web",
+    "Deduplication and source taxonomy built by editors, not regexes",
+    "Citations and audit trails an employer or regulator will accept"
+  ],
+  "moatTags": [
+    "content-rights",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Licensing is the whole business. Every year of back catalogue is another contract someone else has to negotiate from scratch.",
+  "whyPeopleStillPay": "Because the alternative to Nexis is not a better search engine, it is not having the documents. Analysts, journalists, litigators and KYC teams need to say where a fact came from and prove the source existed on a given date, and they need that for outlets that never put their archive online. The price is high and the interface is dated, and both of those facts are irrelevant when the content only exists in one place.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The search UI is a weekend; the archive is not. The moat is thousands of content licences and the fact that nobody else is allowed to hold that corpus.",
+  "prompt": "Build a local news and research clipping archive called \"minisearch\". Single user, no accounts, no cloud, no telemetry.\n\nStack, no substitutions: Python 3.11, FastAPI, SQLite with FTS5, feedparser, httpx, trafilatura for article text extraction, APScheduler for the fetch loop, Jinja2 templates with plain HTML and a little vanilla JS. No React, no Docker, no ORM.\n\nData model in SQLite:\n- sources: id, name, kind (rss | sitemap | url_list), url, active, added_at\n- documents: id, source_id, url unique, title, author, published_at, fetched_at, raw_html_path, text, hash_simhash\n- documents_fts: FTS5 virtual table over title and text, external content on documents\n- queries: id, name, expression, last_run_at\n- hits: query_id, document_id, first_seen_at\n\nBehaviour:\n1. CLI command to add a source, plus a seed file sources.txt of feeds read on first run.\n2. Scheduled fetcher every 30 minutes: pull new items, fetch the article page, extract main text with trafilatura, store raw HTML on disk under ./archive/YYYY/MM/ for provenance, insert into documents, skip on URL conflict.\n3. Near-duplicate detection with simhash over the text, so syndicated reprints collapse into one primary document with a list of duplicate URLs shown underneath.\n4. Saved queries using FTS5 boolean syntax (AND, OR, NOT, NEAR, quoted phrases) with optional date range and source filter. Match new documents against saved queries after each fetch and record hits.\n5. Web UI on localhost:8000: search page with snippet highlighting, document view showing extracted text plus a link to the archived HTML, saved query list, source list with last-fetch status and error counts.\n6. Daily digest email of new hits per saved query via SMTP. Credentials in .env, read with os.environ, and a .env.example committed. Skip silently if SMTP is unset.\n7. Export: a command that dumps any query result set to CSV and to a folder of Markdown files with a citation line (title, source, URL, published date, retrieved date).\n\nExplicitly out of scope: scraping paywalled sites, bypassing any access control, login flows for publishers, multi-user auth, hosted deployment. Respect robots.txt via a check before fetching and rate limit to one request per second per host.\n\nDeliver a README with setup in five commands or fewer, and a smoke test that seeds three public RSS feeds, runs one fetch cycle, and prints the number of documents indexed.",
+  "promptCurated": false
+}
