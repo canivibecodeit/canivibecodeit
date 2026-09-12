@@ -1,0 +1,51 @@
+{
+  "slug": "award-wallet",
+  "name": "AwardWallet",
+  "domain": "awardwallet.com",
+  "category": "travel",
+  "subcategory": "loyalty program tracking",
+  "tagline": "Tracks balances, expiration dates and activity across hundreds of airline, hotel and credit card loyalty programs in one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "http://awardwallet.com/",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible product is a dashboard with balances, expiry dates and a timeline, which is a trivial build. The actual product is a fleet of scrapers and login flows against hundreds of loyalty programs that have no public APIs, hate automation, and change markup and 2FA rules constantly. You can hand-enter your own balances in an afternoon and get 70 percent of the value, but the moment you want automatic updates you are maintaining credential storage and headless browsers for every program you care about, forever. Doing that with real airline and bank credentials on your own box is also a security decision most people should not make casually. Build the manual ledger, not the scraper farm.",
+  "coreLoopDIY": "A local app where you manually record loyalty accounts, balances and expiration dates, then get a dashboard and email reminders before points expire.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node runtime or Docker on a machine you control",
+    "SMTP credentials if you want expiry reminder emails",
+    "Manual data entry, or patience to paste in program statements"
+  ],
+  "whatYouLose": [
+    "Automatic balance refresh across hundreds of programs",
+    "Expiration date rules that AwardWallet already knows per program",
+    "Browser extension and mobile apps that capture balances as you browse",
+    "Itinerary parsing from confirmation emails",
+    "Someone else absorbing the breakage every time a loyalty site redesigns or adds 2FA"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The per-program expiration rules and scraper maintenance are the asset, not the UI.",
+  "whyPeopleStillPay": "Because nobody wants to write and babysit two hundred fragile logins against airline sites that break monthly, and because forgetting a 40,000 point expiry costs more than years of subscription. The paid tiers exist mostly to fund the scraping treadmill and to give heavy churners a single place to see everything before an award booking. If you only hold four or five programs, a spreadsheet with reminders genuinely competes. If you hold forty, it does not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is an afternoon; the connectors are a full time job. The moat is hundreds of maintained scrapers plus a database of per-program expiration rules that exists nowhere public.",
+  "prompt": "Build a local-first loyalty points tracker called PointsLedger. No cloud, no accounts, no telemetry.\n\nStack, no substitutions:\n- Next.js with the App Router and TypeScript\n- SQLite via better-sqlite3, file at ./data/points.db\n- Tailwind for styling\n- node-cron inside a small standalone worker script for reminders\n- nodemailer for email, SMTP config from .env\n\nData model:\n- program: id, name, type (airline | hotel | credit-card | rail | other), website, expirationPolicyMonths (nullable), notes\n- account: id, programId, label, accountNumberMasked, loginHint (no passwords, ever)\n- balanceEntry: id, accountId, balance, recordedOn, source (manual | pasted)\n- expiry: id, accountId, expiresOn, pointsAtRisk, dismissed\n\nFeatures in scope:\n- Dashboard: total accounts, a sortable table of every account with latest balance and days until expiry, rows colored red under 60 days\n- Add and edit programs and accounts by hand\n- Add a balance entry per account; keep history and show a small sparkline of balance over time\n- Derive expiry automatically when expirationPolicyMonths is set: last activity date plus policy months, editable override\n- A worker script that runs daily, finds expiries inside 90, 30 and 7 days, and sends one digest email\n- CSV import and export of accounts and balance entries\n- Seed the database with 15 well-known programs and blank expiration policies for me to fill in\n\nExplicitly out of scope, do not attempt:\n- Scraping or logging into any loyalty program\n- Storing loyalty passwords\n- Email inbox parsing, browser extensions, mobile apps\n\nSecrets: SMTP_HOST, SMTP_USER, SMTP_PASS, ALERT_TO in .env, with a committed .env.example.\nWrite a README with setup, how to run the worker, and a one paragraph warning that balances are manual by design.",
+  "promptCurated": false
+}
