@@ -1,0 +1,51 @@
+{
+  "slug": "panoramata",
+  "name": "Panoramata",
+  "domain": "panoramata.co",
+  "category": "seo-marketing",
+  "subcategory": "competitive marketing intelligence",
+  "tagline": "A searchable archive of other brands' marketing: emails, ads, social posts, landing pages, tracked over time.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.panoramata.co/track/instagram",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface here is a search box over a database, and the search box is the easy part. What you are paying for is thousands of brands monitored continuously for years: every newsletter received, every ad snapshot, every Instagram post captured before it got deleted. An agent can build you a perfectly good tracker in an afternoon, and on day one it will contain nothing, because backfill is the one thing you cannot code. Instagram in particular is actively hostile to unauthenticated scraping, so the specific page this was submitted from is the hardest part of the product to reproduce. Build the swipe file if you want a swipe file; do not expect to reproduce the archive.",
+  "coreLoopDIY": "A local app that collects competitor marketing you can legitimately reach (newsletters into a dedicated inbox, Meta Ad Library results, page screenshots on a schedule) and makes it all full-text searchable with tags.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A dedicated email address with IMAP access, used only for competitor newsletter signups",
+    "Meta Ad Library access for the ad side (public search, rate limited)",
+    "Playwright and enough disk for screenshots",
+    "Patience: your archive starts empty and only gets useful after a few months"
+  ],
+  "whatYouLose": [
+    "Historical depth. Years of captured emails, ads and posts you were not around to collect.",
+    "Breadth. Their coverage is thousands of brands; yours is the brands you personally remembered to add.",
+    "Instagram and TikTok coverage. Public social scraping is fragile, blocked and a maintenance tax you will pay weekly.",
+    "Curation and structure: industry tags, campaign groupings, seasonal collections, and the ability to browse rather than search.",
+    "Someone else's uptime. When a scraper breaks at 3am it is now your scraper."
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The archive is time-shaped. Even a well funded competitor cannot buy the emails that were sent in 2021 and never captured.",
+  "whyPeopleStillPay": "Marketers use this tool in a specific mode: a brief lands, they need twenty examples of how DTC brands ran Black Friday email in the last three years, and they need them in ten minutes. That query is only answerable against a deep back catalogue. A personal tracker answers a different and much narrower question, namely what a handful of chosen competitors did since you started watching them. Both are useful, but only one of them is a research tool, and the paid one costs less per month than the hours you would spend keeping scrapers alive.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The app is a search box; the search box is not the product. The moat is years of continuous capture across thousands of brands, and nobody can retroactively collect a newsletter that already went out.",
+  "prompt": "Build a local, single-user competitor marketing archive. Node 20 with TypeScript throughout. SQLite via better-sqlite3 with FTS5 for search. Fastify serving server-rendered EJS pages plus HTMX for interactions. No React, no accounts, no cloud, no telemetry. All secrets in .env, loaded with dotenv.\n\nData model: brands (name, domain, notes, tags), items (brand_id, source, captured_at, title, body_text, html, screenshot_path, external_url, tags), and an FTS5 virtual table over item title plus body_text.\n\nThree collectors, each a standalone script runnable via npm run collect:x and all three wired into a single node-cron scheduler:\n\n1. Email collector. Connect to a dedicated IMAP mailbox using imapflow with credentials from .env. Fetch unseen messages, parse with mailparser, match the sender domain against known brands and auto-create the brand if unknown, store subject as title, extracted text as body_text, raw HTML on disk, then render the HTML to a full-page PNG with Playwright.\n\n2. Landing page collector. For each brand domain, screenshot the homepage and any tracked URLs weekly with Playwright, extract visible text, and store the item only if the text hash changed since the last capture.\n\n3. Meta Ad Library collector. Query the public ad library for each brand name, store ad copy, first-seen date and creative thumbnail. Rate limit to one request every few seconds and skip cleanly on failure rather than crashing the run.\n\nUI: a brand list, a brand detail timeline, and a global search page with filters for source, brand, tag and date range, results as a grid of screenshot cards that open a detail view showing full text and the original URL. Add a tag editor on the detail view.\n\nExplicitly out of scope, and say so in the README: Instagram, TikTok and any other logged-in social scraping. Do not attempt it, do not stub it, do not pretend it works.\n\nShip a README covering .env setup, how to point competitor newsletter signups at the mailbox, how to seed brands from a CSV, and a blunt paragraph stating that this archive contains nothing until it has been running for a few months.",
+  "promptCurated": false
+}
