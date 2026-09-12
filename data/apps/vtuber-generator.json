@@ -1,0 +1,53 @@
+{
+  "slug": "vtuber-generator",
+  "name": "EZVtuber",
+  "domain": "ezvtuber.com",
+  "category": "generative-media",
+  "subcategory": "vtuber avatar generation",
+  "tagline": "Generates VTuber-style character avatars and turns them into something you can put on stream.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://ezvtuber.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "There are two products hiding in here: making the character art, and making the character move. The moving part is genuinely one-shottable, MediaPipe face landmarks driving a layered PNG puppet in a browser canvas is a known, well documented pattern, and OBS can capture it via a transparent browser source. The art generation part is not really theirs either, it is a diffusion model with a decent anime checkpoint and a prompt template, but running that yourself means either a GPU on your desk or an API key, which is exactly the hard dependency that keeps this out of 'yes'. Real auto-rigging into Live2D format with physics, hair sway and mouth shapes is a genuinely fiddly pipeline you will not finish in a session. Build it if you want one avatar for your own stream; do not build it expecting an art pipeline.",
+  "coreLoopDIY": "A local browser app that generates a character image from a prompt via a diffusion API, slices it into layers, and puppets it with webcam face tracking on a transparent canvas for OBS.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a webcam",
+    "a diffusion image API key or a local ComfyUI install with an anime checkpoint",
+    "a machine that can run WebGL and a webcam feed at the same time",
+    "OBS or similar for the transparent browser source"
+  ],
+  "whatYouLose": [
+    "Real Live2D rigging: mesh deformation, hair and clothing physics, proper viseme mouth shapes",
+    "Curated, tuned generation presets that reliably produce usable full-body character art instead of a nice headshot you cannot rig",
+    "Export into formats other tools understand, so your avatar is locked to your own canvas app",
+    "Hosted GPU, meaning your generation speed is whatever hardware or credits you have",
+    "Anything resembling model consistency across outfits, poses and expressions"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "proprietary-models"
+  ],
+  "moatNotes": "The rigging and retarget pipeline is where the actual craft is. The generation step is mostly public weights plus prompt engineering.",
+  "whyPeoplePayStillPay": null,
+  "whyPeopleStillPay": "Streamers want to be streaming, not debugging blendshapes. Paying a few dollars to get a usable avatar in ten minutes beats a weekend of MediaPipe landmark smoothing every time, especially if you are not technical and the alternative is learning Live2D Cubism from scratch. The paid product also absorbs the GPU cost and the awkward truth that most generated character art needs several rerolls before one is riggable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The free open source VTubing stack is already mature, so the thing worth paying for here is the art generation, not the tracking.",
+  "prompt": "Build a local VTuber puppet app. No accounts, no cloud storage, no telemetry.\n\nStack, no substitutions: Vite + React + TypeScript, Tailwind for the small amount of UI, pixi.js for rendering, @mediapipe/tasks-vision for face tracking. Everything runs in the browser. A tiny Node/Express dev server only exists to proxy the image generation call so the API key stays server side.\n\nTwo routes:\n\n1. /studio, the operator UI. Left panel: a prompt box that POSTs to /api/generate, which calls the Replicate HTTP API with an anime-capable SDXL model using REPLICATE_API_TOKEN from .env. Show the returned image. Below it, a layer editor: let me draw rectangles on the image to mark head, left eye, right eye, mouth and body, then cut those regions into separate transparent PNGs client side with canvas. Persist the resulting rig (layer images as data URLs plus offsets) in IndexedDB under a named avatar. Sliders for head rotation sensitivity, blink threshold, mouth open gain.\n\n2. /overlay, the capture view. Transparent background, no UI chrome, reads the selected avatar from IndexedDB. Open the webcam, run FaceLandmarker in VIDEO mode with blendshapes enabled, and map: head yaw and pitch to body-relative head sprite rotation and parallax offset; eyeBlinkLeft and eyeBlinkRight to swapping eye sprites open/closed; jawOpen to vertical scale of the mouth sprite; a slow idle sine wave on the body sprite for breathing. Smooth all values with a one-euro or simple exponential filter so it does not jitter. Target 60fps, degrade gracefully if the webcam is 30fps.\n\nIn scope: one avatar at a time, five layers, keyboard shortcuts to force expressions, a README explaining how to add /overlay as an OBS browser source with transparency.\n\nOut of scope, do not attempt: Live2D or VRM import/export, mesh deformation, physics on hair or clothing, full visemes beyond jaw open, multiple avatars on screen, hosting, auth, payments.\n\nDeliver: working npm run dev, .env.example with REPLICATE_API_TOKEN, and a fallback that lets me upload my own PNG instead of generating one so the app is usable with no API key at all.",
+  "promptCurated": false
+}
