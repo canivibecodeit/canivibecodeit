@@ -1,0 +1,51 @@
+{
+  "slug": "ruckus-ai",
+  "name": "RUCKUS AI",
+  "domain": "ruckus.cloud",
+  "category": "monitoring",
+  "subcategory": "wireless network assurance",
+  "tagline": "Cloud analytics and AI-driven assurance for RUCKUS wireless and wired network fleets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per access point, annual license",
+    "unit": "custom",
+    "source": "https://ruckus.cloud/ai",
+    "checkedOn": "2026-08-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is not a standalone app, it is the analytics layer bolted onto RUCKUS access points and switches. The value comes from telemetry formats that only RUCKUS firmware emits, plus baselines built from a very large installed base of other people's networks, plus service-level scoring that enterprise IT teams actually argue with vendors about. You can absolutely build a dashboard that polls your own APs and charts client counts, channel utilization and retries. You cannot build the part where it tells you this specific site is worse than 90 percent of comparable deployments, because you do not have the comparable deployments. If you own RUCKUS gear you are paying for the software that reads it, and if you do not own RUCKUS gear this product is irrelevant to you.",
+  "coreLoopDIY": "Polls your own home or small-office access points on a schedule, stores time-series metrics in SQLite, and shows a dashboard with simple threshold and rolling-baseline alerts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Access points or a router you can query, ideally OpenWrt with ubus or anything speaking SNMP",
+    "Read-only credentials or an SNMP community string",
+    "A always-on machine on the same network to run the poller"
+  ],
+  "whatYouLose": [
+    "Cross-fleet baselines: no way to know whether your numbers are normal without thousands of other networks to compare against",
+    "Per-client incident timelines that stitch association, auth, DHCP and DNS failures into one readable story",
+    "Vendor-side firmware telemetry and packet capture triggers that only the AP vendor can expose",
+    "RF planning and channel change recommendations that assume a controller can actually act on them",
+    "Someone to escalate to at 2am when the whole site drops"
+  ],
+  "moatTags": [
+    "hardware",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The analytics is inseparable from the AP fleet it ships with. Nobody buys this without buying the hardware first.",
+  "whyPeopleStillPay": "Because they already bought the hardware. Enterprise wireless is a package deal: the APs, the cloud controller, the assurance layer and the support contract are sold and renewed together, and the network team's job is to answer \"is the wifi bad\" with evidence rather than vibes. A homegrown poller is fine for one building you personally care about. It is useless for 400 sites, it has no comparative baseline, and it will not survive an audit or a vendor escalation.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the dashboard in a weekend and it will be genuinely useful on your own LAN. The moat is the hardware it plugs into and the fleet-wide telemetry from everyone else's networks, which is exactly the part that makes the scores mean anything.",
+  "prompt": "Build a self-hosted wireless network monitoring dashboard for a home or small office LAN. Single machine, no cloud, no accounts, no telemetry.\n\nStack, non negotiable:\n- Python 3.12, FastAPI, Uvicorn\n- SQLite via sqlite3 stdlib, WAL mode, one file at ./data/netmon.db\n- APScheduler for polling\n- Server rendered Jinja2 templates plus Chart.js from a vendored static file, no build step, no npm\n\nData collection:\n- Support two collector backends behind one interface: SNMP via pysnmp, and OpenWrt ubus over HTTP JSON-RPC\n- Devices are defined in config.yaml: name, host, backend, snmp community or ubus user, poll interval seconds\n- Secrets and credentials read from .env, never committed, ship a .env.example\n- Every 60 seconds per device collect: uptime, CPU load, memory free, per radio channel, per radio channel utilization if available, connected client count, per client signal strength and tx or rx rate where the backend exposes it\n- Store raw samples in a metrics table and per client samples in a clients table, both with device id and unix timestamp\n- Downsample: nightly job rolls samples older than 7 days into hourly averages and deletes the raw rows\n\nAnalysis, keep it honest and simple:\n- For each metric compute a rolling 14 day mean and standard deviation per device\n- Flag a sample as an anomaly when it is more than 3 standard deviations from that mean and the metric has at least 48 hours of history, otherwise say \"insufficient baseline\"\n- Detect client flapping: same MAC associating more than 5 times in 10 minutes\n- Write anomalies to an events table with a human readable description\n\nUI:\n- / shows device cards with current client count, uptime, last poll time, red badge if last poll failed\n- /device/{id} shows charts for client count, channel utilization and CPU over 24h, 7d, 30d\n- /clients lists seen MACs with an editable friendly label, last seen, worst recent signal\n- /events lists anomalies newest first with a filter by device\n\nExplicitly out of scope: RF planning, channel selection, pushing config changes to devices, multi tenancy, auth, packet capture, mobile app.\n\nDeliver a README with setup steps, a sample config.yaml with one SNMP and one ubus device, and a docker-compose.yml. Add a fake backend that generates plausible synthetic data so the dashboard can be demoed with zero real hardware.",
+  "promptCurated": false
+}
