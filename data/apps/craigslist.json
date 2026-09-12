@@ -1,0 +1,51 @@
+{
+  "slug": "craigslist",
+  "name": "Craigslist",
+  "domain": "craigslist.org",
+  "category": "commerce",
+  "subcategory": "classifieds marketplace",
+  "tagline": "Regional classifieds for jobs, housing, gigs, and used stuff, in HTML from another decade.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.craigslist.org/",
+    "checkedOn": "2026-08-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Most categories are free to post, some (job ads, brokered apartments, dealer vehicles) carry a per-post fee that varies by city.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is trivially replicable: a posting form, a category tree, a city selector, and search. That has never been the point. Craigslist is valuable because when you list a couch in your metro, actual local humans see it within an hour, and that is thirty years of accumulated habit in thousands of local markets. A self-hosted classifieds board with one user is a diary. The closest honest build is not a competitor, it is a client: something that watches Craigslist for you and pings you first.",
+  "coreLoopDIY": "Polls Craigslist search RSS feeds for your saved queries across chosen cities, dedupes results into SQLite, and notifies you on new matches.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node runtime and a place to run a cron job",
+    "Craigslist search RSS URLs for the cities and categories you care about",
+    "Optional: an ntfy topic or Telegram bot token for push alerts"
+  ],
+  "whatYouLose": [
+    "Buyers and sellers, which is the entire product",
+    "Local liquidity: a listing that reaches your actual metro within minutes",
+    "Anti-scam scale: flagging, ghosting, and pattern detection built on enormous traffic",
+    "Category depth in housing, jobs, and gigs that nobody else covers in mid-size cities",
+    "Being the default place people already check without being told"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "The ugliest site on the internet keeps winning because everyone in your zip code already knows where it is.",
+  "whyPeopleStillPay": "Mostly they do not pay, which makes the moat even more annoying to attack. Where money changes hands (job postings, brokered apartment listings, dealer vehicles) people pay because a single posting reaches the exact local audience that would otherwise cost hundreds in ads to assemble. The fee is a filter, not a feature: it prices out spam while the free categories keep the traffic flowing. No amount of better software moves that audience.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the board in an afternoon and it will sit empty forever. The moat is marketplace liquidity: decades of local habit in thousands of metros, which no self-hosted instance inherits.",
+  "prompt": "Build a local-only Craigslist watcher CLI called \"clwatch\". Do not build a classifieds marketplace, build a monitoring client.\n\nStack, no substitutions:\n- Node 20 with TypeScript, run via tsx\n- SQLite through better-sqlite3, file at ./data/clwatch.db\n- rss-parser for feeds, undici for any raw fetch\n- commander for the CLI\n- No web server, no accounts, no telemetry, no cloud\n\nHow it works:\n- Craigslist search result pages expose an RSS feed. The user supplies full feed URLs (for example a search URL with format=rss) via `clwatch add`.\n- Schema: watches(id, label, feed_url, min_price, max_price, include_keywords, exclude_keywords, active, created_at) and listings(id, watch_id, guid, title, url, price, location, posted_at, first_seen_at, notified_at, hidden).\n- `clwatch add --label \"cheap desks\" --url \"...\" --max-price 150 --exclude \"ikea,broken\"` creates a watch.\n- `clwatch poll` fetches every active watch sequentially with a 3 to 6 second randomized delay between requests, a plain descriptive User-Agent from .env, and 3 retries with exponential backoff. Parse title, link, price if present in the title, and location. Insert only unseen guids.\n- Filtering: drop items outside the price range or matching exclude keywords, require all include keywords if given.\n- Notifications: if NTFY_TOPIC is set in .env, POST new matches to ntfy.sh. Otherwise print them. Mark notified_at so nothing repeats.\n- `clwatch list` shows watches with match counts. `clwatch recent --limit 20` prints newest unhidden matches as a table with clickable URLs. `clwatch hide <id>` buries one.\n- Store all timestamps UTC ISO 8601.\n\nAlso do:\n- .env.example with USER_AGENT and NTFY_TOPIC, plus .env in .gitignore\n- A README with one crontab line for polling every 15 minutes and a blunt note that polling too fast will get the IP blocked\n- Seed script that adds two example watches so `poll` can be tested immediately\n\nExplicitly out of scope: posting listings, messaging sellers, scraping listing bodies or images, logging into Craigslist, any hosted UI.",
+  "promptCurated": false
+}
