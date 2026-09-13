@@ -1,0 +1,50 @@
+{
+  "slug": "nomad-sculpt",
+  "name": "Nomad Sculpt",
+  "domain": "nomadsculpt.com",
+  "category": "design",
+  "subcategory": "3D sculpting on tablets",
+  "tagline": "Touch-first 3D sculpting and painting app for iPad and Android, in the vein of ZBrush but running on a tablet.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "one-time app store purchase",
+    "unit": "one-time",
+    "source": "https://nomadsculpt.com/demo/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Nomad Sculpt is not a CRUD app with a skin, it is a real-time mesh engine: dynamic topology, voxel remeshing, multiresolution subdivision, layers, PBR painting, and a renderer that holds 60fps on a mobile GPU while you drag a brush through a few million triangles. An agent can absolutely one-shot a browser sculpting toy, a subdivided sphere you can push and pull with a few brushes, and that is genuinely fun for an afternoon. It falls apart the moment you need topology that survives aggressive deformation, stable undo across remeshes, or export that a printer or game engine will accept. The interesting part is also the part nobody one-shots: a touch UI with gizmos, radial menus, and pressure handling that does not fight you. And it is a one-time purchase in the price range of a sandwich lunch, so the build-versus-buy math is not close.",
+  "coreLoopDIY": "A browser sculpting toy: load a subdivided sphere, push, pull, smooth, and inflate it with a few raycast brushes, then export the mesh as OBJ.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine with a real GPU and a WebGL2 browser",
+    "Comfort with mesh math: normals, vertex neighborhoods, raycasting",
+    "Patience for performance tuning once vertex counts climb"
+  ],
+  "whatYouLose": [
+    "Dynamic topology and voxel remeshing, so your mesh stretches into garbage instead of gaining detail where you need it",
+    "Multiresolution subdivision levels, layers, and masking",
+    "PBR painting, materials, matcaps, and a viewport that looks like anything",
+    "Reliable export to STL, OBJ, glTF, and USD with sane scale and normals",
+    "A tablet app with stylus pressure, tilt, and gestures that do not feel like a prototype"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "A single-developer product where the moat is the engine itself, plus a decade of the previous engine, SculptGL, being iterated in public.",
+  "whyPeopleStillPay": "Because it is one purchase for a tool that replaces a desktop workstation for a whole class of work, and because sculpting is a craft where input latency and brush feel decide whether you make anything at all. Artists are not paying for features on a list, they are paying for the specific way the brushes behave when they push clay around, which is the accumulated result of years of tuning a renderer and a topology system against each other. No one-session build gets near that feel, and the price is low enough that nobody is looking for an escape hatch.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A brush that moves vertices is a weekend; a mesh engine that survives the brush is not. The moat is years of real-time topology and renderer work tuned against each other, shipped as one cheap purchase.",
+  "prompt": "Build a browser-based 3D sculpting toy. Stack: Vite, TypeScript, Three.js, no backend, no accounts, no telemetry, no analytics.\n\nScope, in:\n- On load, create an icosphere subdivided to roughly 40k triangles, centered at origin, with an OrbitControls camera and a single directional light plus ambient.\n- Maintain a CPU-side mesh: Float32Array positions, index buffer, per-vertex normals, and a precomputed vertex adjacency map built once at load.\n- Build a spatial acceleration structure for brush queries. A uniform grid keyed by cell coordinate is enough. Rebuild it lazily when vertices move past a threshold.\n- Brushes: Draw (move vertices along averaged normal), Inflate (move along own normal), Smooth (move toward neighbor centroid), Flatten (project onto local best-fit plane), Move (drag inside brush radius along the camera-plane delta).\n- Pointer down raycasts against the mesh, finds the hit point, collects vertices within brush radius via the grid, applies a smooth falloff, then recomputes normals for touched vertices only.\n- Left-drag sculpts, hold Shift to force Smooth, hold Alt to invert direction. Right-drag or two-finger drag orbits.\n- Toolbar UI: brush picker, radius slider, strength slider, symmetry toggle across the X axis, wireframe toggle, matcap-ish shading toggle.\n- Undo and redo: keep a ring buffer of the last 30 strokes, each storing only the indices and prior positions of the vertices the stroke touched. Ctrl+Z and Ctrl+Shift+Z.\n- Export the current mesh as a binary STL and as OBJ via download links.\n- Pointer Events throughout so a stylus works, including pressure scaling strength when event.pressure is nonzero.\n\nScope, out: dynamic topology, voxel remeshing, subdivision levels, layers, masking, texture painting, materials, multiple objects, scene saving to any server.\n\nNon-negotiables: keep a stroke under 16ms at 40k triangles on a mid laptop GPU; measure it and log a frame-time average in dev mode. Do not put the mesh in React state. No secrets needed, so no .env, but if you add one later keep keys out of the client.\n\nDeliver: working npm run dev, a README with controls and a one-paragraph note on where the naive topology breaks down, and no TODO comments left in the source.",
+  "promptCurated": false
+}
