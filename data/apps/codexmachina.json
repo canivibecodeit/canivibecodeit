@@ -1,0 +1,52 @@
+{
+  "slug": "codexmachina",
+  "name": "CodexMachina",
+  "domain": "codexmachina.dev",
+  "category": "dev-tools",
+  "subcategory": "AI coding agent",
+  "tagline": "A paid AI coding agent that reads your repo, edits files, and runs commands on your behalf.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://codexmachina.dev/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The scaffolding around a coding agent is genuinely small: a loop, a handful of file and shell tools, and a model that supports tool calling. An agent can build you that harness in a session, and it will work on real tasks in a real repo. What it will not build is the model underneath, so you are paying an API provider instead of a product company and inheriting all the prompt tuning, retry logic, and context management yourself. The gap shows up on long tasks: context trimming, diff review, sane rollback, and not blowing your token budget on a loop that keeps rereading the same file. Fine as a personal tool, rough as a daily driver.",
+  "coreLoopDIY": "A local CLI that sends your instruction plus repo context to an LLM with tool calling, then applies file edits and runs allowlisted shell commands in a loop until the task is done or you stop it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a tool-calling model, billed by usage",
+    "Node 20 or newer",
+    "Git, so checkpoints and rollback actually work",
+    "Willingness to read diffs before approving them"
+  ],
+  "whatYouLose": [
+    "The vendor's prompt and context-management tuning, which is most of the felt quality difference",
+    "IDE and editor integration, so you live in a terminal",
+    "Sandboxing: your DIY version runs commands on your actual machine",
+    "Sane cost controls, token accounting, and usage dashboards",
+    "Whatever indexing or retrieval they do over large repos"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The loop is commodity. The tuning, the sandbox, and the editor plugins are where the money went.",
+  "whyPeopleStillPay": "Because the agent loop is easy and the harness quality is not. Paid agents ship context pruning, retrieval over big repos, diff review UI, permissioned command execution, and editor integration that took real iteration to get right. Your weekend build will one-shot a small feature fine and then go sideways on a 40-file refactor, burning tokens while you watch. If you already pay for model access and mostly do small, scoped tasks, the DIY version is honestly close enough.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The easiest category to clone badly and the hardest to clone well.",
+  "prompt": "Build a local CLI coding agent in TypeScript on Node 20. No web UI, no accounts, no telemetry, no hosted anything.\n\nStack: TypeScript, tsx for running, commander for the CLI, an OpenAI-compatible chat completions client with tool calling, zod for tool schemas, diff for rendering patches. SQLite via better-sqlite3 for session history. Nothing else.\n\nThe agent loop:\n- Read the user task from argv or an interactive prompt.\n- Send messages to the model with a tool list and loop on tool calls until the model returns a final text answer or a step limit of 40 is hit.\n- Persist every session, message, and tool call to .codex/sessions.db so runs can be resumed with --resume.\n\nTools to implement, all rooted to the current working directory and refusing paths outside it:\n- list_files(glob): fast-glob, respecting .gitignore.\n- read_file(path, startLine?, endLine?): returns numbered lines, truncates over 2000 lines.\n- write_file(path, content): shows a unified diff and requires y/n confirmation unless --yes.\n- edit_file(path, oldText, newText): exact string replace, fails loudly if oldText is not unique.\n- run_command(cmd): only runs commands matching an allowlist in .codex/allowlist.json, default entries for npm, pnpm, git, node, tsc, and test runners. Anything else needs explicit confirmation. 120 second timeout, capture stdout and stderr, truncate to 8000 chars.\n- grep(pattern, glob?): ripgrep if present, else a JS fallback.\n\nContext management: build the initial system message from a repo summary (top level tree, package.json scripts, README first 100 lines). Keep a running token estimate and drop the oldest tool outputs when the conversation exceeds 60 percent of the model context.\n\nSafety: before the first write in a session, create a git stash-free checkpoint by recording the current HEAD and warning if the tree is dirty. Add a `codex rollback` command that prints the git commands to undo, without running them.\n\nConfig: read OPENAI_API_KEY, OPENAI_BASE_URL, and CODEX_MODEL from .env via a .env.example, never hardcode keys or log them.\n\nOut of scope: editor plugins, vector search or embeddings, multi-agent orchestration, a web dashboard, streaming UI polish beyond plain token streaming to stdout.\n\nFinish with a README showing install, .env setup, one example task run, and a printed cost estimate per session based on reported token usage.",
+  "promptCurated": false
+}
