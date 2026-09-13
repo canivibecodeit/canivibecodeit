@@ -1,0 +1,52 @@
+{
+  "slug": "majestic",
+  "name": "Majestic",
+  "domain": "majestic.com",
+  "category": "seo-marketing",
+  "subcategory": "backlink index and link intelligence",
+  "tagline": "A search-independent backlink index with its own link quality metrics, Trust Flow and Citation Flow.",
+  "priceMonthly": 49.99,
+  "pricing": {
+    "plan": "Lite",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://majestic.com/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Majestic's product is not the interface, it is an index of the link graph of the web built by crawling continuously for roughly two decades. You cannot one-shot that, and you cannot rent your way to it cheaply either: a meaningful crawl means thousands of IPs, politeness budgets, DNS and robots handling, petabyte-scale storage, and a dedupe pipeline that runs forever. Trust Flow and Citation Flow are derived from that graph, so even the metrics are downstream of the crawl, not of clever math. What an agent can build in an afternoon is the narrow useful slice: monitoring the backlinks you already know about, and pulling what Google Search Console will hand you for free. That covers 'did my links survive', not 'who links to my competitor'.",
+  "coreLoopDIY": "A local job that re-fetches a list of known linking pages, checks whether your link is still present, live, and followed, and logs every change over time.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and SQLite",
+    "A seed list of URLs that link to you, exported from Search Console or a trial of any link tool",
+    "Google Search Console API credentials if you want automatic link discovery",
+    "A cron job or scheduled task to run the checker daily"
+  ],
+  "whatYouLose": [
+    "Discovery: you can only monitor links you already know about, so competitor link research is gone entirely",
+    "Trust Flow, Citation Flow, and Topical Trust Flow, all of which require the whole graph to compute",
+    "Historic link data, including links that died before you started watching",
+    "Fresh and historic index scale: billions of URLs crawled continuously, which no personal script approximates",
+    "Anchor text distribution, referring-IP and subnet diversity, and site-wide link detection at scale"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The index is the product. The UI is a thin window onto twenty years of uninterrupted crawling, and the two proprietary metrics only exist because the crawl exists.",
+  "whyPeopleStillPay": "Because there are maybe four organisations on earth with a usable independent map of the web's link graph, and running one is a permanent infrastructure commitment rather than a feature. SEO and PR teams need to answer questions about sites they do not own, which rules out Search Console and rules out any self-hosted crawler that respects other people's bandwidth. Majestic also gets cited in client reports and outreach pitches, and a number from a name buyers recognise is worth more than a better number from your laptop. The subscription is cheap relative to the cost of the crawl behind it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the watchdog, you cannot build the map. The moat is twenty years of continuous web-scale crawling and the two metrics that only exist on top of it.",
+  "prompt": "Build a local backlink monitor called \"linkwatch\". It tracks whether known backlinks to my sites still exist. It does NOT crawl the web at large.\n\nStack, no substitutions:\n- TypeScript on Node 20, run via tsx\n- SQLite via better-sqlite3, single file db/linkwatch.db\n- undici for HTTP, cheerio for HTML parsing\n- CLI via commander, plus one local read-only web UI served by Fastify on port 8787 with server-rendered HTML, no client framework\n\nData model:\n- targets: my own domains I care about\n- sources: URLs that supposedly link to a target, with discovered_at\n- checks: one row per fetch, with timestamp, http status, final URL after redirects, whether an anchor to the target was found, the anchor text, rel attributes, and whether it is nofollow or ugc or sponsored\n- events: derived changes, LINK_ADDED, LINK_REMOVED, LINK_NOFOLLOWED, PAGE_DEAD, PAGE_REDIRECTED\n\nCLI commands:\n- linkwatch target add example.com\n- linkwatch sources import sources.csv (columns: source_url,target_domain)\n- linkwatch check --all --concurrency 4\n- linkwatch report --since 30d, prints a table of events\n- linkwatch export --csv out.csv\n\nCrawler behaviour, be strict about this:\n- fetch each source URL once per run, max concurrency 4, 1 second delay per host, honour robots.txt, real descriptive User-Agent string read from .env\n- follow up to 5 redirects, 15 second timeout, retry once on 5xx\n- treat any link whose href host matches the target domain or a subdomain as a hit, normalise trailing slashes and protocol\n\nOptional Search Console discovery:\n- if GSC_CLIENT_ID, GSC_CLIENT_SECRET and GSC_REFRESH_TOKEN exist in .env, add \"linkwatch discover\" which pulls the Links report data available via the API and inserts new sources. If the env vars are missing, skip silently and say so.\n\nExplicitly out of scope: any web-scale crawl, any attempt to compute a global link authority score, any competitor link discovery, accounts, telemetry, hosted deployment.\n\nDeliver: README with setup, .env.example, a seed sources.csv with three example rows, and a vitest suite covering URL normalisation, anchor detection, and rel parsing against fixture HTML files.",
+  "promptCurated": false
+}
