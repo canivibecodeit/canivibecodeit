@@ -1,0 +1,52 @@
+{
+  "slug": "seobserver",
+  "name": "SEObserver",
+  "domain": "seobserver.com",
+  "category": "seo-marketing",
+  "subcategory": "backlink and SERP analysis",
+  "tagline": "French SEO suite that tracks SERP volatility, keyword rankings and backlink profiles by reselling third-party index data.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://seobserver.com/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is the cheap part: tables, charts, a volatility index, a keyword list. Everything that makes those tables worth paying for comes from outside, specifically a link index the size of Majestic's or Ahrefs' and enough scraping infrastructure to pull Google results at scale without getting blocked. Building your own crawler for link data is not a weekend, it is a data center and years of crawl history. Scraping SERPs yourself means a rotating residential proxy pool and a permanent arms race against Google's bot detection, and buying the same data through vendor APIs costs more per month than the subscription you are trying to cancel. You can absolutely build a personal rank tracker for a handful of your own keywords, which is the honest consolation prize, but it is not this product.",
+  "coreLoopDIY": "A local rank tracker that checks a small keyword list against a paid SERP API on a schedule, stores the history in SQLite and charts position movement plus your own volatility score.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a paid SERP API key (SerpApi, DataForSEO, Serper or similar) with real per-query cost",
+    "optional backlink data via a paid API, otherwise skip it entirely",
+    "somewhere to run a daily cron job",
+    "patience for per-query billing once your keyword list grows"
+  ],
+  "whatYouLose": [
+    "A backlink index: no referring domains, no trust flow, no link history, unless you pay a vendor per lookup",
+    "National-scale SERP volatility signals built from tracking thousands of queries continuously, not your dozen",
+    "Historical data that predates the day you start collecting, which is most of the value in SEO tooling",
+    "Competitor discovery, keyword databases and search volume estimates",
+    "Someone else absorbing the cost and legal risk of scraping Google at scale"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The product is mostly a well-arranged front end on other people's indexes, but those indexes are the entire barrier and they are not replicable by one person.",
+  "whyPeopleStillPay": "Because the alternative is a purchase order. Link indexes and large-scale SERP collection are capital expenses: crawlers, storage, proxy fleets, vendor contracts with minimum spend and approval processes. A subscription spreads that across thousands of users, and the dashboard on top is a rounding error in the price. If you need this data at all, you need it from someone who already owns it or already pays for it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The charts are a weekend; the index behind them is not. The moat is a crawled link graph plus the proxy infrastructure to query Google at scale, neither of which you can rent cheaply.",
+  "prompt": "Build a local personal rank tracker called ranktrack. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, SQLite via sqlite3, httpx for requests, Typer for the CLI, and a single static HTML report rendered with Jinja2 plus Chart.js from a CDN. No Django, no Postgres, no Docker.\n\nData model in ranktrack.db:\n- projects: id, name, domain, country, language, device (desktop or mobile)\n- keywords: id, project_id, phrase, tags (comma string)\n- checks: id, keyword_id, checked_at (UTC ISO), position (int or null if not found in top 100), url_found, serp_json_path\n- Store the raw SERP payload as a gzipped JSON file under ./raw/ and reference the path, do not blob it into SQLite.\n\nSERP fetching:\n- One provider adapter interface with a single implementation for a generic SERP API, reading SERP_API_KEY and SERP_API_BASE from .env via python-dotenv. Include a .env.example. Never hardcode keys.\n- Do NOT attempt to scrape google.com directly. Add a comment explaining that direct scraping needs a residential proxy pool and will be blocked, so this tool assumes a paid API.\n- Retry with exponential backoff on 429 and 5xx, cap at 4 attempts, and log every billable query to a queries.log line with keyword and timestamp so cost is visible.\n\nCLI commands:\n- init: create db and directories\n- project add / project list\n- kw add (accepts a file of one keyword per line), kw list, kw rm\n- run --project NAME: check every keyword once, respecting a --sleep flag, print a table of position and delta versus the previous check\n- report --project NAME --out report.html: per-keyword sparkline of position over time, a summary of biggest gainers and losers since 7 days ago, and a crude daily volatility score defined as the mean absolute position change across all tracked keywords that day\n- export --project NAME --out csv\n\nOut of scope, and say so in the README rather than faking it: backlink data, referring domains, trust metrics, search volume, competitor discovery, keyword suggestions, and any national SERP volatility index. Those need a crawled link graph or thousands of queries per day and cannot be produced locally.\n\nInclude a README with setup, a cost warning about per-query API billing, and a sample crontab line for a daily run. Write pytest tests for delta calculation and the volatility score using a fake adapter that returns fixtures, no network in tests.",
+  "promptCurated": false
+}
