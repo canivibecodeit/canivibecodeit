@@ -1,0 +1,51 @@
+{
+  "slug": "emailens",
+  "name": "Emailens",
+  "domain": "emailens.dev",
+  "category": "email",
+  "subcategory": "inbox insight and triage",
+  "tagline": "A lens on your email: inspect what is actually in the inbox instead of just scrolling it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://emailens.dev/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Anything that reads a mailbox and reports on it is, mechanically, a solved problem: IMAP has been stable for decades and every mail server will hand you headers all day. An agent can build a local dashboard over your own mail in a single sitting: top senders, thread volume, unanswered messages, newsletter sprawl, reply latency. The gaps are the boring ones that always bite email tools: Gmail and Outlook OAuth is a real project with a verification queue, app passwords are a stopgap that IT departments disable, and full-body indexing of a decade of mail is slower and messier than you expect. Public detail on this product is thin, so treat the DIY version as covering the general shape rather than feature parity. If the paid version is doing something clever with rendering or classification, you will notice the difference.",
+  "coreLoopDIY": "Connect to your own IMAP mailbox, sync headers and bodies into SQLite, and serve a local dashboard of sender stats, unanswered threads, and newsletter noise.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An IMAP-accessible mailbox with an app password or plain credentials",
+    "Python 3.12 locally",
+    "Patience while the first sync pulls years of mail",
+    "Optional: an LLM API key if you want summaries or auto-labeling"
+  ],
+  "whatYouLose": [
+    "Proper OAuth sign-in, so you are stuck with app passwords that some providers and admins block",
+    "Mobile access unless you host it somewhere and lock it down",
+    "Whatever their classification or rendering logic does better than a regex and a sender count",
+    "Someone else maintaining the IMAP edge cases: weird encodings, broken MIME, provider throttling",
+    "Multi-account handling and anything resembling shared or team views"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Email tools live or die on provider integration work: OAuth scopes, verification review, and the long tail of servers that lie about their own capabilities.",
+  "whyPeopleStillPay": "Because nobody wants to babysit an IMAP sync job. The first version of a homemade inbox analyzer is delightful, the third month is a cron task that quietly stopped running and a database with duplicate threads in it. Paying means the sync is someone else's pager, the sign-in works on a work account, and it loads on a phone. That is a small amount of money for not thinking about MIME again.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The read-only half of email tooling is easy; the auth half is where weekends go to die.",
+  "prompt": "Build a local, single-user email inspection dashboard. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12, FastAPI, Jinja2 templates, SQLite via sqlite3 stdlib.\n- Tailwind from CDN. No build step, no npm.\n- imaplib and the stdlib email package for mail access. No third-party mail SDKs.\n- uv for dependency management, single pyproject.toml.\n\nConfig: read IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASSWORD from .env via python-dotenv. Ship a .env.example. Never log the password. Add .env to .gitignore.\n\nSync command, `python -m emailens.sync`:\n- Connect over IMAP SSL, iterate selected folders (default INBOX plus any folder named in IMAP_FOLDERS, comma separated).\n- Fetch headers first, then plain text bodies, in batches of 200 UIDs, with resume support so a crash does not restart the whole pull.\n- Store messages in SQLite: uid, folder, message_id, in_reply_to, thread_key, from_addr, from_name, to_addrs, subject, date_utc, size_bytes, has_list_unsubscribe, body_text.\n- Thread by References and In-Reply-To headers, falling back to normalized subject.\n- Idempotent: re-running syncs only new UIDs.\n\nWeb app on localhost:8000, server-rendered pages:\n- Overview: messages per month sparkline, total senders, unread-style counts if IMAP flags are available.\n- Senders: table of top senders by volume, first seen, last seen, reply rate, median reply latency, flagged as newsletter when List-Unsubscribe is present.\n- Needs reply: threads where the last message is inbound, older than 3 days, not from a newsletter sender.\n- Noise: newsletter senders ranked by volume with their unsubscribe URL shown as text.\n- Search: SQLite FTS5 over subject and body_text.\n\nIn scope: reading, indexing, reporting.\nOut of scope: sending or deleting mail, OAuth, multi-account, mobile app, background scheduler. Say so in the README.\n\nDeliver: README with setup in under ten commands, a seed script that generates 500 fake messages so the UI can be viewed without a real mailbox, and pytest coverage for threading and reply-latency math.",
+  "promptCurated": false
+}
