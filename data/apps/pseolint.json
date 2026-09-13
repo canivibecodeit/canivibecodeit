@@ -1,0 +1,50 @@
+{
+  "slug": "pseolint",
+  "name": "pSEOlint",
+  "domain": "pseolint.dev",
+  "category": "seo-marketing",
+  "subcategory": "programmatic SEO auditing",
+  "tagline": "A linter for programmatically generated pages: flags thin, duplicate, and unindexable templated content before it ships.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://pseolint.dev/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a crawler plus a rule engine, which is one of the most one-shottable shapes in software. Pull the sitemap, fetch pages, parse the head and body, then run deterministic checks: duplicate titles, near-identical bodies across templates, missing or self-conflicting canonicals, noindex left in by accident, thin word counts, orphan pages with no internal links in. None of that needs a vendor, an API key, or a dataset you do not have. What you cannot clone is the opinion baked into someone else's rule set, the part where a human decided which of forty possible warnings actually correlate with pages getting dropped from the index. Build the linter, then spend your time arguing with your own thresholds.",
+  "coreLoopDIY": "Crawls your sitemap or a URL list, parses each page, and emits a ranked report of templated-SEO smells with per-rule severity and exit codes for CI.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a terminal",
+    "A sitemap.xml or a list of URLs, either live or from a local build output",
+    "Patience for tuning thresholds so the report is not 4,000 warnings long"
+  ],
+  "whatYouLose": [
+    "A rule set someone has already tuned against real indexing outcomes, so your first run will be mostly noise",
+    "Historical tracking: seeing that duplicate-title count creep up over three deploys instead of just today",
+    "Any hosted dashboard or shareable report for people who will never run a CLI",
+    "Maintenance as search engines change what they punish, your rules freeze on the day you write them",
+    "Nice-to-haves like rendered-DOM crawling for JS-heavy pages, which is a headless browser project of its own"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The crawl is commodity. The calibration, which warnings are worth shipping and which are superstition, is the actual product.",
+  "whyPeopleStillPay": "Because a linter is only useful if you trust its defaults. Anyone can generate a list of every HTML imperfection on 20,000 generated pages; the value is a short list that says these nine things are why half your directory is not indexed. Teams running programmatic SEO at scale are also usually in a hurry, and a tool that plugs into CI with sane severities on day one beats a homegrown script that needs a week of threshold arguments. If you only have a few hundred pages and one opinionated person, the homegrown script wins.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The crawler is a Tuesday; the rule set is the product. Write the crawler, then steal the opinions from your own logs.",
+  "prompt": "Build a local CLI tool called pseo-lint that audits programmatically generated pages for SEO problems.\n\nStack, no substitutions: TypeScript on Node 20, run via tsx, dependencies limited to commander (CLI), undici (fetch), cheerio (HTML parsing), fast-xml-parser (sitemaps), p-limit (concurrency), picocolors (output). No framework, no database, no accounts, no telemetry.\n\nInputs, support both:\n1. pseo-lint crawl --sitemap https://example.com/sitemap.xml --limit 500\n2. pseo-lint crawl --urls urls.txt\nAlso support --dir ./dist to lint static HTML files on disk without any network calls.\n\nRespect robots.txt, default concurrency 4, default delay 200ms, configurable user agent.\n\nImplement these rules, each with an id, severity, and a one-line human explanation:\n- missing or empty title, title over 60 chars, duplicate title across pages\n- missing meta description, duplicate meta description\n- missing canonical, canonical pointing to a different page than the one fetched, conflicting canonicals\n- noindex or nofollow in meta robots or X-Robots-Tag header\n- word count below a configurable threshold (default 150) in the main content area\n- template similarity: compute a shingled hash of the body text, cluster pages above a configurable Jaccard threshold (default 0.9), report cluster sizes\n- heading problems: zero h1, multiple h1, h1 identical to title across large clusters\n- internal links: pages with fewer than 2 internal inbound links found during the crawl (orphan risk), pages with zero outbound internal links\n- broken internal links (HEAD request, 4xx or 5xx)\n- non-200 status or redirect chain longer than 1 hop for a sitemap URL\n\nOutput: a colored terminal summary grouped by rule and sorted by count, plus --json report.json and --html report.html (single self-contained file, no CDN assets). Exit code 1 if any error-severity rule fires, 0 otherwise, so it drops into CI.\n\nConfig via pseolint.config.json: thresholds, rule severities, rule disabling, URL ignore globs. Ship a sensible default config and a README with three example invocations.\n\nExplicitly out of scope: keyword volume data, rank tracking, Search Console or any OAuth integration, JS rendering via headless browser, hosted dashboards, historical trend storage. Put nothing in .env unless a custom auth header is needed for staging sites; if so, read PSEOLINT_AUTH_HEADER from .env via node --env-file.\n\nWrite unit tests with node:test for the rule functions using HTML fixtures, no network in tests.",
+  "promptCurated": false
+}
