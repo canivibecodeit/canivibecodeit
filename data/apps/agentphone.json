@@ -1,0 +1,53 @@
+{
+  "slug": "agentphone",
+  "name": "AgentPhone",
+  "domain": "agentphone.ai",
+  "category": "voice-ai",
+  "subcategory": "AI phone agents",
+  "tagline": "An AI agent that answers and places phone calls for you, with transcripts and follow-up actions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://agentphone.ai/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part of a phone agent is not the intelligence, it is the plumbing: a real phone number, a media stream, sub-second turn taking, and a voice that does not sound like a hold message. All of that is now a weekend project on top of Twilio and a realtime speech model, and a personal version that screens your calls and mails you transcripts is genuinely reachable in one long session. What you will not get for free is the tuning: interruption handling, barge-in, background noise, someone saying \"hello? hello?\" while your bot thinks. You also inherit telephony as a permanent dependency, so this is never fully self-hosted and the per-minute meter keeps running. Buildable, useful, and noticeably rougher on the tenth call than on the first.",
+  "coreLoopDIY": "Buys a phone number, bridges inbound calls to a realtime voice model with your instructions, then stores a recording, transcript, and summary you can read later.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Twilio account and a purchased phone number",
+    "An OpenAI API key with Realtime access",
+    "A publicly reachable host or tunnel for webhooks and websockets",
+    "Node 20+",
+    "Awareness of local call recording consent laws"
+  ],
+  "whatYouLose": [
+    "Latency and interruption tuning that took someone months of real calls to get right",
+    "Outbound calling at scale: retries, voicemail detection, do-not-call handling",
+    "A mobile app and a clean call-history UI instead of a terminal and a SQLite file",
+    "Calendar, CRM, and SMS follow-up integrations wired in for you",
+    "Someone else owning carrier issues, number reputation, and spam labeling"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Telephony is the one dependency you cannot code your way out of; you are always renting a number from someone.",
+  "whyPeopleStillPay": "Because a phone agent is judged entirely on the first four seconds of a call, and those four seconds are an engineering grind: voice activity detection thresholds, barge-in, filler audio while the model thinks, graceful handling of humans who talk over machines. A hosted product has heard millions of real callers and has already lost those arguments for you. Add number provisioning, recording storage, consent notices, and integrations that write the outcome somewhere useful, and paying per minute starts looking like a bargain against the time you would spend on voicemail detection alone.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The intelligence is a commodity now; the last 300 milliseconds are not.",
+  "prompt": "Build a personal AI phone agent that answers my inbound calls, handles the conversation, and logs everything locally.\n\nStack, no substitutions:\n- Node 20 + TypeScript\n- Fastify for HTTP and the websocket route\n- Twilio Programmable Voice with Media Streams for telephony\n- OpenAI Realtime API over websocket for speech to speech\n- SQLite via better-sqlite3 for call records\n- No frontend framework: one server-rendered HTML page with plain CSS\n\nWhat it does:\n1. POST /voice returns TwiML that answers the call, says a short greeting, and opens a bidirectional Media Stream to /media.\n2. /media is a websocket. Decode Twilio g711_ulaw frames, relay them to an OpenAI Realtime session, relay model audio back to Twilio in the same format. Handle Twilio's start, media, mark, and stop events.\n3. Load the agent persona and rules from agent.md at boot: who I am, what to ask callers, what never to promise, when to end the call.\n4. Support barge-in: when the caller starts speaking, cancel in-flight model audio and clear the Twilio audio buffer.\n5. On call end, save caller number, timestamp, duration, full transcript, and a one-paragraph summary generated from the transcript.\n6. GET / lists calls newest first; GET /calls/:id shows the transcript and summary.\n\nRules:\n- All secrets in .env: OPENAI_API_KEY, TWILIO_AUTH_TOKEN, PUBLIC_HOST. Ship .env.example, never a real key.\n- Verify Twilio request signatures on /voice.\n- No user accounts, no analytics, no cloud database. Single user, runs on my machine or a small VPS.\n- Out of scope: outbound campaigns, SMS, voicemail detection, multi-tenant anything, a mobile app.\n- Log latency per turn to stdout so I can see how bad the pauses are.\n- README: how to buy a number, point its voice webhook at PUBLIC_HOST/voice, run with a tunnel for local testing, and a blunt note that call recording consent laws vary by jurisdiction.",
+  "promptCurated": false
+}
