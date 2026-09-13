@@ -1,0 +1,51 @@
+{
+  "slug": "paperforge",
+  "name": "Paperforge",
+  "domain": "paperforge.dev",
+  "category": "documents",
+  "subcategory": "document and PDF generation",
+  "tagline": "Developer tooling for turning templates plus data into finished documents and PDFs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://paperforge.dev/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Document rendering is one of the most one-shottable categories there is: a headless Chromium, a template engine, and a single POST endpoint covers the happy path in an afternoon. Where DIY builds fall down is everything past the happy path: page breaks that behave, headers and footers with running page numbers, embedded fonts, CJK glyphs, PDF/A output, and a browser process that does not leak memory on document number four thousand. Paid document APIs are mostly selling you a warm rendering farm and a decade of accumulated CSS print hacks, not a clever idea. If you generate invoices for yourself, build it. If you generate other people's legal paperwork, pay someone.",
+  "coreLoopDIY": "A local HTTP service that takes a template name plus JSON data, renders HTML through headless Chromium, and returns a PDF.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and roughly 500MB of disk for a Playwright Chromium download",
+    "Willingness to debug CSS print rules, which are their own small hell",
+    "A machine that stays on if you want the endpoint reachable"
+  ],
+  "whatYouLose": [
+    "Rendering at scale: one Chromium on your laptop is not a queue with retries and concurrency limits",
+    "Battle-tested print CSS edge cases: page breaks inside tables, running footers, widow control",
+    "Font and glyph coverage, including non-Latin scripts and licensed typefaces",
+    "Compliance-flavored output like PDF/A archival profiles and digital signatures",
+    "Hosted template editing and versioning, so non-technical people can tweak a layout without a deploy"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is boring and real: someone else keeps the browser farm alive and already knows why your table splits wrong.",
+  "whyPeopleStillPay": "Because document generation is a chore that looks finished long before it is. The first invoice renders perfectly and the ninetieth one has a stray blank page, a footer that forgot its page number, and a customer name in Thai that comes out as boxes. Paying converts an open-ended maintenance liability into a line item, and it moves the pager for a memory-leaking Chromium process off your desk. For anything customer-facing or billing-related, that trade is usually correct.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Print CSS is the actual product here, and nobody wants to admit it.",
+  "prompt": "Build a local document rendering service. No accounts, no cloud, no telemetry.\n\nStack, not negotiable:\n- Node 20 with TypeScript\n- Fastify for the HTTP layer\n- Playwright with bundled Chromium for rendering\n- Handlebars for templates\n- Local filesystem for templates and output, no database\n\nBehavior:\n- Templates live in ./templates/NAME/ with index.hbs and optional style.css and assets/\n- POST /render takes JSON: { \"template\": \"invoice\", \"data\": { ... }, \"options\": { \"format\": \"A4\", \"margin\": \"18mm\", \"landscape\": false } }\n- Compile the Handlebars template with data, inline style.css, serve local assets over a temporary file URL so images resolve\n- Render to PDF with printBackground true, header and footer templates supporting page number and total pages\n- Respond with application/pdf and a sane Content-Disposition filename\n- POST /render?debug=1 returns the rendered HTML instead of a PDF, for debugging layout\n- GET /templates lists available templates\n- GET /healthz returns 200 and the Chromium version\n\nPerformance and stability:\n- Launch one Chromium at boot, reuse it, create a fresh browser context per request\n- Cap concurrency at 2 with a simple in-process queue, return 429 when the queue is longer than 20\n- Restart the browser automatically after 200 renders or if it crashes\n- Hard timeout of 30 seconds per render, always close the context in a finally block\n\nSecurity and config:\n- Require an X-API-Key header matched against API_KEY from .env, loaded with dotenv\n- PORT and TEMPLATE_DIR also from .env, ship a .env.example, gitignore .env\n\nShip with it:\n- One working example template: an invoice with a line-item table that repeats table headers across pages\n- A test script that renders the example with 200 line items and asserts the PDF has more than one page\n- README with curl examples and a short section on print CSS rules that matter: break-inside avoid, thead display table-header-group, @page size\n\nOut of scope, do not build: template web editor, user management, S3 upload, DOCX or XLSX output, PDF/A, digital signatures, webhooks.",
+  "promptCurated": false
+}
