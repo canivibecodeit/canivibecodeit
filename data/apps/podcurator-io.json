@@ -1,0 +1,51 @@
+{
+  "slug": "podcurator-io",
+  "name": "PodCurator.io",
+  "domain": "podcurator.io",
+  "category": "podcasting",
+  "subcategory": "podcast discovery and episode curation",
+  "tagline": "Finds and curates podcast episodes worth your time, instead of making you scrub through feeds.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://podcurator.io/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics here are not exotic: podcast metadata is public RSS, the open Podcast Index will hand you a searchable catalog for free, and transcription plus summarization is a solved API call. An agent can absolutely build you a thing that watches thirty feeds, transcribes new episodes, scores them against your stated interests, and spits out a private RSS feed of the keepers. Where it gets thin is everything around that loop: cross-catalog discovery of shows you have never heard of, a listening app that remembers your position, and a transcription bill that stops being cute once you point it at daily news shows. If your actual problem is \"I follow too many podcasts and skip most episodes,\" the DIY version solves it in a sitting. If your problem is \"show me the good stuff I do not know about,\" you are buying someone else's index and taste.",
+  "coreLoopDIY": "Polls your subscribed podcast feeds, transcribes new episodes, scores each one against an interest profile you write in plain English, and publishes the winners as a private RSS feed with summaries.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for scoring and summaries",
+    "Whisper locally or a hosted transcription API, plus patience for the first backfill",
+    "A free Podcast Index API key if you want search as well as your own feeds",
+    "Somewhere to host the generated RSS and audio links, even just a static bucket"
+  ],
+  "whatYouLose": [
+    "Discovery outside your existing subscriptions: you cannot recommend shows you have never added",
+    "A pre-built transcript corpus, so your first run is slow and every new episode costs money",
+    "A real mobile client with playback position sync, offline downloads and CarPlay",
+    "Editorial taste, if the paid product does any human curation at all",
+    "Someone else absorbing the cost when a podcast publishes three hours of audio a day"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The catalog itself is not proprietary, the Podcast Index is open. What is expensive is transcripts and scores across the whole catalog, amortized over many users instead of just you.",
+  "whyPeopleStillPay": "Because transcribing and ranking the entire podcast world once and serving it to everyone is dramatically cheaper per person than each of us doing it alone, and because the last mile is a listening app, not a cron job. A personal curator that only knows your existing subscriptions is a filter, not a curator, and most people who pay for this want the second thing. There is also the boring reason: nobody wants to babysit a Whisper queue to find out whether an interview is worth forty minutes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Filtering your own feeds is a weekend. Filtering everyone's feeds is a bandwidth bill.",
+  "prompt": "Build a personal podcast curator that runs on my machine and publishes a private RSS feed of only the episodes worth my time.\n\nStack, no deliberation: TypeScript on Node 22, SQLite via better-sqlite3, Hono for the small HTTP server, tsx for scripts. No frontend framework, server-rendered HTML with plain CSS is fine.\n\nData model in SQLite: shows (feed_url, title, active), episodes (show_id, guid, title, published_at, audio_url, duration, description, transcript, score, reason, state), profile (a single row holding my interest profile as markdown).\n\nCore loop, as an `npm run poll` script:\n1. Fetch every active feed, parse with rss-parser, upsert new episodes.\n2. For each new episode, first pass: score it from title plus show notes only, using the LLM, against the interest profile. Return a 0-100 score and a one sentence reason. Cheap gate.\n3. If the first pass scores above a configurable threshold, download the audio to a local cache and transcribe it. Support two transcription backends behind one interface: local whisper.cpp via a configurable binary path, and a hosted API keyed from .env. Default to local.\n4. Second pass: rescore using the transcript, and write a five bullet summary plus the three most interesting timestamps.\n5. Mark episodes as keep or skip based on the final score.\n\nOutput:\n- `GET /feed.xml` serves a valid podcast RSS feed containing only kept episodes, with the summary in the description and the original audio_url as the enclosure. It must validate in Overcast and Apple Podcasts.\n- `GET /` renders a simple list: kept episodes first, skipped ones collapsed below with their reasons, so I can see what the scoring is throwing away.\n- `POST /feedback` with keep or skip appends a correction line to the profile file so the next run does better. Dumb and effective, no fine-tuning.\n\nIn scope: OPML import for my existing subscriptions, a transcript cache so nothing is transcribed twice, a hard monthly transcription minute budget in .env that the poller refuses to exceed, and structured logs.\n\nOut of scope, do not build: user accounts, multi-user anything, audio playback in the browser, cross-catalog discovery of shows I do not already subscribe to, payments, telemetry.\n\nSecrets in .env: LLM_API_KEY, TRANSCRIBE_BACKEND, TRANSCRIBE_API_KEY, WHISPER_BIN, MONTHLY_MINUTE_BUDGET, FEED_TOKEN. The feed URL must require FEED_TOKEN as a query param so it is not public.\n\nShip a README with a single quickstart: install, import OPML, write the profile, run poll, subscribe to the feed. Include a seed script with three real public feeds so the first run proves itself end to end.",
+  "promptCurated": false
+}
