@@ -1,0 +1,52 @@
+{
+  "slug": "chartmetric",
+  "name": "Chartmetric",
+  "domain": "chartmetric.com",
+  "category": "analytics",
+  "subcategory": "music industry data",
+  "tagline": "Music analytics platform tracking artists, tracks, playlists and social growth across streaming and social platforms.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://chartmetric.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is a dashboard, so it looks like a weekend project, and it is not. Chartmetric's product is a decade of daily snapshots across Spotify, Apple Music, YouTube, TikTok, Shazam, radio and playlist ecosystems, much of it collected through pipelines and partnerships that a personal build has no access to. Half the fields you would want, playlist adds, follower history, TikTok sound velocity, editorial placements, are either unavailable through public APIs or explicitly off limits. You can absolutely build a personal artist watchlist that snapshots what public APIs still give you and charts it over time, and that is genuinely useful if you only care about a handful of artists. What you cannot build is the retrospective history, the cross platform identity matching, or the comparative ranking that makes the paid product worth the invoice to an A and R team.",
+  "coreLoopDIY": "A local daily job that snapshots public Spotify, YouTube and MusicBrainz stats for a watchlist of artists into SQLite and renders growth charts you can actually read.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Spotify developer app credentials (client id and secret)",
+    "YouTube Data API key",
+    "A machine or small VM that stays on to run the daily snapshot",
+    "Patience with API rate limits and missing fields"
+  ],
+  "whatYouLose": [
+    "Historical data before the day you start collecting, which is most of the value",
+    "Playlist tracking, editorial placement alerts and playlist add or drop history",
+    "TikTok, Shazam, radio airplay and Apple Music coverage, none of which you can get cleanly",
+    "Cross platform artist identity matching, so your Spotify artist and YouTube channel links are manual",
+    "Ranking, percentile and peer comparison against every other artist in the world"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The daily snapshot archive is the asset. Every day you do not have it, the gap widens, and it is not backfillable from public sources.",
+  "whyPeopleStillPay": "Because the question a label or manager is asking is comparative and historical: is this artist growing faster than the last twenty artists we signed, and where did the growth come from. Answering that needs a normalized panel of millions of artists going back years, plus the platform coverage that is hardest to obtain, which is exactly the part no personal build can bootstrap. The subscription is effectively rent on a dataset, and the dashboard is just how you read it. A self hosted watchlist answers a much smaller question, and for some people that question is the only one that matters.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chart is a weekend build; the ten year panel behind it is not. The moat is proprietary daily collection across platforms that mostly will not give you the data, compounding into history nobody can backfill.",
+  "prompt": "Build a local music artist growth tracker. No accounts, no cloud, no telemetry.\n\nStack, do not substitute: Python 3.12, SQLite via sqlite3, FastAPI for the read-only UI, Jinja2 templates, Chart.js from a CDN for charts. requests for HTTP. No ORM, no frontend framework, no Docker.\n\nWhat it does:\n1. Reads a watchlist from watchlist.yaml, each entry: name, spotify_artist_id, youtube_channel_id (optional), musicbrainz_mbid (optional).\n2. A snapshot script, snapshot.py, fetches for each artist: Spotify follower count and popularity score plus top track popularity (Client Credentials flow), YouTube channel subscriber count, view count and video count (Data API v3), and MusicBrainz release group count.\n3. Writes one row per artist per platform per day into a snapshots table (artist, platform, metric, value, captured_at). Idempotent: re-running the same day updates, never duplicates.\n4. A FastAPI app with two pages: an index listing watchlist artists with latest values and 7 and 30 day deltas, and a detail page per artist with time series charts for each metric.\n5. Deltas computed in SQL. If there is not enough history yet, print \"not enough history\" rather than fake zeros.\n\nExplicitly in scope: Spotify, YouTube, MusicBrainz only. CSV export of the snapshots table. A --dry-run flag on snapshot.py.\n\nExplicitly out of scope, do not attempt or stub: TikTok, Instagram, Shazam, Apple Music, radio airplay, playlist add tracking, chart rankings, cross artist percentiles, email alerts. These need data you cannot legally or technically get here. Say so in the README instead of faking it.\n\nSecrets in .env, loaded with python-dotenv: SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, YOUTUBE_API_KEY. Ship .env.example, gitignore .env.\n\nRespect rate limits: sleep between calls, retry once on 429 with backoff, log failures per artist and keep going rather than aborting the run.\n\nREADME must state plainly: history starts the day you first run this, there is no backfill, and the tool is only useful for a small hand-curated watchlist.\n\nInclude a make target or shell one-liner showing how to run snapshot.py daily via cron or launchd.",
+  "promptCurated": false
+}
