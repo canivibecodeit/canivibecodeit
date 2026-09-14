@@ -1,0 +1,52 @@
+{
+  "slug": "pylon",
+  "name": "Pylon",
+  "domain": "usepylon.com",
+  "category": "customer-support",
+  "subcategory": "B2B support desk for Slack and Teams channels",
+  "tagline": "Support platform for B2B teams that run customer support in shared Slack, Teams, and email channels.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://www.usepylon.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of Pylon, a ticket list with statuses, assignees, and a Slack bot that turns messages into tickets, is genuinely a weekend build. The part that matters is everything underneath: Slack Connect channels across dozens of customer orgs, Teams and email and Discord as equal front doors, account and contact mapping so a message in a channel resolves to a paying customer, SLA timers, escalation, and two-way sync with CRM and issue trackers. It is also not a personal tool. A one-person replacement of a shared support desk has no one to share it with, and the moment a real customer is on the other end of the channel, missed messages cost money rather than time. You can build the triage bot for your own side project and it will be fine. You cannot build the part that makes a support org trust it.",
+  "coreLoopDIY": "A Slack bot that watches chosen channels, turns threads into tickets in a local database, and gives you a small web queue with status, assignee, and reply-from-thread.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Slack workspace where you can install a custom app",
+    "Slack bot token and app-level token for Socket Mode",
+    "Node 20 and a machine that stays on",
+    "Email forwarding if you want a second intake channel"
+  ],
+  "whatYouLose": [
+    "Slack Connect at scale: one shared channel per customer org, with identity mapped to accounts, not just user IDs",
+    "Real omnichannel intake, where email, Teams, Discord, and in-app chat land in the same queue with the same history",
+    "SLA timers, business hours, escalation rules, and the reporting a support lead is actually judged on",
+    "Two-way sync with CRM, Linear, Jira, and Zendesk, which is where the ticket usually needs to end up",
+    "AI triage, suggested replies, and a knowledge base built from resolved tickets"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "collaboration"
+  ],
+  "moatNotes": "The integrations are not a feature list here, they are the product. Pylon sits between a customer's Slack and your CRM, and that position is the thing you are paying for.",
+  "whyPeopleStillPay": "Companies buy Pylon at the moment shared Slack channels stop being charming and start being a liability: forty channels, three engineers answering on vibes, and no idea which enterprise customer has been waiting eleven hours. Paying for it converts a pile of unowned conversations into a queue with owners, timers, and a paper trail, and it does that without asking customers to change how they talk to you. That is a workflow and accountability purchase, not a software purchase, and a self-hosted bot that only you can see does not deliver it. Add the CRM and issue tracker sync and the switching cost compounds fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The Slack-to-ticket bot is a weekend; the support org around it is not. The moat is being the wire between a customer's Slack channel and your CRM, with the account mapping and SLA history that accumulates there.",
+  "prompt": "Build a self-hosted Slack support triage bot and ticket queue for a small team. Single repo, runs locally.\n\nStack, no substitutions:\n- TypeScript on Node 20\n- Slack Bolt with Socket Mode (no public URL, no ngrok)\n- SQLite via better-sqlite3, file at ./data/tickets.db\n- Fastify serving a server-rendered UI with plain HTML and a little vanilla JS, no React\n- Secrets in .env: SLACK_BOT_TOKEN, SLACK_APP_TOKEN, SLACK_SIGNING_SECRET, WATCH_CHANNELS (comma separated channel IDs), PORT\n\nBehavior:\n- On any new top-level message in a watched channel, create a ticket: slack_channel_id, slack_thread_ts, requester_user_id, requester_display_name, first_message_text, created_at, status (new | open | waiting | closed), assignee, priority (low | normal | high), internal_note.\n- Replies in that thread append to a messages table linked to the ticket. Do not create duplicate tickets for replies.\n- React to the source message with :ticket: on creation so channel members see it was captured.\n- Slash command /triage prints the requester's open ticket count in-channel, ephemeral.\n- Emoji reaction :white_check_mark: on the source message closes the ticket.\n\nWeb UI at localhost:PORT:\n- Queue table sorted by last activity, filters for status and assignee, colored age badge (green under 4h, amber under 24h, red beyond).\n- Ticket detail page with full thread transcript, status/priority/assignee controls, an internal note field, and a reply box that posts back into the original Slack thread as the bot.\n- No login. Bind to 127.0.0.1 only and say so in the README.\n\nAlso include:\n- npm run dev, npm run build, npm start\n- A seed script that inserts 12 fake tickets so the UI is not empty before Slack is wired up\n- README with Slack app manifest YAML, the exact scopes needed (channels:history, channels:read, chat:write, reactions:read, reactions:write, commands, users:read), and setup steps\n\nExplicitly out of scope, do not build: email or Teams intake, Slack Connect multi-org handling, SLA timers and business hours, CRM or Jira sync, AI summaries or suggested replies, multi-tenant accounts, analytics dashboards, telemetry of any kind.\n\nWhen done, print a short checklist of what to click in the Slack app config to get it running.",
+  "promptCurated": false
+}
