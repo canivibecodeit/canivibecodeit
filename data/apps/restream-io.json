@@ -1,0 +1,52 @@
+{
+  "slug": "restream-io",
+  "name": "Restream",
+  "domain": "restream.io",
+  "category": "audio-video",
+  "subcategory": "multistreaming and live chat aggregation",
+  "tagline": "Send one live stream to dozens of platforms at once, with a browser studio and a merged chat inbox.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://restream.io/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The headline feature, taking one RTMP feed and pushing copies to many platforms, is a solved problem: nginx with the RTMP module does it in about eight lines of config, and ffmpeg does it in one command. An agent will get that working in an afternoon, and it will be better than the paid version in one respect: no re-encode, no middleman, no plan limits on destination count. The gaps are everything around it. You are now renting a VPS with enough upload bandwidth to carry your bitrate times your destination count, you have no merged chat, no browser studio for remote guests, and platforms like Facebook and LinkedIn expect you to mint a fresh stream target through their API rather than paste a permanent key. Call it a weekend if you want the chat side at all, and a permanent low-grade chore either way.",
+  "coreLoopDIY": "Runs an nginx-rtmp ingest on a VPS that copies your single OBS feed out to every stream key you list, with a small status page showing which pushes are alive.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A VPS or box with upload bandwidth greater than your bitrate times the number of destinations",
+    "A permanent stream key per platform, pasted in by hand",
+    "Docker, or willingness to compile nginx with the RTMP module",
+    "OBS or similar on the encoding machine"
+  ],
+  "whatYouLose": [
+    "Merged chat from every platform in one window, which is the feature streamers actually miss",
+    "The browser studio: guest invites, layouts, overlays, going live without a local encoder",
+    "Destinations that refuse static keys, so Facebook and LinkedIn need API plumbing or manual re-keying per stream",
+    "Someone else's bandwidth and redundancy, plus the transcode fallback when a platform rejects your bitrate",
+    "Scheduled premieres, cloud recording, clipping, and the analytics rollup across platforms"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The fan-out is commodity. The per-platform API quirks and the egress bill are what you are actually paying for.",
+  "whyPeopleStillPay": "Because multistreaming is only half of it. The paid product absorbs the parts that rot: platform APIs that change, short-lived stream targets, bitrate negotiations, and a chat window that merges YouTube, Twitch, Kick and the rest so a solo streamer can answer people without six tabs open. It also moves the bandwidth problem off a home connection, which matters if you are pushing 6 Mbps to five places from a residential uplink. A self-hosted relay handles the easy 80 percent and hands you the ugly 20 percent as homework, forever.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The relay is a config file. The chat aggregator is the actual product, and nobody self-hosts that twice.",
+  "prompt": "Build a self-hosted multistream relay: one RTMP ingest, fan out to many platforms, no re-encoding.\nStack: Docker Compose, nginx with the RTMP module (use the alfg/nginx-rtmp image), plus one Node 20 sidecar for config rendering and a status page. No database, no accounts, no telemetry.\nFiles: docker-compose.yml, .env.example, destinations.example.json, scripts/render-config.mjs, nginx/nginx.conf.template, status/server.mjs, scripts/test-loop.sh, README.md.\nIngest: accept RTMP on 1935 at /live/INGEST_KEY, where INGEST_KEY comes from .env. Any other stream name is rejected in an on_publish hook that calls the sidecar.\nFan-out: read destinations.json, an array of { name, url, key, enabled }, and emit one nginx push directive per enabled entry to url plus slash plus key.\nCopy the bitstream. Never transcode, never add a second output resolution.\nConfig rendering: render-config.mjs reads .env and destinations.json and writes nginx/nginx.conf from the template before the container starts.\nAdd an npm script \"reload\" that re-renders the config and sends nginx a HUP so destinations can change without dropping the ingest.\nStatus page: the sidecar listens on 8080, polls the nginx RTMP stat XML every 3 seconds, and serves a single HTML page.\nThe page shows: ingest live or offline, inbound bitrate, publish uptime, and one row per destination with name, enabled state, and last observed push status.\nPlain HTML plus fetch. No framework, no build step, no CSS library.\nLogging: print every on_publish and on_publish_done to stdout with an ISO timestamp.\nIf the stat endpoint reports zero bytes moved for 30 seconds while a publisher is connected, log a loud WARN line.\nSecrets: stream keys live only in destinations.json, which is gitignored; ship destinations.example.json with fake keys. INGEST_KEY goes in .env.\nThe status page has no auth, so bind it to 127.0.0.1 and tell the reader in the README to reach it over an SSH tunnel.\nscripts/test-loop.sh: use ffmpeg to publish a 30 second test pattern with tone to the local ingest, then curl the stat endpoint and pretty-print which pushes went active, so fan-out can be verified without going live.\nOut of scope, do not build: chat aggregation, browser studio, guest invites, WebRTC, per-platform OAuth, cloud recording, transcoding ladders, captions, scheduling, analytics, user accounts.\nREADME must cover: the bandwidth math (outbound equals inbound bitrate times destination count), pointing OBS at rtmp://HOST/live/KEY, where to paste each platform key, and a blunt warning that Facebook and LinkedIn issue short-lived stream targets so those rows need manual updates before each broadcast.\nEnd the README with a troubleshooting section: one destination dead while others are fine, ingest connects then drops, and CPU staying near zero as proof no transcode is happening.",
+  "promptCurated": false
+}
