@@ -1,0 +1,52 @@
+{
+  "slug": "magnific",
+  "name": "Magnific AI",
+  "domain": "magnific.com",
+  "category": "ai-image",
+  "subcategory": "upscaling and enhancement",
+  "tagline": "AI image upscaler that adds invented detail while enlarging, popular with concept artists and product photographers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.magnific.com/es",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The underlying trick is not secret: a diffusion model doing tiled img2img at higher resolution with a controlled creativity dial, plus ControlNet style guidance to keep structure. You can wire that up locally with Stable Diffusion or Flux, a tiled upscale pass, and a small web UI, and get genuinely good results on a machine with a real GPU. What you will not get in one session is Magnific's tuned parameter presets, its hallucination behavior that people actually like, and the speed of hosted inference. This is a weekend build that lands at maybe 70 percent of the output quality and 10 percent of the convenience. If you already run a local diffusion setup, the gap is small; if you do not, the GPU rental bill starts eating the savings.",
+  "coreLoopDIY": "Upload an image, pick an upscale factor and a creativity slider, and get back a tiled diffusion upscale with structure held in place by a depth or tile ControlNet.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "NVIDIA GPU with at least 12GB VRAM, or a rented cloud GPU",
+    "Stable Diffusion XL or Flux weights downloaded locally",
+    "ComfyUI or diffusers installed",
+    "patience for tuning denoise strength per image type"
+  ],
+  "whatYouLose": [
+    "Tuned presets that make the creativity dial behave predictably across portraits, products, and illustrations",
+    "Fast hosted inference: local 4x upscales of large images take minutes, not seconds",
+    "Face and skin handling that does not turn people into plastic",
+    "A browser you can use from any device without a GPU attached",
+    "Any kind of batch queue, history, or credit accounting you did not build yourself"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is parameter taste plus GPU fleet, not architecture. Both are copyable, one of them is expensive.",
+  "whyPeopleStillPay": "Because the output quality difference is visible to clients, and because nobody billing hourly wants to spend an afternoon fiddling with denoise strength to avoid melted faces. Magnific sells a dial that behaves, on hardware you do not have to own, reachable from a laptop in a coffee shop. A local rig is cheaper per image once you have already bought the GPU, which is exactly the condition most paying users do not meet.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The algorithm is public, the taste is not, and the GPU is the real invoice.",
+  "prompt": "Build a local AI image upscaler web app in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11 backend with FastAPI and uvicorn.\n- diffusers, transformers, torch with CUDA, Pillow.\n- Frontend: a single static index.html with vanilla JS and plain CSS, served by FastAPI. No build step, no npm.\n- SQLite via stdlib sqlite3 for a job history table.\n\nWhat it does:\n1. POST /upscale accepts an image file, a scale factor (2 or 4), a creativity value 0.0 to 1.0, and an optional text prompt.\n2. Pipeline: first do a deterministic resize to the target resolution with Lanczos. Then run a tiled img2img pass using StableDiffusionXLImg2ImgPipeline over 1024x1024 tiles with 128px overlap, denoise strength mapped from the creativity value into a 0.15 to 0.45 range. Blend tile seams with a linear alpha ramp on the overlap so there are no visible grid lines.\n3. If a prompt is empty, caption the source image with BLIP and use that caption as the positive prompt. Always append a fixed quality suffix and use a fixed negative prompt for blur and artifacts.\n4. Write the result to ./outputs/{job_id}.png, record job_id, params, source filename, duration, and output path in SQLite.\n5. GET /jobs returns history as JSON; GET /outputs/{job_id}.png serves the file.\n\nFrontend: drag and drop zone, scale radio buttons, creativity slider, optional prompt box, a submit button that shows a progress spinner and per tile progress from a simple polled GET /jobs/{id}/status, and a before/after comparison with a draggable vertical divider. History strip at the bottom.\n\nConfig in .env, read with python-dotenv: MODEL_ID, DEVICE, TILE_SIZE, MAX_UPLOAD_MB, OUTPUT_DIR. Ship a .env.example. Never hardcode paths.\n\nExplicitly out of scope: authentication, payment, credits, face restoration models, multi user queues, Docker.\n\nDeliver requirements.txt, a README with the exact commands to install and run, and a hard fail at startup with a clear message if CUDA is unavailable and DEVICE is not set to cpu.",
+  "promptCurated": false
+}
