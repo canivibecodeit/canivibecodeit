@@ -1,0 +1,52 @@
+{
+  "slug": "heyorca",
+  "name": "HeyOrca",
+  "domain": "heyorca.com",
+  "category": "social-media",
+  "subcategory": "agency social planning and client approvals",
+  "tagline": "Social media calendar and publishing tool built around client approval workflows for agencies.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per calendar, monthly",
+    "unit": "custom",
+    "source": "https://www.heyorca.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Most of HeyOrca is a content calendar with draft states, comment threads, and an approval gate, and an agent can build that convincingly in a weekend. The part that does not fall out of a weekend is actual publishing: Meta, LinkedIn, TikTok and Pinterest all gate their posting APIs behind app review, business verification, and permission scopes that assume you are a company, not a person with a laptop. If you are one person posting for yourself, you do not need the approval workflow at all, which is HeyOrca's whole reason to exist, so the honest DIY version is a planner plus a nudge, not an autopilot. Mastodon, Bluesky and a few others will post fine from your own script today. Everything else ends as copy to clipboard and a reminder.",
+  "coreLoopDIY": "A local content calendar where you draft posts per channel, move them through draft, needs review and approved, and get a scheduled reminder plus one-click copy at post time, with real auto-publishing only for the platforms that have open APIs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS that stays awake for the scheduler",
+    "Bluesky app password and/or a Mastodon access token if you want real auto-posting",
+    "Meta, LinkedIn or TikTok developer app plus app review if you want their channels, which is not a weekend task",
+    "Optional S3 or local disk for media uploads"
+  ],
+  "whatYouLose": [
+    "Native publishing to Instagram, Facebook, LinkedIn, TikTok and Pinterest without begging platform review boards",
+    "Client-facing approval links where a non-technical stakeholder can comment and approve without an account",
+    "Per-platform preview fidelity, character counts, carousel and reel handling that stay correct as the platforms change",
+    "Published-post analytics and reporting you can put in front of someone who pays you",
+    "Somebody else on the hook when a token expires or an API version is deprecated overnight"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the calendar UI, it is being an approved platform partner and having clients who trust the approval link.",
+  "whyPeopleStillPay": "Agencies do not pay HeyOrca for a calendar, they pay it to make client sign-off a paper trail and to keep posts going out when nobody is watching. Both of those are boring operational insurance: an expired Instagram token on a Friday is a client call, not a git commit. A solo user replacing this for themselves loses the approval layer they never needed and gains a scheduler they now maintain, which is a fine trade. A two-person shop with six clients will pay, and should.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The calendar is a weekend, the platform permissions are a quarter. Build it if you post for yourself, buy it if you post for clients.",
+  "prompt": "Build a local-first social media content calendar and publisher called \"Pod\". Single user, no accounts, no telemetry.\n\nStack, non negotiable: Next.js 15 App Router with TypeScript, SQLite via Prisma, Tailwind, and a node-cron worker inside a separate long-running script. No auth provider, no cloud services.\n\nData model: Channel (id, name, platform enum: bluesky, mastodon, instagram, linkedin, x, tiktok, other, credentialsRef, active). Post (id, body, status enum: draft, needs_review, approved, scheduled, published, failed, scheduledAt, publishedAt, errorText). PostTarget (post, channel, renderedBody, platformPostUrl). Media (post, filePath, altText). Comment (post, author, body, createdAt).\n\nUI, three screens only:\n1. Month calendar. Posts render as chips colored by status. Drag a chip to change scheduledAt. Click opens the composer.\n2. Composer. One body field, channel multi-select, media upload to ./uploads, alt text per image, per-platform character counter and a warning when over limit (Bluesky 300, Mastodon 500, X 280, LinkedIn 3000). A side panel with the comment thread and buttons to move status: draft to needs_review to approved.\n3. Queue list. Everything approved or scheduled, sorted by time, with a Copy body button and a Mark published field for the platforms you cannot post to programmatically.\n\nPublishing, be honest about the split:\n- Implement real posting for Bluesky (AT Protocol, app password) and Mastodon (access token). Include image upload with alt text for both.\n- For every other platform, do NOT pretend. Create a ManualTask row at scheduledAt, show it in the queue, and write a desktop-free notification by appending to ./reminders.log and optionally hitting a webhook URL from .env.\n- Never auto-publish a post whose status is not approved.\n\nWorker: a separate `npm run worker` script, node-cron every minute, picks up due approved posts, attempts platform sends, retries twice with backoff, writes failures to Post.errorText and surfaces them in the queue with a Retry button.\n\nSecrets: BLUESKY_HANDLE, BLUESKY_APP_PASSWORD, MASTODON_BASE_URL, MASTODON_TOKEN, REMINDER_WEBHOOK_URL in .env, loaded with dotenv, .env in .gitignore, ship .env.example.\n\nOut of scope, do not build: multi-tenant clients, billing, analytics dashboards, Meta or TikTok or LinkedIn API integration, AI caption generation, mobile app.\n\nDeliver: prisma schema and migration, seed script with two channels and five sample posts across statuses, README with setup in under ten commands, and a single `npm run dev` plus `npm run worker` flow that works offline except for the actual sends.",
+  "promptCurated": false
+}
