@@ -1,0 +1,52 @@
+{
+  "slug": "node-media-server",
+  "name": "Node Media Server",
+  "domain": "nodemedia.cn",
+  "category": "audio-video",
+  "subcategory": "streaming server",
+  "tagline": "A Node.js live streaming server that ingests RTMP and serves HTTP-FLV, HLS and low latency playback, with paid Pro builds and mobile SDKs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.nodemedia.cn/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The personal use case here is small: push one stream from OBS, watch it in a browser or on a phone, maybe record it. An agent can get that working in a sitting by wrapping ffmpeg or mediamtx behind a tiny Node control panel, and a minimal RTMP ingest handshake is within reach if you are patient with the chunk stream format. What does not survive one-shotting is everything past the happy path: GOP caching for instant first frame, WebRTC and SRT, transcoding ladders, auth and stream keys that actually hold, reconnect behavior across flaky mobile uplinks. The free open source core of this project already exists, so the real product being sold is the Pro build, the client SDKs and someone to email when a protocol edge case eats your broadcast. Fine for a home camera or a hobby stream, not fine for anything with viewers who complain.",
+  "coreLoopDIY": "Accepts an RTMP publish from OBS on port 1935, remuxes it to HLS and HTTP-FLV, and serves a single player page plus optional disk recording.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine with a public IP or a tunnel if you want to watch it from outside",
+    "ffmpeg installed",
+    "Node 20",
+    "Enough upstream bandwidth for every viewer, since there is no CDN in front of it"
+  ],
+  "whatYouLose": [
+    "Sub second latency paths: WebRTC, SRT and the low latency tuning that makes a stream feel live",
+    "GOP cache and fast start, so new viewers stare at a black player for a few seconds",
+    "Official iOS and Android publish and play SDKs",
+    "Transcoding ladders, adaptive bitrate and watermarking",
+    "Someone else's decade of RTMP edge cases with weird encoders"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "Streaming is a protocol correctness business. The gap between working and working during a three hour broadcast with one flaky uplink is where the money is.",
+  "whyPeopleStillPay": "Because a media server is judged on its worst minute, not its median one. The DIY build will handle a clean OBS stream on a LAN just fine, then fall over on a phone that switches from wifi to cellular, or on a codec configuration nobody documents. Paying gets the hardened build, the mobile SDKs so you are not writing an RTMP publisher in Swift, and a support path when a client encoder does something the spec did not anticipate. If your stream is a hobby, skip it. If anyone is watching on purpose, the license is cheap relative to the debugging.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Unusual case: the thing you would build is a worse version of a free open source project that the same company maintains, so start from that instead of from zero.",
+  "prompt": "Build a minimal self hosted live streaming server for personal use in this empty folder.\n\nStack, no substitutions:\n- Node 20, plain JavaScript, ESM, no TypeScript\n- Express for the HTTP side\n- ffmpeg as a child process for all remuxing, called via spawn, no ffmpeg wrapper libraries\n- No database, state lives in memory and on disk\n\nWhat to build:\n1. An RTMP ingest listener on port 1935 implemented with node:net. Handle the RTMP handshake (C0/C1/C2, S0/S1/S2), chunk stream parsing, connect, createStream, publish. Accept exactly one publishing stream at a time. Reject a publish whose stream key does not match STREAM_KEY from .env.\n2. Pipe the incoming FLV tags into a spawned ffmpeg process on stdin as an FLV stream. ffmpeg outputs, with copy codecs only, no transcoding:\n   - LL-HLS style HLS: 2 second segments, 6 segment window, written to ./media/hls/\n   - A recording: one timestamped .mp4 per session in ./media/recordings/ when RECORD=true\n3. Express serves ./media/hls as static files with correct MIME types and no-cache headers on the playlist.\n4. A single player page at / using hls.js from a local vendored copy, showing live status and stream uptime.\n5. GET /api/status returns JSON: publishing true/false, stream start time, current bitrate estimate from bytes seen, viewer count from HLS playlist requests in the last 30 seconds.\n6. Clean shutdown: on publish end, kill ffmpeg, finalize the recording, delete stale HLS segments.\n\nExplicitly out of scope, do not build:\n- WebRTC, SRT, HTTP-FLV over websocket, DASH\n- Transcoding, ABR ladders, watermarks\n- User accounts, signup, multi tenant anything\n- Telemetry, analytics calls, any outbound network request\n\nRules:\n- Secrets and config in .env: RTMP_PORT, HTTP_PORT, STREAM_KEY, RECORD. Ship .env.example, gitignore .env.\n- Log every RTMP state transition to stdout so protocol failures are debuggable.\n- If the handshake or chunk parsing gets stuck, fail loudly with the byte offset, do not silently drop the connection.\n- README: how to point OBS at it (server url, stream key), how to watch, ffmpeg version assumptions, and a blunt list of what will break.\n- Include a test script that publishes a 30 second color bar stream with ffmpeg so the server can be verified without OBS.",
+  "promptCurated": false
+}
