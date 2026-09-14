@@ -1,0 +1,51 @@
+{
+  "slug": "dola",
+  "name": "Dola",
+  "domain": "dolaapp.com",
+  "category": "tasks-calendar",
+  "subcategory": "AI calendar assistant over chat",
+  "tagline": "An AI scheduling assistant you text in plain language, which then writes events and reminders to your calendar.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://dolaapp.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is genuinely small: parse a message into a structured event, resolve the date math against a timezone, write it to a calendar. A coding agent can wire a Telegram bot to an LLM and the Google Calendar API in a weekend, voice notes included via a transcription API. What you cannot replicate in one sitting is the part Dola actually sells, which is being reachable on the messaging app you already live in: WhatsApp and iMessage are both walled in their own way, and the WhatsApp Business API is a slog of approvals and per-message billing. The other gap is boring reliability, since a scheduling assistant that drops one reminder a month is worse than no assistant. Build it if you will accept Telegram as your front door.",
+  "coreLoopDIY": "A chat bot that turns free-text or voice messages into confirmed calendar events and reminders on your own Google Calendar.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key",
+    "Google Cloud project with Calendar API enabled and an OAuth client, self-authorized as a test user",
+    "A Telegram bot token",
+    "An always-on host or small VPS so reminders actually fire"
+  ],
+  "whatYouLose": [
+    "Native presence in WhatsApp, iMessage and SMS, which is most of the point",
+    "Group chat scheduling and back-and-forth coordination with other people",
+    "Forgiving handling of vague phrasing, travel timezones and recurring event edge cases",
+    "Parsing screenshots, flyers and forwarded invites into events",
+    "Someone else's on-call rotation making sure your 7am reminder fires"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is distribution channel access, not intelligence. Messaging platforms decide who gets to be a bot in your inbox.",
+  "whyPeopleStillPay": "Because the value is where it lives. Telling an assistant about dinner on Thursday inside the thread where dinner was arranged is a different behavior than opening a separate app, and that placement is exactly the part you cannot ship yourself without a business account, a template approval process and per-message fees. People also pay to stop thinking about timezone arithmetic and daylight saving, which your own build will get wrong at least twice before you patch it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fully replaceable in spirit, blocked on channel access in practice.",
+  "prompt": "Build a personal AI calendar assistant as a Telegram bot. Single Python project, no web frontend.\n\nStack, no substitutions: Python 3.11, python-telegram-bot (async, polling mode), the official google-api-python-client for Google Calendar, an LLM via the OpenAI-compatible chat completions API with JSON mode, SQLite via sqlite3 for local state. No web framework, no Docker, no cloud deploy scripts.\n\nSecrets in .env, loaded with python-dotenv: TELEGRAM_BOT_TOKEN, OPENAI_API_KEY, OPENAI_BASE_URL, GOOGLE_CLIENT_SECRETS_PATH, OWNER_TELEGRAM_ID, DEFAULT_TIMEZONE. Commit a .env.example, never a .env.\n\nAuth: a one-time script auth_google.py that runs the installed-app OAuth flow in a browser and stores token.json locally. The bot refuses to start if token.json is missing.\n\nBehavior:\n1. Ignore every message whose sender id is not OWNER_TELEGRAM_ID. This is a single-user bot.\n2. On a text message, send it to the LLM with the current datetime and DEFAULT_TIMEZONE in the system prompt. Force a JSON response with an intent field of create_event, list_events, delete_event or unclear, plus fields for title, start, end, all_day, location and notes. Resolve all relative dates in Python from the returned ISO strings, never let the model do arithmetic silently.\n3. For create_event, reply with an inline keyboard showing the parsed event and Confirm / Cancel buttons. Only write to Google Calendar on Confirm. Log every write to SQLite with the source message text.\n4. For list_events, show today and the next seven days in a compact list.\n5. For delete_event, match against recently created events in SQLite by title, and ask for confirmation before deleting.\n6. On a voice message, download the .ogg and transcribe it with the audio transcriptions endpoint, then run the same text path.\n7. If intent is unclear, say so and quote what you did understand. Never guess a time.\n\nOut of scope, do not build: WhatsApp or iMessage or SMS channels, multi-user accounts, group coordination, availability polling, email parsing, telemetry, a dashboard.\n\nWrite a README with exact setup steps: create the Google Cloud project, enable the Calendar API, add yourself as an OAuth test user, run auth_google.py, then run bot.py. Include a short section on running it under systemd or launchd so reminders and polling survive a reboot. Add pytest tests for the date resolution logic using frozen clocks, including a daylight saving boundary and a next Tuesday case.",
+  "promptCurated": false
+}
