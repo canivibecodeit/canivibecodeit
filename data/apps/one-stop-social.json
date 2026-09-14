@@ -1,0 +1,51 @@
+{
+  "slug": "one-stop-social",
+  "name": "One Stop Social",
+  "domain": "onestopsocial.com",
+  "category": "social-media",
+  "subcategory": "multi-platform posting and scheduling",
+  "tagline": "A single dashboard for writing, scheduling and publishing posts across multiple social accounts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://onestopsocial.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a queue, a calendar view and a worker that fires HTTP requests at the right minute, which an agent can assemble in an afternoon. The hard part was never the software, it is the platform side: every network wants its own OAuth app, its own review process, and in several cases its own paid API tier before you can post a single word. Bluesky and Mastodon will let you in immediately, LinkedIn and X and anything Meta-owned will make you fill out forms and wait, and TikTok and Instagram have historically restricted or complicated pure API publishing. So you can absolutely own your scheduler, you just cannot own your access. Build it if you post to two or three friendly networks, pay someone if your list includes the hostile ones.",
+  "coreLoopDIY": "A local web app where you compose a post once, pick target accounts and a time, and a background worker publishes it and logs success or failure.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that stays awake for the scheduler to fire",
+    "Developer app registration and OAuth credentials for each network you want to post to",
+    "Patience with per-network media upload rules: aspect ratios, sizes, chunked video uploads",
+    "Willingness to re-auth when tokens expire or a platform changes its API"
+  ],
+  "whatYouLose": [
+    "Instant access to networks that gate their publishing APIs behind review or paid tiers",
+    "Someone else maintaining the integrations when a platform ships a breaking change with two weeks notice",
+    "Per-platform previews that tell you your post will be truncated or cropped before you publish",
+    "Analytics rollups, best-time suggestions and inbox/comment handling",
+    "Mobile app, drafts shared with collaborators, and approval workflows if more than one person touches the account"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The integration list is the entire product. Each one is cheap to build once and annoying forever.",
+  "whyPeopleStillPay": "Because the value is access and maintenance, not code. A paid tool has already survived the developer app review for a dozen networks, already handles the video upload quirks, and already rewrote its X client the last three times the terms changed. If you post to Bluesky and Mastodon, that work is close to zero and you should keep your money. If your livelihood runs through Instagram and LinkedIn, a subscription is cheaper than being the on-call engineer for someone else's undocumented API.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Own the queue, rent the access.",
+  "prompt": "Build a self-hosted social media scheduler called \"Postbox\". Single user, runs on my own machine or a small VPS.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind for UI\n- SQLite via better-sqlite3 with Drizzle ORM, single file db at ./data/postbox.db\n- A separate long-running worker process (tsx watch in dev, node in prod) that polls the DB every 30 seconds for due posts\n- No auth, no accounts, no telemetry, no analytics scripts. It binds to localhost by default.\n\nData model:\n- accounts: id, platform, handle, access_token, refresh_token, token_expires_at, enabled\n- posts: id, body, media (json array of local file paths), created_at\n- targets: id, post_id, account_id, scheduled_at (UTC), status (queued|sent|failed), remote_id, error, attempts\n\nFeatures in scope:\n- Compose page: one textarea, per-account character limit counters shown live, checkboxes to pick target accounts, a datetime picker, optional image upload stored under ./data/media\n- Queue page: list of upcoming targets grouped by day, plus a simple week calendar grid, click to edit or delete a queued target\n- History page: sent and failed targets with the error text and a Retry button\n- Worker: claims due targets in a transaction, publishes, writes remote_id or error, exponential backoff up to 3 attempts, structured logs to stdout\n\nPublishing adapters: implement a Publisher interface with publish(text, mediaPaths) and a charLimit. Ship two working adapters, Bluesky via the atproto package and Mastodon via its REST API, both reading credentials from .env. Also ship a stub adapter file per platform for X and LinkedIn with the request shape sketched in comments and a clear throw saying credentials and app review are required. Do not fake success.\n\nOut of scope, do not build: analytics, comment inbox, AI caption generation, team approvals, multi-user, hosted deployment config beyond a Dockerfile.\n\nSecrets in .env only, with a committed .env.example. Include a README covering setup, how to obtain Bluesky app passwords and a Mastodon access token, how to run web and worker together, and a note that timezone handling stores UTC and renders in local time. Add a seed script that inserts one queued post five minutes in the future so I can watch the worker fire.",
+  "promptCurated": false
+}
