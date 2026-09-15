@@ -1,0 +1,53 @@
+{
+  "slug": "manus",
+  "name": "Manus",
+  "domain": "manus.im",
+  "category": "ai-assistant",
+  "subcategory": "autonomous general agent",
+  "tagline": "A hosted autonomous AI agent that plans multi-step tasks, browses the web, writes code, and hands back finished files.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription with credit allowance",
+    "unit": "usage",
+    "source": "https://manus.im/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Manus sells tiered subscriptions with task credits, so effective cost scales with how much you actually run.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The agent loop itself is no longer exotic: a planner, a tool registry, a sandbox to run things in, and a while-loop that keeps going until the task file is empty. A coding agent can scaffold that in a sitting and you will get real work out of it on well-scoped tasks. What you will not get in a weekend is the part Manus actually sells: a hosted VM that keeps grinding for forty minutes while you close your laptop, browser automation that survives cookie walls and logins, and enough harness tuning that it fails gracefully instead of confidently producing garbage. You also inherit a hard dependency on someone else's frontier model, so this is a cost shift, not an escape. Build it if you want control and per-token pricing; keep the subscription if you want long unattended runs that mostly work.",
+  "coreLoopDIY": "A local CLI agent that takes a goal, writes a todo plan, then loops over shell, file, HTTP, and headless browser tools inside a Docker sandbox until the plan is done and artifacts are on disk.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a frontier model with strong tool use (Anthropic or OpenAI)",
+    "Docker installed locally for the sandbox",
+    "Playwright with Chromium for browsing",
+    "Willingness to pay per token, which on long tasks can exceed the subscription",
+    "Patience for prompt and harness tuning, which is most of the real work"
+  ],
+  "whatYouLose": [
+    "Unattended cloud execution: your laptop has to stay awake and online",
+    "A shareable session replay showing every step the agent took",
+    "Robust logged-in browsing, captcha and cookie-wall handling, and residential-grade network paths",
+    "Mobile access and the ability to kick off a task from your phone",
+    "Guardrails and rollback when the agent decides to do something stupid to your filesystem"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Manus does not own a model, so the defensibility is harness quality plus the willingness to run long-lived sandboxes at a loss on heavy users. Both are copyable, and the open source clones proved that within weeks of launch.",
+  "whyPeopleStillPay": "Because the difference between a demo agent and a useful one is a thousand small decisions about retries, context compaction, tool schemas, and when to stop. Manus has ground through those and gives you a URL where a task runs for an hour without you babysitting it. Most people who build their own agent loop use it happily for two weeks, hit the reliability wall on a genuinely multi-hour task, and quietly go back to paying someone to own the harness.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The loop is a weekend, the reliability is not, and either way you are renting Anthropic by the token.",
+  "prompt": "Build a local autonomous agent CLI called \"handy\" in Python 3.12. No web UI, no accounts, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, uv for deps, Typer for the CLI, Rich for terminal output\n- Anthropic Python SDK with tool use, model configurable via .env\n- Docker SDK for Python to run all shell and code execution inside a container\n- Playwright with Chromium for browsing, running on the host, not in the sandbox\n- SQLite via stdlib sqlite3 for run history\n\nBehavior:\n- `handy run \"goal\"` creates ./runs/TIMESTAMP/ as the working directory, writes plan.md as a checkbox todo list generated from the goal, then enters an agent loop.\n- Each loop turn: send the goal, plan.md contents, a truncated tool-result history, and the tool schemas to the model; execute exactly one tool call; append the result to the transcript; let the model rewrite plan.md.\n- Loop ends when every checkbox is checked, the model emits a `finish` tool call, or a configurable max turn count is hit.\n\nTools to implement:\n- shell(cmd): runs in a Docker container with ./runs/TIMESTAMP mounted at /work, 120s timeout, output truncated to 8000 chars\n- read_file(path), write_file(path, content), list_dir(path): confined to the run directory, reject any path escaping it\n- http_get(url): requests, text only, 200KB cap\n- browse(url, instruction): Playwright loads the page, returns readable text plus a screenshot saved into the run directory\n- finish(summary)\n\nAlso:\n- Context management: when the transcript exceeds a token budget, summarize the oldest turns into a single note and keep the last N turns verbatim\n- Print each tool call and a one-line result to the terminal with Rich, and write the full transcript to transcript.jsonl\n- `handy history` lists past runs; `handy show ID` prints the transcript and final summary\n- ANTHROPIC_API_KEY and MODEL in .env, loaded with python-dotenv, .env in .gitignore\n- Ask for confirmation before the first shell call of a run unless --yolo is passed\n\nOut of scope: multi-agent orchestration, hosted execution, scheduled or background runs, logged-in browsing, mobile, sharing links. Include a README with setup, a sample run, and an honest note that long tasks will cost more in tokens than a subscription.",
+  "promptCurated": false
+}
