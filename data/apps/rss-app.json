@@ -1,0 +1,52 @@
+{
+  "slug": "rss-app",
+  "name": "RSS.App",
+  "domain": "rss.app",
+  "category": "rss-research",
+  "subcategory": "feed generation and aggregation",
+  "tagline": "Turns websites and social accounts into RSS feeds, then bundles them into readers, widgets, and embeds.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://rss.app/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The reader half of this is a solved problem: fetch feeds on a cron, parse, dedupe, tag, filter by keyword, render a list. An agent will get you that in a session, and for a personal setup of 40 known RSS and Atom URLs it will be better than fine because you control the filters. The hard half is the part you are actually paying for: generating feeds from sites that do not publish one, especially X, Instagram, TikTok, LinkedIn, and Facebook, where you are fighting login walls, rate limits, rotating markup, and bot detection. You can write a Playwright scraper in an afternoon and it will work for a week. Keeping fifty of them alive is a maintenance job, not a build.",
+  "coreLoopDIY": "Polls a list of feed URLs on a schedule, normalizes and dedupes items into SQLite, applies keyword and category rules, and serves a reader UI plus a combined RSS output per category.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that stays awake to run the poller",
+    "Actual RSS or Atom URLs for most of your sources",
+    "Playwright and a willingness to fix selectors by hand when a scraped site changes",
+    "Optional: residential proxies if you insist on scraping social platforms"
+  ],
+  "whatYouLose": [
+    "Maintained scrapers for sites and social platforms that have no feed, which is the entire reason most people sign up",
+    "Embeddable feed widgets and carousels you can drop into a client site",
+    "Hosted feed URLs with uptime, caching, and CDN that other tools can subscribe to",
+    "Someone else absorbing the breakage every time a target site redesigns or tightens bot detection",
+    "Bulk feed creation and a UI for non technical people to point at a page and get a feed"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not clever code, it is a standing army of selectors, proxies, and caches that someone else keeps patched.",
+  "whyPeopleStillPay": "Because the value is not the reader, it is the promise that a feed URL keeps returning items next month. Anyone can scrape a page once. Paying means you are outsourcing the endless small failures: a class name changed, an endpoint got auth, an IP range got blocked, a site went full JS. If you only follow blogs and newsrooms that already publish Atom, you are paying for nothing and should self host. If half your sources are social accounts and marketing pages, you are paying a maintenance subscription and that is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the reader yourself, then be honest about how many of your sources are actually feeds.",
+  "prompt": "Build a local, single user RSS aggregator and feed generator. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Next.js App Router with TypeScript\n- SQLite via better-sqlite3, file at ./data/feeds.db\n- rss-parser for RSS and Atom\n- node-cron for scheduling, running inside a separate worker script, not in a route handler\n- Playwright for the one scraped source type described below\n- Tailwind for styling, keep it plain and dense\n\nData model:\n- sources: id, title, kind ('feed' or 'scrape'), url, category, selector_json (nullable), last_fetched_at, last_error\n- items: id, source_id, guid, title, link, author, published_at, summary, content_html, read_at, starred_at, unique index on (source_id, guid)\n- rules: id, category (nullable), match_type ('include' or 'exclude'), field ('title' or 'summary'), pattern (case insensitive substring or /regex/)\n\nWorker (npm run worker):\n- Every 15 minutes, fetch every source. For kind 'feed', parse with rss-parser. For kind 'scrape', open the URL in Playwright, wait for network idle, and extract items using selector_json: { item, title, link, date }.\n- Normalize to items. Derive guid from the feed guid, else the link, else a sha256 of title plus link. Insert ignoring duplicates.\n- Apply rules on insert: if any exclude matches, drop it. If includes exist for that category, require at least one match.\n- Record last_error per source instead of crashing. Log one line per source per run.\n\nUI:\n- / : unified river, newest first, filterable by category and unread, keyboard j/k/o/s, mark read on open\n- /sources : add, edit, delete sources; for 'scrape' show four selector fields and a 'test' button that returns the first three extracted items as JSON without saving\n- /rules : CRUD for rules\n\nOutput:\n- GET /feed/[category]/route.ts returns valid RSS 2.0 for the last 100 post filter items in that category, correct Content-Type, absolute links\n- GET /api/export returns all sources as OPML, POST /api/import accepts an OPML file\n\nExplicitly out of scope: multi user auth, mobile apps, push notifications, full text article extraction, and any attempt to scrape X, Instagram, TikTok, LinkedIn, or Facebook. Do not ship login based scraping.\n\nSecrets, if any are added later, live in .env and .env.example. Ship a README with setup, npm run dev, npm run worker, and one worked example of a scrape source with real selectors for a simple public blog index page. Seed the db with five well known public RSS URLs so the first run shows content.",
+  "promptCurated": false
+}
