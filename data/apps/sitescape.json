@@ -1,0 +1,52 @@
+{
+  "slug": "sitescape",
+  "name": "SiteScape",
+  "domain": "sitescape.ai",
+  "category": "design",
+  "subcategory": "LiDAR reality capture",
+  "tagline": "iPhone and iPad app that turns the built-in LiDAR sensor into a point cloud scanner for construction and CAD workflows.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://apps.apple.com/us/app/sitescape-lidar-scanner-cad/id1524700432",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The raw capability here is Apple's, not SiteScape's: ARKit hands you a per-frame depth map and camera pose, and an agent can wire that into an accumulating point cloud in a single session. What you get out of that session is a toy that drifts, duplicates points, and chokes once the cloud passes a few million points. SiteScape's actual work is the unglamorous middle: pose smoothing, voxel dedup, memory management on a phone, and exports that a surveyor or a Revit user will actually accept. So yes, build the scanner, but budget a weekend and accept that your accuracy claims are vibes. If someone is billing a client off the scan, this is not the build.",
+  "coreLoopDIY": "A SwiftUI iOS app that streams ARKit scene depth into a voxel-deduplicated point cloud, renders it live with Metal, and exports a PLY file to the Files app.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Mac with Xcode",
+    "An iPhone Pro or iPad Pro with a LiDAR sensor",
+    "A free Apple developer account for on-device installs (re-sign every 7 days)",
+    "Some tolerance for Metal point cloud rendering code"
+  ],
+  "whatYouLose": [
+    "Scan accuracy you can defend: no drift correction, loop closure, or calibrated confidence filtering",
+    "Large-scan stability, the DIY version gets slow and hungry where theirs keeps going",
+    "Professional export formats and pipelines: E57, RCP, and the Revit/AutoCAD/Recap handoff people actually need",
+    "Cloud upload, web viewing, and sharing a scan with a client or a colleague",
+    "Measurement tools, cropping, decimation, and the other cleanup features that make a cloud usable"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "hardware"
+  ],
+  "moatNotes": "The sensor is Apple's, so the hardware lock is borrowed. The durable part is squeezing a usable, exportable cloud out of a phone without it falling over.",
+  "whyPeopleStillPay": "Because the point of a site scan is that someone downstream trusts it. A weekend build gives you a colorful cloud of dots; a paid scanner gives you a file that opens in Recap or Revit, at a scale the client recognizes, with enough consistency that you are not re-scanning the site on Monday. The per-scan cost of being wrong in construction is far higher than a subscription, which is exactly why this category resists the DIY version even when the underlying API is free.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An agent can absolutely get depth points on screen in an hour; the last 20 percent of a reality capture app is where the money lives.",
+  "prompt": "Build a native iOS LiDAR point cloud scanner. Stack: Swift 5.9, SwiftUI for UI, ARKit for capture, Metal for rendering. No third-party packages, no backend, no accounts, no analytics.\n\nTarget: iPhone/iPad with a LiDAR sensor, iOS 17+. Fail gracefully with an explanatory screen if ARConfiguration sceneReconstruction/sceneDepth is unsupported.\n\nCore loop:\n1. ARSession with ARWorldTrackingConfiguration, enable .sceneDepth and .smoothedSceneDepth frame semantics.\n2. On each frame while recording, read the smoothed depth map plus the confidence map, unproject pixels to world space using the camera intrinsics and transform, and sample the captured image for per-point RGB.\n3. Drop points whose confidence is not high. Subsample the depth map (every 2nd pixel) to keep frame cost down.\n4. Deduplicate into a voxel hash grid at a user-selectable leaf size (1cm, 2cm, 5cm). Store one averaged position and color per occupied voxel. This is the whole trick, do not skip it.\n5. Hard cap the cloud at 4 million points and show a fill gauge.\n\nRendering: a Metal vertex/fragment pair drawing the accumulated cloud as point primitives over the live camera feed, with adjustable point size. Keep the vertex buffer in a MTLBuffer you append to; do not rebuild it every frame.\n\nUI: a single capture screen with a record/pause button, live point count, voxel size picker, and an Export button. Plus a scan list screen backed by files on disk.\n\nExport: write binary little-endian PLY with x,y,z,red,green,blue and expose it through a UIActivityViewController and the Files app via LSSupportsOpeningDocumentsInPlace. Also write a plain XYZ text option.\n\nExplicitly out of scope: mesh reconstruction, E57 or RCP export, loop closure, cloud sync, sharing links, measurement tools, multi-scan alignment.\n\nDeliverables: an Xcode project that builds and runs on device, an Info.plist with the camera usage description, and a README stating plainly that accuracy is uncalibrated and unsuitable for survey or as-built deliverables.",
+  "promptCurated": false
+}
