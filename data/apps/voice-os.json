@@ -1,0 +1,52 @@
+{
+  "slug": "voice-os",
+  "name": "Voice OS",
+  "domain": "voiceos.com",
+  "category": "ai-assistant",
+  "subcategory": "desktop voice assistant",
+  "tagline": "A voice-driven assistant layer that listens, understands, and drives your computer for you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.voiceos.com/",
+    "checkedOn": "2026-09-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is genuinely commodity now: microphone in, speech to text, an LLM with tool calls, text to speech out, plus a shell or AppleScript executor. An agent can wire that into a working push-to-talk assistant in a session, and a local Whisper model means you are not paying per minute to transcribe yourself. What breaks is everything around the pipeline: always-on wake word detection that does not fire at your podcast, sub-second latency, and OS permission plumbing that makes app control actually reliable instead of theatrical. You will also be writing your own tool definitions for every app you want it to touch, one at a time, forever. Buildable, useful, and noticeably rougher than a product whose entire job is smoothing this over.",
+  "coreLoopDIY": "Hold a hotkey, speak, get the request transcribed locally, routed to an LLM with a small allowlisted toolset, executed on your machine, and spoken back.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine with a decent mic and enough RAM for a local Whisper model",
+    "An LLM API key in .env, or a local model if you accept the latency",
+    "OS accessibility and microphone permissions granted to your terminal",
+    "Willingness to hand-write tool functions for each app you want controlled"
+  ],
+  "whatYouLose": [
+    "Reliable always-listening wake word instead of a hotkey you have to hold",
+    "Latency tuning that makes conversation feel like conversation",
+    "Prebuilt integrations with your calendar, mail, browser, and messaging apps",
+    "A mobile or wearable client, so the assistant lives only where you built it",
+    "Someone else's problem when a macOS update breaks accessibility permissions"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-models"
+  ],
+  "moatNotes": "Latency and wake word accuracy are the whole product experience, and both are unglamorous engineering rather than features you can list.",
+  "whyPeopleStillPay": "Voice assistants are judged almost entirely on the half second between speaking and something happening, and on whether they misfire. A DIY build nails the demo and then annoys you on day four: it mishears, it pauses, it needs a hotkey, it cannot see the app you are actually in. Paying buys the tuning work plus a growing set of integrations you would otherwise write yourself, one grumpy afternoon at a time.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The hard part was never the LLM; it was the microphone, the permissions, and the milliseconds.",
+  "prompt": "Build a local voice assistant for macOS called \"myvoice\". Python 3.11, no web UI, runs as a terminal process.\n\nStack, no substitutions:\n- audio capture: sounddevice + numpy\n- speech to text: faster-whisper, \"small.en\" model, downloaded on first run\n- reasoning: Anthropic Messages API with tool use, model from .env\n- speech out: macOS `say` via subprocess\n- global hotkey: pynput\n\nBehavior:\n- Press and hold right-option to record. Release to stop and transcribe.\n- Transcribe locally, print the transcript, send it to the model with a running conversation history capped at 20 turns.\n- The model has these tools only: run_shell(command), open_app(name), applescript(source), read_clipboard(), write_clipboard(text), current_context() returning frontmost app name and window title.\n- run_shell and applescript go through an allowlist in tools.yaml. Anything not matched prints a refusal and asks the user to add it. No silent execution of arbitrary commands.\n- Speak the model's final text reply with `say`. Keep replies short; instruct the model to answer in one or two sentences.\n\nIn scope: hotkey capture, local transcription, tool loop, allowlist, spoken reply, a --text flag to type instead of speak for debugging.\nOut of scope: wake word detection, always-on listening, mobile client, accounts, telemetry, cloud sync, any analytics.\n\nRequirements:\n- ANTHROPIC_API_KEY and MODEL in .env, loaded with python-dotenv. .env.example committed, .env gitignored.\n- Log every transcript, tool call, and reply as JSON lines to ~/.myvoice/log.jsonl.\n- Measure and print milliseconds for record, transcribe, model, and speak on each turn. This is the number that decides whether the thing is usable.\n- README with the exact permissions to grant in System Settings for microphone and accessibility, and a warning that applescript access is real access.\n- One pytest that feeds a fixture wav through the transcriber and asserts non-empty text.",
+  "promptCurated": false
+}
