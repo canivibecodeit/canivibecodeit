@@ -1,0 +1,52 @@
+{
+  "slug": "returnflows",
+  "name": "ReturnFlows",
+  "domain": "returnflows.com",
+  "category": "commerce",
+  "subcategory": "returns management",
+  "tagline": "Returns and exchange management for online stores: branded return portal, RMA tracking, and shipping labels.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.returnflows.com/en",
+    "checkedOn": "2026-09-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible part of a returns tool is a form and a status page, and yes, an agent will hand you that in an afternoon. The part that costs money is everywhere else: live order lookup against your store platform, carrier accounts that can actually mint a prepaid return label at negotiated rates, refunds and exchanges pushed back into the order of record, and restocking rules that do not corrupt inventory. Every one of those is a contract or an API key with a business relationship behind it, not code. There is also the boring compliance surface: consumer return windows differ by country, and this thing ships localized for a reason. Build the portal if you want a cheap intake form, but do not expect it to replace the plumbing.",
+  "coreLoopDIY": "A self-hosted return request portal where a customer looks up an order from an imported CSV, picks items and a reason, and you approve or reject the resulting RMA from an admin table.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A store order export you can refresh (CSV or an API pull you write yourself)",
+    "SMTP credentials for customer emails",
+    "Somewhere to host it plus a domain if customers will use it",
+    "Carrier accounts if you ever want real return labels, which the DIY build does not do"
+  ],
+  "whatYouLose": [
+    "Prepaid return labels at negotiated carrier rates, which is most of the actual value",
+    "Two-way sync with Shopify, WooCommerce or whatever holds your orders, so refunds and restocking stay manual",
+    "Automated refunds, store credit and exchange flows tied to the payment processor",
+    "Localization and country-specific return window rules that come out of the box",
+    "Return reason analytics that tell you which product page is lying"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Carrier and store-platform integrations are the product; the UI is the wrapper around them.",
+  "whyPeopleStillPay": "Because a return is not a form submission, it is a physical object moving through a carrier network and a refund moving through a payment processor, and both of those need accounts, rates and error handling that nobody wants to own. Merchants also pay to stop answering \"where is my refund\" emails, which requires the status page to be fed by real data rather than by someone updating a spreadsheet. Once a few thousand RMAs live in the tool, the history and the label rates are the switching cost.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The portal is a weekend; the label and the refund are not. The moat is carrier accounts plus write access to the order of record, neither of which you can code your way into.",
+  "prompt": "Build a self-hosted returns intake portal. Stack: Next.js 15 App Router, TypeScript, Tailwind, SQLite via Drizzle ORM. No auth provider, no cloud services, no telemetry.\n\nData model (Drizzle, SQLite file at ./data/returns.db):\n- orders: id, orderNumber, email, purchasedAt, currency, raw JSON\n- orderItems: id, orderId, sku, name, quantity, unitPrice\n- returnRequests: id, orderId, status (pending, approved, rejected, received), customerNote, createdAt, decidedAt, rmaCode\n- returnItems: id, returnRequestId, orderItemId, quantity, reason, condition\n\nSeeding: a CLI script `npm run import -- orders.csv` that upserts orders and items from a CSV with columns order_number, email, purchased_at, sku, item_name, quantity, unit_price. Ship a sample orders.csv with 5 fake orders.\n\nPublic side (no login):\n- /return: form asking for order number plus email. Match must be exact and case-insensitive on email. Rate limit lookups to 10 per IP per hour in SQLite, no Redis.\n- On match, show line items with quantity steppers and a required reason dropdown (wrong size, damaged, not as described, changed mind, other) plus a free text note.\n- Enforce a configurable RETURN_WINDOW_DAYS from .env, default 30, measured from purchasedAt. Past the window, show a polite refusal instead of the form.\n- On submit, create a returnRequest with a short human-readable rmaCode, then show a status page at /return/[rmaCode] that anyone with the code can read.\n\nAdmin side:\n- /admin behind a single shared password from ADMIN_PASSWORD in .env, stored in an httpOnly signed cookie. No user table.\n- Table of requests with filters by status, a detail view, and buttons for approve, reject, mark received. Each decision writes decidedAt and optionally an internal note.\n\nEmail: send confirmation and decision emails through nodemailer using SMTP_* vars in .env. If SMTP vars are missing, log the rendered email to stdout instead of failing.\n\nExplicitly out of scope, do not stub or fake these: carrier label purchase, tracking numbers, refunds or store credit, payment processor calls, Shopify or WooCommerce sync, exchanges, multi-language UI. Write English only.\n\nDeliverables: .env.example, README with import and run steps, seed script, and a single `npm run dev` that works in an empty folder after install.",
+  "promptCurated": false
+}
