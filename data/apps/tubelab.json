@@ -1,0 +1,51 @@
+{
+  "slug": "tubelab",
+  "name": "TubeLab",
+  "domain": "tubelab.net",
+  "category": "social-media",
+  "subcategory": "YouTube outlier research",
+  "tagline": "YouTube research tool that surfaces outlier videos and underserved niches for creators.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tubelab.net/",
+    "checkedOn": "2026-09-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The math here is not the hard part: an outlier is a video whose views are some multiple of its channel's recent median, adjusted for age, and that is thirty lines of code. An agent can build you a local tool that tracks a few hundred channels you care about, snapshots view counts daily, and ranks the breakouts, and that covers most of what a single creator actually uses. What it cannot build in a session is discovery across channels you have never heard of, because that requires a crawled index of millions of channels with historical view curves, and the YouTube Data API quota makes building that index yourself a slow grind rather than a weekend. So you get the analysis loop and lose the haystack. Good enough if you already know your niche, useless if the whole point was finding a new one.",
+  "coreLoopDIY": "Tracks a list of YouTube channels you supply, snapshots video view counts on a schedule, and ranks videos by how far they beat their own channel's rolling median.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "YouTube Data API v3 key (free tier, 10,000 quota units per day)",
+    "a machine or cheap VPS that can run a daily cron",
+    "patience while the first few weeks of view snapshots accumulate"
+  ],
+  "whatYouLose": [
+    "Discovery beyond your own watchlist: no index of channels you have not already found",
+    "Historical view curves that already exist on day one instead of starting from zero",
+    "Niche and keyword level aggregates across a large corpus",
+    "Thumbnail and title pattern browsing at scale",
+    "Someone else eating the API quota problem"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The index is the product. Outlier scoring is arithmetic; knowing about 4 million channels is a crawl budget.",
+  "whyPeopleStillPay": "Because the interesting query is not \"which of my competitors popped off\" but \"show me a channel format I have never seen that is working right now,\" and that question can only be answered by something that has already indexed the long tail. Doing that yourself means years of API quota or scraping infrastructure you do not want to maintain. If you are a working creator, a subscription that answers that question in ten seconds is cheaper than a weekend, and much cheaper than a quarter spent on a format nobody wants.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The outlier score is a one-liner; the channel index is not.",
+  "prompt": "Build a local YouTube outlier tracker. Single Node 20 + TypeScript project, no framework beyond Express, no cloud, no accounts, no telemetry.\n\nStack, use exactly this:\n- TypeScript, tsx for running scripts\n- better-sqlite3 for storage, file at ./data/tubelab.db\n- Express serving one server-rendered HTML page with plain CSS, no React, no build step for the frontend\n- node-cron for scheduling\n- YOUTUBE_API_KEY read from .env via dotenv, committed .env.example, real .env gitignored\n\nData model:\n- channels(id, handle, title, added_at)\n- videos(id, channel_id, title, published_at, duration_seconds, is_short, thumbnail_url, first_seen_at)\n- snapshots(video_id, captured_at, view_count, like_count, comment_count)\n\nCommands (npm scripts):\n- add-channel: takes a channel URL, handle, or ID, resolves it via the YouTube Data API, stores it\n- sync: for every tracked channel, pull the uploads playlist, upsert new videos, then batch-fetch statistics with videos.list in chunks of 50 ids and write one snapshot row per video. Respect quota: log units spent per run, stop cleanly at a configurable daily budget in .env.\n- score: recompute the outlier view for every channel\n\nOutlier scoring, implement exactly this and put it in one documented module:\n- For each channel, take videos published in the last 365 days, excluding the newest 7 days\n- Compute the median of latest view counts, separately for Shorts (duration under 60s) and long form\n- multiplier = latest_views / median_for_its_class\n- velocity = views gained in the last 7 days from snapshots, null if fewer than two snapshots exist\n- Flag anything with multiplier of 3 or more\n\nUI at localhost:3000:\n- One table, sortable by multiplier, velocity, or published date\n- Filters: channel, Shorts vs long form, published window\n- Thumbnail, title linking to YouTube, channel, age in days, views, multiplier, 7 day velocity\n- A /channels page to list and remove tracked channels\n\nExplicitly out of scope, do not build: global channel discovery, keyword search across YouTube, auth, multi-user, any hosted deployment, any charting library.\n\nAlso write a README that states plainly that the first useful velocity numbers appear after about a week of daily syncs, and include the seed channel list as a plain text file that add-channel can read in bulk.",
+  "promptCurated": false
+}
