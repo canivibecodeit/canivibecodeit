@@ -1,0 +1,51 @@
+{
+  "slug": "tiktok",
+  "name": "TikTok",
+  "domain": "tiktok.com",
+  "category": "social-media",
+  "subcategory": "short-form video feed",
+  "tagline": "Short-form video app with an algorithmic feed, plus creator tools, live gifting and a shop.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://tiktok.com/",
+    "checkedOn": "2026-09-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free to use, with spend concentrated in coins, gifts and ads.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "The app itself is a vertical video player with a swipe gesture, which an agent can produce before lunch. Everything that makes it TikTok is on the other side of the API: a billion-user supply of clips, a recommender trained on trillions of watch-time signals, and a CDN that streams the next video before you finish the current one. A personal build has no one making content for it, so the feed is whatever you already own, which you have already seen. You can absolutely build a nice local player for your own video library, and that is genuinely useful, but it is a media player, not a social network. Do not pretend the ranking model is the hard part; the corpus is.",
+  "coreLoopDIY": "A local, full-screen vertical video feed over your own folder of clips, with swipe navigation, autoplay, loop and watch-time based reshuffling.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A folder of video files you actually own",
+    "ffmpeg installed for thumbnails and duration probing",
+    "Node 20+ and a browser, ideally a phone on the same LAN"
+  ],
+  "whatYouLose": [
+    "The content: no strangers uploading millions of clips a day for you to watch",
+    "The recommender: cold-start ranking on 40 of your own videos is not a For You page",
+    "Delivery: instant prefetch and adaptive streaming across a global CDN",
+    "The social layer: comments, duets, stitches, DMs, follows, anyone seeing what you post",
+    "Creator tools and effects: the camera, filters, sound library and licensed music catalog"
+  ],
+  "moatTags": [
+    "network-effects",
+    "proprietary-models",
+    "scale-infra"
+  ],
+  "moatNotes": "Two-sided attention marketplace: creators go where the viewers are, viewers stay because the ranking is good, and the ranking is good because of the viewers. There is no entry point for one person with a laptop.",
+  "whyPeopleStillPay": "Almost nobody pays for TikTok as software. Money moves in the form of coins for live gifts, ad spend, and shop transactions, and all three exist only because the audience is there. You are not buying features, you are renting access to attention that no self-hosted build can manufacture. Even a perfect clone of the client is worthless with an empty feed, which is why every competitor with more engineering resources than you had to buy content supply first.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player is an afternoon; the feed is not. The moat is a billion people making free content and a recommender trained on their every scroll.",
+  "prompt": "Build a local, self-hosted vertical video feed for my own video library. Call it Loopr.\n\nStack, no substitutions:\n- Next.js 15 (App Router) with TypeScript, run locally with `npm run dev`\n- Tailwind CSS for styling, no component library\n- better-sqlite3 for a single-file database at ./data/loopr.db\n- ffmpeg/ffprobe invoked via child_process for thumbnails and duration\n- No accounts, no auth, no cloud, no telemetry, no external API calls\n\nBehavior:\n- Read a media directory from MEDIA_DIR in .env (default ./media). Commit a .env.example, never a real .env.\n- On startup, scan MEDIA_DIR recursively for .mp4/.mov/.webm, upsert rows into a `clips` table (id, path, filename, duration, width, height, added_at). Generate one JPEG poster per clip into ./data/thumbs with ffmpeg, skipping files already indexed by path plus mtime.\n- Serve video bytes from a route handler that supports HTTP Range requests, so seeking works. Do not copy files into /public.\n- The feed page is a full-viewport, scroll-snapped vertical list, one clip per screen. The visible clip autoplays muted and loops; offscreen clips pause. Preload only the next two.\n- Controls: tap to toggle sound, double tap to like, keyboard up/down arrows, and a visible mute state. Show filename and duration in a small overlay.\n- Log every view to a `views` table (clip_id, watched_ms, completed, viewed_at). Log likes and skips too.\n- Feed order comes from a dumb, transparent scoring function in one file: recency bonus, likes bonus, penalty for clips finished recently, small random jitter. Expose the score in a debug query param so I can see why order changed.\n- Add /library: a grid of posters with search by filename, sort by newest or most watched, and a link that jumps the feed to that clip.\n- Add /stats: total watch time, top ten clips by watch time, completion rate.\n\nExplicitly out of scope: uploading, editing, filters, music, comments, sharing, following, multi-user, recommendations beyond the scoring function above.\n\nDeliverables: working app, README with setup and ffmpeg prerequisite, a `npm run scan` script to reindex, and a seed note explaining that the feed is only as good as the folder I point it at.",
+  "promptCurated": false
+}
