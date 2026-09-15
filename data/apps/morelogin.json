@@ -1,0 +1,52 @@
+{
+  "slug": "morelogin",
+  "name": "MoreLogin",
+  "domain": "morelogin.com",
+  "category": "security",
+  "subcategory": "antidetect browser / multi-account management",
+  "tagline": "An antidetect browser that runs many isolated browser profiles, each with its own fingerprint and proxy, so accounts do not link to each other.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.morelogin.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Vendor sells a free profile allowance plus tiered paid plans priced by profile count and team seats.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The boring 80 percent of this is profile isolation, and that is a scripting job: Playwright or Puppeteer with one persistent user-data-dir per identity, one proxy per identity, and a launcher that keeps them straight. An agent can hand you that in a sitting, and for casual multi-account work it does the job. The remaining 20 percent is the part people actually pay for: a patched Chromium build whose canvas, WebGL, audio, font and WebRTC surfaces lie consistently and survive whatever the detection vendors shipped this month. Stealth plugins are public, which means they are also fingerprinted, and you will be the one debugging that at 2am. Build it if the goal is tidy separation, buy it if the goal is not getting flagged.",
+  "coreLoopDIY": "A local CLI that stores named browser profiles with their own persistent data directory, proxy and spoofed fingerprint values, then launches any of them on demand.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a local Chromium via Playwright",
+    "Your own proxies, residential or otherwise, one endpoint per profile",
+    "Disk space for persistent profile directories",
+    "Comfort with the fact that public stealth patches are publicly detectable"
+  ],
+  "whatYouLose": [
+    "A continuously maintained patched browser binary, versus init-script spoofing that leaks under real scrutiny",
+    "Cloud profile sync, so cookies and sessions live on one machine and one machine only",
+    "Team features: shared profiles, per-member permissions, transfer of accounts between people",
+    "Bundled proxy sourcing and rotation, plus the mobile and OS fingerprint presets",
+    "A vendor updating the evasions every time a detection library changes"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is maintenance velocity, not architecture. Anyone can isolate profiles; almost nobody wants to keep re-patching a browser forever.",
+  "whyPeopleStillPay": "Because the failure mode is expensive and silent. If your homemade fingerprint spoofing is off by one, you do not get an error, you get a banned account and no explanation, and by then the sessions are gone. Paying moves the arms race onto someone else's roadmap and gives you cloud-stored profiles you can hand to a contractor or restore after a laptop dies. For a single person managing a handful of logins, a local script is genuinely fine. For anyone whose income depends on those accounts staying alive, the subscription is cheap insurance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project, mediocre insurance policy.",
+  "prompt": "Build a local command line multi-profile browser launcher in an empty folder. Stack: Node 20, TypeScript, Playwright (chromium), commander for the CLI, lowdb with a JSON file for storage. No server, no accounts, no telemetry, no cloud.\n\nData model: a profiles.json store where each profile has id, name, notes, createdAt, a userDataDir path under ./profiles/{id}, an optional proxy object (server, username, password), and a fingerprint object (userAgent, platform, locale, timezone, screen width/height, deviceScaleFactor, hardwareConcurrency, deviceMemory, webglVendor, webglRenderer).\n\nCommands:\n  profiles create --name X [--proxy http://user:pass@host:port] [--os windows|macos] : generates a plausible, internally consistent fingerprint for that OS from a small hardcoded preset table, creates the user-data-dir, saves the profile.\n  profiles list : table of id, name, proxy host, userAgent short, last launched.\n  profiles launch id : launches chromium with launchPersistentContext using that profile's userDataDir, proxy, locale, timezoneId, viewport and userAgent, then applies fingerprint overrides.\n  profiles clone id --name Y, profiles delete id (with confirm), profiles open-dir id.\n  profiles check id : launches the profile and opens a local static HTML page that prints navigator and WebGL values so I can eyeball consistency.\n\nFingerprint overrides: use context.addInitScript to patch navigator.platform, hardwareConcurrency, deviceMemory, languages, and WebGLRenderingContext getParameter for UNMASKED_VENDOR_WEBGL and UNMASKED_RENDERER_WEBGL. Add a small deterministic canvas noise function seeded from the profile id so the value is stable per profile across launches. Do not pretend this defeats commercial detection; put a one paragraph LIMITATIONS section in the README saying exactly that.\n\nProxy credentials may be passed inline but must be stored in profiles.json only if I pass --save-creds, otherwise read them from .env keys named PROXY_{PROFILE_ID}. Ship a .env.example and gitignore profiles/ and profiles.json.\n\nOut of scope: cloud sync, team sharing, proxy purchasing or rotation, mobile emulation, any automation or bot scripting, any bundled account credentials.\n\nDeliver: working CLI, npm scripts, README with install and the four commands I will actually use, and a seed command that creates two example profiles.",
+  "promptCurated": false
+}
