@@ -1,0 +1,51 @@
+{
+  "slug": "onecal",
+  "name": "OneCal",
+  "domain": "onecal.io",
+  "category": "scheduling",
+  "subcategory": "calendar sync and booking links",
+  "tagline": "Two-way sync across multiple Google and Outlook calendars, plus booking links.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.onecal.io/de",
+    "checkedOn": "2026-09-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea is small: read events from calendar A, write matching busy blocks into calendar B, keep a mapping table so you can update and delete instead of duplicating. An agent can write that against the Google Calendar API and Microsoft Graph in a session, and for a personal setup with two or three calendars it will mostly work. The pain is not the sync logic, it is OAuth: Google calendar scopes are sensitive, so you either stay in testing mode with your own account forever or go through app verification. Then come the edge cases that eat the weekend: recurring events, all-day events across timezones, declined invites, sync loops where your own mirrored blocks get mirrored back. Booking links are a separate product bolted on, and rebuilding those well is its own project.",
+  "coreLoopDIY": "Polls each connected calendar on a schedule and mirrors events into the others as private busy blocks, tracking source-to-copy IDs in SQLite so edits and deletions propagate instead of duplicating.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with Calendar API enabled and OAuth client credentials",
+    "Microsoft Entra app registration if you sync Outlook or Microsoft 365",
+    "A machine or small VPS that stays awake to run the poll loop",
+    "Tolerance for OAuth consent screens in testing mode"
+  ],
+  "whatYouLose": [
+    "Booking pages with availability rules, buffers, and round-robin",
+    "Push notifications instead of polling, so your DIY version lags by minutes",
+    "Someone else's problem when Google rotates tokens or Graph starts throwing 429s",
+    "A UI for non-technical family or teammates to connect their own calendars",
+    "Battle-tested handling of recurring series, exceptions, and cross-timezone all-day events"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the algorithm, it is having already been burned by every recurring-event edge case and every provider quirk.",
+  "whyPeopleStillPay": "Calendar sync is one of those problems that looks trivial until your mirrored block gets mirrored back into the source calendar and your week fills with phantom meetings. People pay so that the thing that guards their availability is maintained by someone whose job it is, with verified OAuth apps and push subscriptions instead of a cron job on a laptop. The booking links are the other half: if you need those anyway, paying one vendor for sync plus scheduling is cheaper than running two homegrown systems.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine weekend project if you have exactly two calendars and a tolerance for token refresh bugs.",
+  "prompt": "Build a personal calendar sync daemon. Local only, no hosted service, no accounts, no telemetry.\n\nStack: TypeScript on Node 20, SQLite via better-sqlite3, googleapis for Google Calendar, @microsoft/microsoft-graph-client for Outlook. Config in a single calendars.json, secrets in .env. No web UI, no framework, no Docker.\n\nWhat it does:\n1. A CLI command `auth google` and `auth microsoft` that runs the OAuth device or loopback flow, prints the consent URL, and stores refresh tokens encrypted-at-rest-ish in SQLite (AES with a key from .env is fine, say so in the README).\n2. calendars.json lists connections and sync pairs, each pair being source calendar id, target calendar id, and a direction (one-way or two-way).\n3. `sync` command: for each pair, fetch events in a window of now minus 7 days to now plus 90 days. For each source event that is not itself a mirrored copy, upsert a target event titled \"Busy\" (configurable per pair) with the same start, end, and all-day flag, marked private, with no attendees, no description, no location.\n4. Keep a mappings table: source_connection, source_event_id, target_connection, target_event_id, source_updated_at, content_hash. Use it to update when the source moves and delete when the source disappears or is cancelled.\n5. Loop protection: tag every created event with an extended property `onecal_diy_source_id`. Skip any source event carrying that property. This is the single most important rule, test it.\n6. Skip events the user declined, skip events marked transparent (free), skip events matching a per-pair title blocklist.\n7. Expand recurring events using the provider's singleEvents mode so exceptions and cancellations come through as instances. Do not try to mirror the recurrence rule itself.\n8. `sync --watch` runs every 5 minutes with jitter, exponential backoff on 429 and 5xx, and a structured log line per created, updated, deleted, or skipped event.\n\nOut of scope: booking pages, availability rules, buffers, iCal feeds, Apple Calendar, a multi-user server, push notification webhooks.\n\nDeliverables: README with the exact Google Cloud and Entra setup steps including required scopes, a calendars.example.json, .env.example, and vitest unit tests covering loop protection, all-day timezone handling, and delete propagation using a fake provider client.",
+  "promptCurated": false
+}
