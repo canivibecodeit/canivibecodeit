@@ -1,0 +1,51 @@
+{
+  "slug": "tinylytics",
+  "name": "Tinylytics",
+  "domain": "tinylytics.app",
+  "category": "analytics",
+  "subcategory": "privacy-friendly web analytics",
+  "tagline": "Lightweight, cookie-free site analytics with extras like hit counters, kudos buttons and uptime pings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tinylytics.app/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Cookie-free page analytics is one of the most one-shottable products in existence: a 1x1 beacon or a 20-line script, an insert into SQLite, and a dashboard that groups by day, path and referrer. There is no network effect here and no data you need from anyone else, because the only data that matters is your own traffic. The parts that are actually annoying are bot filtering, correct unique-visitor counting without cookies, and keeping a tiny server alive for years without thinking about it. Tinylytics also bundles small side toys (kudos, hit counters, uptime checks, webring bits) that are each trivial alone but add up to a tidy package. You can absolutely replace the core in a session; you are replacing it with something you now operate.",
+  "coreLoopDIY": "A tracker script plus a small server that logs page views to SQLite and renders a dashboard of views, uniques, top pages, referrers and countries.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small always-on host (VPS, Fly, Render) with a persistent disk for SQLite",
+    "ability to add a script tag or edit your site template",
+    "a domain or subdomain for the collector endpoint",
+    "optional GeoIP database if you want country breakdowns"
+  ],
+  "whatYouLose": [
+    "Someone else's uptime: if your collector is down, the data is just gone",
+    "Battle-tested bot and spam filtering, which is most of what separates real numbers from noise",
+    "The bundled extras (kudos button, public hit counters, uptime monitoring, webring plumbing) unless you build each one",
+    "A polished mobile-friendly dashboard and email digests you did not have to design",
+    "Years of quiet fixes for edge cases like prefetching browsers, AMP-ish clients and referrer spoofing"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is taste and operational boredom, not data. It is a one-person product whose value is that you never think about it.",
+  "whyPeopleStillPay": "Because analytics is a thing you want to check, not maintain. A self-hosted counter is fun for a month and then it is a server you patch, a disk that fills, and a gap in your charts from the week you forgot to renew something. Tinylytics is cheap enough that the trade is obvious for anyone whose site is a hobby rather than a job, and the little extras (kudos, counters, uptime) are the kind of thing you would never get around to building yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Page analytics is the hello-world of self-hosting; the reason to pay is that you stop being the sysadmin of your own pageview counter.",
+  "prompt": "Build a self-hosted, cookie-free web analytics service I can run on one small VPS.\n\nStack, no substitutions: Node 20, TypeScript, Hono for HTTP, better-sqlite3 for storage, server-rendered HTML with plain CSS, no frontend framework, no build step beyond tsc. Single process, single SQLite file at ./data/analytics.db.\n\nIn scope:\n1. A tracker: /t.js served from the app, under 1.5 KB minified. It sends one POST to /collect with hostname, pathname, referrer, screen width and document title. Respect navigator.doNotTrack and skip localhost.\n2. POST /collect: no cookies, no client IDs. Derive a daily visitor hash as sha256(ip + user-agent + site_id + date + SALT) and store only the hash. Keep the raw IP in memory only, never on disk.\n3. Bot filtering: drop requests whose user-agent matches a bundled regex list of crawlers, drop requests with no user-agent, drop obvious prefetch (Purpose or Sec-Purpose header).\n4. Multi-site support: a sites table with id, domain, created_at. Reject collect calls for unknown hostnames.\n5. Dashboard at / behind a single password from .env (signed cookie session, no user accounts): date range picker (today, 7d, 30d, all), a daily bar chart drawn as inline SVG, and tables for top pages, top referrers grouped by host, and browser plus OS parsed from the user-agent.\n6. Optional country column: if ./data/GeoLite2-Country.mmdb exists, use maxmind to resolve it; otherwise hide the column silently.\n7. A public hit counter: GET /counter/:siteId.svg returning an SVG badge with total views, cacheable for 60 seconds.\n8. Retention job on boot and daily: delete raw event rows older than RETENTION_DAYS from .env, keeping pre-aggregated daily rollups forever.\n\nOut of scope: funnels, goals, sessions, user profiles, email digests, kudos buttons, uptime monitoring, anything multi-tenant with billing.\n\nSecrets in .env: SALT, DASHBOARD_PASSWORD, PORT, RETENTION_DAYS. Ship a .env.example. No telemetry, no external calls at runtime.\n\nDeliverables: working app, npm scripts for dev and start, a seed script that inserts 30 days of fake traffic so the dashboard is not empty, a Dockerfile, and a README with a Caddy reverse proxy snippet and the exact script tag to paste into a site.",
+  "promptCurated": false
+}
