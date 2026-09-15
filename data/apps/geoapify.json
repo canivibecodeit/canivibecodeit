@@ -1,0 +1,53 @@
+{
+  "slug": "geoapify",
+  "name": "Geoapify",
+  "domain": "geoapify.com",
+  "category": "dev-tools",
+  "subcategory": "geocoding, maps and routing APIs",
+  "tagline": "Hosted location APIs: geocoding, address autocomplete, places, routing, isolines and map tiles.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.geoapify.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Freemium with a daily request allowance, then usage-tiered paid plans.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Geoapify is mostly a hosting and packaging layer over open data: OpenStreetMap, plus open engines like Nominatim, Photon and OSRM/Valhalla. That means the pieces are genuinely available to you, and an agent can wire them into a working private API with your own key auth in a weekend. The catch is scope: a country-sized extract runs fine on a modest box, while a planet-wide import with fast autocomplete is a real infrastructure project with big RAM, big disks and hours-to-days of import time. You also inherit the parts Geoapify quietly does for you: address normalization quirks, ranking tuning, batch endpoints, uptime, and staying current with OSM diffs. Fine for one product in one region, painful the moment you need global coverage with low latency.",
+  "coreLoopDIY": "Runs Nominatim, Photon and OSRM in Docker over a regional OpenStreetMap extract behind a small API gateway that adds key auth, rate limits and a unified geocode/autocomplete/route JSON shape.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker and Docker Compose on a machine with 8GB+ RAM (16GB+ if you want more than one country)",
+    "50GB+ free disk for a regional extract, far more for continents",
+    "A Geofabrik .osm.pbf extract for your region",
+    "Patience: the Nominatim import is measured in hours, not minutes",
+    "A plan for periodic OSM diff updates if you care about freshness"
+  ],
+  "whatYouLose": [
+    "Global coverage out of the box; you get whatever region you imported",
+    "Tuned autocomplete ranking and address normalization across dozens of country formats",
+    "Batch and async endpoints, isolines, places search and map tiles unless you stand up more services",
+    "Someone else's uptime, CDN and scaling when your traffic spikes",
+    "Support and a bill you can point at when geocoding goes wrong in production"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The underlying data is open. What is not open is having it imported, indexed, tuned and served worldwide with low latency at all times.",
+  "whyPeopleStillPay": "Because geocoding is one of those problems that looks like an afternoon and turns into a permanent infrastructure chore. The import is slow, the index is huge, the OSM diffs never stop, and autocomplete latency is the difference between a usable form and an abandoned one. Paying a per-request bill converts a server you have to babysit into a line item, and for most teams that trade is obviously correct until the bill gets loud.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Self-hosted geocoding is a solved problem in Docker and an unsolved problem in your calendar.",
+  "prompt": "Build a self-hosted geocoding, autocomplete and routing API for one region, using open data and open engines.\n\nStack: Docker Compose for the engines, Node 20 with Express and TypeScript for the gateway. No cloud services, no accounts, no telemetry.\n\nServices in docker-compose.yml:\n1. mediagis/nominatim (structured geocoding and reverse geocoding), importing a .osm.pbf from a PBF_URL env var.\n2. komoot/photon for fast fuzzy autocomplete, seeded from the Nominatim Postgres database.\n3. osrm/osrm-backend for car routing: a small init step that runs osrm-extract, osrm-partition and osrm-customize on the same extract, then osrm-routed.\nMount named volumes so imports survive restarts. Print clear progress notes because the Nominatim import takes hours.\n\nGateway (folder ./gateway) exposing one clean JSON API on port 8080:\n- GET /v1/geocode?text=...&limit=  proxies Nominatim search, returns { results: [{ lat, lon, formatted, country, city, postcode, confidence }] }\n- GET /v1/reverse?lat=&lon=  same result shape\n- GET /v1/autocomplete?text=&limit=  proxies Photon, same result shape, target under 100ms\n- GET /v1/route?from=lat,lon&to=lat,lon  proxies OSRM, returns distance in meters, duration in seconds, and a GeoJSON LineString\n- GET /health  reports reachability of each upstream\nAuth: require an X-API-Key header matched against API_KEYS in .env (comma separated). Per-key rate limiting in memory. Cache responses in memory with a 10 minute TTL keyed on the full query.\n\nAlso ship a single static demo page at / with a Leaflet map, a search box hitting /v1/autocomplete, and click-two-points routing. Use public OSM raster tiles for the demo only and include attribution; do not build a tile server.\n\nOut of scope: planet-wide import, isolines, places/POI search, batch endpoints, map tile hosting, OSM diff updates. Leave a REGION_UPDATES.md noting how diff updates would work and why they were skipped.\n\nSecrets and config in .env: PBF_URL, API_KEYS, PORT. Commit .env.example, not .env. README must state expected disk, RAM and import time for the chosen extract, and start with a small country so the first run finishes.",
+  "promptCurated": false
+}
