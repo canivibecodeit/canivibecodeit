@@ -1,0 +1,51 @@
+{
+  "slug": "knowchat",
+  "name": "Knowchat",
+  "domain": "knowchat.pro",
+  "category": "ai-assistant",
+  "subcategory": "chat over your own documents (RAG)",
+  "tagline": "Upload your documents and knowledge sources, then ask questions and get answers with citations from them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://knowchat.pro/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Document chat is the single most copied AI app pattern in existence, which is exactly why it is cheap to rebuild. Chunk files, embed them, store the vectors, retrieve the top matches, stuff them into a prompt, show citations: a coding agent has seen that loop ten thousand times and will get it working on your own files in an afternoon. The retrieval quality of a hand-rolled build is usually about 80 percent as good as a tuned product, which for personal use over your own notes and PDFs is fine. Where it stops being fine is if you are using this as a customer-facing widget on a website, with shared workspaces, seat management and a chat history someone else has to read. Judged as a personal knowledge chat over files you already own, this is a yes; judged as a hosted, embeddable, multi-tenant service, it slides to kinda.",
+  "coreLoopDIY": "Ingests your PDFs, text and markdown into a local vector index, then answers questions over them with inline citations back to the source chunk.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI, Anthropic or a local model via Ollama)",
+    "Python 3.11+ and the ability to run a local server",
+    "Your documents as files you can actually access",
+    "Roughly a cent per document for embeddings, less if you embed locally"
+  ],
+  "whatYouLose": [
+    "Connectors: Notion, Drive, Slack, website crawls and whatever else the hosted version ingests without you writing a parser",
+    "A public, embeddable chat widget with rate limiting and abuse protection",
+    "Tuned retrieval: reranking, hybrid keyword plus vector search, table and scanned-PDF handling",
+    "Team access, shared history, and anything resembling an audit trail",
+    "Someone else maintaining parsers when a PDF library breaks on a weird file"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat in this category is not the RAG loop, it is the boring ingestion surface: every file format, every connector, every malformed PDF someone uploads at 2am.",
+  "whyPeopleStillPay": "Because the last 20 percent of retrieval quality is where all the work is, and because most buyers do not want to own an ingestion pipeline. If the answer has to be right in front of a customer or a colleague, the difference between naive top-k cosine similarity and a properly reranked hybrid search is the difference between a useful tool and a confident liar. Add connectors, a hosted widget, and not having to babysit a parser, and a modest monthly fee is a reasonable trade for anyone who is not building this for fun.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The RAG loop is a solved exercise; the ingestion surface is the part nobody enjoys rebuilding.",
+  "prompt": "Build a local document chat app. One person, one machine, no accounts, no cloud storage, no telemetry.\n\nStack, non negotiable:\n- Python 3.11 with FastAPI and uvicorn\n- SQLite for documents, chunks and chat history, with sqlite-vec for vector search\n- pypdf for PDFs, plain reads for .md and .txt, python-docx for .docx\n- OpenAI API for embeddings (text-embedding-3-small) and chat (gpt-4o-mini), keys from .env via python-dotenv\n- Frontend: one server rendered HTML page with htmx and plain CSS. No React, no build step.\n\nWhat it does:\n1. A ./docs folder is the source of truth. An \"Ingest\" button walks it, skips files whose hash is unchanged, and parses new or modified ones.\n2. Chunk text to roughly 800 tokens with 100 token overlap, preserving page numbers for PDFs and heading paths for markdown.\n3. Embed chunks in batches, store vectors in sqlite-vec alongside file path, page and chunk text.\n4. Chat box: embed the question, retrieve top 8 chunks, also run an SQLite FTS5 keyword search and merge results, dedupe, then send the top 6 as context.\n5. System prompt must instruct the model to answer only from context and to say it does not know when the context is thin. Every answer ends with numbered citations showing file name and page or heading.\n6. Clicking a citation expands the raw chunk text inline so the answer is checkable.\n7. Chat history persists in SQLite and is listed in a sidebar. Last 4 turns are included as context.\n\nExplicitly out of scope: user accounts, sharing, an embeddable widget, OCR of scanned PDFs, Notion or Drive or Slack connectors, streaming token output, Docker.\n\nDeliver: requirements.txt, .env.example with OPENAI_API_KEY, a single main.py plus a small ingest.py, one templates folder, and a README with exact run commands. Create the SQLite schema on first run. Commit nothing that contains a real key.",
+  "promptCurated": false
+}
