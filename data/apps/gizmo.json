@@ -1,0 +1,50 @@
+{
+  "slug": "gizmo",
+  "name": "Gizmo",
+  "domain": "gizmo.ai",
+  "category": "education",
+  "subcategory": "AI flashcards and spaced repetition",
+  "tagline": "Turns your notes, PDFs and lecture material into AI-generated quizzes and flashcards with a spaced repetition schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://gizmo.ai/",
+    "checkedOn": "2026-09-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The generator half of this is a genuinely small build: send a chunk of text to an LLM, ask for question and answer pairs as JSON, store them, review them on an SM-2 schedule. An agent can produce a working local version of that in an afternoon and it will be honest about what you actually know. The part that does not fall out of one session is the reason anyone keeps using a study app: a fast phone app, notifications that arrive at the right time, streaks that feel like they matter, and enough interaction polish that reviewing 60 cards is not a chore. You will also be paying an LLM API for card generation, so it is not fully self-contained. Build it if you want your own cards and your own data, but expect your version to be a web page you have to remember to open.",
+  "coreLoopDIY": "Ingests a PDF or pasted text, has an LLM cut it into flashcards and multiple choice questions, then drills you on them with an SM-2 spaced repetition schedule stored in local SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) for card generation",
+    "Node 20+ and local disk for the SQLite file",
+    "Willingness to do reviews in a browser instead of a native app"
+  ],
+  "whatYouLose": [
+    "A real mobile app with offline review and push notifications, which is most of the habit",
+    "Streaks, XP and the mild social shame that actually drives daily use",
+    "Polished ingestion of messy inputs: slide decks, scanned PDFs, video transcripts",
+    "Prompt tuning that produces non-idiotic questions from bad source material",
+    "Someone else's problem when your review scheduler has an off-by-one bug and eats your queue"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is retention mechanics and mobile feel, not the model call. Also, once a few thousand cards and months of review history live in their app, you stop looking around.",
+  "whyPeopleStillPay": "Because studying is a habit problem, not a generation problem. Paying a few dollars a month for something that pings your phone, opens in half a second and makes the review feel like a game is a rational trade against a self-hosted page you open twice and forget. The people who get value from a DIY version are the ones who already review reliably and just want their card corpus in a file they own.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The card generator is a weekend; the daily habit is the product.",
+  "prompt": "Build a local-first spaced repetition study app called \"deck\". Stack, no substitutions: Next.js 15 App Router with TypeScript, Tailwind, and SQLite via better-sqlite3. Single user, no accounts, no telemetry, runs on localhost.\n\nData model in SQLite:\n- sources: id, title, kind (pdf | text), raw_text, created_at\n- cards: id, source_id, type (basic | mcq), front, back, choices JSON nullable, created_at\n- reviews: card_id, reviewed_at, grade (0-5)\n- scheduling columns on cards: ease, interval_days, repetitions, due_at\n\nIngestion:\n- A page at /import with a textarea and a PDF file upload. Parse PDFs server-side with pdf-parse into plain text.\n- Chunk the text to roughly 1500 tokens, then for each chunk call an LLM (OpenAI chat completions, model from env) asking for strict JSON: an array of items with type, front, back, and choices for mcq items. Validate with zod, discard malformed items instead of crashing.\n- Show the generated cards for review before saving. Let me edit or delete each one, then save the batch.\n\nReview:\n- A page at /review that pulls cards where due_at is null or in the past, oldest first, capped at a configurable daily limit (default 40).\n- Implement SM-2: grades 0-5, ease starts at 2.5, clamp ease at 1.3, first two successful reps use 1 day then 6 days. Write every grade to reviews.\n- Keyboard first: space to reveal, 1-4 to grade, arrow keys for mcq choices. No mouse required.\n\nAlso include: a /decks page listing sources with card counts and due counts, a small dashboard showing reviews per day for the last 30 days from the reviews table, and export/import of everything as JSON.\n\nOut of scope, do not build: mobile app, push notifications, auth, cloud sync, streaks, image or audio cards, sharing.\n\nSecrets: OPENAI_API_KEY and OPENAI_MODEL in .env.local, read server-side only, never exposed to the client. Commit a .env.example. Store the SQLite file at ./data/deck.db and gitignore ./data. Write a README with exact setup commands and seed the DB with one sample source and five cards so review works on first run.",
+  "promptCurated": false
+}
