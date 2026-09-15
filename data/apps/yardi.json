@@ -1,0 +1,51 @@
+{
+  "slug": "yardi",
+  "name": "Yardi",
+  "domain": "yardi.com",
+  "category": "finance-accounting",
+  "subcategory": "property management and real estate ERP",
+  "tagline": "Property management and real estate accounting software, from small landlord tooling up to institutional portfolio ERP.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.yardi.com/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Yardi Breeze is priced per unit per month with a monthly minimum; Voyager is quoted per portfolio.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Yardi is not an app, it is the accounting system of record for a very large chunk of the rental housing and commercial real estate industry. The visible part, units, leases, rent rolls, work orders, is genuinely a weekend of CRUD. The part you cannot one-shot is double-entry GL that survives an auditor, bank and ACH rails, tenant screening and credit reporting, utility billing, and affordable housing compliance where HUD and LIHTC filings have to come out in exactly the right shape or people lose subsidies. Add lenders, investors, and property managers who already require Yardi exports, and the software is the least interesting part of why it stays. A personal replacement makes sense only if you own a handful of units and answer to nobody.",
+  "coreLoopDIY": "A local rent ledger for a small landlord: units, leases, recurring rent charges, payments, late fees, maintenance notes, and monthly owner statements as CSV.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ locally",
+    "comfort reading a schema and doing your own bookkeeping",
+    "a real accountant at tax time, still"
+  ],
+  "whatYouLose": [
+    "Auditable double-entry accounting that a lender or CPA will accept without argument",
+    "Payment rails: ACH rent collection, card fees, autopay, returned payment handling",
+    "Tenant screening, credit and criminal checks, and credit bureau reporting",
+    "Affordable housing compliance reporting, HUD, LIHTC, Section 8 certifications",
+    "Tenant and owner portals, mobile maintenance workflows, and every integration your vendors already expect"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "Nobody migrates a 40,000 unit general ledger mid-fiscal-year for a nicer UI.",
+  "whyPeopleStillPay": "Because the buyer is not the person using the screens. Lenders, institutional owners, and housing agencies all want reporting in formats Yardi has produced for decades, and property managers are hired partly on the strength of running a system everyone recognizes. On top of that, the money movement is regulated: trust accounting rules on security deposits, ACH origination, credit reporting, subsidy certifications. Any of those going wrong is not a bug, it is a legal problem. Paying per unit is cheaper than owning that risk.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The rent roll is a weekend; the general ledger and the filings are not. The moat is compliance plumbing plus every lender and housing agency expecting output in Yardi's shape.",
+  "prompt": "Build a local-only rent ledger for a landlord with fewer than 20 units. No cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, SQLite via SQLModel, Jinja2 templates, HTMX for interactions, plain CSS. One process, run with uvicorn.\n- Data in ./data/ledger.db. Any secrets in .env, loaded with python-dotenv. There should be none by default.\n\nData model:\n- Property: name, address.\n- Unit: property_id, label, bedrooms, market_rent.\n- Tenant: name, email, phone.\n- Lease: unit_id, tenant_id, start_date, end_date, monthly_rent, deposit_held, status (active, ended).\n- Charge: lease_id, date, type (rent, late_fee, utility, other), amount, memo.\n- Payment: lease_id, date, amount, method (check, ach, cash, other), memo.\n- MaintenanceNote: unit_id, date, description, cost, status (open, done).\n\nBehavior:\n- A \"Post monthly rent\" action generates one rent Charge per active lease for a chosen month, idempotent: never double-post the same lease and month.\n- A configurable late fee rule: flat amount applied to leases with a balance over X dollars after day N of the month. Applied only when the user clicks, never automatically.\n- Balance per lease = sum(charges) - sum(payments). Show it on the lease page and in a rent roll table.\n- Pages: dashboard (total owed, occupancy, open maintenance), rent roll, lease detail with ledger lines, tenants, maintenance list.\n- Exports: CSV of all charges and payments for a date range, and a per-property monthly owner statement CSV (income, maintenance costs, net).\n- Seed script that creates one property, four units, three leases, and six months of history so the app is not empty on first run.\n\nExplicitly out of scope, do not stub, do not fake:\n- Payment processing, ACH, bank sync, tenant screening, credit reporting.\n- Double-entry accounting, tax forms, HUD or LIHTC compliance output.\n- Tenant portal, email or SMS sending, multi-user auth.\n\nDeliver: requirements.txt, app/, templates/, seed.py, and a README with exact run commands and one paragraph stating plainly that this is a bookkeeping aid, not an accounting system of record.",
+  "promptCurated": false
+}
