@@ -1,0 +1,52 @@
+{
+  "slug": "sorank",
+  "name": "Sorank",
+  "domain": "sorank.com",
+  "category": "seo-marketing",
+  "subcategory": "backlinks and link building",
+  "tagline": "SEO tool built around a link exchange network, where member sites trade backlinks with each other.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sorank.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software half of a link exchange platform is boring: a directory of sites, some metrics, a matching queue, an email thread, a checker that confirms the link went live. An agent can build all of that in a weekend. What it cannot build is the other side of the exchange: thousands of site owners who already signed up, already have domains with some authority, and are already willing to place a link for you. A link network with one member is a spreadsheet. If you want the DIY version, build the part that is actually yours: tracking, verifying and auditing the backlinks you get from anywhere, including the ones you negotiated by hand.",
+  "coreLoopDIY": "A local backlink tracker that stores your target links, crawls each linking page on a schedule, and tells you when a link disappears, goes nofollow, or changes anchor text.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "Outbound HTTP access to crawl third-party pages politely",
+    "Your own list of linking pages to monitor",
+    "Optional: an SMTP or webhook target for alerts"
+  ],
+  "whatYouLose": [
+    "The actual network: a pool of other site owners willing to link to you",
+    "Any matching or reciprocity logic that only works with many participants",
+    "Whatever authority metrics they license or compute across their member graph",
+    "Reputational filtering, so you get to judge link quality yourself",
+    "Nobody to blame when a link partner ghosts you"
+  ],
+  "moatTags": [
+    "network-effects",
+    "marketplace-liquidity",
+    "proprietary-data"
+  ],
+  "moatNotes": "Two-sided by construction: every member is both a buyer and a seller of link placements, so value scales with headcount and dies without it.",
+  "whyPeopleStillPay": "Because link building is a supply problem, not a software problem. Finding someone who owns a real site, in a vaguely related niche, who will put your URL on a page that search engines already crawl, is the entire difficulty. A platform that has already collected those people sells you access to supply, and the dashboard around it is packaging. Whether that supply is worth paying for, or whether it is a self-referential link farm that gets discounted the moment a search engine notices the pattern, is a separate and much less comfortable question.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the membership roll is not. The moat is a two-sided pool of site owners willing to trade links, which is worth exactly as much as its headcount.",
+  "prompt": "Build a local backlink monitor called linkwatch. Single Node 20 + TypeScript project, no framework beyond what is listed.\n\nStack, non-negotiable:\n- TypeScript, Node 20, run with tsx\n- SQLite via better-sqlite3, file at ./data/linkwatch.db\n- HTTP server with Hono, serving plain server-rendered HTML plus a little vanilla JS\n- undici fetch for crawling, cheerio for parsing\n- node-cron for scheduling\n- dotenv for secrets\n\nData model:\n- targets: id, url (a page on my site I want links to), notes\n- links: id, target_id, source_url (the page that should link to me), partner_name, expected_anchor, first_seen, last_checked, status, last_error\n- checks: id, link_id, checked_at, http_status, found (bool), anchor_text, rel_attr, page_title\n\nCore loop:\n- A checker that fetches each source_url with a real user agent, respects robots.txt for that host, parses all anchors, and looks for any href matching the target url ignoring trailing slash, utm params and http vs https\n- Record found/not found, the anchor text, and the rel attribute (flag nofollow, sponsored, ugc)\n- Compute status per link: live, live-nofollow, anchor-changed, missing, unreachable\n- Rate limit to one request per host every 5 seconds, max 3 concurrent hosts, retry once on 5xx\n\nUI at localhost:8787:\n- One table of all links with status badges, last checked, anchor text, and a filter by status\n- Detail page per link showing check history\n- Forms to add targets and links, plus CSV import and CSV export\n- A \"check now\" button per link and a \"check all\" button\n\nScheduling and alerts:\n- Cron job daily at 04:00 local time to check everything\n- On any transition to missing, live-nofollow or anchor-changed, POST a JSON summary to WEBHOOK_URL if set in .env\n\nOut of scope, do not build:\n- No accounts, no login, no multi-tenant anything\n- No hosted deployment, no telemetry, no analytics\n- No third-party SEO metric APIs, no domain authority scores, no link marketplace or partner matching\n\nDeliver: package.json scripts (dev, check, migrate), a migration that creates the schema, a seeded example row, .env.example with WEBHOOK_URL, and a README with exact run commands.",
+  "promptCurated": false
+}
