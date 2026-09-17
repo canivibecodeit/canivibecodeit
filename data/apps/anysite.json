@@ -1,0 +1,52 @@
+{
+  "slug": "anysite",
+  "name": "Anysite",
+  "domain": "anysite.io",
+  "category": "dev-tools",
+  "subcategory": "AI web scraping and structured extraction",
+  "tagline": "AI-assisted web scraper that turns arbitrary pages into structured data you can export or pull via API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://anysite.io/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core trick, point a headless browser at a page, dump the readable DOM, ask a model to fill a JSON schema, is genuinely a one-session build and it works well on cooperative sites. What you are actually paying for is everything after that: residential proxies, captcha and bot-wall handling, retries, a browser farm that does not fall over on a thousand URLs, and someone else eating the maintenance when a target site reshuffles its markup. For a personal project scraping a few dozen pages a week, the DIY version is fine and cheaper. For anything at volume or behind Cloudflare, you will spend your weekend fighting infrastructure instead of parsing data. Also worth remembering that scraped-data pipelines break quietly, and the hosted version at least tells you when it did.",
+  "coreLoopDIY": "A local CLI that renders a URL in a headless browser, extracts the readable content, and has an LLM fill a JSON schema you define, then writes JSON or CSV.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and Playwright with a Chromium download",
+    "An LLM API key in .env (OpenAI or Anthropic)",
+    "Willingness to hand-tune selectors when a target site changes",
+    "Your own IP, which some targets will rate limit or block"
+  ],
+  "whatYouLose": [
+    "Proxy rotation and residential IPs, so bot walls and geo-gated pages stay closed",
+    "Captcha handling and stealth fingerprinting that actually survives Cloudflare",
+    "Managed concurrency, so large crawls mean building your own queue and retry logic",
+    "A hosted API endpoint and scheduling, your version runs when your laptop is awake",
+    "Someone else maintaining extraction when target sites redesign"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is boring and expensive: IP pools, browser fleets, and the long tail of sites that actively do not want to be read.",
+  "whyPeopleStillPay": "Because scraping is not a parsing problem, it is an adversarial networking problem. Anyone can extract fields from HTML with a model in an afternoon; almost nobody wants to own a proxy budget, a captcha vendor relationship, and a pager for when a target flips its anti-bot config. Paying converts an ongoing maintenance liability into a line item, which is exactly the trade most people should make once they are scraping at any real volume.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for your own twenty URLs, buy it the moment you have twenty thousand.",
+  "prompt": "Build a local CLI tool called \"scrape-to-schema\" in an empty folder.\n\nStack, no substitutions: TypeScript, Node 20, Playwright (Chromium), Zod for schema validation, Commander for the CLI, and the OpenAI SDK for extraction. No web UI, no database, no server.\n\nWhat it does:\n1. `scrape-to-schema run --url <url> --schema ./schema.json --out ./out.json`\n2. Launch Playwright Chromium (headless by default, `--headful` flag for debugging), navigate, wait for network idle with a timeout, scroll to the bottom once to trigger lazy loading.\n3. Strip the DOM down: remove script, style, svg, nav, footer, and aria-hidden nodes, then serialize the remaining visible text plus anchor hrefs into a compact markdown-ish string. Truncate to a configurable token budget.\n4. Read the user's JSON Schema file, convert it to a Zod validator, and call the model in JSON mode asking it to fill exactly that schema from the page text. Retry up to 3 times on validation failure, feeding back the validation error.\n5. Write validated output as JSON, and also CSV if `--csv` is passed and the schema root is an array.\n\nAlso support `--urls ./urls.txt` for batch mode with a concurrency limit (default 3), a polite delay flag, and a `--cache ./.cache` directory that stores raw HTML by URL hash so re-runs do not re-fetch.\n\nRespect robots.txt by default with a `--ignore-robots` opt-out that prints a warning.\n\nSecrets: read OPENAI_API_KEY from .env via dotenv. Ship a .env.example. Never log the key.\n\nExplicitly out of scope, do not build: proxy rotation, captcha solving, stealth plugins, login flows, scheduling, a hosted API, telemetry, or user accounts.\n\nDeliver: package.json with scripts, tsconfig, src/ split into cli.ts, browser.ts, extract.ts, schema.ts, an example schema.json for scraping a product listing page, and a README with one working end-to-end command. Include a single smoke test that runs the extractor against a local HTML fixture with a stubbed model response.",
+  "promptCurated": false
+}
