@@ -1,0 +1,53 @@
+{
+  "slug": "picky-assist",
+  "name": "Picky Assist",
+  "domain": "pickyassist.com",
+  "category": "automation",
+  "subcategory": "WhatsApp and omnichannel messaging automation",
+  "tagline": "Omnichannel business messaging platform: WhatsApp API sending, chatbots, shared inbox and no-code automation flows.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pickyassist.com/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software layer here is less exotic than it looks: a webhook listener, a keyword and rule engine, a contact table, a send queue, and a basic inbox UI. An agent can put a working single-number WhatsApp bot with canned flows in front of you in a session, because Meta's Cloud API is directly accessible and documented. What you cannot build is the part that is paperwork: business verification, template approval, message category pricing, deliverability hygiene, and the same logic repeated across Telegram, SMS, email and web chat. The DIY version is also single-agent by default, and turning it into a real shared inbox with assignment, notes and audit trails is where the weekend disappears. So: yes for a personal or one-business automation bot, no for anything that needs several humans answering at once across several channels.",
+  "coreLoopDIY": "Runs a webhook server against the WhatsApp Cloud API that stores every inbound message in SQLite, matches it against YAML-defined keyword and regex flows to auto-reply, and exposes a single-user web inbox for manual replies and broadcasts to tagged contacts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Meta developer app with WhatsApp Cloud API access and a phone number that is not already on WhatsApp",
+    "Business verification with Meta before you can message beyond the test allowance",
+    "Approved message templates for any outbound message outside the 24 hour customer service window",
+    "A public HTTPS endpoint for webhooks, so a small VPS or a tunnel",
+    "Node 20 and a place to keep the token in .env"
+  ],
+  "whatYouLose": [
+    "Other channels: Telegram, SMS, email, Instagram, web chat, all of which Picky Assist normalizes into one pipeline",
+    "Multi-agent shared inbox with assignment, canned replies, notes and audit history",
+    "A no-code flow builder, meaning every logic change becomes a YAML edit and a restart",
+    "Prebuilt connectors to CRMs, Sheets, e-commerce carts and the long tail of webhook plumbing",
+    "Someone else absorbing Meta API changes, template rejections and number-quality warnings"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The hard part of WhatsApp business messaging is not code, it is standing between you and Meta's approval and pricing machinery, then doing the same for five other channels.",
+  "whyPeopleStillPay": "Because the channel is rented. Anyone can call the Cloud API, but the surrounding reality of business verification, template categories, per-conversation pricing, quality ratings and periodic breaking changes is a job someone has to keep doing. Add the fact that most buyers want several staff answering the same number, plus Instagram and email in the same queue, plus a builder their non-technical operations person can edit, and the DIY bot stops being the same product. It is a good personal automation, not a support desk.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The bot is a weekend; the channel access is not. Build it if you own one number and answer it yourself, buy it the moment a second human needs the same inbox.",
+  "prompt": "Build a self-hosted single-number WhatsApp automation server and inbox. Empty folder, no scaffolding tools beyond npm.\n\nStack, no alternatives: Node 20, TypeScript, Express, better-sqlite3, server-rendered EJS pages with plain fetch for actions. No React, no ORM, no auth provider, no cloud services beyond Meta's API.\n\nIn scope:\n1. POST /webhook receiving WhatsApp Cloud API messages: verify the hub challenge on GET, verify the X-Hub-Signature-256 HMAC on POST, ack with 200 fast, then process asynchronously.\n2. SQLite schema: contacts (wa_id, name, tags, last_seen, opted_out), messages (contact_id, direction, type, body, wamid, status, created_at), flows_log, outbox.\n3. Flow engine reading flows.yaml at startup with hot reload on file change. Each flow: name, match (keyword list, regex, or \"any\"), conditions on contact tags, and a list of actions: reply_text, reply_template, set_tag, remove_tag, pause_bot_for_minutes, http_post to an external URL.\n4. Human handoff: if a contact is paused or a human replied in the last 30 minutes, the bot stays silent.\n5. Outbound sender module with a rate-limited queue, retries with backoff, and correct handling of the 24 hour customer service window: free-form text inside it, approved template only outside it. Refuse to send free-form outside the window and log why.\n6. Inbox UI at / : contact list, conversation view, send free-form reply, pause/resume bot, edit tags. Single user, protected by one password in .env using a signed cookie session.\n7. Broadcast page: pick a template by name, pick a tag, preview the recipient count, enqueue, skip opted-out contacts. STOP or UNSUBSCRIBE in any inbound message sets opted_out.\n8. /health endpoint and a scripts/send-test.ts CLI.\n\nOut of scope, do not build: other channels, multi-agent assignment, drag-and-drop flow builder, analytics dashboards, billing, AI replies, media transcoding beyond storing media IDs.\n\nSecrets in .env only: WA_TOKEN, WA_PHONE_NUMBER_ID, WA_VERIFY_TOKEN, WA_APP_SECRET, ADMIN_PASSWORD, SESSION_SECRET. Commit .env.example, never .env. No telemetry, no outbound calls except graph.facebook.com and explicit http_post actions.\n\nDeliver: README with the exact Meta setup steps and the webhook URL to paste, a seeded flows.yaml with three example flows, npm run dev and npm start, and a short note in the README stating that Meta business verification and template approval are required before real traffic and that this software cannot shortcut either.",
+  "promptCurated": false
+}
