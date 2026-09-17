@@ -1,0 +1,51 @@
+{
+  "slug": "vivid",
+  "name": "Vivid",
+  "domain": "getvivid.app",
+  "category": "productivity-utilities",
+  "subcategory": "macOS display brightness",
+  "tagline": "Menu bar Mac app that unlocks the full XDR brightness range for normal SDR content.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.getvivid.app/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The trick underneath this is public knowledge: put an HDR capable layer on screen so macOS raises the panel into its extended dynamic range mode, then map a slider or hotkey to the EDR headroom. An agent can get a menu bar app doing that in a session, and it will visibly work on an XDR MacBook Pro. What takes longer is everything around the trick: smooth ramps instead of flickering jumps, multi display handling, sane behavior when HDR video or a game grabs the display, and not cooking the battery. You also inherit the maintenance bill, because Apple quietly changes EDR behavior between macOS releases and your build breaks with no one to email. Buildable, genuinely useful, but this is a weekend plus ongoing babysitting rather than a clean one shot.",
+  "coreLoopDIY": "A menu bar app that keeps a hidden HDR Metal layer alive and exposes a brightness slider mapping to EDR headroom, making the whole screen go past the normal 500 nit ceiling.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Mac with an XDR or HDR capable panel, otherwise there is nothing to unlock",
+    "Xcode 15+ and macOS 14+",
+    "Willingness to self sign and click through Gatekeeper on every rebuild",
+    "Basic comfort with Metal and CoreAnimation layer plumbing"
+  ],
+  "whatYouLose": [
+    "Signed, notarized builds with auto updates, instead of a self signed binary you rebuild by hand",
+    "Smooth brightness ramping and proper brightness key takeover; a naive build flickers and fights the system slider",
+    "Multi display and external HDR monitor handling",
+    "Guardrails: thermal, battery and sustained brightness safety behavior",
+    "Someone who fixes it the week after a macOS update changes EDR semantics"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the API call, it is knowing which twelve edge cases make the API call feel like a feature instead of a flicker.",
+  "whyPeopleStillPay": "It is a small one time price for something that works the moment you install it, survives macOS updates because someone else is paid to care, and does not require you to keep an Xcode project around to get your screen bright in a sunny room. The DIY version is real and satisfying, but it is a hobby you now own.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare Mac utilities where the core hack is a dozen lines and the product is the other four hundred.",
+  "prompt": "Build a macOS menu bar utility called BrightHack that pushes an XDR or HDR capable Mac display past its normal SDR brightness ceiling.\n\nStack, no alternatives: Swift 5.9+, AppKit for the menu bar and windows, Metal + CoreAnimation for the HDR layer, SwiftPM executable target with a small build script that assembles a .app bundle and ad hoc signs it. No Electron, no third party dependencies, no accounts, no network calls, no telemetry.\n\nHow it works, implement exactly this:\n1. On launch, create a borderless, non activating, ignoresMouseEvents NSWindow that sits at a low window level, sized a few pixels, positioned offscreen or behind the notch.\n2. Give it a layer backed view whose CAMetalLayer sets wantsExtendedDynamicRangeContent = true, a half float pixel format, an extended linear display P3 color space, and edrMetadata for HDR.\n3. Render a solid color whose component values exceed 1.0, driven by a headroom value, using CVDisplayLink or CADisplayLink so the layer keeps presenting frames.\n4. Read NSScreen.maximumExtendedDynamicRangeColorComponentValue and its potential counterpart to clamp the requested headroom to what the panel actually reports.\n5. Expose a 0 to 100 percent slider in the menu bar popover that maps to headroom between 1.0 and the clamped max, and ramp changes over about 300ms in small steps so brightness glides instead of snapping.\n\nAlso build: a menu bar icon reflecting on or off state, a global hotkey pair for up and down in 10 percent steps, launch at login via SMAppService, persistence of the last level in UserDefaults, and an automatic off switch when the app detects it is running on a display that reports no extra headroom.\n\nExplicitly out of scope: multi display independent control, HDR video passthrough handling, per app profiles, notarization, auto update, and any private API use. Document in README.md that behavior depends on the panel and can change with macOS releases, and that sustained max brightness costs battery and heat.\n\nDeliver: Package.swift, Sources with clearly separated HDRLayerController, BrightnessRamp and MenuBarController types, a build.sh that produces BrightHack.app, and a README with a one paragraph honest note on what this is actually doing.\nIf a secret or signing identity is ever needed, read it from .env and ship .env.example instead.",
+  "promptCurated": false
+}
