@@ -1,0 +1,53 @@
+{
+  "slug": "wetransfer",
+  "name": "WeTransfer",
+  "domain": "wetransfer.com",
+  "category": "cloud-storage",
+  "subcategory": "large file transfer",
+  "tagline": "Upload big files, get a link, the recipient downloads without making an account.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://wetransfer.com/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is genuinely small: accept a file, store it, hand back a link, delete it after a week. An agent can produce a working chunked-upload server with resume, expiry, optional password and a clean download page in one session, and it will handle the 2GB video you actually need to send. What you are really buying from the paid tiers is bandwidth, global download speed, and the fact that a wetransfer.com link does not look like phishing to a client. For personal use, on your own domain, none of that is fatal. For sending files to strangers who have to trust the link, it is.",
+  "coreLoopDIY": "A self-hosted upload page that chunks and resumes large files to disk, returns a short shareable link with an expiry date and optional password, and prunes dead transfers on a schedule.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A VPS or home server with real disk space and unmetered-ish bandwidth",
+    "A domain plus TLS, because nobody clicks a bare IP link",
+    "Reverse proxy config that allows large request bodies",
+    "Optional: an S3-compatible bucket with cheap egress if you outgrow local disk",
+    "Optional: a transactional email key if you want link notification emails"
+  ],
+  "whatYouLose": [
+    "Recipient trust: a known brand link gets opened, your link gets side-eyed or blocked by corporate filters",
+    "Download speed from a global CDN instead of one box in one region",
+    "Email deliverability, notification tracking, and 'they downloaded it' receipts that actually arrive",
+    "Very large transfers over bad connections, plus virus scanning and abuse handling",
+    "Mobile apps, desktop apps, and the Adobe/Slack/Figma integration surface"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "brand-trust",
+    "execution-polish"
+  ],
+  "moatNotes": "The engineering is unremarkable; the bandwidth bill and the fact that clients already recognise the domain are the product.",
+  "whyPeopleStillPay": "Because file transfer is a trust and bandwidth business, not a code business. People pay so a freelance client on a locked-down corporate network clicks the link without asking questions, so a 40GB video arrives from Bangkok without restarting, and so nobody has to think about storage bills, takedowns, or someone using their server as a warez mirror. If you are the only sender and the recipients are people who already know you, none of that applies and self-hosting is strictly cheaper.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy; the hard part is convincing a stranger's spam filter that your link is fine.",
+  "prompt": "Build a self-hosted large-file transfer service. Empty folder, one repo, no cloud accounts required.\n\nStack, non-negotiable: Next.js App Router with TypeScript, Tailwind for styling, better-sqlite3 for metadata, files written to local disk. Node runtime only, no edge functions.\n\nData model in SQLite: transfers (id, slug, title, password_hash nullable, expires_at, created_at, download_count) and files (id, transfer_id, filename, size_bytes, received_bytes, path, complete).\n\nUpload flow:\n- Single upload page: drag and drop multiple files, show per-file progress.\n- Client slices each file into 8MB chunks and PUTs them to /api/transfers/:slug/files/:fileId/chunk with a Content-Range style offset header.\n- Before uploading, client calls HEAD on the same route to get received_bytes so interrupted uploads resume instead of restarting.\n- Server appends chunks to a file under STORAGE_DIR, enforces MAX_TRANSFER_BYTES from env, and marks the file complete when received_bytes equals size_bytes.\n- On finish, show a short link plus a copy button. Copying the link is the primary flow.\n\nDownload flow:\n- /t/:slug shows title, file list with human-readable sizes, expiry date, and a download button per file plus a 'download all' that streams a zip with archiver, never buffering to memory.\n- If password_hash is set, gate the page behind a simple form, verify with bcrypt.\n- Return 410 with a friendly page for expired or missing transfers.\n\nHousekeeping:\n- scripts/prune.ts deletes expired transfers from disk and DB; document a crontab line for it in the README.\n- Simple IP rate limit on upload creation.\n- Optional email: if RESEND_API_KEY is set, expose a 'send link to' field that emails the link. Off and hidden when the key is absent.\n\nAuth: one ADMIN_PASSWORD in .env gates the upload page via a signed cookie. No user accounts, no signup, no analytics, no telemetry. Ship .env.example with STORAGE_DIR, MAX_TRANSFER_BYTES, DEFAULT_EXPIRY_DAYS, ADMIN_PASSWORD, COOKIE_SECRET.\n\nAlso ship: Dockerfile and docker-compose.yml with a named volume for STORAGE_DIR, and a README covering nginx client_max_body_size and proxy_request_buffering off.\n\nTests: vitest covering chunk resume math and the prune job. That is all.\n\nOut of scope, do not build: virus scanning, teams and permissions, custom branded portals, S3 backends, mobile apps, integrations, wallpaper art.",
+  "promptCurated": false
+}
