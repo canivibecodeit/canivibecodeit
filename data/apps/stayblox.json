@@ -1,0 +1,53 @@
+{
+  "slug": "stayblox",
+  "name": "Stayblox",
+  "domain": "stayblox.com",
+  "category": "travel",
+  "subcategory": "short-term rental ops",
+  "tagline": "Hosted software for running short-term rental stays: a direct booking page plus reservation and calendar management.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://stayblox.com/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible surface of a stay-management tool is not exotic: properties, units, rates, a calendar, a booking form, a confirmation email. An agent can produce that in a weekend and it will genuinely work if you own two or three listings and take bookings directly. Where it falls apart is everything downstream of your own database: two-way channel sync with Airbnb and Booking.com, payment capture and refunds that survive a dispute, taxes and occupancy rules that vary by city, and the double-booking edge cases that only show up once real money is involved. iCal import gets you a read-only approximation of channel sync, which is fine until a same-day booking slips through the polling gap. Build it if direct bookings are the point; pay if channels are the point.",
+  "coreLoopDIY": "Runs a local properties-and-units database with a rate calendar, a public booking page, availability blocking, and iCal import/export so channel calendars are at least read.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS to keep it running",
+    "iCal URLs exported from each listing channel",
+    "Stripe test keys if you want to take deposits",
+    "An SMTP account for confirmation emails",
+    "A domain if you want guests to actually find the booking page"
+  ],
+  "whatYouLose": [
+    "Real two-way channel sync; iCal polling is delayed and read-mostly, so overbooking risk never fully goes away",
+    "Payments plumbing that handles deposits, damage holds, refunds and chargebacks without you learning Stripe disputes the hard way",
+    "Any jurisdiction awareness for lodging taxes, registration numbers or guest ID rules",
+    "Cleaning and turnover coordination, messaging templates and automated guest comms",
+    "Someone to call at 11pm when the calendar is wrong and a guest is standing at the door"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The hard part is not the CRUD, it is being a trusted node between your calendar and the OTAs that control demand.",
+  "whyPeopleStillPay": "Because a booking system is only as good as its worst sync failure, and the cost of that failure is a real human with a suitcase. Paid tools carry the channel integrations, the payment handling and the accumulated edge cases for double bookings, partial refunds and last-minute cancellations, which is the unglamorous 80 percent you discover after your own version looks finished. If you are running more than a few units, the subscription is cheaper than one angry double-booked weekend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A direct-booking page for your own two cabins is a weekend; being wired into the OTAs is not.",
+  "prompt": "Build a self-hosted direct booking and reservation manager for a small number of short-term rental properties.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via Prisma. Everything runs locally with `npm run dev` and deploys as a single Node process. No auth provider, no analytics, no telemetry.\n\nData model: Property (name, address, timezone, description, photos as local file paths), Unit (belongs to Property, capacity, base nightly rate, minimum nights), RatePeriod (unit, start date, end date, nightly rate override), Booking (unit, guest name, email, phone, check-in, check-out, guests, status of inquiry/confirmed/cancelled, total price, notes, source of direct/ical), Block (unit, start, end, reason).\n\nIn scope:\n- Admin area behind a single password read from .env, session in an httpOnly cookie. No user accounts.\n- Month calendar per unit showing bookings, blocks and imported channel events, with click-drag to create a block.\n- Availability engine as one pure function: given unit, check-in, check-out it returns available or the specific conflict. Every write path calls it inside a transaction so two simultaneous requests cannot both win.\n- Pricing function that sums nightly rates with RatePeriod overrides and enforces minimum nights.\n- Public booking page per unit: date picker showing only available nights, live quote, submit creates an inquiry.\n- iCal export per unit at a stable unguessable URL, and iCal import of channel calendars every 15 minutes writing Blocks tagged with the source. Show the last successful fetch time per feed, loudly, because staleness is the whole risk.\n- Confirmation and cancellation emails via SMTP from .env, plain text templates.\n- Seed script with two properties, three units and a few bookings.\n\nOut of scope, do not attempt: two-way OTA APIs, Stripe or any payments, tax calculation, guest messaging threads, cleaning schedules, multi-tenant support, mobile apps.\n\nWrite a README that states plainly that iCal sync is delayed and read-only, and explains the manual check to run before confirming a same-day booking. Put the admin password, SMTP credentials and iCal secret in .env with a committed .env.example. Add tests for the availability engine covering exact-day turnovers, overlapping blocks and same-day double booking attempts.",
+  "promptCurated": false
+}
