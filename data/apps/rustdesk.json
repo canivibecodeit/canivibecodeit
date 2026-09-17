@@ -1,0 +1,53 @@
+{
+  "slug": "rustdesk",
+  "name": "RustDesk",
+  "domain": "rustdesk.com",
+  "category": "productivity-utilities",
+  "subcategory": "remote desktop",
+  "tagline": "Open source remote desktop with optional paid self-hosted server and device management.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per device, self-hosted Pro server license",
+    "unit": "custom",
+    "source": "https://rustdesk.com/fr/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Remote desktop is one of those categories that looks like a weekend project until you try it. You need screen capture, a hardware accelerated video codec, sub 100ms input injection, NAT traversal with a relay fallback, unattended access as a system service, and native clients on Windows, macOS, Linux, Android and iOS. An agent can give you a browser based view only screen share in an afternoon, which is a different product. The extra joke here is that RustDesk is already open source and free for personal use, so the thing you would be cloning is the relay infrastructure and the Pro management console, not the client. Self host the real server and move on.",
+  "coreLoopDIY": "A LAN or Tailscale only browser page that streams one machine's screen to another over WebRTC, view only, no input control.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 on the host machine",
+    "A Chromium browser tab open and awake on the host (getDisplayMedia needs one)",
+    "Both machines on the same LAN or the same Tailscale network",
+    "A shared secret in .env",
+    "Optional coturn if you insist on leaving the LAN"
+  ],
+  "whatYouLose": [
+    "Keyboard and mouse control, the entire point of remote desktop",
+    "Unattended access: no system service, no headless login screen, no reboot survival",
+    "The relay network and NAT traversal that make connections just work from a hotel wifi",
+    "File transfer, clipboard sync, multi monitor, audio, and session recording",
+    "Native desktop and mobile clients, plus address book, 2FA and device groups"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "Latency is the product. Every millisecond of codec tuning and input plumbing is invisible engineering you cannot one-shot.",
+  "whyPeopleStillPay": "People pay RustDesk for the parts that are not the code: a relay network that punches through carrier NAT, a management console for devices you support but do not sit in front of, and the licensing clarity to use it at work. The client being open source actually strengthens that, since the free tier trains people on the workflow and the paid tier sells the operational burden away. If you genuinely want it free, self hosting hbbs and hbbr on a small VPS is an hour of Docker work and gives you most of it. That is a deployment task, not a build.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The client is already open source, so the honest move is deploying it rather than cloning it. The moat is the relay network plus years of cross platform codec and input plumbing that makes remote control feel local.",
+  "prompt": "Build a minimal self hosted view only screen sharing tool. This is NOT a remote desktop clone: no input control.\n\nStack, no alternatives:\n- TypeScript, Node 20, Express for static files and a tiny API\n- ws for WebRTC signaling\n- Plain HTML plus vanilla TS on the client, no framework, no build step beyond tsc\n- No database, no accounts, no telemetry, no cloud services\n\nWhat to build:\n1. A signaling server on one port. Rooms are identified by a slug. A single shared secret from .env must be sent as a query param to join any room; reject everything else.\n2. /host page: click Start, call getDisplayMedia, join the room as publisher, answer incoming offers.\n3. /view page: enter room slug and secret, receive the stream, render fullscreen with a fit-to-window toggle and a connection status badge.\n4. WebRTC peer connection with STUN from a STUN_URLS env var. If TURN_URL, TURN_USER and TURN_PASS are set, include them as an ICE server. Do not ship credentials.\n5. Show live stats from getStats: resolution, framerate, round trip time, bitrate. Update once a second.\n6. Handle host disconnect: viewers see a clear reconnecting state and retry with backoff.\n\nExplicitly out of scope, do not attempt:\n- Keyboard or mouse injection, clipboard, file transfer, audio\n- Unattended or headless access, service installers, multi monitor selection\n- Native or mobile clients, user management, session recording\n\nDeliverables: src/, public/, .env.example, docker-compose.yml, and a README that says in the first paragraph that this is view only and that anyone wanting real remote control should self host the RustDesk server instead.",
+  "promptCurated": false
+}
