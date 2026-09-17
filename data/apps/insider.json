@@ -1,0 +1,52 @@
+{
+  "slug": "insider",
+  "name": "Insider",
+  "domain": "insyder.io",
+  "category": "social-media",
+  "subcategory": "Instagram analytics and audience insights",
+  "tagline": "Social tooling for Instagram and Meta accounts, running on official Meta platform access.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://insyder.io/",
+    "checkedOn": "2026-09-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "If what you want is a dashboard over your own Instagram or Facebook accounts, an agent can build that in a weekend: Meta's Graph API hands you reach, impressions, follower counts and per-post metrics for accounts you actually control, and a local SQLite store beats the hosted version because you can keep history past the API's short retention window. The wall shows up the moment you want data about accounts you do not own, or automated DMs, or comment handling at volume: those permissions need app review, and the good ones need partner-level standing that a personal project will never get. So the honest split is: personal analytics, yes; anything that looks like a growth or outreach product, no. Also worth knowing that Meta rotates deprecations roughly yearly, so your weekend build has an ongoing maintenance tax you did not sign up for.",
+  "coreLoopDIY": "Polls the Meta Graph API for your own accounts on a schedule, stores every snapshot in SQLite, and serves a local dashboard of follower growth and per-post performance with full history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An Instagram Business or Creator account linked to a Facebook Page",
+    "A Meta developer app with instagram_basic and instagram_manage_insights, plus a long-lived page token",
+    "Node 20 and a machine or small VPS that can run a scheduled job",
+    "Tolerance for Graph API version bumps breaking your queries once a year"
+  ],
+  "whatYouLose": [
+    "Any data about accounts you do not own: competitor tracking, hashtag discovery, influencer lookup",
+    "Approved write permissions, so no DM automation, comment moderation or publishing at scale",
+    "Someone else absorbing Graph API deprecations, token expiry and permission re-reviews",
+    "Multi-account team access, roles, and shareable client reporting",
+    "Mobile app and push alerts on metric swings"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Meta platform access is a permissions ladder, not an API key. The rungs above basic own-account reads are gated by app review and business verification, and that gate is the product for anyone selling cross-account insight.",
+  "whyPeopleStillPay": "Because the expensive part is not the charting, it is standing on the right side of Meta's permission model. A vendor with reviewed scopes and a stable relationship can show you things about accounts you do not own and take actions your own dev app is not allowed to take, and they keep doing it through every API version bump without you noticing. If your needs stop at your own accounts, that value mostly evaporates and you are paying rent on a dashboard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Your own numbers are a weekend project; everyone else's numbers are a permissions problem.",
+  "prompt": "Build a local, single-user Instagram analytics tracker. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Node 20, TypeScript, one repo\n- SQLite via better-sqlite3 for storage\n- Fastify serving a server-rendered dashboard with plain HTML plus Chart.js from a CDN-free local copy\n- node-cron for scheduling, all in one process\n\nWhat it does:\n1. Reads META_APP_ID, META_APP_SECRET, PAGE_ACCESS_TOKEN and IG_USER_ID from .env. Commit a .env.example, never a real token.\n2. On startup and then every 6 hours, calls the Meta Graph API (pin the version in one constant, e.g. v21.0):\n   - /{IG_USER_ID}?fields=followers_count,follows_count,media_count\n   - /{IG_USER_ID}/insights for reach and profile_views, daily period\n   - /{IG_USER_ID}/media with id, caption, timestamp, media_type, permalink, like_count, comments_count\n   - /{media-id}/insights for reach and saved on each post from the last 90 days\n3. Writes an append-only snapshots table. Never overwrite a prior snapshot, that history is the whole point since Meta only retains insights for a short window.\n4. Handles token expiry and rate limits: exponential backoff, and log a clear message when the token is dead instead of crashing the loop.\n\nDashboard at localhost:3000:\n- Follower count over time, with daily delta\n- Reach and profile views over the last 30, 90 and 365 days\n- A sortable post table: thumbnail-free, just caption snippet, date, likes, comments, saves, reach, engagement rate\n- A CSV export button for the whole snapshots table\n\nExplicitly out of scope, do not attempt:\n- Any data about accounts the token does not own\n- Hashtag search, competitor tracking, influencer lookup\n- Posting, DMs, comment replies, or anything requiring app review\n- Multi-user auth or hosted deployment\n\nDeliver a README with the exact Meta developer app setup steps, the required scopes (instagram_basic, instagram_manage_insights, pages_read_engagement), and how to mint a long-lived page token.",
+  "promptCurated": false
+}
