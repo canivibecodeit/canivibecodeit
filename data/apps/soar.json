@@ -1,0 +1,52 @@
+{
+  "slug": "soar",
+  "name": "Soar",
+  "domain": "soar.flights",
+  "category": "travel",
+  "subcategory": "flight search",
+  "tagline": "Flight search that hunts cheaper routes and date combinations than you would find by hand.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://soar.flights/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface is the easy part: a search box, a results table, a price history chart. The hard part is the fare data, and nobody hands that out for free. Real inventory and pricing come from GDS feeds and aggregator APIs that are either gated behind commercial agreements, metered per search at rates that punish exploratory queries, or scraped from Google Flights and Kiwi in ways that break weekly and get your IP blocked. Anything that touches actual booking drags in payment rails, ticketing, and the accreditation that lets you issue a ticket at all. You can build a personal price watcher for a handful of routes you already care about, and that is genuinely useful, but it is not the same product.",
+  "coreLoopDIY": "Polls one flight API for a short list of routes and date windows you define, stores every quote in SQLite, and emails you when a price drops below your threshold.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key from a self-serve flight data provider (Duffel or Amadeus test/production)",
+    "A machine or small VPS that stays awake to run the scheduler",
+    "An SMTP account or Resend key for alerts",
+    "Tolerance for rate limits, which will cap how many routes and date combinations you can watch"
+  ],
+  "whatYouLose": [
+    "Broad search: exploring 'anywhere in Europe in March' costs real API calls, so you watch ten routes, not ten thousand",
+    "Fare accuracy, since cached quotes go stale fast and the price you see may not be bookable",
+    "Booking itself, including seat selection, baggage rules, and anyone to call when the airline cancels",
+    "Multi-city and open-jaw routing logic, which is genuinely hard and is most of the value in clever flight search",
+    "Mobile push notifications, unless you bolt on another service"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The interesting bit is not the API list, it is the terms attached to each one: search volume caps, caching restrictions, and who is allowed to actually sell a ticket.",
+  "whyPeopleStillPay": "Because the product is buying search volume you cannot buy. A flight search tool that is worth paying for runs enormous numbers of speculative queries across routes, dates, and airports you would never think to check, and it can only do that because it has commercial data access and amortises it across every user. Your personal version gets a few thousand calls a month and you will spend them all on the route you already planned to fly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is an afternoon; the search volume behind it is not. The moat is commercial fare data access plus the right to query it at scale, which no personal API key gives you.",
+  "prompt": "Build a personal flight price watcher. Local-first, no accounts, no hosted backend, no telemetry.\n\nStack, non negotiable:\n- TypeScript on Node 20\n- SQLite via better-sqlite3, file at ./data/flights.db\n- Fastify for a small local web UI on port 3000, server-rendered HTML with plain CSS, no React\n- node-cron for scheduling inside the same process\n- Duffel API as the flight data source, key in .env as DUFFEL_API_KEY\n- Resend for email alerts, key in .env as RESEND_API_KEY and ALERT_EMAIL\n\nWhat it does:\n1. A watches table: origin IATA, destination IATA, depart date range start/end, optional return date range, cabin class, passenger count, price threshold in a single currency, active flag.\n2. A quotes table: watch id, captured timestamp, depart date, return date, carrier, total price, currency, raw offer id.\n3. A scheduler that runs every 6 hours, iterates active watches, expands each date range into at most 12 date combinations (spread evenly if the range is larger), calls Duffel offer requests for each, stores the cheapest offer per date combination.\n4. On a new all-time low for a watch, or any quote under the threshold, send one email with route, dates, carrier, price, and the Duffel offer id. Deduplicate so you do not email the same price twice.\n5. Web UI: list watches with current best price and 30 day sparkline drawn as inline SVG, a form to add or deactivate a watch, and a per-watch page with a table of every quote captured.\n\nRules:\n- Respect rate limits: hard cap total API calls per scheduler run at 60, log when you hit the cap and resume from the next watch on the following run.\n- Retry with exponential backoff on 429 and 5xx, give up after 3 tries, record the failure.\n- Never store payment details. Never attempt to book. Link out to the airline or a booking site instead.\n- Include a seed script with two example watches and a npm script that runs the scheduler once immediately for testing.\n- .env.example with all three keys, .gitignore covering .env and ./data.\n- README with setup, the API call budget math, and a blunt note that quotes go stale and may not be bookable.\n\nExplicitly out of scope: multi-city routing, award and points availability, anywhere-search, hotels, mobile app, multi-user support.",
+  "promptCurated": false
+}
