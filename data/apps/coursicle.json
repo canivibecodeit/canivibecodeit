@@ -1,0 +1,52 @@
+{
+  "slug": "coursicle",
+  "name": "Coursicle",
+  "domain": "coursicle.com",
+  "category": "education",
+  "subcategory": "course registration alerts",
+  "tagline": "Tracks college course sections and pings you the moment a seat opens up.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.coursicle.com/",
+    "checkedOn": "2026-09-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Coursicle's actual product is a scraping and notification pipeline pointed at hundreds of university registration systems, each with its own login flow, session quirks and rate limits. You do not need hundreds of schools, you need one, and for one school a polling scraper plus an alert is a very ordinary weekend build. The gaps are real though: many registrars sit behind SSO, some behind captchas or per-term URL changes, and a seat-open alert that arrives four minutes late is worthless. You also lose the social layer, the friends-in-my-section stuff and the schedule planner UI that made people install the app in the first place. Build it if your school's course catalog is publicly readable without auth, otherwise this turns into an unpleasant session-cookie project.",
+  "coreLoopDIY": "Polls your school's public course catalog every couple of minutes, diffs seat counts for a watchlist of section codes, and texts or emails you when one opens.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a publicly readable course catalog or search endpoint at your school",
+    "an always-on machine or small VPS to run the poller",
+    "an SMTP account, or a Twilio key if you want SMS speed",
+    "tolerance for the catalog HTML changing between terms"
+  ],
+  "whatYouLose": [
+    "Coverage of every other school, which matters the second you transfer or take a cross-registration course",
+    "Mobile push that actually arrives in seconds, plus the app being on your phone already",
+    "The schedule builder and calendar view for planning a whole term",
+    "The social layer: seeing which friends are in a section",
+    "Somebody else maintaining the scraper when the registrar redesigns mid-term"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "network-effects"
+  ],
+  "moatNotes": "The per-school scraper fleet is the product. Reproducing one school is trivial, reproducing all of them is a decade of unglamorous maintenance.",
+  "whyPeopleStillPay": "Because the window for a seat opening is minutes, the stakes are a required course you need to graduate, and nobody wants to debug a cron job during registration week. The price is small, the app already knows your school, and the alert arrives on the phone in your hand. A self-hosted poller solves exactly your problem at your school and nothing else, which is fine if you are technical and have a term to spare, and useless if registration opens Tuesday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth building only if your registrar serves course data without a login. If it does not, skip it.",
+  "prompt": "Build a single-school course seat watcher I can run on a small VPS.\n\nStack: Python 3.12, httpx, selectolax for HTML parsing, SQLite via sqlite3, APScheduler for polling. No web framework, no Docker, no cloud services. A single package plus a tiny CLI.\n\nBehaviour:\n1. Config lives in .env: SCHOOL_CATALOG_URL, TERM_CODE, POLL_SECONDS (default 120), SMTP_HOST, SMTP_USER, SMTP_PASS, ALERT_TO, and optional TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM, ALERT_SMS_TO.\n2. A fetcher module with one function: fetch_sections(term_code) returns a list of dicts with crn, subject, number, title, instructor, seats_open, seats_total, waitlist_open. Implement it against a plain HTML course search page: build the query, POST or GET it, parse the results table with selectolax. Put every school-specific selector in one clearly commented CONFIG dict at the top of that file so it can be retargeted in ten minutes.\n3. CLI commands: watch-add CRN, watch-remove CRN, watch-list, run, and check-once for testing.\n4. On each poll, upsert every section into a sections table and record seat history in a seat_events table with a timestamp. Only insert an event when seats_open changes.\n5. When a watched CRN goes from 0 seats to 1 or more, send an alert: SMTP email always, SMS via Twilio if those env vars are present. Deduplicate so one opening sends one alert, and do not re-alert until seats go back to 0.\n6. Respect the server: one request per poll cycle for the whole catalog, a real User-Agent, exponential backoff on non-200 responses, and a hard stop after five consecutive failures with a failure alert so I know the scraper broke.\n7. Log every poll to a rotating file log with counts fetched and events written.\n\nOut of scope: no accounts, no web UI, no mobile app, no multi-school support, no schedule planner, no telemetry.\n\nDeliverables: the code, a pytest suite that parses a saved HTML fixture in tests/fixtures/ so parsing is tested offline, a .env.example, and a README that explains exactly which lines to edit to point it at a different school and a systemd unit file for running it.",
+  "promptCurated": false
+}
