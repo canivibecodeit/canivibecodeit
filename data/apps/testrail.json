@@ -1,0 +1,51 @@
+{
+  "slug": "testrail",
+  "name": "TestRail",
+  "domain": "testrail.com",
+  "category": "dev-tools",
+  "subcategory": "test case management",
+  "tagline": "Test case management for QA teams: write cases, organize suites, run them, log pass/fail history.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://support.testrail.com/hc/en-us/",
+    "checkedOn": "2026-09-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Strip TestRail to its skeleton and it is a CRUD app: projects, suites, cases with steps and expected results, test runs, results with status and notes, and a history view. An agent can build that in one sitting and it will genuinely work for one person or a tiny team doing manual testing. What does not come out of the box is the ecosystem: two-way Jira sync, reporting plugins for every test framework under the sun, roles and permissions, and the canned reports QA leads paste into status decks. If you are in a regulated shop where the test evidence trail gets audited, the homegrown version is a liability rather than a saving. For a solo dev tracking manual regression passes on a side project, the paid tool is wildly oversized.",
+  "coreLoopDIY": "A local web app where you write test cases into suites, start a run against a version, mark each case pass/fail/blocked with notes, and see per-case history plus a run summary.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+ and a browser",
+    "A place to run it if you want it reachable from another machine",
+    "An API token in .env if you want CI to post results"
+  ],
+  "whatYouLose": [
+    "Two-way Jira, GitHub and Azure DevOps issue linking, so failures no longer become tickets by themselves",
+    "Official reporting integrations for pytest, JUnit, Cypress and friends, you get one generic JSON endpoint instead",
+    "Roles, permissions and a tamper-resistant audit trail that survives an auditor asking who signed off on what",
+    "Prebuilt reports, cross-project metrics and coverage rollups that managers actually read",
+    "Hosting, backups, SSO and someone else's obligation to keep it up"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The lock-in is not the case editor, it is the years of run history plus every CI job and Jira workflow already pointed at it.",
+  "whyPeopleStillPay": "QA tooling gets bought by teams, not individuals, and teams pay for the boring parts: a shared source of truth that survives turnover, integrations that already exist so nobody writes glue code, and reports that answer \"did we test this release\" without a spreadsheet. Once thousands of cases and years of run results live in it, the export-and-rebuild math stops being attractive fast. Add any compliance context, medical, automotive, finance, and the appeal of a hand-rolled tracker drops to zero.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The case editor is an afternoon; the org chart that depends on it is not.",
+  "prompt": "Build a local-first test case management app called \"Cases\".\n\nStack, no substitutions:\n- Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, HTMX for interactions, Tailwind via CDN.\n- Single process, started with `uvicorn app.main:app --reload`. Data in ./data/cases.db, created on first run.\n- No accounts, no cloud services, no telemetry, no analytics.\n\nData model:\n- project(id, name, created_at)\n- suite(id, project_id, name, position)\n- case(id, suite_id, title, preconditions, steps, expected, priority in (low, medium, high), automated bool, updated_at)\n- run(id, project_id, name, version_label, started_at, closed_at nullable)\n- run_case(id, run_id, case_id, status in (untested, passed, failed, blocked, skipped), notes, elapsed_seconds nullable, updated_at)\n\nScreens:\n- Projects list, create and rename projects.\n- Project view: suite tree on the left, cases table on the right, inline create and edit of cases via HTMX, no full page reloads.\n- New run: pick a project, name it, type a version label, select suites or individual cases, this snapshots the chosen cases into run_case rows as untested.\n- Run view: one row per case, keyboard shortcuts p/f/b/s to set status on the focused row, a notes field per row, a live counter of passed/failed/blocked/untested, and a Close run button.\n- Case detail: full text plus a history table of every past result for that case with run name, version, status and date.\n\nAlso build:\n- POST /api/results, auth via a bearer token read from API_TOKEN in .env, body {run_id, results:[{case_id, status, notes, elapsed_seconds}]}, upserts run_case rows so a CI job can push a batch.\n- GET /api/runs/{id}/summary returning counts as JSON.\n- CSV export of a run and CSV import of cases with columns title, suite, preconditions, steps, expected, priority.\n\nExplicitly out of scope: Jira or GitHub integration, users and permissions, email, charts, milestones, real-time collaboration, any JS framework.\n\nInclude a seed script that creates one project, two suites, twelve cases and one closed run with mixed results, plus a README with setup, the .env example, and a curl example for /api/results.",
+  "promptCurated": false
+}
