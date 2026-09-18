@@ -1,0 +1,52 @@
+{
+  "slug": "fish-audio",
+  "name": "Fish Audio",
+  "domain": "fish.audio",
+  "category": "ai-audio",
+  "subcategory": "text-to-speech and voice cloning",
+  "tagline": "Hosted text-to-speech and instant voice cloning with a public library of community voices and an API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://fish.audio/",
+    "checkedOn": "2026-09-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is one of the rare cases where the vendor shipped a large part of its own moat: the Fish Speech / OpenAudio line of models has open weights, and an agent can wire a local TTS and voice-cloning app around them in a session if you have a GPU. What you cannot clone is the flagship hosted checkpoint, the latency they get from a tuned inference fleet, and the thousands of community voice models sitting in their library. So the personal build is real but lopsided: good enough for narrating your own text in your own cloned voice, not good enough to be a drop-in for production audio or for grabbing a stranger's voice preset. If you only ever use one or two voices, self-hosting is a genuinely sane move. If you use it as an API inside something else, you are buying uptime and throughput, not magic.",
+  "coreLoopDIY": "A local web app where you drop in a short reference clip, paste text, and get back a WAV in that voice from open-weight Fish Speech models running on your own GPU.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with roughly 12GB VRAM or better, or a lot of patience on CPU",
+    "Python 3.11 and CUDA drivers that actually work",
+    "Open-weight model files pulled from Hugging Face",
+    "Clean reference audio, 10 to 30 seconds, for each voice you want"
+  ],
+  "whatYouLose": [
+    "The best hosted checkpoint, which is not the one you get to download",
+    "The community voice library and anything you would have borrowed from it",
+    "Sub-second streaming latency and concurrency without babysitting a server",
+    "A stable API with SDKs, rate limits, and someone else's on-call rotation",
+    "Mobile and browser access without tunneling into your desktop"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "marketplace-liquidity",
+    "scale-infra"
+  ],
+  "moatNotes": "The open weights are a funnel, not the product. The product is the newest checkpoint plus a library of voices other people made.",
+  "whyPeopleStillPay": "Because inference is the annoying part. Paying gets you the newer model, streaming latency measured in hundreds of milliseconds, batch throughput when you have 400 lines of dialogue to render, and a voice library you can search instead of hunting for clean reference audio yourself. A local rig idles at zero cost only until you count the GPU, the driver breakage, and the hour you spend on a dependency tree. For occasional personal narration that trade is fine. For anything with a deadline attached it usually is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Unusual entry: the vendor open-sourced enough that the DIY build is legitimate, just a generation behind.",
+  "prompt": "Build a local text-to-speech and voice-cloning web app. Single machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, Uvicorn.\n- SQLite via sqlite3 for voice metadata. No ORM.\n- Frontend: one server-rendered Jinja2 page plus vanilla JS. No React, no build step.\n- Inference: the open-weight fish-speech / OpenAudio family from Hugging Face, loaded through its official Python inference code. Pin the model revision in .env.\n\nFeatures in scope:\n1. Voices page: upload a reference audio file (wav or mp3, 10 to 30 seconds) plus the transcript of that clip, give it a name. Store the file under ./data/voices/UUID/ and a row in SQLite.\n2. Synthesize page: pick a saved voice, paste text up to 5000 characters, choose a seed, click Generate. Chunk text on sentence boundaries, synthesize each chunk, concatenate with a short silence, write one WAV to ./data/output/.\n3. History list of generated files with the text, voice, timestamp, and inline audio player plus download link.\n4. POST /api/tts taking JSON with voice_id and text, returning audio/wav, so other scripts can call it.\n\nExplicitly out of scope: user auth, payments, streaming output, multi-GPU, a voice marketplace, mobile apps.\n\nEngineering requirements:\n- Load the model once at startup into a module-level singleton. Serialize generation with a single asyncio lock so concurrent requests queue instead of OOM.\n- Read MODEL_REPO, MODEL_REVISION, DEVICE, and DATA_DIR from .env via python-dotenv. Ship .env.example, gitignore .env and ./data.\n- If CUDA is unavailable, log a loud warning, fall back to CPU, and do not crash.\n- Normalize uploads to 44.1kHz mono WAV with ffmpeg before storing them.\n- requirements.txt with pinned versions, plus a README with exact setup commands and the expected first-run model download size.\n- Basic input validation and clear HTTP errors. No stack traces in responses.\n\nDeliver a working app I can start with one command and hit at localhost:8000.",
+  "promptCurated": false
+}
