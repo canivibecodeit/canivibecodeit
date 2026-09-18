@@ -1,0 +1,52 @@
+{
+  "slug": "vidalitics",
+  "name": "Vidalytics",
+  "domain": "vidalytics.com",
+  "category": "audio-video",
+  "subcategory": "video hosting and engagement analytics",
+  "tagline": "Hosted video player built for marketers, with engagement analytics, smart autoplay and split testing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://vidalytics.com/",
+    "checkedOn": "2026-09-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interesting half of this is a player that phones home with watch events, and that is a weekend project: ffmpeg to HLS, a Video.js skin, a beacon endpoint, a retention curve chart. The boring half is video delivery, and that is where the money actually goes: transcoding ladders, adaptive bitrate, a CDN that does not stutter for a viewer in Jakarta, and mobile autoplay rules that change whenever Safari feels like it. You can rent that with S3 plus CloudFront or Bunny, which means your personal build has a hard third-party dependency and a bandwidth bill that scales with your success. The conversion features people buy this for, A/B testing thumbnails and CTAs with enough traffic to reach significance, are trivial to code and useless without volume. Build it if you host a handful of videos and mostly want your own analytics; do not build it if a sales page depends on the player loading.",
+  "coreLoopDIY": "Transcodes uploaded videos to HLS, serves them through your own player page, and logs per-second watch events to a local database with a retention curve dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally for transcoding",
+    "object storage plus a CDN, S3 with CloudFront or Bunny, credentials in .env",
+    "a small VPS or any Node host for the player page and beacon endpoint",
+    "patience for mobile autoplay and inline playback quirks"
+  ],
+  "whatYouLose": [
+    "Adaptive bitrate tuned by someone who does this for a living, so weak connections buffer instead of downshifting cleanly",
+    "Predictable cost: your CDN bill grows with views while a SaaS plan stays flat until a tier boundary",
+    "Split testing with built in significance math, plus the traffic reporting to know it worked",
+    "Integrations with email tools, CRMs and ad pixels that fire on watch thresholds",
+    "Someone to blame at 2am when the player breaks on a specific iOS version"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Delivery is the product. Everything else on the marketing page is a feature list wrapped around a CDN contract.",
+  "whyPeopleStillPay": "Because a marketing video that stalls costs more than the subscription. People running paid traffic to a video sales letter are not shopping for an analytics hobby project, they want playback that works on every device and a number that says how many viewers made it to minute four. Vidalytics packages encoding, delivery, autoplay heuristics and conversion reporting into one bill, and the alternative is you owning a transcoding pipeline and a CDN invoice that spikes the month something goes well.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player is a weekend; the delivery is a monthly invoice either way. Decide whether you want to own the ffmpeg flags or not.",
+  "prompt": "Build a self-hosted marketing video host with engagement analytics. Empty folder, no accounts, no telemetry.\n\nStack, non negotiable: Node 20 with TypeScript, Fastify for the server, SQLite via better-sqlite3, plain server rendered HTML with a sprinkle of vanilla JS, Video.js for playback, Chart.js for the dashboard. No React, no Next, no Docker.\n\nIn scope:\n1. CLI command `npm run ingest -- ./path/to/file.mp4 --slug my-video` that uses ffmpeg to produce an HLS ladder at 1080p, 720p and 480p plus a master playlist and a poster frame, writing output to ./media/{slug}/.\n2. Optional upload of ./media to S3 compatible storage using credentials from .env (S3_ENDPOINT, S3_BUCKET, S3_KEY, S3_SECRET, CDN_BASE_URL). If CDN_BASE_URL is unset, serve media straight from disk via Fastify static.\n3. Public page GET /v/:slug rendering the Video.js player against the master playlist, poster, title, and an optional call to action button shown after a configurable watch percentage.\n4. Embed route GET /embed/:slug returning a bare player page, plus a copyable iframe snippet in the admin UI.\n5. Analytics beacon POST /api/events taking {slug, sessionId, type, position} where type is one of load, play, pause, seek, heartbeat, ended, cta_click. Client sends a heartbeat every 2 seconds while playing. Batch events with navigator.sendBeacon on pagehide.\n6. Admin dashboard at /admin behind a single password from .env via basic auth: list of videos, per video plays, unique sessions, average watch time, completion rate, CTA click rate, and a retention curve computed by bucketing heartbeats into 5 second bins.\n7. Config per video in a `videos` table: title, cta_text, cta_url, cta_at_percent, autoplay_muted boolean.\n\nOut of scope, do not build: user accounts, multi tenancy, A/B testing, DRM, live streaming, subtitles, a mobile app, email or CRM integrations, cookie consent banners.\n\nRules: all secrets in .env with a committed .env.example, migrations run on boot, store no IP addresses and hash the session id, `npm run dev` must work end to end on a single machine with ffmpeg on PATH. Write a README that states the CDN bandwidth cost is now the operator's problem and shows how to point CDN_BASE_URL at a pull zone.",
+  "promptCurated": false
+}
