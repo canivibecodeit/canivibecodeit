@@ -1,0 +1,52 @@
+{
+  "slug": "pushbullet",
+  "name": "Pushbullet",
+  "domain": "pushbullet.com",
+  "category": "productivity-utilities",
+  "subcategory": "cross-device push and notification mirroring",
+  "tagline": "Sends links, files, and notifications between your phone, tablet, and desktop.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per account",
+    "unit": "flat",
+    "source": "https://www.pushbullet.com/",
+    "checkedOn": "2026-09-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part people use most, shove a link or a file from one device to another and have it show up instantly, is a small server, a database, and a web push subscription. An agent can build that in a sitting and it will work fine across any device with a modern browser. What it cannot build in one shot is the half that made Pushbullet distinctive: mirroring Android notifications to your desktop and replying to SMS from a keyboard. That needs a signed native Android app using NotificationListenerService and SMS permissions, a Play Store listing or sideloading discipline, and a battery-friendly background channel. So you get the pipe, not the phone integration.",
+  "coreLoopDIY": "A self-hosted relay where any logged-in device can push text, links, or files to your other devices, delivered live via web push and a running feed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on host or VPS with HTTPS, because web push needs a real certificate",
+    "VAPID keys for web push, stored in .env",
+    "Disk or object storage for pushed files",
+    "A browser on each device, or a native Android build if you want notification mirroring"
+  ],
+  "whatYouLose": [
+    "Android notification mirroring to the desktop, which needs a native app and permissions you cannot fake in a browser",
+    "Sending and replying to SMS from your computer",
+    "Polished native apps on every platform, including the share sheet and clipboard integrations",
+    "Reliable background delivery on iOS, where web push is fussy and easily evicted",
+    "Universal copy-paste sync and remote file browsing on your phone"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is not the relay, it is the platform-level hooks: notification listeners, SMS APIs, share sheets, and the app store trust needed to ask for them.",
+  "whyPeopleStillPay": "Because the interesting features are the ones that live inside the operating system, not on a server. Reading your notifications and sending your texts requires a signed app that has already fought Android's permission model and Apple's background rules, and most people would rather pay a few dollars than maintain sideloaded builds on three devices. The paid tier also removes size and message limits that are boring but real once you actually use the thing daily.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The link and file pipe is a one-sitting build; the phone side is the whole product for anyone who used it for SMS.",
+  "prompt": "Build a self-hosted cross-device push relay called Relay. Single project, no accounts service, no telemetry.\n\nStack, non-negotiable: Node 20 with TypeScript, Fastify, SQLite via better-sqlite3, server-rendered HTML with a small vanilla JS client, plain CSS. No React, no Next, no ORM.\n\nWhat it does:\n1. Single-user auth: one shared password from .env, session cookie signed with a secret from .env. No signup flow.\n2. Devices: each browser that logs in registers itself with a name and a Web Push subscription. Store devices in SQLite. Allow renaming and deleting devices.\n3. Pushes: a form and a POST /api/push endpoint accepting type note, link, or file. Text and links are stored as rows. Files upload via multipart to a local uploads directory with a configurable max size, served back through an authenticated route.\n4. Delivery: on every push, send a Web Push notification to all subscribed devices except the origin device, using VAPID keys from .env and the web-push library. Notification click opens the push in the feed. Also push live updates to any open tab over Server-Sent Events.\n5. Feed: reverse-chronological list of pushes with copy-to-clipboard for text and links, download for files, delete per item, and a clear-all. Paginate at 50.\n6. CLI: a small script, npm run push -- \"some text\", that posts to the server using a token from .env, so you can pipe from a terminal.\n\nExplicitly out of scope, do not attempt: Android notification mirroring, SMS sending, native mobile apps, end-to-end encryption, multi-user sharing, FCM.\n\nRequirements: all secrets in .env with a .env.example, no hardcoded keys. Include a script to generate VAPID keys. Ship a Dockerfile and a docker-compose.yml with a volume for the SQLite file and uploads. README must state that Web Push requires HTTPS and that iOS needs the site installed to the home screen. Include a manifest.json and service worker so it installs as a PWA. Seed nothing. Make it work with npm install, npm run dev.",
+  "promptCurated": false
+}
