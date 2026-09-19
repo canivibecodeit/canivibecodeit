@@ -1,0 +1,51 @@
+{
+  "slug": "quotapath",
+  "name": "QuotaPath",
+  "domain": "quotapath.com",
+  "category": "finance-accounting",
+  "subcategory": "sales commission tracking",
+  "tagline": "Commission tracking and quota attainment dashboards for sales teams, built so reps and finance stop arguing in spreadsheets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://quotapath.com/",
+    "checkedOn": "2026-09-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math at the center of QuotaPath is not hard: take closed deals, bucket them into a quota period, apply a rate table with accelerators, output a number per rep. An agent can build that plus an attainment dashboard over a CSV import in a weekend, and for a solo founder paying two reps it will be genuinely fine. What does not come for free is the part that makes commission software worth money: live CRM sync, plan versioning, clawbacks on churned deals, splits, draws, approval workflows, and a paper trail nobody can quietly edit. The value here is partly trust arbitration between finance and sales, and your homemade SQLite file is not a neutral party. Build it if you own the CRM data and the headcount is small, buy it once reps start disputing payouts.",
+  "coreLoopDIY": "Imports closed deals from CSV, applies a versioned comp plan with tiers and accelerators, and shows per rep attainment and expected payout per period.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A CSV or API export of closed-won deals with owner, amount and close date",
+    "Your comp plans written down precisely enough to encode as rules",
+    "Node 20 and a place to run a small web app, local is fine"
+  ],
+  "whatYouLose": [
+    "Native CRM integrations, so deal data arrives by export instead of syncing",
+    "Clawbacks, splits, draws, guarantees and mid-period plan changes unless you hand-code each one",
+    "A rep-facing view reps actually trust, including an immutable history of what changed and when",
+    "Payroll and accounting handoffs, plus approval and sign-off workflows",
+    "Someone else's liability when the payout math is wrong"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "brand-trust"
+  ],
+  "moatNotes": "The real lock-in is that comp plans are institutional knowledge encoded in one system, and re-encoding them is the migration cost.",
+  "whyPeopleStillPay": "Commission disputes are expensive in a way that software licenses are not. Teams pay for a system both finance and the sales floor accept as the source of truth, with CRM sync so nobody is reconciling exports, and with enough plan flexibility that a new accelerator does not require an engineer. A homegrown calculator handles the arithmetic but inherits every edge case: the deal that churned, the split with an SE, the rep who was on the old plan for three weeks. Once you are tracking twenty reps across two plan versions, paying per seat is cheaper than the internal argument.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The commission engine is a weekend; the trust that reps place in its output is not.",
+  "prompt": "Build a local-first sales commission tracker called \"PayCheck\" in an empty folder.\n\nStack, no substitutions:\n- Next.js 15 with App Router and TypeScript\n- SQLite via Prisma\n- Tailwind CSS, no component library\n- Recharts for the attainment chart\n- Runs with `npm run dev` on localhost, no accounts, no cloud, no telemetry\n\nData model (Prisma):\n- Rep: name, email, startDate, active\n- Plan: name, effectiveFrom, effectiveTo (nullable), quotaPerPeriod, periodType (monthly | quarterly), basis (bookedRevenue | acv), tiers as JSON array of { fromAttainmentPct, rate }\n- Assignment: repId, planId, from, to (nullable)\n- Deal: externalId (unique), repEmail, accountName, amount, closeDate, stage, churnedAt (nullable)\n- Adjustment: repId, period, amount, reason (manual credits and clawbacks)\n- PlanRevision: planId, snapshot JSON, createdAt (append only, never updated)\n\nFeatures in scope:\n1. CSV import at /import for deals. Accept messy headers via a mapping step, dedupe on externalId, show a dry-run preview of row count, total amount and rejected rows before committing.\n2. A pure commission engine in lib/engine.ts: given a rep, a period and the plan effective for that period, compute attainment percent and payout by walking the tier table marginally (not cliff), then apply Adjustments. No database calls inside the engine, and it must be unit-testable.\n3. Vitest tests for the engine covering: zero deals, exactly at quota, spanning two tiers, a churned deal excluded, and a negative adjustment.\n4. /reps/[id] shows period-by-period attainment, payout, and the deal list that produced it, so any number can be traced to rows.\n5. /dashboard shows total commission expense per period, attainment distribution across reps, and a table sortable by payout.\n6. Export a payroll-shaped CSV per period: rep email, period, payout, adjustments total.\n7. Plan edits write a new PlanRevision instead of mutating, and each computed payout records which revision it used.\n\nExplicitly out of scope, do not attempt:\n- Salesforce, HubSpot or any CRM OAuth integration\n- Multi-tenant auth, invites, or email\n- Deal splits, draws, guarantees, multi-currency\n- Approval workflows and e-signature\n\nSeed the database with 6 reps, 2 plans and about 200 deals across four quarters so the dashboard is not empty. Put any config in .env with a committed .env.example. Write a README that states plainly which comp plan shapes this supports and which it does not.",
+  "promptCurated": false
+}
