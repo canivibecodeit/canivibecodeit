@@ -1,0 +1,53 @@
+{
+  "slug": "language-reactor",
+  "name": "Language Reactor",
+  "domain": "languagereactor.com",
+  "category": "education",
+  "subcategory": "language learning via video subtitles",
+  "tagline": "Browser extension that puts dual subtitles, a click dictionary and saved-phrase review on top of Netflix and YouTube.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly subscription",
+    "unit": "flat",
+    "source": "https://www.languagereactor.com/",
+    "checkedOn": "2026-09-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The YouTube half of this is a genuinely easy build: captions are fetchable, the iframe player exposes time and seek, and dual subtitles plus click-to-define plus an Anki export is a weekend of work. The Netflix half is the actual product, and it depends on riding inside a DRM player whose subtitle delivery and DOM change without warning, which means a permanent maintenance tax you are now paying yourself. Dictionary quality is the other quiet gap: good lemmatization, furigana, pitch accent and sane word segmentation for Japanese, Chinese and Thai are not something you hand-wave in one session. So you can absolutely build the study loop you personally use, for the one platform you can legally script, and lose the rest. That is a real personal replacement if YouTube is where you actually watch things.",
+  "coreLoopDIY": "A local web app that plays a YouTube video with side-by-side target and native subtitles, lets you click any word for a dictionary popup, and saves words and full lines to a review list you can export to Anki.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local browser",
+    "yt-dlp installed for fetching caption tracks",
+    "Videos that already have subtitles in your target language",
+    "A dictionary data file (JMdict, CC-CEDICT or a wiktextract dump) for offline lookups",
+    "Optional DeepL or similar API key in .env for on-demand line translation"
+  ],
+  "whatYouLose": [
+    "Netflix, and by extension most of the reason people install it",
+    "The maintained extension that survives player and site updates",
+    "Dictionaries tuned per language with furigana, pitch accent, pinyin and decent segmentation",
+    "Cross-device sync of saved words and phrases, plus mobile",
+    "Machine plus human translation shown side by side, with the curated content catalog on top"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat is not the algorithm, it is living inside someone else's video player and staying alive there across redesigns.",
+  "whyPeopleStillPay": "Because the value is Netflix, and Netflix is exactly the part you cannot build. Streaming players are DRM-wrapped, hostile to scripting and constantly shifting, so somebody has to keep patching the hooks every few weeks, and that somebody is not going to be you after week three. Add per-language dictionary polish that took years to get right and a small subscription looks cheap next to maintaining a personal extension you will abandon.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for YouTube and your local video files, then decide whether you ever actually wanted the Netflix part.",
+  "prompt": "Build a local-only language study player for YouTube videos. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Node 20, TypeScript, Express for the backend, Vite plus React for the frontend, SQLite via better-sqlite3 for storage. Everything runs on localhost.\n\nBackend:\n- POST /api/video: accepts a YouTube URL, shells out to yt-dlp to list and download available subtitle tracks as VTT, parses them into timed cue arrays, caches them in SQLite keyed by video id.\n- GET /api/video/:id returns metadata plus all parsed subtitle tracks.\n- POST /api/lookup: takes a word and a language, returns dictionary entries from a local dictionary file loaded at boot. Support one JSON dictionary format and document how to drop a file in ./data/dict.json. If no dictionary is present, fall back gracefully with an empty result, do not crash.\n- POST /api/translate: optional, calls DeepL if DEEPL_API_KEY exists in .env, otherwise returns 501 and the UI hides the button.\n- CRUD for /api/saved: saved items are either a word or a full subtitle line, stored with source video id, timestamp, the surrounding line, and any dictionary gloss.\n- GET /api/saved/export.tsv returns an Anki-friendly TSV: front, back, context sentence, video link with timestamp.\n\nFrontend:\n- Embed the YouTube IFrame Player API. Poll current time and highlight the active cue.\n- Show two subtitle tracks stacked: target language on top, native below. Track pickers for both. A toggle to blur the native line until hover.\n- Every token in the target line is clickable. Click opens a popup with dictionary results and a save button. Word splitting: whitespace and punctuation by default, plus Intl.Segmenter with granularity word for CJK.\n- Keyboard controls: left and right arrows jump one cue, space plays and pauses, S saves the current line, R replays the current cue.\n- A saved items page with search, delete, and a link to the export endpoint.\n\nOut of scope, do not attempt: Netflix or any DRM stream, browser extension packaging, mobile apps, user auth, spaced repetition scheduling. Anki is the review tool.\n\nSecrets live in .env, with a .env.example checked in. Write a README covering install, yt-dlp requirement, and where to put dictionary data. Seed the app with one working example video id so the first run shows something.",
+  "promptCurated": false
+}
