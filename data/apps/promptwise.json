@@ -1,0 +1,52 @@
+{
+  "slug": "promptwise",
+  "name": "Promptwise",
+  "domain": "promptwise.com",
+  "category": "dev-tools",
+  "subcategory": "prompt management and testing",
+  "tagline": "A hosted workbench for writing, versioning and testing LLM prompts instead of burying them in your codebase.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://promptwise.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Prompt tooling is one of the most one-shottable categories there is: a prompt is a string, a version is a row, a test is an API call to a model you already pay for. An agent can give you a local workbench with prompt CRUD, versioning, variable substitution and side by side model comparison in a weekend, and for a single person that covers most of the daily loop. The gaps are the boring parts: a runtime SDK so production code can fetch the current prompt version, real eval datasets with scoring, and any notion of a teammate seeing your changes. Public detail on this specific product is thin, so treat this as a verdict on the category rather than a line by line feature match. If prompts are shared across a team and shipped into production, the hosted thing keeps earning its keep.",
+  "coreLoopDIY": "A local web app where you write prompts with variables, save every version, run a version against two or three models at once, and keep the outputs and your ratings so you can tell which edit actually helped.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "At least one model provider API key in .env",
+    "Willingness to run a local server whenever you want to edit prompts",
+    "Your own judgment as the eval harness, unless you write one"
+  ],
+  "whatYouLose": [
+    "A runtime SDK or API so deployed code can pull the latest approved prompt version without a redeploy",
+    "Shared prompt library with teammates, review, comments and rollback anyone else can see",
+    "Batch evals over a test set with scoring and regression alerts when a new version gets worse",
+    "Usage, latency and cost dashboards across providers",
+    "Someone else eating provider SDK churn and new model rollouts"
+  ],
+  "moatTags": [
+    "collaboration",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible part is not the editor, it is being the source of truth that production pulls prompts from, plus the review trail around it. Solo, you are the review trail.",
+  "whyPeopleStillPay": "Because the value shows up at the seam between a prompt and a deployed system. Once prompts live in a hosted registry, a non engineer can tweak copy, an engineer can pin a version, and a regression gets caught by an eval run instead of by users. Paying also means not maintaining provider adapters, not building a diff view you trust, and not explaining your homegrown tool to the next hire. A solo builder iterating on three prompts gets almost none of that and can happily self host. A team shipping prompt driven features gets most of it and will quietly keep the subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Prompt managers are the CRUD app of the AI era: easy to clone, annoying to be the system of record for.",
+  "prompt": "Build a local prompt workbench I run on my own machine. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: TypeScript, Next.js App Router, Tailwind, SQLite via better-sqlite3, single process, `npm run dev` on localhost:3000. No Docker, no ORM beyond raw SQL helpers, no auth.\n\nData model in SQLite:\n- prompts: id, name, slug, description, created_at\n- versions: id, prompt_id, version_number, body, notes, created_at (versions are immutable once saved)\n- runs: id, version_id, model, rendered_input, output, prompt_tokens, completion_tokens, latency_ms, cost_estimate, rating (null | 1..5), created_at\n- variable values are stored as JSON on the run\n\nFeatures that must work:\n1. Prompt list page, create a prompt, open it.\n2. Editor for a prompt: textarea for the body, support {{variable}} placeholders, auto detect variables and render an input field per variable. Saving creates a new immutable version with an optional note.\n3. Version history sidebar with a text diff between any two versions (use a small diff lib, render added/removed lines colored).\n4. Run panel: pick one or more models, fill in variables, hit Run, show outputs side by side in columns with latency, token counts and estimated cost under each. Streaming is optional, correctness is not.\n5. Rate any run 1 to 5 and add a short comment. Runs list per version, filterable by model and rating.\n6. Export a prompt with all versions and runs as JSON, and import it back.\n\nProviders: support OpenAI and Anthropic through their official SDKs behind one small `callModel(model, input)` adapter so adding a provider is one file. Keys come from .env (OPENAI_API_KEY, ANTHROPIC_API_KEY); if a key is missing, grey that model out in the UI instead of crashing. Ship a .env.example and a hardcoded model list with per million token prices in one config file I can edit.\n\nExplicitly out of scope: multi user, sharing, a runtime SDK, eval datasets and automatic scoring, chat history, RAG, analytics, deployment.\n\nWrite a README with setup in under ten lines and seed the DB with two example prompts so the UI is not empty on first run.",
+  "promptCurated": false
+}
