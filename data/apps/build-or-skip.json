@@ -1,0 +1,51 @@
+{
+  "slug": "build-or-skip",
+  "name": "Build or Skip",
+  "domain": "buildorskip.dev",
+  "category": "rss-research",
+  "subcategory": "product and market research",
+  "tagline": "A product discovery tool that surfaces existing products with estimated sales momentum so you can judge an idea before building it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://buildorskip.dev/",
+    "checkedOn": "2026-09-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is trivial: a table, some filters, a sparkline. The product is the data behind it, a wide crawl of storefronts plus enough historical snapshots to call something momentum rather than a number. An agent can absolutely build you a scraper that polls twenty product URLs you already care about and charts the deltas, and that is genuinely useful if you have a shortlist. It cannot give you discovery, because discovery requires having already watched thousands of products you never thought to look at, for months, before you asked. You would be starting your time series on the day you run the build, which is the one day the data is worthless.",
+  "coreLoopDIY": "Polls a watchlist of product URLs on a schedule, snapshots public signals like review and sales counts, and shows which ones are accelerating.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite locally, or a cheap always-on box so the cron actually runs",
+    "A hand-built watchlist of product URLs, since you get no discovery feed",
+    "Tolerance for scrapers breaking whenever a storefront changes markup",
+    "Weeks of patience before your own delta data means anything"
+  ],
+  "whatYouLose": [
+    "Discovery: you can only track products you already know exist",
+    "Backfilled history, so no momentum signal until your own crawl has aged",
+    "Breadth across storefronts and categories, which is the whole point of a directory",
+    "Normalized estimates, which are a modeling problem and not a parsing problem",
+    "Someone else maintaining the scrapers when page structures change"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "Estimated order counts are guesses, but they are guesses calibrated against a long crawl history. You cannot bootstrap calibration on day one.",
+  "whyPeopleStillPay": "Because the alternative is guessing, and guessing about demand is the expensive part of building. Even a rough, possibly wrong momentum number on a category you were about to spend three months in is worth a subscription, mostly because it is available before you start rather than after. A personal scraper answers the question you already framed. This kind of tool is for the questions you did not think to ask, and that only works if someone has been collecting the answers since before you showed up.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the crawl history is not. The moat is months of snapshots across products nobody asked about yet, which is exactly what makes a momentum number mean anything.",
+  "prompt": "Build a local product momentum tracker. No accounts, no cloud, no telemetry.\n\nStack: TypeScript, Node 20, SQLite via better-sqlite3, Fastify for a single-page HTML view, plain server-rendered HTML with a tiny bit of inline JS for charts. No React, no ORM, no auth.\n\nWhat it does:\n1. Reads a watchlist from watchlist.json: entries of { id, label, url, selector, signal } where signal is one of review_count, sales_count, rating, price.\n2. A `pnpm snapshot` command fetches each URL, extracts the numeric signal using the given CSS selector plus a digit regex, and inserts a row into snapshots(id, signal, value, fetched_at).\n3. Handles failures loudly: log the entry id, store nothing, never write a zero when parsing fails.\n4. Respects robots.txt for each host, sets a descriptive User-Agent from .env, and sleeps 2 to 5 seconds between requests with jitter.\n5. A `pnpm serve` command starts a local dashboard at 127.0.0.1:4321 listing every watched item with current value, 7 day delta, 30 day delta, percent change, and a tiny inline SVG sparkline from stored snapshots.\n6. Sort the dashboard by 7 day percent change descending. Flag anything with fewer than 3 snapshots as \"insufficient history\" instead of showing a fake delta.\n7. A `pnpm export` command dumps all snapshots to CSV.\n\nIn scope: fetching, parsing, storing, delta math, local view, CSV export.\nOut of scope: discovery of new products, revenue estimation models, email alerts, multi-user anything, hosted deployment.\n\nSecrets and config in .env: USER_AGENT, REQUEST_TIMEOUT_MS, DB_PATH. Commit .env.example, gitignore .env and the db file.\n\nInclude a README that states plainly that momentum data is meaningless until the snapshot table has several weeks of rows, and that this tool tracks a list you build by hand.",
+  "promptCurated": false
+}
