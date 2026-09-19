@@ -1,0 +1,51 @@
+{
+  "slug": "storewards",
+  "name": "Storewards",
+  "domain": "ourcart.com",
+  "category": "personal-finance",
+  "subcategory": "store loyalty and rewards tracking",
+  "tagline": "Tracks store loyalty programs, cards and reward balances in one place so points stop expiring unnoticed.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://ourcart.com/",
+    "checkedOn": "2026-09-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The skeleton of this is a table: store, program, card number, points balance, expiry date, plus a reminder. An agent will hand you that in a single sitting, including a barcode render so the cashier scanner actually works. The part that does not fall out of a one-shot is data that arrives on its own: retailer APIs, email receipt parsing, points balances that update without you typing them. So the DIY version is a disciplined manual ledger, which works exactly as long as your discipline does. If the paid product is mostly a nice list, replace it; if it is quietly syncing balances from somewhere, it wins.",
+  "coreLoopDIY": "A local web app where you log each store's loyalty program, card barcode, points balance and expiry, then get a reminder before anything lapses.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a machine or cheap VPS to run it on",
+    "Manual entry of card numbers and balances",
+    "Optional SMTP or ntfy credentials for expiry reminders"
+  ],
+  "whatYouLose": [
+    "Automatic balance updates; you are the sync engine",
+    "Email or receipt parsing that finds programs you forgot you joined",
+    "A real mobile app, offline wallet passes and Apple or Google Wallet integration",
+    "Any curated database of which retailers run which programs and how points expire",
+    "Household sharing, so two people tracking the same cards will drift"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The only durable asset here is structured knowledge of retailer programs and expiry rules, which is tedious to assemble and goes stale quietly.",
+  "whyPeopleStillPay": "Because the value of a rewards tracker is inversely proportional to how much you have to feed it. People pay so the balances and expiry dates show up without effort, and so the thing lives on their phone at the checkout counter instead of on a laptop at home. A self-hosted ledger solves the storage problem and leaves the attention problem untouched, which is the actual problem.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A loyalty tracker you have to update by hand is a to-do list wearing a coupon costume, but at $0 it is a fair trade.",
+  "prompt": "Build a single-user, self-hosted loyalty rewards tracker called Storewards. Run it locally, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js 15 App Router, TypeScript, Tailwind. One app, no separate backend.\n- SQLite via better-sqlite3, file at ./data/storewards.db, schema created on boot if missing.\n- bwip-js to render card barcodes server side as PNG (support code128, ean13, qrcode).\n- Zero auth. It binds to 127.0.0.1 by default. Say so in the README.\n\nData model:\n- program: id, store_name, program_name, website, notes, barcode_format, card_number, created_at\n- balance: id, program_id, points (integer), cash_value_cents (nullable), recorded_at\n- expiry: id, program_id, expires_on (date), label, points_at_risk, dismissed (bool)\n\nFeatures, in scope:\n- List view of all programs with current points (latest balance row) and the nearest expiry, sorted by soonest expiry first.\n- Program detail page: edit fields, add a balance entry, add or clear expiry dates, and a large barcode image sized for a phone screen held up to a scanner.\n- Balance history as a simple sparkline or plain table. Do not add a charting library if a table will do.\n- Dashboard strip: total points across programs, count expiring in 30 days, count with no balance update in 90 days.\n- A /api/reminders route that returns everything expiring within N days, plus an optional node script scripts/notify.ts that emails that list via SMTP using SMTP_URL and REMINDER_TO from .env. Skip silently if those are unset.\n- CSV import and export of programs and balances, so the data is never trapped.\n\nOut of scope, do not attempt:\n- Retailer APIs, scraping, or email receipt parsing.\n- Multi-user, sharing, OAuth, native mobile, wallet passes.\n\nDeliver: working app, seed script with three fake programs, README with setup in under ten lines, and .env.example holding only SMTP_URL and REMINDER_TO. Card numbers are sensitive: keep them out of logs and out of any client bundle beyond the page that displays them.",
+  "promptCurated": false
+}
