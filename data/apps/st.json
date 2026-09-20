@@ -1,0 +1,51 @@
+{
+  "slug": "st",
+  "name": "Solana Tracker",
+  "domain": "solanatracker.io",
+  "category": "analytics",
+  "subcategory": "crypto token data and trading terminal",
+  "tagline": "Real-time Solana token discovery, charts, wallet tracking and a paid data API for the same firehose.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.solanatracker.io/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Tiered API plans plus trading fees, exact numbers not confirmed here.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible product is a dashboard, and dashboards are easy. What sits under it is a full Solana indexing stack: geyser-grade transaction streams, pool math for a dozen AMMs, token metadata and rug heuristics, historical OHLCV, and wallet PnL reconstructed from every swap a wallet ever made. You can absolutely build a personal token watchlist in an afternoon against DexScreener and Jupiter, and it will be genuinely useful for tracking things you already know about. It will not surface a pair four seconds after it mints, and it will not survive the moment a free public endpoint rate-limits you during the only minute that mattered. The people paying are paying for latency and coverage, not for the layout.",
+  "coreLoopDIY": "A local dashboard that polls public token APIs for a watchlist you define, charts price and liquidity, tracks a few wallets, and fires desktop alerts on your thresholds.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Solana RPC endpoint with an API key, free tier is fine for light polling",
+    "Public market data APIs for prices and pairs",
+    "A machine that stays awake if you want alerts to fire"
+  ],
+  "whatYouLose": [
+    "Sub-second new pair detection, the entire point for anyone trading launches",
+    "One-click swaps with routing, slippage handling and MEV-aware execution",
+    "Historical OHLCV and wallet PnL going back further than the day you started polling",
+    "Coverage across every AMM and launchpad, including the weird new ones",
+    "An API with rate limits and uptime you can actually build on top of"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "Streaming and indexing the whole chain is a standing infrastructure bill, not a feature. Nobody one-shots a historical dataset.",
+  "whyPeopleStillPay": "Because in this niche the product is latency. Everything shown on screen is derived from public chain data, which sounds like it should commoditize the whole thing, but reading that data fast, completely and continuously is expensive and operationally annoying. Paying users are buying a team that keeps geyser subscriptions healthy, adds parsers when a new launchpad appears, and backfills history so a wallet PnL number exists at all. A personal build is fine for slow watchlists and terrible for anything time sensitive, and time sensitive is the whole category.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend, the pipeline behind it is a permanent job. The moat is a continuously indexed chain plus the history you cannot retroactively collect.",
+  "prompt": "Build a local Solana token watchlist and alert dashboard. Single user, runs on my machine, no accounts, no hosted backend, no telemetry.\n\nStack, non negotiable:\n- Next.js 15 App Router with TypeScript and Tailwind\n- SQLite via better-sqlite3 for all storage, file at ./data/watch.db\n- Recharts for charts\n- node-fetch built in, no ORM, plain SQL\n\nSecrets in .env.local: SOLANA_RPC_URL (Helius or similar, with key), optional DISCORD_WEBHOOK_URL for alerts. Ship .env.example. Fail loudly at boot if SOLANA_RPC_URL is missing.\n\nData sources:\n- DexScreener public API for pair price, liquidity, volume and pair discovery by token mint\n- Jupiter public price API as a fallback quote source\n- The RPC endpoint only for wallet token balances via getTokenAccountsByOwner and for token metadata\n\nFeatures in scope:\n1. Watchlist: add a token by mint address. Store mint, symbol, name, first seen, notes. Table view with current price, 24h change, liquidity, volume.\n2. Poller: a single background interval in a server-side module, default 30 seconds, configurable. On each tick write one row per watched token into a price_samples table (mint, price_usd, liquidity_usd, volume_24h, ts). Never delete samples.\n3. Token detail page: price and liquidity charts built from local samples only, plus the raw latest API payload in a collapsible block.\n4. Wallet watch: add wallet addresses, poll SPL token balances every 5 minutes, store snapshots, show a simple table of holdings and changes since the previous snapshot.\n5. Alerts: per token rules for price above, price below, liquidity below, and percent move over a chosen window. Evaluate on each poll tick, log fires to an alerts table, post to the Discord webhook if set, and show a fired-alerts feed in the UI.\n6. CSV export of price_samples and alerts.\n\nExplicitly out of scope: no swaps, no wallet connect, no private keys anywhere in this codebase, no new-pair firehose, no backfilled history before first run, no multi user, no auth.\n\nHandle rate limits honestly: retry with backoff, cache responses for the poll interval, and show a visible banner when a source is erroring instead of rendering stale numbers as fresh.\n\nDeliver a README with setup, the poll interval tradeoff, and a blunt paragraph saying this is a watchlist, not a launch sniper.",
+  "promptCurated": false
+}
