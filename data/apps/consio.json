@@ -1,0 +1,51 @@
+{
+  "slug": "consio",
+  "name": "Consio",
+  "domain": "consio.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI assistant, product specifics unconfirmed",
+  "tagline": "An AI assistant product at consio.ai; the exact workflow it wraps is not confirmed here yet.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://consio.ai/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This entry is provisional: Consio is a small AI product and we have not verified its feature set or pricing closely enough to be smug about it. What we can say is that the shape most tools in this bracket take, a language model wrapped around your own documents and a chat surface, is a well understood one-shot build. An agent will get you a local assistant that indexes your files, retrieves the relevant chunks, and answers with citations in a single sitting. What it will not get you is whatever specific integration, tuning, or workflow logic the paid product has actually spent its time on, which is usually the whole reason people pay. Treat the verdict as kinda until someone confirms the details.",
+  "coreLoopDIY": "Indexes a folder of your own documents into SQLite, retrieves matching chunks, and answers questions in a local chat UI with citations back to the source file.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An OpenAI or Anthropic API key",
+    "Python 3.11 and a terminal",
+    "Your own documents in a local folder"
+  ],
+  "whatYouLose": [
+    "Any integrations the real product has with the tools you already use",
+    "Prompt and retrieval tuning that someone else already iterated on with real users",
+    "Mobile access and sync across devices, unless you host it yourself",
+    "A polished interface instead of one plain HTML page",
+    "Someone to email when the answers start coming back wrong"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-data"
+  ],
+  "moatNotes": "For small AI products the moat is almost never the model call, it is the hundred small retrieval and prompt decisions you only find by shipping to strangers.",
+  "whyPeopleStillPay": "Because the gap between a working retrieval demo and something you trust with real work is mostly invisible from the outside. Chunking strategy, reranking, handling tables and scans, refusing to answer when it should, keeping the index fresh: none of that shows up in a feature list, all of it decides whether you keep using the thing after week two. A one-shot build gets you the demo, and the demo is genuinely useful if your corpus is small and your questions are simple. Paying is what you do when you would rather not own the tuning.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Provisional entry: the build advice here is for the generic shape of the category, not a line by line clone.",
+  "prompt": "Build a local, single-user AI assistant over my own documents. No accounts, no cloud services beyond one LLM API, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn\n- SQLite with FTS5 for keyword search plus a stored embedding column for vector search\n- One HTML page served by FastAPI, vanilla JS, no build step, no npm\n- OpenAI-compatible API for both embeddings and chat, base URL and key read from .env\n\nWhat it does:\n1. A CLI command `python ingest.py ./docs` walks a folder and ingests .txt, .md, .pdf, and .docx files. Extract text, split into roughly 800 token chunks with 100 token overlap, store chunk text, source path, and chunk index in SQLite.\n2. Compute an embedding per chunk and store it as a blob. Skip files whose mtime and size are unchanged since last run, so re-ingest is cheap.\n3. `GET /` serves a chat page: a message list, a text box, a send button. That is the whole UI.\n4. `POST /ask` takes a question, runs both FTS5 keyword search and cosine similarity over the embeddings, merges results with reciprocal rank fusion, keeps the top 8 chunks, and calls the chat model with a system prompt that says: answer only from the provided context, cite sources as [1], [2], and say you do not know when the context does not cover it.\n5. The response returns the answer plus the list of source files and chunk indexes. The UI renders citations under the answer as clickable items that expand to show the raw chunk text.\n6. Conversations persist in SQLite so reloading the page keeps history. One conversation is enough.\n\nExplicitly out of scope: authentication, multi-user support, OCR for scanned PDFs, web crawling, file uploads through the browser, Docker, tests beyond a couple of smoke tests for chunking and retrieval.\n\nDeliverables: app.py, ingest.py, db.py, static/index.html, requirements.txt, .env.example with LLM_API_KEY, LLM_BASE_URL, CHAT_MODEL, EMBED_MODEL, and a README with exact run commands. Fail loudly with a readable message if .env is missing a key. Do not commit secrets.",
+  "promptCurated": false
+}
