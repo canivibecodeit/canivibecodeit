@@ -1,0 +1,51 @@
+{
+  "slug": "cutai-app",
+  "name": "CutAi App",
+  "domain": "usecutai.com",
+  "category": "audio-video",
+  "subcategory": "AI video editing",
+  "tagline": "AI-assisted video editing that trims dead air and turns long recordings into short, captioned clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://usecutai.com/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The boring 80 percent of this category is ffmpeg plus a local Whisper model, and an agent will wire that up for you in an afternoon: detect silence, cut it, transcribe, burn captions, export vertical. What does not fall out of one session is everything that makes the output watchable, namely caption styling that does not look like a 2014 karaoke plugin, speaker-aware reframing, and a timeline you can actually correct by hand. Cloud rendering also disappears, so a one hour recording becomes your laptop's problem for a while. If your workflow is podcast or screencast cleanup, the DIY version is genuinely fine and free forever. If you are shipping client-facing shorts on a deadline, the polish gap is real and you will feel it on clip three.",
+  "coreLoopDIY": "A local CLI that transcribes a video, removes silences and filler, optionally crops to vertical, and burns styled captions into an exported MP4.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg and ffprobe installed",
+    "Python 3.11",
+    "A local Whisper model (faster-whisper) and a few GB of disk",
+    "Patience for CPU encoding, or a GPU"
+  ],
+  "whatYouLose": [
+    "A real timeline UI: your only correction loop is editing a JSON cut list and re-rendering",
+    "Caption presets that look designed rather than defaulted",
+    "Auto reframing that tracks faces or the active speaker instead of a fixed crop box",
+    "Cloud render farms, so long files tie up your machine",
+    "Anything collaborative: no share links, no review comments, no client handoff"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "Nothing here is algorithmically secret. The defense is taste in the output and not making the user wait.",
+  "whyPeopleStillPay": "Because editing is a taste problem disguised as a compute problem. Anyone can cut silence; picking which twelve seconds of a forty minute recording are worth posting, and making the captions look like a person chose the font, is where the money is. Paid tools also absorb the render queue, which matters more than people admit once you are exporting several versions of the same clip. A local script wins on cost and privacy and loses on every deadline.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The silence cutter is a solved afternoon; the caption design is not. Build it, then spend your weekend on the ASS style file instead.",
+  "prompt": "Build a local command line video editor called cutkit. No web app, no accounts, no telemetry, no cloud calls.\n\nStack: Python 3.11, typer for the CLI, faster-whisper for transcription, ffmpeg via subprocess for all media work. Dependencies in pyproject.toml. No Electron, no React, no menus of options.\n\nCommands:\n1. cutkit transcribe INPUT: run faster-whisper (model size from --model, default small) and write transcript.json with word level timestamps.\n2. cutkit plan INPUT: read transcript.json, build a cut list of keep-segments. Drop gaps longer than --min-silence (default 0.6s) using ffmpeg silencedetect as a cross-check against word timings, and drop standalone filler words from a configurable list (um, uh, like, you know). Pad each keep segment by 80ms on both sides, merge segments closer than 150ms. Write cuts.json as a plain list of start/end floats so a human can hand edit it.\n3. cutkit render INPUT: read cuts.json, build a single ffmpeg filter_complex using trim and atrim plus concat, and export MP4 h264 yuv420p aac 192k. Support --vertical to center-crop to 1080x1920 with a fixed crop box, and --captions to generate an ASS subtitle file from transcript.json and burn it in.\n4. cutkit clips INPUT --n 3: naive highlight picker. Score 20 to 60 second transcript windows by words per second and keyword density, return the top N as separate rendered files. Be explicit in the README that this heuristic is mediocre.\n\nCaption style: one ASS style block in a separate captions.ass template, bold sans, white fill, thick outline, two lines max, positioned at 78 percent height. Make the template easy to edit.\n\nRules: every ffmpeg command must be printable with --dry-run. Never re-encode during planning. Cache transcripts by input file hash in .cutkit/. Any API keys, if ever added, come from .env via python-dotenv, and none are required today.\n\nDeliver: working CLI, pyproject.toml, README with a three command quickstart, and one pytest that runs plan against a fixture transcript.json and asserts the cut list is sorted and non-overlapping.",
+  "promptCurated": false
+}
