@@ -1,0 +1,53 @@
+{
+  "slug": "photo-ai",
+  "name": "Photo AI",
+  "domain": "photoai.com",
+  "category": "ai-image",
+  "subcategory": "AI portrait generation",
+  "tagline": "Trains a model on your selfies and generates photorealistic photos of you in any setting, outfit, or pose.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription tiers",
+    "unit": "flat",
+    "source": "https://photoai.com/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The entire technical stack here is public: open image models, open LoRA fine-tuning scripts, and a few hundred lines of glue to upload photos, kick off a training run, and render a grid of results. An agent can absolutely produce that in a weekend, and if you own a 24GB GPU you never pay anyone. The gap is not the code, it is everything around it: hyperparameters that produce a likeness instead of a waxwork, a prompt library that reliably flatters, and an upscale plus face-fix pass so the output survives being looked at. Expect your first ten training runs to look like a cousin of you rather than you. Also worth pricing honestly: rented GPU hours for training and generation are not free, so DIY is cheaper mainly if you already have the hardware or you generate in bulk.",
+  "coreLoopDIY": "Upload 20 photos of yourself, fine-tune a LoRA on a local image model, then generate batches from a saved prompt library and browse the results in a gallery.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with 24GB VRAM, or a rented cloud GPU box",
+    "A Hugging Face token with access to the base model weights",
+    "15 to 25 varied photos of the subject",
+    "50GB of disk for weights, checkpoints, and outputs",
+    "Willingness to redo training runs when the likeness is off"
+  ],
+  "whatYouLose": [
+    "Training hyperparameters someone else already tuned across millions of runs",
+    "A curated prompt and style library that mostly produces usable shots on the first try",
+    "The upscale, face-restore, and quality-filter pipeline that hides model artifacts",
+    "A phone-friendly flow where you upload and walk away",
+    "Someone else absorbing GPU cost, queueing, and driver hell"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": "No proprietary model here in any deep sense, the advantage is accumulated taste about what settings and prompts make a person look like themselves, plus a GPU fleet that is already warm.",
+  "whyPeopleStillPay": "Because the failure mode of DIY is not a crash, it is subtly wrong output: an uncanny face, a hand with six fingers, skin that looks airbrushed by a stranger. Diagnosing that means understanding learning rates, step counts, caption formats, and regularization, which is a hobby, not an afternoon. People paying for this want twenty headshots they can actually put on LinkedIn, and they want them tonight without installing CUDA.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The code is a weekend, the likeness is the hard part.",
+  "prompt": "Build a local, single-user AI portrait studio. No accounts, no cloud services, no telemetry, no payments.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, Jinja2 templates plus HTMX for interactivity. No React.\n- SQLite via SQLModel for state.\n- diffusers, peft, transformers, accelerate, safetensors for model work.\n- Everything runs on localhost against a local NVIDIA GPU. Secrets in .env, loaded with python-dotenv. Only secret needed: HF_TOKEN.\n\nFeatures, in scope:\n1. Subject page: create a named subject, upload 15 to 30 images, show thumbnails, allow deleting individual images.\n2. Preprocessing job: center-crop and resize to 1024x1024, strip EXIF, auto-caption each image with a fixed template like \"a photo of TOK person, {simple description}\" where the description comes from a BLIP captioning pass. Let me edit captions in the UI.\n3. Training job: fine-tune a LoRA on a local Stable Diffusion XL or FLUX.1-dev base (read the base model id from .env, default to SDXL so it runs on 24GB). Expose rank, learning rate, and step count in the UI with sane defaults. Run training in a background worker process, stream log lines to the page, write checkpoints to ./data/loras/{subject}/.\n4. Prompt packs: a prompts.json file with at least six packs (headshot, outdoor, studio black-and-white, business casual, travel, cinematic), each pack a list of prompt templates containing the TOK token. Seed it at first run.\n5. Generate page: pick a subject, pick a pack or type a custom prompt, pick batch size and seed, generate. Save images plus their full metadata (prompt, seed, steps, guidance, lora path) to SQLite.\n6. Gallery: grid of all outputs, filter by subject and pack, favorite and delete, download a zip of favorites.\n7. Optional post-process toggle: Real-ESRGAN 2x upscale on favorites only. Skip silently with a clear UI message if the weights are not present.\n\nExplicitly out of scope: multi-user auth, hosted GPUs, billing, moderation, mobile app, sharing links, any external API.\n\nDeliverables: working app, requirements.txt, .env.example, a Makefile with setup/run/worker targets, and a README that states VRAM requirements, expected training time, and the three settings to change first when the likeness looks wrong. Run a smoke test that loads the base model, generates one 512px image with no LoRA, and exits zero.",
+  "promptCurated": false
+}
