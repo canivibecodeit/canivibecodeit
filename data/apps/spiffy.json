@@ -1,0 +1,52 @@
+{
+  "slug": "spiffy",
+  "name": "Spiffy",
+  "domain": "spiffy.co",
+  "category": "creator-commerce",
+  "subcategory": "checkout and affiliate tracking",
+  "tagline": "Hosted checkout for digital products with subscriptions, order bumps and built-in affiliate tracking.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://spiffy.co/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The parts people think they are paying for, a payment form, a subscription plan, a coupon field, are mostly Stripe features with a UI on top, and an agent can wire that up quickly. The parts that actually take work are affiliate attribution you trust, commission ledgers that survive refunds and chargebacks, and sales tax or VAT on digital goods. None of that is magic, but all of it is fiddly, and getting it wrong costs real money rather than annoying you. If you sell a handful of digital products and recruit affiliates one at a time by DM, a self-hosted checkout plus Stripe is a genuine replacement. If you run a hundred affiliates and care about who gets credit for which click, keep paying someone to argue about it.",
+  "coreLoopDIY": "Spins up a self-hosted product catalogue, Stripe Checkout sessions with coupons and order bumps, and a cookie-based affiliate referral tracker that writes a commission ledger from Stripe webhooks.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account with API keys and a webhook secret",
+    "A domain and somewhere to host a Node app",
+    "Stripe Tax enabled if you sell into the EU or UK, plus your own registrations",
+    "Manual affiliate payouts, via Stripe Connect or just bank transfers"
+  ],
+  "whatYouLose": [
+    "Affiliate-side polish: dashboards, link generators, payout statements that affiliates trust without emailing you",
+    "Refund and chargeback handling that automatically claws back commissions",
+    "Tested checkout conversion work: bumps, upsells, retries, wallet support, layout that does not scare buyers",
+    "Dunning and failed-payment recovery for subscriptions beyond what Stripe does by default",
+    "Someone to blame at 2am when a launch checkout breaks"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The real lock-in is live subscriptions and an affiliate roster that already trusts the numbers. Migrating either mid-flight is how people lose revenue.",
+  "whyPeopleStillPay": "Because money touching code is where DIY stops being fun. A checkout page that silently fails on mobile Safari, or an affiliate commission that double-counts a refunded order, costs more than a decade of subscription fees and eats the goodwill of the people selling for you. Paying a platform buys a buyer-facing flow that has been beaten on by thousands of launches, plus a neutral third party whose ledger your affiliates will accept without a phone call. That neutrality is worth something you cannot self-host.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Stripe already carries most of the weight here; you are mostly rebuilding the affiliate ledger and the pretty parts.",
+  "prompt": "Build a self-hosted checkout and affiliate tracking app for a solo seller of digital products.\n\nStack, no substitutions: Next.js (App Router) with TypeScript, Tailwind for styling, SQLite via better-sqlite3 with plain SQL migrations, Stripe for all payments. Deploy target is a single Node process behind a domain. No accounts system for buyers, no telemetry, no analytics scripts.\n\nSecrets in .env only: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_PASSWORD, BASE_URL. Include .env.example and never commit real keys.\n\nIn scope:\n- Products table: name, slug, description, price in cents, currency, type (one_time or subscription), stripe_price_id, active flag.\n- Public product page at /p/[slug] that creates a Stripe Checkout session server-side and redirects. Allow promo codes in the session. Support one optional order bump: a second product shown as a checkbox that adds a line item.\n- Affiliates table: name, email, code, commission_percent. Referral links look like BASE_URL/p/[slug]?ref=CODE. Middleware sets a first-touch httpOnly cookie for 30 days and passes the code into Checkout session metadata.\n- Stripe webhook route handling checkout.session.completed, invoice.paid, charge.refunded and charge.dispute.created. Verify signatures. Write an orders table and a commissions ledger with status pending, approved, reversed. Refunds and disputes reverse the matching commission rows. Make the handler idempotent by storing processed event ids.\n- Admin area at /admin behind HTTP basic auth using ADMIN_PASSWORD: CRUD for products and affiliates, list of orders, commissions grouped by affiliate with totals owed.\n- Affiliate stat page at /a/[code] showing clicks, orders and commission totals for that code only. Read-only, no login.\n- Seed script with two sample products and one affiliate. README with setup, Stripe CLI webhook testing commands, and a note that payouts are manual.\n\nOut of scope, do not build: automated affiliate payouts, tax calculation or filing (enable Stripe Tax in the dashboard instead), email sending, multi-currency pricing, upsell funnels after purchase, buyer login or file delivery portal (send download links manually or via a Stripe receipt note).\n\nWrite tests for the webhook handler covering a successful one-time purchase, a refund reversal, and a duplicate event.",
+  "promptCurated": false
+}
