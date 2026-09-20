@@ -1,0 +1,52 @@
+{
+  "slug": "twitterapi-io",
+  "name": "twitterapi.io",
+  "domain": "twitterapi.io",
+  "category": "dev-tools",
+  "subcategory": "social data API",
+  "tagline": "Third party REST API for X/Twitter data: tweets, user profiles, followers, search, priced per request instead of per month.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage based credits, pay per request",
+    "unit": "usage",
+    "source": "https://twitterapi.io/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is not the API surface, it is the ability to keep getting X data at all. Anyone can write an Express server with endpoints named /tweets and /user/followers in an afternoon; the hard part is the fleet of proxies, rotating sessions, and the ongoing cat and mouse game with X's anti automation team. Every time X ships a change, somebody at a data vendor fixes it within hours, and that maintenance treadmill is the whole subscription. Your options for a personal build are the official X API, where the cheap tiers are read starved to the point of uselessness, or scraping yourself, which is a part time job plus a terms of service problem. The closest honest build is a caching gateway that makes whatever access you do have go much further.",
+  "coreLoopDIY": "A local caching gateway that normalizes X data from a pluggable backend into a stable JSON shape and stores everything in SQLite so you never pay for the same request twice.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite locally",
+    "Some actual upstream access: an official X API bearer token or your own scraper",
+    "Tolerance for tiny rate limits on anything cheap",
+    "An honest read of X's terms if you go the scraping route"
+  ],
+  "whatYouLose": [
+    "Working access to X data without maintaining a scraping stack yourself",
+    "Proxy rotation, session pools, and same day fixes when X changes things",
+    "Reasonable throughput and QPS instead of a free tier read budget you exhaust in a minute",
+    "Broad endpoint coverage: followers, replies, advanced search, batch lookups",
+    "Somebody else absorbing the legal and operational risk"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is an anti bot arms race plus the boring infrastructure to survive it, not code.",
+  "whyPeopleStillPay": "Because the alternative is either paying X's official prices for a feed you may only need occasionally, or running your own scraping operation with proxies, account pools, and a pager for whenever the DOM or the internal endpoints shift. Vendors like this exist because that maintenance is genuinely miserable and amortizes well across thousands of customers. If you need X data for a side project or a research script, per request pricing beats hiring yourself as a part time reverse engineer. The API shape is trivially cloneable; the uptime behind it is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the endpoints in an afternoon and get 403s forever. The moat is a proxy fleet plus permanent maintenance against a platform that actively does not want you there.",
+  "prompt": "Build a local X/Twitter data caching gateway. Empty folder, no cloud, no accounts, no telemetry.\n\nStack, non negotiable: TypeScript, Node 20, Express, better-sqlite3, zod for validation, vitest for tests. No ORM, write the SQL.\n\nWhat it does:\n1. Exposes a small REST API on localhost:8787 with three routes: GET /user/:handle, GET /user/:handle/tweets?cursor=, GET /search?q=&cursor=.\n2. Every route returns a normalized shape defined once in src/schema.ts: Tweet { id, authorHandle, text, createdAt, replyCount, likeCount, retweetCount, quotedId, lang } and User { handle, displayName, bio, followers, following, createdAt, verified }.\n3. Data comes from a backend adapter behind a single interface in src/adapters/types.ts. Implement two adapters: official-x (X API v2, bearer token from process.env.X_BEARER_TOKEN) and fixture (reads JSON files from ./fixtures for offline development and tests). Select via BACKEND in .env. Leave a documented stub file for a third adapter so a scraper can be dropped in later, do not write one.\n4. Cache aggressively in SQLite at ./data/cache.db: tables users, tweets, requests. The requests table stores route, normalized params, upstream response hash, and fetchedAt. Serve from cache when fetchedAt is inside a per route TTL set in config, default 6 hours for users, 15 minutes for timelines and search.\n5. Add a token bucket rate limiter around the upstream adapter, configurable requests per 15 minute window, and exponential backoff with jitter on 429 and 5xx. Log every upstream call to stdout as one JSON line with cost accounting: route, cacheHit boolean, upstream calls used.\n6. GET /stats returns cache hit rate, rows stored, upstream calls today.\n7. CLI: npm run backfill -- --handle someuser --pages 5 walks the cursor and fills the cache.\n\nIn scope: normalization, caching, pagination cursors, rate limiting, retries, tests against the fixture adapter.\nOut of scope: proxies, account pools, login flows, scraping X's private endpoints, a frontend, auth on the local API.\n\nSecrets in .env only, ship .env.example. README must state plainly that this gateway stretches whatever upstream access you already have and does not create access you do not have.",
+  "promptCurated": false
+}
