@@ -1,0 +1,52 @@
+{
+  "slug": "wp-all-import",
+  "name": "WP All Import",
+  "domain": "wpallimport.com",
+  "category": "dev-tools",
+  "subcategory": "WordPress data import",
+  "tagline": "WordPress plugin that maps CSV and XML feeds onto posts, custom post types, custom fields and WooCommerce products.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.wpallimport.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Sold as a license, typically annual, with paid add-ons per integration.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If you have one feed and one destination, this is a scripting problem, not a product problem: WP-CLI plus a mapping config gets rows into posts in an afternoon. What you are not rebuilding in one session is the general case, where the mapping UI, XPath preview, delta updates, image sideloading and WooCommerce variations each carry their own pile of edge cases. The plugin's real product is the accumulated damage report from a decade of malformed supplier feeds and shared hosting timeouts. For a personal or single-site import, DIY is fine and arguably cleaner. For agency work across many clients and changing feeds, you will slowly rebuild the plugin and bill yourself for it.",
+  "coreLoopDIY": "A WP-CLI command reads a CSV or XML file, applies a JSON field mapping, and creates or updates posts with meta, taxonomy terms and featured images, keyed on a unique ID so reruns update instead of duplicate.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A WordPress install you control with shell access and WP-CLI",
+    "PHP 8.1 or later",
+    "A sample of the actual feed, not a hypothetical one",
+    "Somewhere to put a must-use plugin"
+  ],
+  "whatYouLose": [
+    "Drag-and-drop mapping with live XPath and CSV preview, so non-developers can run imports",
+    "Add-ons that already understand WooCommerce variations, ACF repeaters, Gravity Forms and WPML",
+    "Scheduled recurring imports with delta detection and rules for records that vanish from the feed",
+    "Hardened chunked processing that survives 500MB files, memory limits and shared hosting timeouts",
+    "Support to email when a supplier silently changes their XML schema on a Friday"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the parser, it is the thousand ways real feeds are broken and the UI that lets a non-coder fix them.",
+  "whyPeopleStillPay": "Because the people running imports are often not the people who can write a migration script, and because agencies are paid for outcomes, not for debugging why 4,000 of 12,000 products imported with blank featured images. A license costs less than one afternoon of billable troubleshooting, and the add-ons mean nobody has to learn how WooCommerce stores variation attributes. A hand-rolled importer is a great fit for your own site and a liability on a client site you may not touch again for a year.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One feed, one script, no problem. Twenty clients with twenty suppliers and you have just accepted a job as a plugin maintainer.",
+  "prompt": "Build a WordPress must-use plugin that imports CSV and XML feeds into WordPress via WP-CLI. No admin UI.\n\nStack: plain PHP 8.1, no Composer dependencies beyond what WordPress ships. Single must-use plugin file plus a small src/ directory, autoloaded manually with require. Target a local WordPress install with WP-CLI available.\n\nDeliverable: a WP-CLI command namespace `wp feedimport`.\n\nCommands:\n1. `wp feedimport inspect --file=path` : detect CSV or XML, print the first record's available fields (CSV headers, or XML element paths from the first repeating node), plus a detected record count.\n2. `wp feedimport run --file=path --map=map.json [--dry-run] [--limit=N] [--offset=N]` : stream records and create or update posts.\n\nThe map.json format, document it in README.md with a worked example:\n- `record_path`: XPath-ish selector for the repeating node in XML, ignored for CSV\n- `post_type`, `post_status`\n- `unique_key`: source field used as the stable external ID\n- `fields`: map of post field names (post_title, post_content, post_date, post_excerpt) to source field names\n- `meta`: map of meta_key to source field name\n- `taxonomies`: map of taxonomy name to source field name, with a `separator` for multi-value cells\n- `images`: optional list of source fields holding image URLs, first one becomes the featured image\n\nBehaviour requirements:\n- Store the unique key in a `_feedimport_uid` meta plus a `_feedimport_hash` of the mapped payload. On rerun, skip unchanged records, update changed ones, never duplicate.\n- Stream input: use fgetcsv for CSV and XMLReader for XML so a 500MB file does not exhaust memory. Do not load the whole file.\n- Create missing taxonomy terms; do not create missing post types, error out clearly instead.\n- Sideload images with media_sideload_image, cache by URL in meta so reruns do not redownload, and keep going with a warning if an image 404s.\n- `--dry-run` prints a per-record create/update/skip table and writes nothing.\n- Every run appends a JSON-lines log to wp-content/uploads/feedimport-logs/ with per-record outcome and errors.\n- Idempotent, resumable via --offset, and safe to Ctrl-C.\n\nExplicitly out of scope: any admin screen, WooCommerce variable products, ACF repeaters, WPML, scheduled cron, remote feed URLs with auth, and deleting posts missing from the feed.\n\nSecrets: none needed. If a feed URL ever needs a token, read it from .env via getenv and ship .env.example only.\n\nInclude: README.md with install-as-mu-plugin steps, a sample map.json, a sample 5-row CSV and a sample XML in examples/, and a `--dry-run` quickstart. Make `wp feedimport inspect` the first thing the README tells you to run.",
+  "promptCurated": false
+}
