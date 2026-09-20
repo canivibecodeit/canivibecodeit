@@ -1,0 +1,52 @@
+{
+  "slug": "respond-io",
+  "name": "Respond.io",
+  "domain": "respond.io",
+  "category": "customer-support",
+  "subcategory": "omnichannel business messaging inbox",
+  "tagline": "Team inbox that pulls WhatsApp, Messenger, Instagram, TikTok and live chat into one conversation queue with routing and automation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://respond.io/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a personal shared inbox: a webhook, a database, a message list, a reply box. What you cannot build is the part people are actually paying for, which is sanctioned access to a dozen proprietary messaging graphs at once. WhatsApp Business API, Instagram DMs and TikTok messaging all require app review, business verification, template approval and a provider relationship, and each one breaks differently when the platform changes its rules. A one-person build on the WhatsApp Cloud API works fine and is genuinely useful, but it is one channel, one number, no routing, no escalation, and no one to call when Meta flags your number. If your real need is one channel and one human answering it, build it; if it is five channels and three agents, do not.",
+  "coreLoopDIY": "A local single-channel inbox that receives WhatsApp Cloud API webhooks, threads them per contact in SQLite, and lets you reply from a browser page.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Meta developer account with a WhatsApp Cloud API phone number and permanent access token",
+    "A public HTTPS webhook URL (tunnel or small VPS) that stays up if you want to receive messages reliably",
+    "Business verification if you ever exceed the test number limits",
+    "Optional Telegram bot token if you want a second channel that is easy"
+  ],
+  "whatYouLose": [
+    "Every channel except the one you wired up: Instagram, Messenger, TikTok, live chat widget, email fallback",
+    "Message template submission and approval workflow, so proactive outbound messaging outside the 24 hour window is off the table",
+    "Team features: assignment, routing rules, shift handover, internal notes, supervisor views",
+    "Contact history that survives across channels, plus reporting anyone would call reporting",
+    "Someone accountable when your number gets rate limited, quality-rated down, or blocked"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The integrations are not REST endpoints you can swap, they are permissioned access to closed messaging networks with review queues attached.",
+  "whyPeopleStillPay": "Because the product is a legal and operational adapter, not software. Getting a verified WhatsApp Business number, keeping template approvals current, staying on the right side of Meta policy across three apps at once, and having the whole thing not go dark during a sale is work that has nothing to do with writing a message list UI. Add the fact that an entire support team's history and habits live in the inbox, and the switching cost compounds every month. A solo operator handling one channel can route around all of this. A team cannot.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The inbox is a weekend; the channel access is not. The moat is permissioned integrations with closed messaging platforms plus the compliance overhead of keeping them alive.",
+  "prompt": "Build a single-channel WhatsApp inbox I can run on my own machine. Do not build a SaaS, no accounts, no multi-tenancy, no telemetry.\n\nStack, non-negotiable: TypeScript, Node 20, Fastify, SQLite via better-sqlite3, server-rendered HTML templates with htmx for updates. No React, no ORM, no Docker.\n\nWhat it does:\n1. Exposes GET /webhook for Meta's verify handshake (echo hub.challenge when hub.verify_token matches env) and POST /webhook for message events from the WhatsApp Cloud API.\n2. Parses inbound text, image and document messages. Store raw payload JSON alongside parsed fields so nothing is lost.\n3. Schema: contacts (wa_id, display_name, last_message_at), messages (id, contact_id, direction, type, body, media_id, wa_message_id, status, created_at, raw_json). Index on contact_id and created_at.\n4. UI at /: left column is contacts ordered by last_message_at with unread counts, right column is the selected thread oldest to newest, with a reply textarea. htmx polls the thread every 3 seconds.\n5. Sending: POST to graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages using WHATSAPP_TOKEN. Insert the outbound message optimistically, then update status from the API response and from later webhook status events (sent, delivered, read, failed).\n6. Media: download inbound media by media_id into ./media and serve it locally. Do not proxy on every page load.\n7. Mark a thread read when opened. That is the only state beyond messages.\n\nRules:\n- Secrets in .env: WHATSAPP_TOKEN, PHONE_NUMBER_ID, WEBHOOK_VERIFY_TOKEN, APP_SECRET, PORT. Commit .env.example only.\n- Verify the X-Hub-Signature-256 header against APP_SECRET and reject mismatches. This endpoint is public.\n- Webhook handler must be idempotent on wa_message_id and must always return 200 fast, processing after the reply.\n- Out of scope, do not build: templates, broadcasts, other channels, assignment, automation, analytics, mobile app.\n- Ship a README that says exactly how to point a Meta app webhook at a tunnel, how to get a permanent token, and the 24 hour customer service window limitation in plain language.\n- Include a seed script that fakes 3 contacts and 20 messages so the UI can be reviewed without Meta credentials.",
+  "promptCurated": false
+}
