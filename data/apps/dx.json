@@ -1,0 +1,52 @@
+{
+  "slug": "dx",
+  "name": "DX",
+  "domain": "getdx.com",
+  "category": "dev-tools",
+  "subcategory": "engineering intelligence and developer productivity measurement",
+  "tagline": "Developer experience platform that measures engineering productivity through surveys plus system metrics and benchmarks it against other companies.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getdx.com/",
+    "checkedOn": "2026-09-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. DX sells via enterprise contracts and does not publish a public price.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard half of DX is genuinely a weekend project: pull pull requests and deploys from the GitHub API, compute lead time, deploy frequency, change failure rate, draw some charts. The part you cannot build is the comparison set, DX's pitch is that your median PR review time means something relative to hundreds of other engineering organizations, and that number only exists because those organizations handed over their data. The survey side is not just a form either, it is a research-backed instrument with validated question wording, and an internally invented employee survey tends to get read as management theater rather than measurement. There is also the awkward org dynamic: metrics about engineers are more credible when a neutral third party collects them, which is a thing software cannot provide you. Build the personal telemetry dashboard for your own team, skip the benchmark fantasy.",
+  "coreLoopDIY": "Pulls your repo and deploy history from the GitHub API into SQLite and renders your own DORA-style metrics over time, with a bare bones internal survey you run yourself.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "GitHub personal access token with repo and actions read scope",
+    "Node 22 and a machine that can run a nightly cron or scheduled job",
+    "Admin access to the repos and CI you want to measure",
+    "Willingness to write your own survey questions, or borrow from published DORA and SPACE research"
+  ],
+  "whatYouLose": [
+    "Cross-company benchmarks, your numbers become a trend line with no outside context",
+    "A validated, research-designed survey instrument and the credibility that comes with it",
+    "Third party neutrality, which is a real factor when the data is about people's work",
+    "Prebuilt connectors for Jira, GitLab, Bitbucket, CircleCI, Datadog, PagerDuty, Okta and so on",
+    "Executive-ready reporting, org rollups, and the consulting-flavored help interpreting bad numbers"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "The benchmark corpus is the product. Every new customer makes the percentile lines slightly more defensible, which is a quiet network effect sitting on top of a data moat.",
+  "whyPeopleStillPay": "Engineering leaders do not buy DX because charting deploy frequency is hard, they buy it because they need to walk into a board meeting and say where their org sits relative to the industry, and because a survey about developer happiness lands very differently when an outside firm sends it. A homegrown dashboard answers the question only for yourself. It also quietly becomes someone's maintenance job the moment CI changes, which is exactly the kind of work a VP of Engineering was trying to buy their way out of.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The metrics dashboard is a weekend build; the percentile you are compared against is not. The moat is a benchmark corpus assembled from hundreds of engineering orgs, plus the credibility of not being the boss who wrote the survey.",
+  "prompt": "Build a self-hosted engineering metrics dashboard called \"localdx\" in an empty folder.\n\nStack, no substitutions:\n- Next.js 15 with the App Router, TypeScript, Tailwind for styling\n- SQLite via better-sqlite3, file at ./data/localdx.db\n- Recharts for charts\n- No auth, no accounts, no telemetry, no hosted services. This runs on localhost or a private box.\n\nPart 1, ingestion:\n- A script `npm run sync` that reads GITHUB_TOKEN and GITHUB_REPOS (comma separated owner/repo) from .env\n- Fetch merged pull requests and workflow runs for the last 180 days using the GitHub REST API, paginate properly, respect rate limit headers, retry on 403 secondary limits\n- Store raw rows in tables `pull_requests` and `workflow_runs`, upsert on id so reruns are idempotent\n- Log a one line summary per repo when done\n\nPart 2, metrics:\n- Compute weekly series for: deploy frequency (successful runs of a workflow named in DEPLOY_WORKFLOW), lead time for changes (first commit to merge, median and p75), PR review latency (open to first review), PR size in lines changed, change failure rate (deploy runs that failed or were followed by a revert commit within 24h)\n- Put every computation in src/metrics/ as pure functions with unit tests using node:test\n\nPart 3, dashboard:\n- One page at / with a repo selector, a date range selector, and one chart per metric\n- A table of the 20 slowest merged PRs in range with links to GitHub\n- Show medians, never means, and label sample size on every chart\n\nPart 4, survey:\n- A local survey at /survey with 10 configurable questions in survey.json, 5 point scale plus one free text\n- Anonymous responses stored in a `survey_responses` table with no IP, no user agent, no identifier\n- Results page shows distributions only, and refuses to render a question with fewer than 5 responses\n\nExplicitly out of scope: industry benchmarks, Jira or GitLab connectors, per-developer leaderboards, multi-tenant anything.\nWrite a README that states plainly that this measures trends inside one org and cannot tell you how you compare to anyone else.",
+  "promptCurated": false
+}
