@@ -1,0 +1,50 @@
+{
+  "slug": "meeting-reminders",
+  "name": "Meeting Reminders",
+  "domain": "meeting-reminders.com",
+  "category": "scheduling",
+  "subcategory": "calendar reminder pings",
+  "tagline": "Sends automatic reminders so people actually show up to their meetings on time.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://meeting-reminders.com/",
+    "checkedOn": "2026-09-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Underneath the product is a loop any agent can write: poll a calendar, find events starting soon, send a message. There is no proprietary data, no model, no network you need to join. The interesting part of the commercial version is nudging other attendees, which needs either a shared chat workspace or their consent, and that is where a personal build stops being equivalent. For reminding yourself, or a team that already lives in one Slack channel with one bot token, a single script and a cron entry covers it. The rest is onboarding polish and someone else keeping the poller alive.",
+  "coreLoopDIY": "Polls your Google Calendar every minute and posts a reminder to Slack or your phone a set number of minutes before each meeting, once per event.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Google Cloud project with Calendar API enabled and OAuth client credentials",
+    "A machine that stays on: a small VPS, a Raspberry Pi, or a scheduled cloud function",
+    "A Slack incoming webhook or an ntfy topic for delivery"
+  ],
+  "whatYouLose": [
+    "Pinging other attendees without each of them authorizing your script or joining your Slack workspace",
+    "Someone else guaranteeing the poller ran at 8:59am when your laptop was asleep",
+    "Handling for the messy cases: recurring event exceptions, timezone shifts, declined invites, all-day events",
+    "Native mobile push and a settings UI instead of editing a config file",
+    "Team-level admin, per-person preferences, and billing if you ever wanted colleagues on it"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is calendar and chat plumbing that already works plus the fact that nobody wants to babysit a cron job for a reminder.",
+  "whyPeopleStillPay": "Because a reminder tool that misses a reminder is worse than no tool, and self-hosted cron jobs fail quietly. Paying also solves the social problem: you can nudge the whole meeting without asking five colleagues to grant OAuth scopes to a script you wrote on a Saturday. The software is trivial; the reliability and the permission story are what you are actually buying.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A genuinely small piece of software wrapped around a genuinely annoying human problem.",
+  "prompt": "Build a personal meeting reminder daemon in an empty folder.\n\nStack, no alternatives: Node 20, TypeScript, tsx for running, SQLite via better-sqlite3, node-cron for scheduling. No web framework, no frontend, no database server, no telemetry, no accounts.\n\nBehavior:\n1. On first run, do a Google OAuth desktop flow for the scope https://www.googleapis.com/auth/calendar.readonly, print the consent URL to the terminal, accept the pasted code, and store the refresh token in a local file token.json that is gitignored.\n2. Every 60 seconds, list events from the primary calendar in a window from now to now plus 60 minutes, using the Calendar API with singleEvents true and orderBy startTime.\n3. For each event, compute the reminder time as start minus LEAD_MINUTES from .env (default 5). If that moment has passed within the last 90 seconds and no reminder row exists for that event id plus start time in SQLite, send a reminder and insert the row.\n4. Skip events where the user's own responseStatus is declined, events marked all-day, and events with no attendees other than the user if IGNORE_SOLO is true.\n5. Delivery: post to SLACK_WEBHOOK_URL if set, otherwise POST to an ntfy topic at NTFY_URL. Message includes the title, minutes until start, the location or hangoutLink, and the attendee count.\n6. Log every send and every skip reason to stdout with timestamps.\n\nIn scope: dedupe across restarts, timezone-correct math using the event's own timezone offsets, retry a failed send up to 3 times with backoff, a --dry-run flag that prints instead of sending, a --once flag for use with system cron instead of the built-in loop.\n\nOut of scope: reminding other attendees, a web UI, multi-user support, Outlook, recurring-event edit handling beyond what singleEvents gives you.\n\nAll secrets in .env, read with process.env, no hardcoded values. Write a README with the Google Cloud setup steps, a sample .env, and a systemd unit file for running it as a service.",
+  "promptCurated": false
+}
