@@ -1,0 +1,50 @@
+{
+  "slug": "xaml-io",
+  "name": "XAML.io",
+  "domain": "xaml.io",
+  "category": "dev-tools",
+  "subcategory": "XAML editor and live preview",
+  "tagline": "A browser-based XAML editor that renders your markup live so you can iterate on UI without a full rebuild.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://xaml.io/",
+    "checkedOn": "2026-09-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not magic: XAML frameworks ship a runtime parser, so a small desktop host that reads a .xaml file, inflates it, and swaps the rendered tree on file save is a single-session build. That gets you the thing you actually want, which is edit and see the result in under a second without waiting on a full compile. What you will not get in one shot is the browser part, and that is the hard part: running a real XAML renderer in a tab means either a WASM build of the framework or server-side rendering, plus shareable snippet URLs. Code-behind, bindings against real view models, and multi-framework targets all degrade to \"whatever the runtime parser supports\", which is less than the compiler supports. Fine for layout and styling iteration, annoying the moment you need logic.",
+  "coreLoopDIY": "A local Avalonia desktop app that watches a XAML file, re-parses it on every save, and shows the rendered UI beside a parser error panel.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    ".NET 8 SDK",
+    ".NET desktop tooling on Windows, macOS, or Linux",
+    "a text editor you already like"
+  ],
+  "whatYouLose": [
+    "Runs in a browser with nothing installed, which matters for quick sharing and for teaching",
+    "Shareable snippet links, so you cannot paste a repro to a colleague in one URL",
+    "Editor niceties like XAML-aware completion, schema hints, and inline error squiggles",
+    "Code-behind and compiled bindings: a runtime parser only handles markup, so logic-heavy views fall over",
+    "Multiple framework targets side by side, since your local host renders in exactly one framework"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Getting a real XAML renderer to behave inside a browser tab is the entire product. The editor UI around it is the easy half.",
+  "whyPeopleStillPay": "Because zero-install matters more than it sounds like it does. If you want to test a control template on a machine that is not yours, or paste a live repro into a bug thread, or teach XAML to someone who has never run a .NET SDK install, a URL beats a local hot-reload host every time. The local build is strictly better for daily work on your own machine and strictly worse for anything involving another human.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The preview loop is a one-sitting build; the browser runtime is the part you are actually paying for.",
+  "prompt": "Build a local XAML live-preview tool as a desktop app. Empty folder, start from scratch.\n\nStack, no substitutions:\n- .NET 8\n- Avalonia UI 11 (MVVM optional, keep it simple and code-first)\n- Avalonia.Markup.Xaml runtime loader (AvaloniaRuntimeXamlLoader) for inflating markup at runtime\n- No web server, no cloud, no telemetry, no accounts\n\nWhat it does:\n1. Takes a file path as a CLI arg, or shows a file picker if none is given.\n2. Splits the window: left is a simple text editor bound to the file contents, right is the rendered preview surface.\n3. Watches the file with FileSystemWatcher, debounced at 250ms, and also re-renders on Ctrl+S from the built-in editor.\n4. On each change, parse the markup with AvaloniaRuntimeXamlLoader inside a try/catch and swap the resulting control into the preview pane.\n5. On parse failure, keep the last good render visible, dim it, and show the exception message plus line and column in a red error strip at the bottom. Never crash the host.\n6. Toolbar: reload, pick file, toggle a light/dark theme on the preview surface only, and a width/height numeric pair to simulate a fixed viewport.\n7. Persist the last opened file path and window size to a local JSON file in the user config directory.\n\nExplicitly out of scope:\n- Code-behind, compiled bindings, x:Class resolution. If the markup declares x:Class, show a clear message saying runtime parsing cannot handle it.\n- Any framework other than Avalonia. Do not attempt WPF or MAUI.\n- Syntax highlighting or completion. Plain TextBox is fine; the user's real editor is expected to do the typing.\n- Sharing, export, snippet URLs.\n\nDeliverables: a single project, a README with build and run commands, and two sample .xaml files in a samples/ folder, one valid and one with a deliberate syntax error, so the error path is testable immediately.",
+  "promptCurated": false
+}
