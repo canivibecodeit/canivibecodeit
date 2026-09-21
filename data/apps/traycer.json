@@ -1,0 +1,51 @@
+{
+  "slug": "traycer",
+  "name": "Traycer",
+  "domain": "traycer.ai",
+  "category": "dev-tools",
+  "subcategory": "AI planning layer for coding agents",
+  "tagline": "A planning layer that reads your repo and writes file-level implementation plans for coding agents to execute.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://traycer.ai/",
+    "checkedOn": "2026-09-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The idea is not secret: instead of letting an agent freestyle, you force a plan first, then hand the plan to the agent phase by phase. An agent can absolutely build you a CLI that maps a repo, drafts a phased plan with per-file changes, and pipes each phase into Claude Code or Codex. What you will not get in one session is the part people actually pay for: the editor UX where you read, edit and approve a plan before a single line is written, plus the repo exploration and verification loops that took them many iterations to tune. Your version will produce plans that are plausible and occasionally hallucinate files that do not exist. That is the difference between a planning toy and a planning tool, and it is mostly grind, not insight.",
+  "coreLoopDIY": "A CLI that builds a repo map, asks an LLM for a phased implementation plan with explicit file-level changes, saves it as reviewable markdown, then feeds approved phases one at a time to your existing coding agent.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a git repo to point it at",
+    "An Anthropic or OpenAI API key in .env",
+    "ripgrep installed",
+    "An existing agent CLI (Claude Code, Codex, Aider) for the execution half"
+  ],
+  "whatYouLose": [
+    "The editor extension: reading and editing a plan in a real UI beats editing markdown in a terminal",
+    "Tuned repo exploration, so your plan will reference files that do not exist more often than theirs does",
+    "Verification passes that check the agent's output against the plan instead of trusting it",
+    "Multi-phase state tracking across long tasks without you babysitting the loop",
+    "Whatever prompt engineering they have accumulated per model, which is invisible and matters"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not data or network, it is the thousand small corrections between a plan that reads well and a plan an agent can execute without drifting.",
+  "whyPeopleStillPay": "Because planning is the boring part and getting it 80 percent right is worthless. A plan that misnames three files or skips a migration costs you the whole session it was supposed to save, so the value is entirely in reliability and review ergonomics, both of which come from iteration rather than cleverness. Teams also pay because it slots into the editor where they already work, rather than being a second terminal they forget to use. If you enjoy tuning prompt harnesses, build it. If you want plans you trust on a Tuesday afternoon, the subscription is cheaper than your own debugging.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The clone is easy to start and annoying to finish, which is the story of most agent tooling.",
+  "prompt": "Build a CLI tool called \"plan\" in TypeScript on Node 20, no web UI, no accounts, no telemetry.\n\nPurpose: generate a reviewable, file-level implementation plan for a coding task in an existing git repo, then hand approved phases to an agent CLI for execution.\n\nStack: TypeScript, tsx for dev, commander for args, the Anthropic Messages API via fetch, zod for validating model output. No framework beyond that. ANTHROPIC_API_KEY comes from .env via dotenv. Commit a .env.example, gitignore .env.\n\nCommands:\n1. `plan new \"<task description>\"` : build a repo map, then produce a plan.\n2. `plan show` : pretty-print the current plan from .plan/plan.json.\n3. `plan run <phaseNumber>` : print or execute the handoff prompt for one phase.\n\nRepo map: use `git ls-files` for the file list, skip anything in .gitignore, node_modules, lockfiles, and binaries. For candidate-relevant files, use ripgrep with keywords extracted from the task description to find hits, then read at most 40 files and at most 400 lines each. Include package.json, tsconfig.json and any README in full. Assemble this into a single context string with a hard token budget; truncate the least relevant files first and log what you dropped.\n\nPlanning call: one Anthropic call with a system prompt that demands strict JSON matching this zod schema: { summary: string, assumptions: string[], openQuestions: string[], phases: [{ title, intent, files: [{ path, action: \"create\"|\"modify\"|\"delete\", changes: string[] }], verification: string[] }] }. Validate with zod and retry once on parse failure with the error text appended.\n\nGround truth check: after validation, assert every \"modify\" or \"delete\" path actually exists on disk. Any path that does not exist gets flagged in the output as UNVERIFIED rather than silently accepted. This check is the whole point, do not skip it.\n\nPersistence: write .plan/plan.json plus a human-readable .plan/plan.md. The markdown is the review surface, so make it clean: one section per phase, files as a table, verification steps as a checklist. The user is expected to edit plan.md by hand; `plan run` should re-parse plan.md as the source of truth, not plan.json.\n\nHandoff: `plan run N` emits a single self-contained prompt containing the phase intent, the exact file list with actions, the verification steps, and an instruction to touch no files outside the list. With `--exec` it pipes that prompt to `claude -p` as a child process and streams output. Without `--exec` it just prints, so the user can paste it anywhere.\n\nOut of scope: no editor extension, no multi-model support, no automatic re-planning after failures, no plan history or diffing between plan versions. Ship a README with a worked example against a small sample repo.",
+  "promptCurated": false
+}
