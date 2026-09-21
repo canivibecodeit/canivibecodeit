@@ -1,0 +1,51 @@
+{
+  "slug": "stagetimer",
+  "name": "StageTimer",
+  "domain": "stagetimer.io",
+  "category": "presentations",
+  "subcategory": "stage and event countdown timers",
+  "tagline": "Browser-based countdown timer for live events, with a controller on one device and fullscreen timers on the screens everyone else sees.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://stagetimer.io/",
+    "checkedOn": "2026-09-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The whole product is a server-authoritative countdown plus a websocket fan-out to display clients, and that is a genuinely small program. An agent can ship a controller page, a fullscreen viewer page, clock-offset correction, start/stop/adjust, and flash-a-message in one session, and on a venue LAN it will be indistinguishable from the paid thing. What you are actually buying from StageTimer is that it already works on show day, on someone else's uptime, from a phone on hotel wifi, with Companion and API hooks for the people running the switcher. If your use is a meetup, a podcast, a workshop, or your own talks, the DIY build is fine. If you are billing a client for the show, the fifteen dollars is cheaper than the incident.",
+  "coreLoopDIY": "Runs a tiny local server that owns the authoritative clock, serves a controller page and any number of fullscreen timer displays, and keeps them in sync over websockets with per-client offset correction.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a machine that stays awake during the event",
+    "All devices on the same network, or a tunnel if not",
+    "A browser on each display device, ideally in kiosk mode"
+  ],
+  "whatYouLose": [
+    "Hosted uptime and someone else's problem at 8am on show day",
+    "Bitfocus Companion, Stream Deck, and API control that AV crews already wired up",
+    "Native mobile apps and reliable control from a phone on someone else's wifi",
+    "Polished extras: agenda and cue lists, message presets, blackout and flash, speaker view variants",
+    "Multi-room, multi-timer setups with per-viewer links you can hand to a client"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the timer, it is the confidence that it will not stop ticking while 400 people watch.",
+  "whyPeopleStillPay": "Live events are the one context where a five percent failure rate is unacceptable and the cost of failure is public. People pay StageTimer because it has already survived thousands of shows, it runs on infrastructure they do not maintain, and it plugs into the control surfaces AV operators already own. A self-hosted version covers the function completely but not the insurance, and on show day the insurance is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare paid tools where the DIY version is honestly the same tool, minus the safety net.",
+  "prompt": "Build a self-hosted stage timer: one controller, many fullscreen displays, synced over a local network.\n\nStack, no substitutions:\n- Node 20, Express, and the ws package. No framework, no build step, no database.\n- Plain HTML, CSS, and vanilla JS in /public. No React, no Tailwind CDN.\n- State lives in memory on the server, optionally mirrored to state.json so a crash-restart recovers.\n\nServer:\n- The server owns the authoritative clock. Never trust client time.\n- Timer state: { id, name, durationMs, startedAt, pausedRemainingMs, running, wrapUpAtMs, message, messageVisible, blackout }.\n- Support multiple named timers in an ordered list, with exactly one active at a time.\n- Websocket protocol: clients get a full state snapshot on connect, then deltas on every change.\n- Implement a ping/pong echo so each client estimates its offset from server time and renders from server time, not local time. Displays must agree within ~100ms.\n- REST endpoints mirroring every control action, so curl or a Stream Deck can drive it: start, pause, reset, add or subtract seconds, next timer, set message, toggle message, toggle blackout.\n\nPages:\n- /  controller: list of timers, big start/pause/reset, plus and minus 30s and 1m, a message box with send/hide, a blackout toggle, and a live copy of what displays currently show.\n- /view  display: nothing but the clock, sized to fill the viewport with no scrollbars, white on black, counts down and then counts up in red past zero, turns amber inside the wrap-up threshold, shows the message overlay when visible, goes fully black on blackout.\n- /view accepts ?timer=id to pin a display to a specific timer, and ?hideName=1 to strip chrome.\n\nRules:\n- No accounts, no telemetry, no cloud calls. PORT and an optional CONTROL_TOKEN go in .env; the token, if set, gates the controller and the REST routes only, never /view.\n- Displays must reconnect automatically and keep counting from their last known state while offline.\n- Print the LAN URLs for controller and display on startup.\n- Ship a README with a two-line quickstart and a curl example for every REST route.\n\nOut of scope: mobile apps, user management, cloud hosting, agenda import, video output.",
+  "promptCurated": false
+}
