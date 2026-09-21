@@ -1,0 +1,51 @@
+{
+  "slug": "facswap-video-selfie",
+  "name": "Facswap Video Selfie",
+  "domain": "artifacial.io",
+  "category": "ai-video",
+  "subcategory": "face swap",
+  "tagline": "Web tool that swaps a face from one uploaded selfie into a video clip.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://artifacial.io/workshop/video-face-swap",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Video face swapping is one of the few AI features where the hard part is genuinely public: face detection, embedding and swapping models have been open source for years, and the whole pipeline is frame extraction, per frame swap, optional face restoration, then reassembly with the original audio. An agent can write that pipeline in one sitting and it will work. What eats the weekend is everything around it: sourcing model weights that keep getting pulled from public hosts, getting onnxruntime to actually use your GPU, and then discovering that a 30 second 1080p clip takes real minutes on consumer hardware. The paid version is mostly a GPU you do not own plus a pipeline someone already tuned for temporal stability and skin tone matching. Buildable, and the output will be noticeably rougher than a tool that has spent months on the ugly details.",
+  "coreLoopDIY": "A local Python CLI plus small web UI that takes a source face image and a video, swaps the face frame by frame, optionally restores face detail, and muxes the original audio back in.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg installed locally",
+    "An NVIDIA GPU with CUDA, or patience on CPU / Apple Silicon",
+    "Face detection, recognition and swapper model weights you source yourself and are allowed to use",
+    "Enough disk for extracted frames on longer clips"
+  ],
+  "whatYouLose": [
+    "Someone else's GPU: long clips on your laptop go from seconds to many minutes",
+    "Tuned temporal consistency, so your version will flicker and shift more between frames",
+    "Automatic face restoration and color matching that has been dialed in, not guessed at",
+    "Model weight hosting and updates handled for you, instead of hunting mirrors",
+    "Any consent or abuse guardrails, which are now entirely your problem"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The models are public. The inference bill and the hundred small quality fixes are not.",
+  "whyPeopleStillPay": "Because the pipeline is free but the compute is not, and most people who want to swap their face into a clip want it in the next two minutes from a phone browser, not after a CUDA install and a night of onnxruntime version roulette. There is also a quality gap that is easy to underestimate: the difference between a naive per frame swap and something that does not shimmer is a lot of unglamorous tuning around alignment, masking, restoration strength and color transfer. Paying for credits buys the GPU and someone else's accumulated fixes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The interesting part of this category is not the model, it is the queue behind it.",
+  "prompt": "Build a local video face swap tool. No accounts, no cloud, no telemetry, everything runs on my machine.\n\nStack, non negotiable:\n- Python 3.11, dependencies managed with uv and a pyproject.toml\n- onnxruntime (use onnxruntime-gpu if CUDA is present, fall back to CPU provider automatically)\n- insightface for face detection and face embeddings\n- an ONNX face swapper model loaded from a local ./models directory\n- ffmpeg called as a subprocess for demux, frame extraction and remux\n- typer for the CLI, gradio for a tiny local UI\n\nWhat it does:\n1. `swap image SOURCE_FACE.jpg TARGET.jpg -o out.jpg`: single image swap, useful for fast iteration.\n2. `swap video SOURCE_FACE.jpg TARGET.mp4 -o out.mp4`: probe the video with ffprobe, extract frames to a temp dir as PNG, detect faces per frame, swap the largest face by default, write frames back, then reassemble with ffmpeg copying the original audio stream and preserving fps and resolution.\n3. Flags: --face-index to pick which detected face to replace, --every-nth to preview quickly, --restore to run an optional face restoration model if its weights exist in ./models, --restore-strength as a 0 to 1 blend, --workers for parallel frame processing.\n4. Do simple mask feathering and color transfer between the swapped patch and the surrounding skin so edges are less obvious. Keep this code in one clearly named module so I can tune it.\n5. Resume support: if the temp frame dir already has processed frames, skip them.\n\nUI: a single gradio page with source image upload, video upload, the flags above as controls, a progress bar driven by frames processed, and the result video player. Bind to 127.0.0.1 only.\n\nExplicitly out of scope: user accounts, hosted inference, job queues, watermarking, model weight downloading (print a clear message with the expected filenames in ./models if they are missing), mobile app.\n\nAlso produce: a README with the exact ffmpeg and uv commands, a .env.example only if any path override is actually needed, and a CONSENT.md one pager stating this is for faces you have permission to use. Print realistic timing after each run: frames, seconds per frame, total.",
+  "promptCurated": false
+}
