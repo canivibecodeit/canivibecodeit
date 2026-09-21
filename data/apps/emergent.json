@@ -1,0 +1,52 @@
+{
+  "slug": "emergent",
+  "name": "Emergent",
+  "domain": "emergent.sh",
+  "category": "no-code-apps",
+  "subcategory": "AI app builder agent",
+  "tagline": "Prompt-to-app service that spins up an AI agent, builds a full-stack web app for you, and hosts it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://emergent.sh/",
+    "checkedOn": "2026-09-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit-style consumption pricing is the norm in this category, but the specific numbers were not checked.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "There is something funny about asking a coding agent to one-shot a coding agent, and the funny part is that it mostly works. The core loop here is not exotic: a model with file-write and shell tools, a scratch directory, a dev server, and a retry loop that feeds errors back in. A competent agent can hand you a local version of that in a sitting, and open source harnesses already do it better than a fresh build will. What you cannot conjure is the part Emergent actually sells: a frontier model you do not own, a disposable sandbox per project, and a deploy button that produces a URL a non-developer can send to someone. So it lands on kinda: the intelligence is rented either way, and the convenience layer is where the money is.",
+  "coreLoopDIY": "A local CLI agent that takes a plain-English app description, writes files into a project folder, runs the dev server, reads the errors, and iterates until the thing boots.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a frontier model, billed to you",
+    "Docker, if you want the agent's shell commands sandboxed instead of loose on your laptop",
+    "Node and Python locally",
+    "Somewhere to deploy the output yourself, which is a separate problem"
+  ],
+  "whatYouLose": [
+    "Hosted per-project sandboxes, so the agent's `rm -rf` typo hits your actual filesystem",
+    "One-click deploy to a live URL with a domain and TLS already handled",
+    "The browser UI with previews, which is the entire product for non-developers",
+    "Model cost absorbed into a subscription instead of a metered API bill you watch nervously",
+    "Whatever prompt scaffolding and integration templates they have tuned over thousands of builds, which is unglamorous and genuinely worth something"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the agent, it is the sandbox fleet, the deploy pipeline, and the fact that a non-coder can use it without opening a terminal.",
+  "whyPeopleStillPay": "Because the people paying for this mostly cannot run the DIY version. If you are comfortable installing a harness, wiring an API key, and debugging a container, you already have better free options and Emergent was never aimed at you. If you are not, then the browser UI, the managed sandbox, the preview pane, and the URL at the end are not conveniences, they are the whole product. Developers who do pay are usually buying the disposable environment and the deploy step, not the model access.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Building your own agent to avoid paying for an agent is a very specific kind of hobby, and it is a good one.",
+  "prompt": "Build a local CLI coding agent called \"forge\" that turns a plain-English app description into a working web project. Python 3.11, no framework beyond the standard library plus `anthropic`, `docker`, and `rich`. Single package in ./forge, entrypoint `python -m forge \"build me a habit tracker\"`.\n\nArchitecture, not negotiable:\n- One agent loop: send the task plus conversation history to the Anthropic Messages API with tool definitions, execute the returned tool call, append the result, repeat until the model emits a done signal or hits a 60 step cap.\n- Tools: read_file, write_file, list_dir, run_command, done. Nothing else.\n- All file paths are resolved inside ./workspace/PROJECT_NAME and anything escaping that directory is rejected before execution, not after.\n- run_command executes inside a Docker container built from a Dockerfile you generate: node:20 base, workspace bind-mounted at /app, no network after the initial dependency install step, 120 second timeout per command, stdout and stderr truncated to 4000 chars before going back to the model.\n- After every successful write_file, `git add -A && git commit` inside the workspace so every step is a checkpoint. Add a `forge rollback N` command that resets to a prior commit.\n- The system prompt tells the model to scaffold with Vite plus React plus SQLite via better-sqlite3 and an Express API, because picking a stack per run wastes tokens and produces mush.\n- After the model says done, run the dev server, poll http://localhost:5173 for a 200, and if it fails feed the server logs back in as a new user turn. Max 5 repair rounds.\n\nIn scope: the loop, the tools, the sandbox, git checkpoints, the repair rounds, streaming the model's text to the terminal with rich, and a cost readout of input and output tokens per run.\n\nOut of scope: a web UI, accounts, multi-user anything, deploying the generated app anywhere, telemetry, model provider abstraction. One provider, one stack.\n\nANTHROPIC_API_KEY comes from .env via os.environ, .env is gitignored, and .env.example ships with the key name only. Write a README with the three commands a person actually needs and one honest paragraph on why letting a model run shell commands inside Docker is safer than on your laptop but is not actually safe.",
+  "promptCurated": false
+}
