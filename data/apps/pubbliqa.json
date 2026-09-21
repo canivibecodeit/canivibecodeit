@@ -1,0 +1,52 @@
+{
+  "slug": "pubbliqa",
+  "name": "Pubbliqa",
+  "domain": "pubbliqa.it",
+  "category": "publishing",
+  "subcategory": "public notices and transparency publishing",
+  "tagline": "Italian platform for publishing official notices and transparency documents online.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pubbliqa.it/",
+    "checkedOn": "2026-09-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software part here is not the hard part: a register of notices, uploads, dates, a searchable public archive, that is a weekend at most. The hard part is that publication of this kind in Italy carries legal weight, which means retention rules, tamper-evident audit trails, timestamping, accessibility obligations and an entity willing to sign its name under all of it. A personal clone publishes documents; it does not make a publication legally valid or defensible if someone disputes when a notice went up. If you are a private person who just wants a clean public archive of documents with dates, build it and move on. If the publication has to hold up in front of a lawyer or an auditor, do not self-host your way into that problem.",
+  "coreLoopDIY": "A self-hosted register that stores dated notices with attachments, publishes them to a public searchable archive, and logs every change with a hash chain.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a small VPS or any always-on host",
+    "a domain if the archive is meant to be public",
+    "object or disk storage for attachments",
+    "a backup you actually test"
+  ],
+  "whatYouLose": [
+    "Legal presumption: your timestamps are yours, not a third party's attestation",
+    "Retention and archival guarantees, including what happens when your VPS dies",
+    "Accessibility and format compliance work that public publishing tends to require",
+    "Someone else's liability and support when a publication is challenged",
+    "Templates and workflows already shaped around Italian administrative practice"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "switching-costs"
+  ],
+  "moatNotes": "Nobody pays for the upload form. They pay so the publication is somebody else's problem.",
+  "whyPeopleStillPay": "Because the value is not the CMS, it is the paper trail. When a notice has to be provably online from a specific date, in a specific format, kept for a specific number of years, a vendor that does this for hundreds of entities is cheaper than becoming an expert in it yourself. Add the fact that the buyer is usually an organisation with procurement rules and an auditor, and a self-hosted script is not an option even when it works perfectly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The publishing app is a weekend; the legal weight of the publication is not. The moat is compliance: retention rules, tamper-evident dating, and a vendor willing to be liable for both.",
+  "prompt": "Build a self-hosted public notice register called \"Albo\" in an empty folder.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind for styling\n- SQLite via better-sqlite3, file at ./data/albo.db\n- Attachments stored on disk under ./data/files, never in the DB\n- No auth provider, no cloud services, no telemetry, no analytics\n\nData model:\n- notice: id, title, body (markdown), category, publishedAt, expiresAt (nullable), status (draft | published | archived), createdAt, updatedAt\n- attachment: id, noticeId, filename, mimeType, sizeBytes, sha256, uploadedAt\n- auditEvent: id, noticeId, action, payloadJson, createdAt, prevHash, hash\n\nRequirements:\n- Admin area at /admin protected by a single password read from ADMIN_PASSWORD in .env, session in a signed httpOnly cookie. Commit .env.example only.\n- Admin can create, edit, publish, archive notices and upload attachments. Publishing sets publishedAt once and never rewrites it.\n- Every write appends an auditEvent whose hash is sha256 of prevHash plus the serialized payload, forming a chain. Add a /admin/integrity page that walks the chain and reports the first break.\n- Public side: / lists published notices newest first with category and date filters, /notice/[id] renders the notice and links attachments by sha256-verified download, /archive lists expired ones separately.\n- Full text search over title and body using SQLite FTS5.\n- RSS feed at /feed.xml and a JSON export at /export.json covering all published notices and attachment hashes.\n- npm run backup copies data/ into ./backups with a timestamped folder.\n\nOut of scope, do not build: user roles, multi-tenant, PDF/A conversion, qualified electronic timestamps, digital signatures, email notifications, accessibility certification.\n\nDeliver a README stating plainly that this provides no legal presumption of publication date and that the hash chain is self-attested.\nSeed 6 sample notices so the UI is not empty on first run.",
+  "promptCurated": false
+}
