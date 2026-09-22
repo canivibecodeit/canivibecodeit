@@ -1,0 +1,52 @@
+{
+  "slug": "makeforms-io",
+  "name": "MakeForms.io",
+  "domain": "makeforms.io",
+  "category": "forms",
+  "subcategory": "online form builder",
+  "tagline": "Drag-and-drop form and survey builder with conditional logic, file uploads, payments and HIPAA-oriented plans.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://makeforms.io/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A form is an HTML element, and a form builder is a JSON schema plus a responses table. An agent can hand you a self-hosted builder, a public form page, an embed snippet and CSV export in a single sitting, and for personal or small-team use that is genuinely enough. The gaps show up the moment the form has to be dependable rather than functional: email notifications that actually land, spam that does not drown you, file uploads that need storage, payment fields, and the compliance paperwork if the data is medical or regulated. MakeForms sells the boring reliability layer and a signable BAA, neither of which your weekend build has. Build it if the forms are for you; keep paying if someone else's private data lands in them.",
+  "coreLoopDIY": "Define a form as JSON, publish it at a public URL or embed it anywhere, and collect submissions into a local database you can browse and export.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a place to run it (a small VPS or any Node host)",
+    "A domain or subdomain if you want the form embedded on a real site",
+    "Optional: a transactional email key (Resend or SMTP) for submission notifications",
+    "Optional: S3-compatible bucket if you need file uploads"
+  ],
+  "whatYouLose": [
+    "Deliverable notification and autoresponder email without you babysitting a sending domain",
+    "Real spam defense beyond a honeypot: no reputation scoring, no managed captcha fallback",
+    "HIPAA posture and a signable BAA, plus audit logs and encryption-at-rest claims you can show a client",
+    "Payment fields, Stripe collection, coupon logic and receipt handling out of the box",
+    "Polish: partial-save, multi-page progress, conditional logic UI, response analytics, 100+ ready templates"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The compliance tier is the real product. Anyone can render inputs; almost nobody wants to personally own the liability for where the answers go.",
+  "whyPeopleStillPay": "People pay for forms because forms are a place other people's data lands, and that makes them a liability surface rather than a coding exercise. If you are collecting patient intake, job applications or payment details, you want someone else's encryption claims, retention controls and a contract to point at when a client's security reviewer asks. The rest of it is maintenance fatigue: sending domains rot, spam evolves, file storage bills arrive, and none of that is fun to own for a form you built once. A self-hosted builder is a great answer for your own signups and a poor answer for anything a lawyer will read.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy; the babysitting of email deliverability and spam is the part nobody budgets for.",
+  "prompt": "Build a self-hosted form builder and response collector. Empty folder, no scaffolding questions, just make these decisions and go.\n\nStack, non-negotiable: Next.js (App Router, TypeScript), Tailwind, SQLite via better-sqlite3, Zod for validation. No ORM, no external auth provider, no analytics, no telemetry.\n\nData model in SQLite:\n- forms: id, slug, title, description, schema (JSON), created_at, updated_at, is_published, notify_email (nullable)\n- submissions: id, form_id, payload (JSON), created_at, ip_hash, user_agent\n\nForm schema is a JSON array of fields. Support exactly these types: short_text, long_text, email, number, select, multi_select, checkbox, date, url. Each field has id, label, type, required, options (for selects), help_text. Nothing else. No conditional logic, no file uploads, no payments.\n\nRoutes:\n- /admin: list forms, create, edit. Single password gate read from ADMIN_PASSWORD in .env, stored in an httpOnly signed cookie. One admin only, no user accounts.\n- /admin/forms/[id]: a two-pane editor. Left pane edits fields (add, reorder, delete, set required). Right pane live-previews the rendered form.\n- /admin/forms/[id]/responses: table of submissions, newest first, expandable rows, and a \"Download CSV\" button that flattens payload keys to columns.\n- /f/[slug]: the public form. Server-rendered, works without JavaScript via a POST action, progressively enhanced with client validation. Clean single-column layout, large inputs, visible required markers, accessible labels and error text.\n- POST /api/f/[slug]: validate against the stored schema with Zod built at runtime from the JSON, reject on failure with per-field errors, insert on success, redirect to a thank-you state.\n- /embed/[slug].js: returns a tiny script that injects an iframe of /f/[slug] and posts height changes to the parent so the embed auto-resizes.\n\nAnti-spam, keep it cheap and honest: hidden honeypot field, minimum time-to-submit of 2 seconds, per-IP rate limit of 10 submissions per hour using an in-memory counter, and hash the IP with a salt from .env instead of storing it raw.\n\nNotifications: if RESEND_API_KEY and notify_email are set, send a plain-text email with the submission on insert. If the key is missing, skip silently and never crash the submission path. Never block the user's response on the email call.\n\nSecrets in .env.example: ADMIN_PASSWORD, COOKIE_SECRET, IP_SALT, RESEND_API_KEY (optional), FROM_EMAIL (optional).\n\nShip a seed script that creates one example contact form, a README with run and deploy steps for a single VPS, and a one-line sqlite backup command. No Docker unless it is a single 10-line Dockerfile. Do not add themes, templates, multi-tenancy or a waitlist for features you did not build.",
+  "promptCurated": false
+}
