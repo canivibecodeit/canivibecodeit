@@ -1,0 +1,52 @@
+{
+  "slug": "tobid",
+  "name": "ToBid",
+  "domain": "tobid.tw",
+  "category": "sales-outreach",
+  "subcategory": "government tender monitoring",
+  "tagline": "Search, tracking and alerts for Taiwanese government procurement tenders.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://tobid.tw/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The underlying tender data is public: Taiwan's government e-procurement system publishes notices and award results, so nobody owns the facts. What you are paying for is a reliable pipe into that data plus keyword watchlists, dedupe, and a readable view of who won what at what price. An agent can absolutely build you a scraper, a SQLite full text index, and a daily digest email in a weekend, and for one company chasing one category of work that is often enough. The gaps are unglamorous: the source pages fight scrapers, formats drift, and the historical award archive that makes competitor and price analysis useful takes months to accumulate unless you backfill it. So it is buildable, but you inherit a maintenance job, not a finished product.",
+  "coreLoopDIY": "Scrapes public tender notices on a schedule into a local database, indexes them for keyword and region search, and emails you a daily digest of new matches.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ and a cheap always-on box or VPS for the scheduled crawl",
+    "SMTP credentials for digest email",
+    "Willingness to fix the parser every time the source site changes markup",
+    "Patience with rate limits, session cookies and odd character encodings"
+  ],
+  "whatYouLose": [
+    "Years of accumulated award history, which is what makes bid price and competitor analysis possible",
+    "Someone else babysitting the scraper when the government site changes or throttles you",
+    "Cleaned and normalized agency, category and winner names instead of raw inconsistent strings",
+    "Mobile access, saved team searches and anything resembling collaboration",
+    "Any coverage beyond the sources you personally bothered to implement"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The data is public, the tidy longitudinal archive of it is not. That archive is the whole product.",
+  "whyPeopleStillPay": "Because a missed tender costs more than a subscription, and a homemade scraper fails silently. Firms that bid for a living want the notice in their inbox the morning it posts, plus the ability to look up what the same agency awarded three years ago and to whom, which is the part your two day build cannot fabricate. The other quiet reason is that nobody on a bidding team wants to be the person who owns the scraper.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the digest, keep the subscription if you actually need the award history.",
+  "prompt": "Build a local government tender monitor and search tool. Single project, no accounts, no cloud services.\n\nStack, non negotiable:\n- Python 3.11, uv for deps\n- httpx for fetching, selectolax for HTML parsing\n- SQLite with FTS5 for storage and search\n- FastAPI + Jinja2 templates + plain CSS for the UI\n- APScheduler for the crawl schedule\n- All secrets and config in .env, loaded with python-dotenv. Commit a .env.example, never a real .env.\n\nWhat it does:\n1. A pluggable source interface: each source module exposes list_new(since) and returns normalized records with fields tender_id, title, agency, category, region, budget, publish_date, deadline, url, raw_html.\n2. Ship exactly one working source: a configurable list page scraper driven by CSS selectors in sources.yaml, so I can point it at a public tender listing without editing Python. Include one worked example config plus a fixture HTML file and a parser test.\n3. Store records in SQLite. Dedupe on tender_id. Keep a fetched_at timestamp and never overwrite the first-seen record; append revisions to a tender_revisions table if the title, budget or deadline changes.\n4. Watchlists: a table of saved queries with keywords (include and exclude), region, min and max budget. Match new records against every watchlist on each crawl.\n5. Daily digest: render matched records into an HTML email, send over SMTP using env creds. If SMTP is unset, write the digest to ./digests/YYYY-MM-DD.html instead and log that.\n6. Web UI on localhost: full text search box with FTS5 ranking, filters for agency, region, date range and deadline-not-passed, a tender detail page showing revision history and the source link, and a CRUD page for watchlists.\n7. CLI: crawl, backfill --from DATE, digest --dry-run, reindex.\n\nExplicitly out of scope: captcha solving, authenticated portals, login or multi user support, competitor analytics, price prediction, anything scraped from a site whose terms forbid it. If a source returns 403 or a challenge page, log it clearly and skip rather than working around it.\n\nRequirements: robots.txt check before fetching, one request per second per host, retries with backoff, structured logging to stdout, a health page showing last successful crawl per source and matched counts. Include a README with setup, how to add a source config, and a blunt maintenance note that selectors break and this needs occasional attention.",
+  "promptCurated": false
+}
