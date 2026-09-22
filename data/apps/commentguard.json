@@ -1,0 +1,53 @@
+{
+  "slug": "commentguard",
+  "name": "CommentGuard",
+  "domain": "commentguard.io",
+  "category": "social-media",
+  "subcategory": "ad comment moderation",
+  "tagline": "Automated moderation for comments on Facebook and Instagram organic posts and paid ads, with keyword rules, hiding, and reporting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://commentguard.io/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The logic here is not hard: listen for new comments, match them against keyword and regex rules, then hide, delete, or flag. An agent can write that loop and a small review dashboard in a session. The pain is entirely on Meta's side: a Facebook app, business verification, and app review for permissions like pages_manage_engagement and instagram_manage_comments, plus webhook subscriptions per page and token refresh that breaks quietly. For your own pages you can get there with a dev-mode app and your own tokens; for clients' pages you cannot, and that is where the paid product earns its money. Call it a weekend for one brand, a compliance project for an agency.",
+  "coreLoopDIY": "A webhook listener plus rule engine that watches your own Facebook and Instagram comments and auto-hides, deletes, or flags anything matching your rules, with a local review log.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Meta developer app with Page and Instagram permissions, plus a Business account",
+    "Long-lived Page access tokens for every page you moderate",
+    "A public HTTPS endpoint for Graph API webhooks",
+    "Instagram accounts must be Business or Creator and linked to a Page",
+    "App review and business verification if you want to moderate pages you do not own"
+  ],
+  "whatYouLose": [
+    "Managed OAuth and token refresh across dozens of client pages",
+    "Coverage of dark post and ad-level comments, which are fiddlier to enumerate than organic posts",
+    "A tuned spam and toxicity classifier built from other people's moderation decisions",
+    "Client-facing reporting, seat management, and audit trails an agency can hand to a brand",
+    "Someone else absorbing Meta API deprecations and permission policy changes"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat is not the rule engine, it is being an approved Meta app that can legally hold tokens for other people's pages.",
+  "whyPeopleStillPay": "Agencies do not buy comment filtering, they buy not having to maintain a reviewed Meta app across fifty client accounts. Every added brand means another OAuth handshake, another set of page tokens, another thing to notice when Graph API v-whatever deprecates an edge you depended on. A one-brand self-hosted version is genuinely fine and probably better tuned to your own vocabulary of trolls. The moment you are moderating on behalf of clients, the paid tool is cheaper than the paperwork.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for your own pages, structurally annoying for anyone else's.",
+  "prompt": "Build a self-hosted comment moderation service for my own Facebook Pages and Instagram Business accounts. Empty folder, no scaffolding questions, just build it.\n\nStack: TypeScript, Fastify, SQLite via better-sqlite3, server-rendered HTML with plain templates and a little vanilla JS. No React, no Next, no ORM, no cloud services.\n\nWhat it does:\n1. Exposes GET and POST /webhooks/meta to verify and receive Meta Graph API webhook events for the `feed` and `comments` fields.\n2. On each new comment event, fetches the full comment via the Graph API (message, author name and id, permalink, parent post id).\n3. Runs the comment through a rule engine loaded from rules.yaml: ordered rules with `match` (literal keywords, regex, or `link` for any URL), optional `author_blocklist`, and `action` of hide, delete, flag, or allow. First match wins, default action is allow.\n4. Executes the action against the Graph API: hide via POST /{comment-id} with is_hidden=true, delete via DELETE /{comment-id}. Flag does nothing remote, only records.\n5. Logs every comment and the action taken to SQLite, including the raw payload and the API response.\n6. Also runs a backfill job: `npm run backfill` walks recent posts and their comments through the same engine, for comments that arrived before the webhook was live or that webhooks dropped.\n\nDashboard at /:\n- Table of the last 500 processed comments with author, text, matched rule, action, and a link to the permalink.\n- Buttons to unhide or re-hide a specific comment, which call the Graph API and append to the log.\n- A rules page that shows the parsed rules.yaml and validates it on load, read-only in the UI.\n\nDetails:\n- Secrets in .env: META_APP_SECRET, META_VERIFY_TOKEN, and PAGE_TOKENS as a JSON map of page or IG account id to long-lived access token. Read them with a tiny loader, no dotenv magic beyond that.\n- Verify the X-Hub-Signature-256 header against META_APP_SECRET and reject mismatches.\n- Retry Graph API calls twice on 5xx and on rate limit codes with backoff, then record the failure in the log rather than crashing.\n- Dedupe by comment id so replayed webhooks do not double-act.\n- Single-user tool: one shared password from .env behind a session cookie, no user table, no signup, no telemetry.\n\nOut of scope, do not build: multi-tenant accounts, an OAuth login flow for other people's pages, sentiment or toxicity ML, ad-level dark post enumeration, client reporting exports, Twitter or TikTok or YouTube.\n\nFinish with a README that explains exactly how to create the Meta app, which permissions to request, how to generate long-lived page tokens, how to subscribe the page to webhooks, and how to expose the endpoint over HTTPS for local testing.",
+  "promptCurated": false
+}
