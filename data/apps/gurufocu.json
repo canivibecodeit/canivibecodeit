@@ -1,0 +1,52 @@
+{
+  "slug": "gurufocu",
+  "name": "GuruFocus",
+  "domain": "gurufocus.com",
+  "category": "finance-accounting",
+  "subcategory": "stock research and screening",
+  "tagline": "Fundamental stock research platform with decades of financial history, valuation scores, and tracking of what famous investors hold.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://gurufocus.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is a table with filters and some charts, which an agent can absolutely produce in an afternoon. The product is not the interface. It is thirty-plus years of normalized fundamentals across tens of thousands of tickers, restatement handling, derived scores, and a maintained list of institutional investors whose 13F filings get parsed, deduped, and turned into readable portfolio histories. You can pull raw filings from SEC EDGAR for free and compute real ratios yourself, and that is a genuinely useful build, but the coverage gap, the non-US coverage gap, and the decade-deep history are not things you close in one session. Build the consolation dashboard if you only watch twenty companies; pay if you screen the whole market.",
+  "coreLoopDIY": "Pulls XBRL company facts and 13F filings straight from SEC EDGAR for a watchlist you define, stores them in SQLite, and renders per-company ratio history plus which tracked funds hold what.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Python 3.12 and a local machine",
+    "A contact email for the SEC EDGAR User-Agent header (required by their terms)",
+    "CIK numbers for the funds you want to track",
+    "Tolerance for inconsistent XBRL tagging across filers",
+    "A price data source if you want valuation multiples, not just raw financials"
+  ],
+  "whatYouLose": [
+    "Decades of normalized, restatement-aware financial history across global exchanges, not just recent US filers",
+    "Derived valuation and quality scores that took years of methodology work to settle on",
+    "A curated, maintained roster of investors whose filings are parsed into clean portfolio timelines with buy/sell history",
+    "Backtestable screeners: you can filter on today, but you cannot easily ask what this filter returned in 2011",
+    "Data cleanup you do not see: ticker changes, mergers, delistings, split adjustments, fiscal year weirdness"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "EDGAR is public, which means the raw inputs are free to everyone and nobody has built a serious competitor from them in a weekend. Normalization is the whole job.",
+  "whyPeopleStillPay": "Because the alternative is your own data pipeline, and a data pipeline you maintain alone rots quietly. A missing tag, a fiscal-year shift, a restated quarter, and your screen returns garbage without telling you. People paying for this are paying for someone else to own that failure mode across the entire market, plus the ability to ask questions about 2009 without having backfilled 2009 themselves. If you only follow a handful of companies and read filings anyway, that value drops a lot.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The screener UI is one sitting; the dataset behind it is not. The moat is thirty years of normalized cross-market fundamentals plus the cleanup nobody wants to do twice.",
+  "prompt": "Build a local stock fundamentals and 13F tracker. Single user, runs on my laptop, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, managed with uv\n- FastAPI + Jinja2 templates + plain CSS, server rendered, no JS framework\n- SQLite via sqlite3 stdlib, file at ./data/app.db\n- httpx for requests, with a hard 10 requests/second cap and retry on 429\n\nData sources, both free and keyless:\n- SEC EDGAR companyfacts API for XBRL fundamentals: https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json\n- SEC EDGAR submissions API for filing lists\n- 13F-HR information tables (the XML INFORMATION TABLE file in each 13F filing folder) for fund holdings\nEDGAR requires a descriptive User-Agent. Read it from EDGAR_USER_AGENT in .env, include a .env.example, never hardcode it, and fail loudly at startup if it is missing.\n\nWhat to build:\n1. A CLI command `sync-companies` that reads ./watchlist.toml (list of tickers plus CIKs) and ingests companyfacts into normalized tables: filings, facts (cik, tag, unit, fiscal_period, fiscal_year, end_date, value, accn).\n2. A CLI command `sync-funds` that reads ./funds.toml (fund name plus CIK) and ingests every 13F-HR information table into a holdings table (cik, period_of_report, cusip, issuer_name, value, shares).\n3. Derived metrics computed in SQL views from the facts table: revenue, net income, operating cash flow, free cash flow, total debt, shareholder equity, shares outstanding, plus per-year gross margin, ROE, and debt-to-equity. Map the common US-GAAP tags with a fallback chain per metric and log every unmapped company so I can see the gaps.\n4. Web pages: /watchlist (table of companies with latest metrics), /company/{ticker} (10-year metric table plus simple inline SVG sparklines, no chart library), /funds (each tracked fund, latest period, top 20 holdings by value, and a diff versus the prior period showing new, exited, increased, decreased), /gaps (every metric the mapper could not resolve).\n5. A /screen page with server-side filters on the derived metrics: min ROE, max debt-to-equity, min revenue growth. Filters are query params, results are a table, no saved screens.\n\nExplicitly out of scope: price data, market cap, P/E, any valuation multiple, alerts, email, auth, multi-user, non-US filers, mobile app.\n\nDeliver: pyproject.toml, README with exact setup and sync commands, watchlist.toml and funds.toml with five real example entries each, idempotent syncs that skip already-ingested accession numbers, and pytest tests for the tag mapping fallback logic using fixture JSON checked into the repo. Write the tag mapper so adding a new metric is one dict entry.",
+  "promptCurated": false
+}
