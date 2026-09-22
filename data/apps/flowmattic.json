@@ -1,0 +1,52 @@
+{
+  "slug": "flowmattic",
+  "name": "FlowMattic",
+  "domain": "flowmattic.com",
+  "category": "automation",
+  "subcategory": "WordPress workflow automation",
+  "tagline": "A visual workflow automation builder that runs entirely inside your own WordPress install.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://flowmattic.com/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Licensing is site-based rather than per-seat monthly.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The engine is not the hard part: triggers, a step queue, conditionals, HTTP calls, retries and a run log are a known shape, and an agent can produce a working WordPress plugin version of that in a weekend. What you cannot one-shot is the connector library, the hundreds of prebuilt app integrations with OAuth token refresh, field mapping and pagination already solved and maintained as those APIs drift. If your personal automations are five endpoints you control with API keys, the DIY build is genuinely fine and probably faster to reason about. If you were leaning on it to glue Google, Slack, Stripe, WooCommerce extensions and a form plugin together, you are signing up to become the maintainer of twenty fragile adapters. Also note the builder UI itself is a real chunk of work: expect a rough drag-free list editor rather than a canvas.",
+  "coreLoopDIY": "A self-hosted WordPress plugin that fires workflows from webhooks, WP hooks or cron, then runs an ordered list of steps (HTTP request, condition, variable, email, delay) against a JSON payload with logs and retries.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A WordPress install you control (PHP 8.1+, MySQL)",
+    "API keys for whatever services you want to call, stored outside the database where possible",
+    "A real cron entry, since WP pseudo-cron is unreliable for scheduled runs",
+    "Willingness to hand-write field mappings instead of picking from a dropdown"
+  ],
+  "whatYouLose": [
+    "Hundreds of prebuilt connectors with OAuth flows and token refresh already handled",
+    "Someone else fixing your integrations when an upstream API changes shape",
+    "A polished visual canvas, versioning and step-level test runs",
+    "Deep triggers for WooCommerce, form plugins and membership plugins out of the box",
+    "Shared workflow templates and support when a run silently stops firing"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is maintenance labor, not algorithms. Every connector is a small perpetual liability that someone else is currently carrying.",
+  "whyPeopleStillPay": "Because automation tools are judged entirely on the day something breaks. Paying means an OAuth token refresh you never think about, a connector that gets patched when a vendor deprecates v2 of their API, and a run log good enough to figure out which step ate your order webhook. Doing it yourself is cheap right up until you have eleven workflows in production and you are the on-call engineer for all of them. The one place DIY genuinely wins: a handful of private automations against APIs with static keys, where the SaaS layer is pure overhead.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The runner is a weekend; the connector catalog is a full-time job in disguise.",
+  "prompt": "Build a self-hosted WordPress plugin called \"MiniFlow\" that runs simple automation workflows inside the site. One session, no external services.\n\nStack, non-negotiable:\n- Single WordPress plugin, PHP 8.1+, procedural-lite with a few small classes, no Composer dependencies.\n- Two custom DB tables via dbDelta: miniflow_workflows and miniflow_runs.\n- Admin UI under Tools, server-rendered PHP with vanilla JS. No React, no build step.\n\nData model:\n- A workflow has: name, enabled flag, trigger (type + config JSON), and an ordered array of steps stored as JSON.\n- A run has: workflow id, status (running, success, failed), the incoming payload, a per-step log array with request/response/duration, and a timestamp.\n\nTriggers, exactly these three:\n1. Webhook: a public REST route /wp-json/miniflow/v1/hook/{token} where token is a random 32-char secret generated per workflow. Accepts JSON or form body, no auth beyond the token, rate limit 60 requests per minute per workflow.\n2. WP hook: admin picks a hook name and arg count from a text field; plugin registers it dynamically and passes args into the payload.\n3. Schedule: a cron interval (5min, hourly, daily) using WP cron, plus documentation in the readme telling the user to add a real system cron and set DISABLE_WP_CRON.\n\nStep types, exactly these six:\n- http_request: method, URL, headers, body, all supporting {{token}} interpolation from the payload and prior step outputs. Parse JSON responses into the context.\n- condition: left value, operator (equals, not_equals, contains, gt, lt, empty), right value. Halts the run as \"stopped\" if false.\n- set_variable: name plus templated value.\n- send_email: to, subject, body via wp_mail.\n- delay: reschedules the remainder of the run via a one-off WP cron event, persisting run state.\n- code: raw PHP evaluated only if the constant MINIFLOW_ALLOW_CODE is true in wp-config. Print a loud warning in the UI about what that means.\n\nExecution:\n- A single runner class that walks steps in order, builds a context array of trigger payload plus step outputs keyed by step id.\n- Retries: http_request retries twice with exponential backoff on 5xx or timeout, then fails the run.\n- Every run writes a row with the full step log. Log retention setting, default 30 days, cleaned by a daily cron.\n- Secrets: read API tokens from constants defined in wp-config.php, referenced in templates as {{secret.NAME}}. Never store them in the workflows table.\n\nAdmin UI:\n- Workflow list with enabled toggle, last run status, run count.\n- Workflow editor: trigger section, then steps as a vertical list with add/remove/reorder buttons and per-step forms. No drag and drop canvas.\n- A \"Run with sample payload\" button that executes against a pasted JSON blob and shows the step log inline.\n- Runs page with filters by workflow and status, and a detail view showing each step's request and response.\n\nExplicitly out of scope: OAuth, prebuilt app connectors, a visual canvas, multi-user permissions beyond manage_options, telemetry, licensing.\n\nDeliver the plugin files, a readme covering install, the system cron setup and the secrets pattern, and one seeded example workflow: webhook in, condition on a field, HTTP POST out.",
+  "promptCurated": false
+}
