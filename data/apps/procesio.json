@@ -1,0 +1,51 @@
+{
+  "slug": "procesio",
+  "name": "Procesio",
+  "domain": "procesio.com",
+  "category": "automation",
+  "subcategory": "low-code process automation",
+  "tagline": "Low-code platform for building and running backend business processes with a visual designer and custom code steps.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://procesio.com/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engine underneath Procesio is not exotic: a workflow is a directed graph of steps, each step is a function, and something has to schedule it and log what happened. An agent can give you that in a weekend as a TypeScript runner with JSON workflow definitions, a cron trigger, an HTTP trigger, and a run history you can actually read. What does not come out of one session is the visual designer that lets a non-developer assemble a process, the pile of prebuilt connectors, and the operational story around retries, versioning, and long-running executions. If you are the only person touching the workflows and you are comfortable writing the step code yourself, the DIY version is honestly nicer to debug. If the point was handing process design to people who do not write code, you are buying the designer, not the engine.",
+  "coreLoopDIY": "Runs JSON-defined step graphs on a schedule or webhook, passing typed data between steps you wrote yourself, and logs every execution so you can see where it broke.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS that stays on",
+    "API keys for whatever services your steps talk to",
+    "Willingness to write steps as code instead of dragging boxes"
+  ],
+  "whatYouLose": [
+    "The visual process designer, so non-developers cannot build or edit anything",
+    "Prebuilt connectors: every integration is you reading someone's API docs",
+    "Managed execution, retries, and alerting when a nightly run silently dies",
+    "Versioning and rollback of process definitions, plus any audit trail a compliance person would accept",
+    "Multi-user access control, which matters the moment a second person needs to run a process"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The connector catalogue and the drag-and-drop surface are the product; the scheduler is table stakes.",
+  "whyPeopleStillPay": "Companies buy this class of tool to move process logic out of one developer's head and into something an operations person can see, edit, and be trained on. That is an organisational purchase, not a technical one. The moment you need an audit trail, role separation, or a hosted runtime nobody has to babysit, a self-written runner starts costing more in attention than the licence costs in money. For a single person automating their own life, none of that applies and the licence is pure overhead.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The workflow engine is a weekend; the connector library is a headcount.",
+  "prompt": "Build a self-hosted personal workflow automation runner. No accounts, no cloud services, no telemetry.\n\nStack, non-negotiable:\n- TypeScript on Node 20, run with tsx\n- Fastify for the HTTP layer\n- SQLite via better-sqlite3 for run history\n- node-cron for scheduling\n- Server-rendered HTML with plain templates and a little vanilla JS. No React, no build step.\n\nCore model:\n- A workflow is a JSON file in ./workflows/*.json with: id, name, trigger (either {type:\"cron\", expr:\"...\"} or {type:\"webhook\"} or {type:\"manual\"}), and steps: an ordered array of {id, uses, with}.\n- \"uses\" names a step module in ./steps/*.ts. Each module exports `async function run(input, ctx)` and returns a plain object.\n- \"with\" values support template refs like \"{{steps.fetchUsers.output.count}}\" and \"{{env.API_KEY}}\", resolved before the step runs.\n- Steps run sequentially. Any thrown error fails the run and records the failing step id.\n\nShip these step modules and nothing more: http.request (fetch with method, headers, json body), json.transform (small expression mapping), sqlite.query (against a user-specified db file), file.write, email.send via SMTP env vars, log.\n\nRuntime:\n- On boot, load and validate every workflow, register cron triggers, expose POST /hooks/:workflowId for webhook triggers with a shared secret from .env.\n- Persist every run: workflow id, start, end, status, and per-step input, output, duration, error. Truncate stored payloads at 32KB.\n- Retry policy per step: optional {retries, backoffMs}, default zero retries.\n\nUI at http://localhost:8080:\n- List of workflows with last run status and a Run now button\n- Run list with filters by workflow and status\n- Run detail showing each step, its resolved input, its output, and any error, collapsible\n\nExplicitly out of scope: drag-and-drop designer, parallel branches, loops, approval steps, multi-user auth, workflow versioning UI.\n\nDeliver: README with a walkthrough of writing one workflow end to end, .env.example with SMTP and WEBHOOK_SECRET, two example workflows (one cron, one webhook), and vitest coverage of the template resolver and the run recorder.",
+  "promptCurated": false
+}
