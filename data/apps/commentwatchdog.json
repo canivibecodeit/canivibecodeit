@@ -1,0 +1,52 @@
+{
+  "slug": "commentwatchdog",
+  "name": "CommentWatchDog",
+  "domain": "commentwatchdog.com",
+  "category": "social-media",
+  "subcategory": "comment moderation",
+  "tagline": "Watches the comments on your social accounts and auto-hides or deletes spam, scam impersonators, and abuse.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://commentwatchdog.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The logic here is genuinely simple: poll your comment threads, score each comment against a blocklist plus an LLM classifier, then hide or delete the bad ones. For a single YouTube channel an agent can build that in a weekend and it will work, because the YouTube Data API exposes both reading comment threads and setting moderation status. The pain is not the code, it is the platform paperwork: OAuth consent screens, API quota that caps how often you can poll, and app review if you want Instagram, Facebook, or TikTok coverage. You also inherit the unglamorous part of the product, which is a constantly refreshed sense of what this week's crypto-giveaway impersonation looks like. Fine for one creator guarding one channel, rough the moment you want three platforms and instant reaction times.",
+  "coreLoopDIY": "Polls your channel's recent comment threads on a schedule, classifies each comment with rules plus an LLM, and hides or deletes the ones that cross your threshold, logging every action so you can undo it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with YouTube Data API v3 enabled and OAuth client credentials",
+    "A machine or small VPS that can run a cron job or long-lived process",
+    "An LLM API key if you want classification beyond keyword rules",
+    "Patience for API quota limits and OAuth consent screens"
+  ],
+  "whatYouLose": [
+    "Multi-platform coverage: Instagram, Facebook, and TikTok all need app review that a personal build will not survive",
+    "Near-instant reaction; you are polling, so scam comments sit visible for minutes instead of seconds",
+    "A maintained spam and impersonation pattern set that is updated as scammers rotate tactics",
+    "Mobile alerts, dashboards, and a review queue that is pleasant to triage on a phone",
+    "Someone else absorbing platform API changes and deprecations"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The hard asset is approved API access across several platforms plus an evolving picture of current comment-spam patterns. Neither is code.",
+  "whyPeopleStillPay": "Because creators want one place that watches every platform at once, and getting write access to comment moderation on Instagram or TikTok as an individual developer is somewhere between painful and impossible. There is also the boring maintenance tax: scam comment templates mutate weekly, tokens expire, quotas shift, and a self-hosted script silently stops working right when a video goes viral and the impersonators arrive. Paying turns an ongoing vigilance job into a subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A single-channel YouTube version is a genuinely good weekend project; the cross-platform version is a business with a compliance department.",
+  "prompt": "Build a self-hosted YouTube comment moderation bot. Stack: Node 20, TypeScript, SQLite via better-sqlite3, no web framework unless noted.\n\nWhat it does:\n1. A `login` command runs the Google OAuth 2.0 installed-app flow for the YouTube Data API v3 scope `youtube.force-ssl`, then stores the refresh token in SQLite.\n2. A `watch` command runs a loop: every N minutes (configurable, default 5) fetch recent commentThreads for the authenticated channel's uploads, including replies.\n3. Each new comment is stored in SQLite with author, text, video id, timestamp, and a processing status.\n4. Each comment is scored by two passes: first a rules pass (regex blocklist, link count, unicode lookalike detection in author names, phrases loaded from a JSON file the user can edit), then an optional LLM pass that calls the OpenAI API with a strict JSON response asking for a category (spam, scam_impersonation, abuse, clean) and a confidence 0 to 1.\n5. Actions: if score crosses the hide threshold, call comments.setModerationStatus with status `heldForReview`. If it crosses the delete threshold, call comments.markAsSpam or comments.delete depending on config. Always log the original comment text and the action taken to an `actions` table so nothing is lost.\n6. A `--dry-run` flag that classifies and logs but takes no action. Default to dry-run on first run.\n7. An `undo` command that takes an action id and sets moderation status back to `published`.\n8. A `report` command printing the last 7 days of actions grouped by category as a plain text table.\n\nRules:\n- All secrets (Google client id and secret, OpenAI key) in .env, loaded with node's built-in env file support or dotenv. Never hardcode, never commit.\n- Respect YouTube API quota: batch requests, use pageToken properly, back off on 403 quotaExceeded and log clearly instead of crashing.\n- No telemetry, no accounts, no hosted service. Single user, single channel.\n- Out of scope: Instagram, TikTok, Facebook, a web dashboard, multi-user auth, notification push. Do not stub them.\n- Include a README with exact setup steps for the Google Cloud project and a one-line cron example for `watch --once`.\n- Include a seed blocklist JSON with common crypto-giveaway, Telegram handle, and WhatsApp number patterns, and note in the README that the user must maintain it.",
+  "promptCurated": false
+}
