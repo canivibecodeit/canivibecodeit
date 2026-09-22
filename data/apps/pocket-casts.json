@@ -1,0 +1,52 @@
+{
+  "slug": "pocket-casts",
+  "name": "Pocket Casts",
+  "domain": "pocketcasts.com",
+  "category": "podcasting",
+  "subcategory": "podcast player",
+  "tagline": "Cross-platform podcast player with sync, offline downloads, and playback tweaks like speed and silence trimming.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pocket Casts Plus",
+    "basis": "monthly or annual subscription",
+    "unit": "flat",
+    "source": "https://pocketcasts.com/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free tier covers basic listening, paid tier adds cloud storage, desktop and watch apps, themes.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A podcast app is RSS plus an audio element, and that part is genuinely a one-sitting build: subscribe, parse feeds, download episodes, remember where you stopped. What you cannot one-shot is the shape of how people actually listen, which is a phone in a pocket with the screen off, a car head unit, a watch, and a playback position that follows you between all of them. Background audio on iOS, CarPlay and Android Auto, and cross-device resume are each their own project, and the App Store gets in the way of shipping to your own phone. A self-hosted web player on your own box gets you maybe 70 percent if you mostly listen at a desk or on headphones with the browser open. Podcast content is open RSS, so nothing is locked away: this is an ergonomics gap, not a data gap.",
+  "coreLoopDIY": "Subscribes to podcast RSS feeds, downloads episodes to local disk, and plays them in a browser with speed control and per-episode resume positions stored in SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine that stays on if you want downloads to run on a schedule",
+    "Disk space for downloaded episodes",
+    "iTunes Search API for podcast discovery, free and keyless, or just paste feed URLs",
+    "Tailscale or similar if you want to reach it from your phone's browser"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps with proper background audio, lock screen controls, and headphone buttons",
+    "CarPlay, Android Auto, watch apps, and Sonos style casting",
+    "Playback position syncing across devices without you thinking about it",
+    "Trim silence, volume boost, and the other audio processing that took them years to get right",
+    "Curated discovery and charts, plus recommendations that are better than a keyword search"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the feed data, which is public. It is background audio behaving correctly on a locked phone in a car tunnel.",
+  "whyPeopleStillPay": "Podcast listening happens in the exact contexts where a self-hosted web app is worst: driving, walking, doing dishes, screen off, spotty signal. Paying a few dollars a month buys a native binary that OS audio frameworks already trust, plus a sync server that means your commute picks up where your kitchen left off. There is also years of accumulated subscriptions and listening history, and while OPML export makes that technically portable, the playback positions and filters usually are not. The free tier is good enough for most people, which tells you the paid tier is mostly funding the polish.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Building a podcast player is easy; building one you will actually use in the car is not.",
+  "prompt": "Build a self-hosted podcast player called \"Podbox\" that runs on my own machine.\n\nStack, no substitutions: TypeScript everywhere. Backend is Node 20 with Fastify and better-sqlite3. Frontend is Vite plus React with plain CSS, no component library. Single repo, npm workspaces not needed, just a /server and /web folder with one root package.json and concurrently for dev.\n\nData model in SQLite: podcasts (id, feed_url, title, author, artwork_url, last_fetched_at), episodes (id, podcast_id, guid, title, description, published_at, audio_url, duration_seconds, local_path nullable, downloaded_at nullable), progress (episode_id, position_seconds, completed boolean, updated_at). Migrations as plain SQL files run at boot, no ORM.\n\nBackend features:\n- POST /api/podcasts with a feed URL: fetch it, parse with rss-parser, upsert podcast and all episodes.\n- GET /api/search?q= : proxy the iTunes Search API (entity=podcast) and return title, artwork, and feedUrl. No API key needed. Handle it being down gracefully.\n- Refresh job with node-cron every 30 minutes that re-fetches every feed and inserts new episodes.\n- POST /api/episodes/:id/download : stream the audio to ./media/{podcastId}/{episodeId}.mp3, set local_path. Serve downloaded files with Fastify static and byte range support so seeking works.\n- PUT /api/progress/:episodeId : save position. Frontend calls this every 10 seconds of playback and on pause.\n- Auto-delete downloaded files for episodes marked completed more than 7 days ago.\n\nFrontend features:\n- Three views: Subscriptions grid, a podcast detail page with its episode list, and an \"Up Next\" queue.\n- One persistent audio player docked at the bottom that survives navigation. Use a single HTML audio element in a React context, not one per row.\n- Player controls: play/pause, skip back 15s, skip forward 30s, a seek bar, and a speed selector with 1x, 1.2x, 1.5x, 1.8x, 2x wired to playbackRate.\n- Resume from saved position when an episode loads. Mark completed at 95 percent.\n- Queue is drag-to-reorder, persisted in SQLite. Auto-advance when an episode ends.\n- OPML import and export, because subscriptions should never be trapped.\n\nExplicitly out of scope, do not build: user accounts, auth, multi-user, cloud sync, transcripts, silence trimming, recommendations, telemetry. Single user on a trusted network.\n\nConfig via .env with PORT and MEDIA_DIR, loaded with node's built-in env file support. Commit a .env.example, gitignore .env and ./media.\n\nDeliver a README with exact setup commands, and seed the database with three well-known public podcast feeds so the app is not empty on first run.",
+  "promptCurated": false
+}
