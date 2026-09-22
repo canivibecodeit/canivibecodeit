@@ -1,0 +1,50 @@
+{
+  "slug": "fontgen",
+  "name": "FontGen",
+  "domain": "fontgen.in",
+  "category": "design",
+  "subcategory": "font generation",
+  "tagline": "Web tool for generating custom fonts and downloadable typefaces without opening a type design app.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://fontgen.in/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Turning a set of glyph images into an installable TTF is a solved, well documented pipeline: trace bitmaps to vectors, drop the contours into a font table, write the file. An agent can absolutely stand that up locally in a weekend, and the output will install and render in your OS and browser. What it will not do is make the font good: spacing, kerning pairs, consistent stroke weight, diacritics, hinting at small sizes, and anything beyond basic Latin are all grind work that a one-shot skips entirely. If you want one personal handwriting font for a signature or a header, build it. If you want something you would ship to clients, the boring type craft is the actual product.",
+  "coreLoopDIY": "Takes scanned or drawn glyph images, traces them to vector outlines, and compiles a working TTF/WOFF2 you can install and use in CSS.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ locally",
+    "A scanned glyph sheet or 60+ individual glyph PNGs, one per character",
+    "Comfort installing a font on your own machine to test it"
+  ],
+  "whatYouLose": [
+    "Automatic spacing and kerning that does not look drunk",
+    "Glyph coverage beyond basic Latin: accents, currency, math, punctuation edge cases",
+    "Hinting and rendering QA across Windows, macOS, and small sizes",
+    "A hosted preview and share flow, plus webfont delivery",
+    "Any curated template or style library to start from instead of a blank sheet"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat here is typographic taste and glyph libraries, not code. The file format is public and the tooling is free.",
+  "whyPeopleStillPay": "Because a font that is technically valid and a font that looks right are different artifacts, and the gap between them is hundreds of small spacing decisions. A paid generator has already made most of those decisions for you, ships with coverage you did not think to ask for, and hands you a file that renders cleanly instead of one you have to debug in three browsers. For a one-off personal font the DIY route is fine. For anything with a deadline attached, paying beats learning what side bearings are.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The file writing is the easy half. The half that decides whether your font looks amateur is spacing, and no agent will do that for you.",
+  "prompt": "Build a local font generator called glyphforge. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn, single HTML page with vanilla JS and no build step\n- Pillow for image handling, potracer for bitmap to vector tracing, fontTools for font assembly\n- Everything runs on localhost, all files stay on disk\n\nCore pipeline:\n1. Input: a folder of PNG or JPG images named by unicode char, e.g. A.png, a.png, ampersand.png. Also accept a single scanned grid sheet plus a JSON layout file that maps grid cells to characters, and slice it.\n2. Preprocess each glyph: grayscale, Otsu threshold, deskew, crop to ink bounds, normalize height against a configured cap height and x-height.\n3. Trace to closed contours with potracer, simplify, then build glyphs with fontTools.pens.ttGlyphPen.TTGlyphPen on a 1000 unit em.\n4. Set advance width per glyph as ink width plus a configurable side bearing, written to hmtx.\n5. Assemble a real font with fontTools.fontBuilder: head, hhea, hmtx, cmap, name, OS/2, post. Export both TTF and WOFF2.\n6. Optional naive kerning: a GPOS pair kerning table generated from a simple outline-proximity heuristic, off by default behind a flag.\n\nWeb UI, one page:\n- Drag a folder or grid sheet in, see every traced glyph as inline SVG\n- Sliders for side bearing, cap height, x-height, stroke threshold, with live retrace\n- A live text preview that loads the generated WOFF2 via a blob URL and @font-face\n- Download buttons for TTF and WOFF2, plus a CSS snippet\n\nExplicitly out of scope: hinting, variable font axes, OpenType features beyond basic kerning, non-Latin scripts, automatic diacritic composition. Say so in the README.\n\nAlso ship: a CLI entry point (python -m glyphforge build ./glyphs --name \"My Hand\") that does the same thing headlessly, a tests folder with a sample 5 glyph fixture asserting the output parses in fontTools and has a valid cmap, and a README that tells me how to install the font on macOS, Windows, and Linux.\n\nNo secrets needed. If you add any config, use a .env file and commit a .env.example.",
+  "promptCurated": false
+}
