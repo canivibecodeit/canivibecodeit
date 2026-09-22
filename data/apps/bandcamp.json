@@ -1,0 +1,54 @@
+{
+  "slug": "bandcamp",
+  "name": "Bandcamp",
+  "domain": "bandcamp.com",
+  "category": "creator-commerce",
+  "subcategory": "music store and marketplace",
+  "tagline": "Music store and streaming site where fans buy albums, tracks and merch directly from artists.",
+  "priceMonthly": 10,
+  "pricing": {
+    "plan": "Bandcamp Pro",
+    "basis": "monthly per artist account, plus revenue share on sales",
+    "unit": "custom",
+    "source": "https://bandcamp.com/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Core Bandcamp is free to use with a cut of each sale; Pro is the optional subscription tier.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software part of Bandcamp is genuinely simple: upload files, set a price, stream previews, take a card, email a download link. An agent can build that in a sitting and it will work fine for one artist selling to their own mailing list. What it cannot build is the thing people actually use Bandcamp for: fans who browse, follow, get emailed when someone they follow releases something, and the discovery surface that turns a stranger into a buyer. Add payout handling, global sales tax, high bandwidth lossless delivery, and the fact that your store has zero inbound traffic on day one. If you already have an audience that will click any link you send, the DIY build is fine. If you were hoping the store would find listeners for you, it will not.",
+  "coreLoopDIY": "A self-hosted single-artist store that streams preview-quality audio, sells albums and tracks through Stripe, and emails buyers a time-limited download link for the lossless files.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account (test mode works for development)",
+    "Somewhere to host the files, local disk or S3-compatible storage",
+    "A domain if you want anyone to find it",
+    "SMTP credentials for download emails",
+    "ffmpeg installed for transcoding preview streams"
+  ],
+  "whatYouLose": [
+    "Discovery: Bandcamp's front page, tags, genre browsing and editorial coverage send real buyers, your box sends nobody",
+    "The fan graph: followers, wishlists, collection pages, and the release-day email to people who bought your last record",
+    "Bandcamp Fridays and the general goodwill that makes fans pay above asking price",
+    "Merch, vinyl and physical fulfillment tooling, shipping regions, stock counts",
+    "Sales tax and VAT handling on digital goods across jurisdictions, which Bandcamp absorbs as merchant of record",
+    "The mobile app fans already have installed and stream your album in"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "content-rights"
+  ],
+  "moatNotes": "Two-sided: artists go where fans are, fans browse where the catalog is. Bandcamp also sits as merchant of record, which quietly eats a pile of tax and payout complexity that a personal build just ignores until it matters.",
+  "whyPeopleStillPay": "Artists do not pay Bandcamp for a shopping cart, they pay it a cut for access to people who are already in the habit of buying music there. The checkout flow, the streaming player, the download codes: all of that is commodity engineering you could replace this weekend. The part you cannot replace is a fan who opens the app, sees a follow notification, and buys the album without you having to market anything. Running your own store also means becoming your own tax authority, support desk, and CDN, and being the only one who ever links to it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The store is a weekend; the shoppers are not. The moat is marketplace liquidity: a fan base already in the habit of paying for music in one place, plus the follow graph that tells them you released something.",
+  "prompt": "Build a self-hosted digital music store for a single artist. Call it \"shopfront\".\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript, Tailwind for styling\n- SQLite via better-sqlite3, one file at ./data/shopfront.db, schema created on first boot\n- Stripe Checkout for payments (stripe npm package)\n- nodemailer for transactional email\n- ffmpeg shelled out for transcoding\n- Local disk storage under ./data/masters (lossless) and ./data/previews (streaming)\n\nWhat it does:\n1. Admin area at /admin behind a single password from ADMIN_PASSWORD in .env, session in a signed httpOnly cookie. No user accounts, no OAuth, no third party auth.\n2. Admin can create a release: title, year, credits, description (markdown), cover image, and an ordered list of tracks. Upload WAV or FLAC per track. On upload, run ffmpeg to produce a 128kbps MP3 preview and store duration. Keep the master untouched.\n3. Per release: set a price in cents, or mark it name-your-price with a minimum. Per track: optional individual price.\n4. Public release page at /r/[slug]: cover, tracklist, inline HTML5 player that streams the previews only, buy button. Previews are served from /api/preview/[trackId]; masters are never served from a public route.\n5. Buy flow: Stripe Checkout session, collect email. On webhook completion, insert an order row and generate a random 32-char download token with a 72 hour expiry and a 5 download limit.\n6. Download page at /d/[token]: shows the order, lets the buyer pick MP3 320, FLAC, or ALAC. Generate the requested format from the master on demand with ffmpeg, cache the result in ./data/cache, stream it, and increment the download counter. Zip the whole release as one file if they want it.\n7. Email the download link on purchase using nodemailer. Plain text, no tracking pixels.\n8. Home page lists releases newest first. Also expose /feed.xml with one item per release.\n9. Admin orders table: date, email, release, amount, downloads used. CSV export.\n\nExplicitly out of scope: fan accounts, wishlists, follows, comments, discovery or browse-by-tag, merch and physical shipping, subscriptions, sales tax or VAT calculation, any analytics or telemetry.\n\nRules:\n- All secrets in .env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIPASSWORD placeholder is wrong, use ADMIN_PASSWORD, SMTP_URL, PUBLIC_URL. Ship a .env.example.\n- Everything runs with npm install and npm run dev, plus stripe listen for webhooks locally.\n- Write a README that says in plain language: this store has no audience, you have to bring one, and you are responsible for digital goods tax where you live.",
+  "promptCurated": false
+}
