@@ -1,0 +1,53 @@
+{
+  "slug": "bix-grow",
+  "name": "BixGrow",
+  "domain": "bixgrow.com",
+  "category": "seo-marketing",
+  "subcategory": "affiliate and referral marketing for Shopify",
+  "tagline": "Affiliate, referral and influencer program management for ecommerce stores, mostly Shopify.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://bixgrow.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics of an affiliate program are not mysterious: issue a tracking link or a discount code per partner, attribute orders, compute commission, show each partner a dashboard, pay out. An agent can build that in a weekend against Shopify webhooks and a SQLite database, and for ten hand-picked affiliates it will work fine. What you are actually buying from BixGrow is the boring correctness layer: cookie attribution windows that survive Shopify checkout redirects, refund and cancellation clawbacks, multi-currency, tiered and per-product commissions, automatic PayPal payouts, and an affiliate signup portal that does not look like a school project. Fraud and self-referral checks are the part DIY builders always skip and always regret. Buildable, but the gaps are real and they are all in the money-handling.",
+  "coreLoopDIY": "A self-hosted app that mints per-affiliate referral links and Shopify discount codes, listens to order webhooks, attributes each order, and shows commission owed per partner.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Shopify store with a custom app and Admin API access token",
+    "Shopify webhook access for orders/create, orders/updated and refunds/create",
+    "A public HTTPS endpoint for webhooks, tunnel or small VPS",
+    "Somewhere to host the redirect and affiliate dashboard",
+    "Manual payouts, or a payment provider account if you want them automated"
+  ],
+  "whatYouLose": [
+    "Reliable click attribution across devices and checkout redirects, the thing most DIY trackers get subtly wrong",
+    "Refund and chargeback clawbacks that quietly reverse commission",
+    "Self-serve affiliate signup, approval flow and branded partner portal",
+    "Automated payouts, tax form collection and multi-currency handling",
+    "Fraud, self-referral and coupon-leak detection"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is the Shopify app surface plus years of edge cases in attribution and refunds, not the concept of a referral link.",
+  "whyPeopleStillPay": "Because affiliate software touches money owed to other people, and being wrong is expensive in a way that is not just a bug report. A store owner with eighty affiliates needs a portal those affiliates can log into, payouts that happen without a spreadsheet, and commission that reverses when an order is refunded. Installing from the Shopify app store takes ten minutes and the partner-facing side already looks legitimate. A homegrown tracker is great when you have five friends promoting your store and terrible the moment one of them disputes a number.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a DIY for a handful of trusted partners; the moment strangers apply, you want the real thing.",
+  "prompt": "Build a self-hosted affiliate tracking app for a single Shopify store. Stack: Next.js 15 App Router with TypeScript, SQLite via better-sqlite3, Tailwind for styling. No external services, no telemetry, no user accounts beyond what is described.\n\nWhat it does:\n1. Admin area at /admin protected by a single password from ADMIN_PASSWORD in .env, stored in a signed cookie.\n2. Admin can create affiliates: name, email, commission percent, optional flat commission per order, and a URL slug.\n3. For each affiliate, generate a tracking URL at /r/[slug] that sets a first-party cookie named aff with the slug, 30 day expiry, then 302 redirects to STORE_URL with the slug appended as a ref query param.\n4. For each affiliate, call the Shopify Admin GraphQL API to create a unique discount code (percent off, configurable) and store the code and its Shopify id. Discount code is the primary attribution path; the cookie is the fallback.\n5. Expose POST /api/webhooks/shopify that verifies the HMAC header against SHOPIFY_WEBHOOK_SECRET and handles orders/create, orders/updated and refunds/create.\n6. On orders/create: attribute by discount code first, then by the ref landing param stored in note_attributes or cart attributes. Insert a conversion row with order id, order total, currency, matched affiliate, commission amount, and status pending.\n7. On refunds/create: mark the matching conversion reversed and zero its commission.\n8. Affiliate-facing page at /a/[token] where token is a random 32 char string per affiliate, no login. Shows clicks, attributed orders, commission pending, commission approved, commission reversed, and a table of recent orders with dates and amounts only, never customer names or emails.\n9. Admin dashboard lists affiliates with totals, lets you flip a conversion from pending to approved, and exports approved commissions as CSV for manual payout.\n10. Log every /r/[slug] hit as a click row with timestamp, referer and a hashed IP for dedupe. Dedupe identical hashed IP plus slug within 60 seconds.\n\nIn scope: the schema, migrations run on boot, HMAC verification, the redirect, the webhook handler, both dashboards, CSV export, and a seed script with two fake affiliates.\nOut of scope: payouts, tax forms, multi-store support, multi-currency conversion, email notifications, fraud scoring, affiliate self-signup.\n\nPut SHOPIFY_STORE_DOMAIN, SHOPIFY_ADMIN_TOKEN, SHOPIFY_WEBHOOK_SECRET, STORE_URL, ADMIN_PASSWORD and COOKIE_SECRET in .env.example. Write a README with the exact Shopify custom app scopes needed and the webhook registration curl commands. Include vitest tests for HMAC verification, commission math, and refund reversal.",
+  "promptCurated": false
+}
