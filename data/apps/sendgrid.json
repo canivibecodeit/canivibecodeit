@@ -1,0 +1,51 @@
+{
+  "slug": "sendgrid",
+  "name": "SendGrid",
+  "domain": "twilio.com",
+  "category": "email",
+  "subcategory": "transactional email API",
+  "tagline": "Transactional and marketing email delivery via API or SMTP, with templates, analytics, and bounce handling.",
+  "priceMonthly": 19.95,
+  "pricing": {
+    "plan": "Essentials",
+    "basis": "monthly, volume tiered",
+    "unit": "usage",
+    "source": "https://www.twilio.com/en-us/sendgrid",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The code part of SendGrid is genuinely small: an API endpoint, a template renderer, a send queue, a log table, a suppression list. An agent will hand you all of that in an afternoon and it will work. What it cannot hand you is the thing you are actually buying, which is warm sending IPs, years of reputation with Gmail and Outlook and Yahoo, feedback loops with the big mailbox providers, and a deliverability team that notices when a range gets blocked at 3am. Point your own build at a raw SMTP server on a VPS and your password resets land in spam or nowhere, silently, which is the worst failure mode in software. You can absolutely build the wrapper, but the wrapper needs a delivery provider underneath, so you have not replaced anything.",
+  "coreLoopDIY": "A self-hosted send API with named Handlebars templates, an API key, a retry queue, a suppression list, and a searchable send log, delivering through whichever SMTP provider you point it at.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "SMTP credentials from a real delivery provider (SES, Postmark, Resend, Mailgun)",
+    "A verified sending domain with SPF, DKIM, and DMARC records",
+    "A small always-on server or container to hold the queue"
+  ],
+  "whatYouLose": [
+    "Deliverability itself: warmed IP pools, ISP feedback loops, and someone else's problem when a provider starts throttling you",
+    "Bounce, complaint, and unsubscribe processing that is already wired into the sending path",
+    "Open and click tracking, link wrapping, and the dashboard your marketing person expects",
+    "Compliance scaffolding: suppression enforcement, list hygiene, audit trails that survive an abuse complaint",
+    "24/7 humans to escalate to when mail to one domain quietly stops arriving"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "brand-trust",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Sending reputation is the rare moat you cannot buy on day one, only accumulate, and it decays if you mistreat it.",
+  "whyPeopleStillPay": "Because email delivery is not a feature, it is a relationship with a handful of mailbox providers who do not know you and have no reason to trust your new IP. Everyone who has tried running their own relay has the same story: it works for a week, then one provider starts silently dropping mail and there is no error to read, just a support ticket from a customer who never got their receipt. Paying someone to own that relationship, plus the bounce handling and suppression logic that keeps you off blocklists, is cheap compared to the day your signup flow breaks in a way you cannot see.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The API layer is a one-sitting build and genuinely worth having as a seam between your app and your provider. The moat is reputation: warmed IPs, ISP feedback loops, and a decade of being trusted by inbox filters.",
+  "prompt": "Build a self-hosted transactional email service: a thin, ownable API layer over a third-party SMTP provider.\n\nStack, no substitutions:\n- Node 20 with TypeScript, Fastify for HTTP\n- SQLite via better-sqlite3, schema created on boot, file at ./data/mail.db\n- nodemailer for SMTP delivery\n- Handlebars for templates, MJML skipped, plain HTML plus text fallback\n- No frontend framework: one server-rendered log page using Fastify's static plus a template string is fine\n\nIn scope:\n- POST /v1/send taking { to, template, data, from?, replyTo? }. Auth via a single API key in the Authorization header, read from .env.\n- Templates loaded from ./templates/NAME.html and ./templates/NAME.txt at request time, rendered with Handlebars. Missing template returns 422.\n- Persist every send attempt: id, to, template, status, provider message id, error, created_at, attempts.\n- A queue: enqueue to SQLite, a single in-process worker drains it with exponential backoff, 5 attempts max, then status permanent_failure.\n- A suppression table. Any address in it is rejected at enqueue time with 409, no send attempt made, and the rejection is logged.\n- POST /v1/suppress and DELETE /v1/suppress/:email to manage it by hand.\n- GET /admin/log, an HTML page listing the last 200 sends with status filter and a text search on recipient, protected by the same API key via query param.\n- GET /healthz returning queue depth and last successful send timestamp.\n\nOut of scope, do not build: open and click tracking, link wrapping, inbound parsing, a marketing campaign builder, multi-tenant accounts, a UI for editing templates, provider webhook ingestion.\n\nConfig in .env only: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, DEFAULT_FROM, API_KEY. Commit a .env.example, never real values. No telemetry, no phoning home.\n\nDeliverables: the server, two example templates (password-reset, receipt), a seed script that sends one test message, and a README that states plainly which SMTP provider to sign up for and lists the exact SPF, DKIM, and DMARC records the sending domain needs before anything will actually land.",
+  "promptCurated": false
+}
