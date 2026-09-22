@@ -1,0 +1,52 @@
+{
+  "slug": "richapi",
+  "name": "RichAPI",
+  "domain": "richapi.ai",
+  "category": "sales-outreach",
+  "subcategory": "B2B data enrichment API",
+  "tagline": "An API for enriching and searching company and contact data for go-to-market teams.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://richapi.ai/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is not the endpoint, it is what sits behind the endpoint: a maintained corpus of companies, people, emails and firmographics, plus the scraping and verification pipeline that keeps it from rotting. An agent can absolutely scaffold a FastAPI service with an /enrich route, caching, rate limits and clean JSON in an afternoon, and that service will return nothing useful because you have no data. Buying or assembling equivalent coverage means contracts, crawlers, email verification infra and a lawyer who has read GDPR and CCPA more than once. The closest honest personal build is a thin normalizing layer over whatever data sources you already pay for, which is useful but is a different product. If you need coverage, you are paying someone for coverage.",
+  "coreLoopDIY": "Stands up a local enrichment API that takes a domain or email, pulls what it can from public sources you configure, normalizes it into one schema and caches the result.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for whatever data sources you already have access to",
+    "A server or container to run it on",
+    "Postgres for the cache",
+    "Comfort with the legal limits of scraping personal data in your jurisdiction"
+  ],
+  "whatYouLose": [
+    "Actual coverage: millions of companies and contacts you cannot crawl yourself",
+    "Email verification and bounce rates that will not wreck your sending domain",
+    "Freshness, since job changes and headcount drift make stale records worse than no records",
+    "Compliance posture: suppression lists, opt-outs, data subject requests",
+    "Someone else's uptime and rate headroom during a campaign push"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "scale-infra"
+  ],
+  "moatNotes": "Data vendors compete on recall and freshness, not on route design. The API surface is the commodity part.",
+  "whyPeopleStillPay": "GTM teams pay data vendors because the alternative is a sales rep staring at an empty field. The value is that a domain goes in and a plausible, recent, deliverable record comes out, at volume, without anyone on your side owning a crawler fleet or arguing with a privacy regulator. Any team can write the wrapper; nobody can write the corpus over a weekend. If your volume is small enough, one person with a browser and patience is honestly cheaper, which is the real competitor here.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The API shape is a weekend build; the records behind it are not. The moat is a crawled, verified, constantly refreshed B2B corpus plus the compliance machinery that makes selling it legal.",
+  "prompt": "Build a local B2B enrichment API called \"thinrich\" in an empty folder. One stack, no options.\n\nStack: Python 3.11, FastAPI, Uvicorn, SQLAlchemy, Postgres via docker-compose, httpx for outbound calls, pytest for tests.\n\nWhat it does:\n- POST /enrich accepts {\"domain\": \"acme.com\"} or {\"email\": \"jane@acme.com\"} and returns one normalized JSON record.\n- Normalized schema: company {name, domain, description, industry, employee_range, country, linkedin_url, logo_url}, person {full_name, first_name, last_name, title, email, email_status} (person may be null), meta {sources, fetched_at, cache_hit}.\n- Providers live in providers/ behind one interface: fetch(domain) returns partial dict. Ship three: (1) website provider that fetches the homepage and parses title, meta description, og:image and any mailto links, (2) a DNS/MX provider that records whether the domain has valid MX and guesses the mail host, (3) a stub \"vendor\" provider that reads an API key from .env and is skipped entirely when the key is absent.\n- Merge results with explicit per-field precedence: vendor over website over DNS. Record which provider supplied each field in meta.sources.\n- Cache every result in Postgres with a TTL of 30 days, keyed on domain. Add ?refresh=true to bypass.\n- Per-domain politeness: max one outbound fetch per host per 5 seconds, respect robots.txt, set a real User-Agent from .env.\n- POST /enrich/batch accepts up to 100 domains, processes with bounded concurrency, returns results plus per-row errors.\n- Email guessing: given a first and last name plus a domain, produce ranked pattern candidates (first.last, flast, first) and mark them status \"guessed\". Do not claim verification you have not done.\n\nOut of scope, do not build: any contact database, any scraping of LinkedIn or other logged-in sources, SMTP probing, user accounts, billing, a frontend beyond FastAPI's auto docs, telemetry.\n\nDeliverables: docker-compose.yml, .env.example with DB_URL, USER_AGENT, VENDOR_API_KEY, alembic migration, tests covering merge precedence and cache TTL, and a README that states plainly that coverage depends entirely on the providers configured and that enriching personal data may require a lawful basis where you operate.",
+  "promptCurated": false
+}
