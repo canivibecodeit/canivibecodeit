@@ -1,0 +1,52 @@
+{
+  "slug": "balancely",
+  "name": "Balancely",
+  "domain": "balancely.in",
+  "category": "personal-finance",
+  "subcategory": "expense and balance tracking",
+  "tagline": "A personal money tracker for accounts, balances, and where the month went.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://balancely.in/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Personal finance trackers are the canonical one-shot app: a table of transactions, a few accounts, some category math, and a chart. An agent can produce a local, private version of that in a single session and you will never hit a row limit or a paywalled export. The parts that are genuinely hard are the parts that live outside the app: automatic bank feeds, statement parsing that survives every bank's formatting whims, and a phone app you actually open at the checkout counter. If your habit is a weekly sit-down with a CSV and a coffee, the DIY build is fine and arguably better because your ledger stays on your disk. If your habit depends on transactions appearing without you doing anything, buy the product.",
+  "coreLoopDIY": "A local web app where you define accounts, import or type transactions, auto-categorise by rule, and see monthly spend by category with running balances.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a browser",
+    "A place to run it: laptop, home server, or a small VPS",
+    "CSV or statement exports from your bank, downloaded manually",
+    "Willingness to categorise a few dozen transactions before the rules get smart"
+  ],
+  "whatYouLose": [
+    "Automatic bank connections: you become the sync layer, monthly, by hand",
+    "A real mobile app for logging spend on the spot",
+    "Statement and receipt parsing that has been beaten against hundreds of real bank formats",
+    "Shared household access with sane permissions",
+    "Someone else's problem when the database file gets corrupted or the laptop dies"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Bank aggregation in India means account aggregator plumbing and consent flows, which is regulatory work, not a weekend of code.",
+  "whyPeopleStillPay": "Because the tracker is not the hard part, the inputs are. Paying gets you transactions that show up on their own, a phone app that opens in two seconds, and parsing logic for statement formats you did not know existed. The DIY version wins on privacy and cost and loses on friction, and friction is exactly what kills budgeting habits. Most people who self-host a ledger use it enthusiastically for six weeks and then stop importing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you like reconciling; buy it if you need the transactions to arrive without you.",
+  "prompt": "Build a local-first personal finance tracker. Single user, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Next.js 15 with the App Router and TypeScript\n- SQLite via better-sqlite3, file at ./data/ledger.db, created on first run\n- Drizzle ORM for schema and migrations\n- Tailwind CSS, no component library\n- Recharts for charts\n- Runs with `npm run dev` on localhost only\n\nData model:\n- accounts: id, name, type (bank | cash | card | wallet), opening_balance, currency default INR, archived flag\n- categories: id, name, kind (expense | income), monthly_budget nullable\n- transactions: id, account_id, date, amount (signed integer in paise, never floats), description, category_id nullable, notes, source (manual | import), import_hash nullable unique\n- rules: id, match_type (contains | regex), pattern, category_id, priority\n\nFeatures in scope:\n1. CRUD for accounts, categories, and transactions, with a fast keyboard-driven add form: date, amount, account, category, description.\n2. CSV import: upload a file, map columns to fields in the UI, preview rows, dedupe using a hash of date plus amount plus description, skip duplicates loudly. Support dates in DD/MM/YYYY and YYYY-MM-DD, and amounts with commas and currency symbols.\n3. Auto-categorisation: apply rules on import and on demand, highest priority wins, show an \"uncategorised\" queue with a one-click \"always categorise like this\" that creates a rule.\n4. Dashboard: current balance per account, net worth total, this month income vs expense, spend by category bar chart, 12 month trend line, budget vs actual per category with a simple over/under indicator.\n5. Transactions page: filter by date range, account, category, text search; inline edit; bulk recategorise selected rows.\n6. Export everything to CSV and a one-click \"backup\" that copies the SQLite file into ./backups with a timestamp.\n\nExplicitly out of scope, do not attempt:\n- bank connections, account aggregator APIs, scraping, or OAuth of any kind\n- multi user, auth, sharing, or hosting concerns\n- receipt OCR, PDF statement parsing, investments, or tax reports\n- any external API call at runtime\n\nRules: store money as integers in paise and format only at render time; all writes through server actions; seed a handful of sensible expense categories and three example rules on first run; include a README with setup, CSV import notes, and where the database file lives. Put nothing in .env unless you actually need it, and if you do, ship .env.example and gitignore the real one.",
+  "promptCurated": false
+}
