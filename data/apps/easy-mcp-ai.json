@@ -1,0 +1,51 @@
+{
+  "slug": "easy-mcp-ai",
+  "name": "Easy MCP AI",
+  "domain": "easymcpai.com",
+  "category": "dev-tools",
+  "subcategory": "MCP server hosting and management",
+  "tagline": "A managed way to set up, host and connect Model Context Protocol servers to AI clients without wiring each one by hand.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://easymcpai.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "MCP is an open protocol with official SDKs, which means the hard part of this category is not the protocol, it is the plumbing: process supervision, config sprawl, secrets, and one stable endpoint your clients can point at. An agent can absolutely build you a local MCP hub in a session that launches several stdio servers, aggregates their tools behind a single HTTP endpoint, and gives you a page to toggle things on and off. Where it gets thin is anything remote: OAuth-protected servers, tokens that expire, always-on hosting so your phone or a cloud agent can reach the same tools, and a curated catalog of servers that actually work. If you are one person on one laptop, the DIY version is genuinely close to the real thing. If you want tools reachable from anywhere by multiple clients without babysitting a process, you are now running infrastructure.",
+  "coreLoopDIY": "Reads a config file of MCP servers, supervises them as child processes, and exposes all their tools through one aggregated HTTP endpoint with a small local dashboard for toggling and log viewing.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a local machine that stays awake",
+    "API keys and tokens for whatever upstream services your MCP servers talk to",
+    "An MCP-capable client (Claude Desktop, Cursor, or similar) to point at the hub",
+    "Willingness to read MCP spec docs when a server misbehaves"
+  ],
+  "whatYouLose": [
+    "A curated list of servers that are known to work, so you go back to trial and error on GitHub",
+    "Hosted always-on endpoints reachable from devices that are not your laptop",
+    "OAuth flows and token refresh handled for you on remote servers",
+    "Updates when the MCP spec or transports change, which has happened more than once",
+    "Someone else's logs and error messages when a server silently stops responding"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The protocol is open, so the defensible part is the long tail of servers that actually work plus keeping up with spec churn. Neither is a moat you can't erode, both are chores you may not want.",
+  "whyPeopleStillPay": "Because MCP config is death by a thousand JSON files. Every client wants its own config block, every server wants its own env vars, half the community servers are abandoned, and transports shifted under everyone's feet mid-2025. Paying for a hub that already knows which servers work, holds the credentials, and gives you one URL is buying away a category of small recurring annoyance. That is a real product even though nothing in it is technically hard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The protocol being open is exactly why this is buildable and exactly why the paid version keeps finding customers.",
+  "prompt": "Build a local MCP hub called \"mcphub\" in an empty folder.\n\nStack, no substitutions: TypeScript, Node 20+, Express for HTTP, the official @modelcontextprotocol/sdk for both client and server roles, better-sqlite3 for logs, plain server-rendered HTML with a little vanilla JS for the dashboard. No React, no build step beyond tsc.\n\nWhat it does:\n1. Reads ./mcphub.config.json listing upstream MCP servers, each with: id, command, args, env (values may reference ${VAR} from .env), enabled flag.\n2. On start, spawns every enabled server as a stdio child process and connects to it as an MCP client using the SDK.\n3. Calls tools/list and resources/list on each upstream, caches the results, and namespaces every tool as \"serverId__toolName\" to avoid collisions.\n4. Exposes itself as a single MCP server over streamable HTTP at /mcp, presenting the union of all upstream tools and resources. Tool calls are routed to the right child by namespace prefix.\n5. Restarts a crashed child with exponential backoff, capped at 30s, and marks it degraded after five failures.\n6. Logs every tool call to SQLite: timestamp, server id, tool name, duration ms, ok or error, truncated error text. No argument payloads by default; add a LOG_ARGS=true env flag to opt in.\n7. Dashboard at / on localhost only: table of servers with status, tool count, last error, toggle enable/disable, restart button, and the last 100 tool calls.\n8. CLI: \"mcphub start\", \"mcphub add\" (interactive prompt that appends to the config), \"mcphub doctor\" (spawns each server, lists tools, reports failures, exits nonzero if any failed).\n\nExplicitly out of scope: user accounts, multi-tenancy, telemetry, hosted deployment, OAuth against remote MCP servers, a server marketplace or catalog.\n\nRules: all secrets in .env, loaded with node's built-in env file support or dotenv, and .env is gitignored. Bind HTTP to 127.0.0.1 by default. Ship a README with a copy-pasteable Claude Desktop and Cursor config block pointing at the hub, plus one working example upstream (the filesystem server) in mcphub.config.example.json. Include vitest tests for namespace routing and for ${VAR} env expansion.",
+  "promptCurated": false
+}
