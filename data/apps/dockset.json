@@ -1,0 +1,51 @@
+{
+  "slug": "dockset",
+  "name": "Dockset",
+  "domain": "dockset.app",
+  "category": "productivity-utilities",
+  "subcategory": "desktop layout utility",
+  "tagline": "A small paid desktop utility in the dock and window layout space: save a set, switch to it, get your workspace back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://dockset.app/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Utilities that snapshot and restore a desktop arrangement are one of the oldest categories of weekend hack, and the core loop is genuinely small: read the current layout, write it to JSON, put it back on demand. An agent can get you a menu bar app that does that in a sitting, and for a single machine you will probably use it. The gaps are all in the part nobody enjoys: Accessibility permissions, apps that refuse to be moved, multi display and resolution changes, launching things in the right order, and the fact that an unsigned local build will fight the OS every update. Paid utilities in this space earn their money on that edge case tail, not on the idea. Treat the details here as unverified: the product scope has not been torn down, only the shape of the problem.",
+  "coreLoopDIY": "A menu bar app that snapshots which apps are open and where their windows sit, saves that as a named set, and restores it later.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS with Xcode installed",
+    "Accessibility permission granted to your own build",
+    "willingness to hand tune behaviour for stubborn apps",
+    "a signing identity if you want it to survive OS updates quietly"
+  ],
+  "whatYouLose": [
+    "Someone else's list of workarounds for apps that ignore window management APIs",
+    "Graceful handling of display hot swaps, resolution changes and external monitors",
+    "A signed, notarized binary that does not get quarantined or re-prompted for permissions",
+    "Updates when Apple changes the window or Dock APIs, which it does",
+    "Polish: hotkeys, previews, sane defaults, an icon you do not hate"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is a pile of per-app special cases that only exists because real users hit them and complained.",
+  "whyPeopleStillPay": "Because the demo version of this works and the daily driver version does not. The first build restores three windows correctly and feels like magic; then you plug in a monitor, or an app opens on the wrong space, or macOS revokes Accessibility after an update, and you are now maintaining a window manager instead of using one. A few dollars buys the maintenance contract on someone else's edge cases, and for a tool you invoke ten times a day that trade is easy.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Small local utility, small honest moat: the build is a sitting, the reliability is a year of bug reports.",
+  "prompt": "Build a macOS menu bar app called LayoutSets that saves and restores desktop window layouts.\n\nStack, no alternatives: Swift 5.9, SwiftUI, an AppKit MenuBarExtra app, no external dependencies, no package manager. Target macOS 14+.\n\nCore behaviour:\n1. On \"Save current set\", enumerate all visible windows of running non-background apps using the Accessibility API (AXUIElement) plus NSRunningApplication for bundle identifiers.\n2. For each window record: app bundle id, window title, frame (x, y, width, height), and the display UUID it mostly overlaps.\n3. Store the set as JSON in ~/Library/Application Support/LayoutSets/sets/{name}.json. Human readable, pretty printed, stable key order.\n4. On \"Restore set\", for each entry: launch the app if it is not running (NSWorkspace, wait with a timeout), then match windows by title first and index second, then set position and size via AXUIElement attributes.\n5. Menu bar menu lists saved sets, plus Save current set, Rename, Delete, Open sets folder, Quit.\n6. Register a global hotkey (Cmd+Ctrl+1..9) to restore the first nine sets, in save order.\n\nHandle the boring parts honestly:\n- On first launch, detect missing Accessibility permission and show a window with a button that opens the correct System Settings pane. Re-check on focus.\n- If a display in a saved set is gone, clamp frames into the nearest visible screen instead of restoring off-screen.\n- If an app cannot be moved, log it to a per-restore report and continue. Never crash, never hang the menu.\n\nOut of scope, do not build: iCloud or any cloud sync, accounts, telemetry, analytics, auto-update, Dock item rearranging, Spaces assignment, a preferences window beyond the permission prompt.\n\nNo secrets are needed, so create no .env. Ship a README with build instructions, how to grant Accessibility, the JSON schema for a set, and a short list of known-flaky apps so I can add special cases myself.",
+  "promptCurated": false
+}
