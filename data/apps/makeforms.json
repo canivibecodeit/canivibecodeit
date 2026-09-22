@@ -1,0 +1,51 @@
+{
+  "slug": "makeforms",
+  "name": "MakeForms",
+  "domain": "makeforms.io",
+  "category": "forms",
+  "subcategory": "AI form builder with compliance claims",
+  "tagline": "A hosted form builder that generates forms from prompts and pitches itself on security and compliance.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://makeforms.io/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A form is an HTML element and a database row, and that has been true for thirty years. An agent can stand up a self-hosted form app with JSON-defined fields, validation, a submissions table, CSV export, and email notifications in a single session, and for a contact form or an intake questionnaire that is genuinely the whole job. What you are actually buying from MakeForms is the drag-and-drop builder, the logic jumps, the file upload plumbing, and the compliance paperwork that lets someone else sign your BAA. If you are collecting regulated data, stop reading and pay. If you are collecting names, emails, and a free-text field, the DIY version is boring and it works.",
+  "coreLoopDIY": "Define forms as JSON field schemas, render them as public pages, store submissions in SQLite, and read them back in a password-gated dashboard with CSV export.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a small VPS or any Node host",
+    "a domain or subdomain if you want to embed forms elsewhere",
+    "an email API key if you want submission notifications"
+  ],
+  "whatYouLose": [
+    "The visual builder: your forms are JSON files you edit by hand",
+    "Conditional logic, multi-step flows, and partial-submission analytics unless you build them",
+    "File uploads with virus scanning and sane storage limits",
+    "Compliance posture: no SOC 2, no HIPAA-ready hosting, no signed agreements",
+    "Spam defense beyond a honeypot and a rate limit, which real spammers will eventually walk through"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The compliance story is the only part a weekend build cannot fake, and it only matters if your data is regulated.",
+  "whyPeopleStillPay": "Two reasons, and neither is the form rendering. First, non-technical teams need a visual builder because nobody is editing a JSON schema to add a dropdown before a Tuesday launch. Second, anyone handling health, financial, or EU personal data wants a vendor whose name goes on the paperwork when something leaks. Everyone else is paying a subscription to avoid writing a POST handler.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Form builders are the classic case where the product is the editor, not the form.",
+  "prompt": "Build a self-hosted form builder and submission collector. Stack: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling. No external services except optional email.\n\nData model:\n- Forms are defined as JSON files in /forms, one file per form, each with: slug, title, description, submitButtonLabel, and a fields array.\n- Field types to support: text, email, textarea, number, select (with options), checkbox, radio, date. Each field has name, label, required, placeholder, helpText.\n- On boot, read all JSON files in /forms and validate them with zod. Fail loudly with a readable error if a schema is malformed.\n\nPublic side:\n- GET /f/[slug] renders the form server-side as real HTML with progressive enhancement: it must submit and work with JavaScript disabled.\n- POST handler validates against the same zod schema, stores the submission as JSON in a submissions table with form_slug, created_at, ip_hash, and payload.\n- Spam defense: a hidden honeypot field, a minimum time-to-submit check, and a per-IP rate limit stored in SQLite. Hash IPs with a salt from .env.\n- After submit, redirect to /f/[slug]/thanks with a configurable message from the form JSON.\n- Provide /embed/[slug].js that injects an iframe, so forms can be dropped into any static site.\n\nAdmin side:\n- /admin is gated by a single password from ADMIN_PASSWORD in .env, using an httpOnly signed cookie. No user accounts, no OAuth.\n- List forms with submission counts, view submissions in a table, view one submission in detail, delete a submission.\n- CSV export per form that flattens the payload into columns derived from the field schema.\n\nNotifications:\n- If RESEND_API_KEY and NOTIFY_EMAIL are set in .env, send a plain-text email on each submission. If unset, skip silently.\n\nOut of scope: file uploads, payments, conditional logic, multi-step forms, analytics, telemetry of any kind.\n\nDeliver: working app, .env.example, seed /forms with two example form JSON files (a contact form and a short survey), and a README with run and deploy steps for a single VPS.",
+  "promptCurated": false
+}
