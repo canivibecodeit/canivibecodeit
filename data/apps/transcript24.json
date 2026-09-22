@@ -1,0 +1,51 @@
+{
+  "slug": "transcript24",
+  "name": "Transcript24",
+  "domain": "transcript24.com",
+  "category": "audio-video",
+  "subcategory": "audio transcription",
+  "tagline": "Upload audio or video and get a transcript back, with subtitle exports.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.transcript24.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Transcription is the poster child for a one-shot build: the hard part is the model, and the model is a download. Whisper in its faster-whisper form runs on a laptop, handles dozens of languages, and spits out SRT and VTT without asking for a credit card. A coding agent can wrap it in a local upload page with a job queue and per-segment timestamps in a single sitting. What a paid service gives you is not accuracy, it is not having to wait on your own CPU and not having to think about ffmpeg. If you transcribe a few files a month, the DIY version is genuinely the better deal.",
+  "coreLoopDIY": "A local web app where you drop an audio or video file, it extracts audio with ffmpeg, runs faster-whisper, and gives you TXT, SRT and VTT downloads plus an editable transcript view.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+ and ffmpeg installed",
+    "faster-whisper model weights downloaded on first run",
+    "a few GB of disk and patience, or a GPU if you have one",
+    "optional: an OpenAI API key if you would rather call hosted Whisper than run it locally"
+  ],
+  "whatYouLose": [
+    "Speed: local CPU transcription of a one hour file can take longer than the file itself",
+    "Speaker diarization that actually works out of the box, pyannote is a separate fight involving a gated model",
+    "A hosted URL you can send files to from your phone",
+    "Batch reliability, retries and queueing that someone else babysits",
+    "Polished editor niceties: click a word, jump the audio, fix it, re-export"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is convenience and GPU time, not the transcription itself. Open weights flattened this category.",
+  "whyPeopleStillPay": "Because renting a GPU by the minute through someone else's web form is cheaper than owning one, and because nobody wants to debug ffmpeg flags at 11pm before a deadline. Paid transcription also tends to bundle the boring parts: format detection, long-file chunking, retries, a shareable editor, subtitle burn-in. If transcription is incidental to your actual job, paying per hour of audio is rational. If it is a weekly habit and you own a decent machine, self-hosting pays for itself almost immediately.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the few categories where the open model is not a downgrade, it is the same model.",
+  "prompt": "Build a local-only transcription web app. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, Uvicorn\n- faster-whisper for transcription (CTranslate2 backend)\n- ffmpeg via subprocess for audio extraction and normalization\n- SQLite via sqlite3 for job records\n- Server-rendered Jinja2 templates plus a little vanilla JS. No React, no build step.\n\nWhat it does:\n1. A single page with a file drop zone accepting mp3, m4a, wav, mp4, mov, mkv, webm.\n2. On upload, save the file to ./data/uploads, create a job row with status queued, return the job id.\n3. A background worker (a single asyncio task with an in-process queue is fine) converts the file to 16kHz mono wav with ffmpeg, then runs faster-whisper with model size from .env, VAD filter on, word timestamps on.\n4. Store segments as JSON: start, end, text. Update job status to done or error with the error message kept.\n5. Job page polls status, then shows the transcript as a list of timestamped segments next to an HTML5 audio player. Clicking a segment seeks the player. Segment text is contenteditable and saves back to SQLite on blur.\n6. Export buttons produce TXT, SRT, VTT and JSON from the current edited segments. Write the SRT and VTT formatters yourself, they are twenty lines each.\n7. A jobs index listing everything with status, duration, model used, and a delete action that removes the row and the files.\n\nConfig in .env, read with python-dotenv: WHISPER_MODEL (default small), WHISPER_DEVICE (cpu), WHISPER_COMPUTE_TYPE (int8), DATA_DIR, LANGUAGE (blank means auto-detect). Ship a .env.example. Never commit .env.\n\nExplicitly out of scope: speaker diarization, user auth, payments, summarization, translation, subtitle burn-in, multi-worker scaling.\n\nDeliverables: app.py or a small package, templates, requirements.txt, .env.example, and a README with the ffmpeg install line for macOS and Debian, how to run it, and a blunt note that a one hour file on CPU with the small model takes a while. Include a smoke test that transcribes a short generated tone file and asserts the job reaches done.",
+  "promptCurated": false
+}
