@@ -1,0 +1,52 @@
+{
+  "slug": "serveravatar",
+  "name": "ServerAvatar",
+  "domain": "serveravatar.com",
+  "category": "hosting",
+  "subcategory": "server control panel",
+  "tagline": "A hosted control panel that provisions and manages your own VPS: web stack, apps, SSL, databases, cron, backups.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://serveravatar.com/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Everything a panel like this does is a documented sequence of shell commands, so an agent can absolutely produce Ansible playbooks that stand up Nginx, PHP-FPM, MariaDB, Let's Encrypt, git deploys and cron on a fresh Ubuntu box in one sitting. What it cannot produce in one sitting is the boring part: idempotency across distro versions, safe rollbacks, certificate renewal that actually fires, backups you have tested restoring, and a sane story for the day PHP 8.4 lands and your recipes rot. For one or two personal servers the DIY route is genuinely fine and arguably better, because you own the config and there is no panel daemon holding your stack hostage. Once you are running other people's sites, the click-to-reissue-SSL button and the fleet view start earning their keep. Call it a weekend for a working provisioner, plus a permanent small tax on your attention.",
+  "coreLoopDIY": "Runs idempotent Ansible playbooks against your own VPS to install a web stack, create sites with Let's Encrypt certs, wire git deploys, cron jobs and nightly encrypted backups, all driven from a local inventory file.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A VPS you control with root SSH access, Ubuntu LTS",
+    "A domain with DNS you can point at it, for real certificates",
+    "An S3-compatible bucket if you want offsite backups",
+    "Willingness to be the one paged when nginx will not reload"
+  ],
+  "whatYouLose": [
+    "A web UI your future self or a client can use without reading your playbooks",
+    "Maintained provisioning recipes that keep working as PHP, MySQL and OS versions move",
+    "Fleet view across many servers, with per-site logs, metrics and one-click SSL reissue",
+    "Guardrails: the panel refuses some foot-guns that raw Ansible will happily execute",
+    "Support you can email at 2am instead of grepping journalctl yourself"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The moat is maintenance labor, not secrets. Someone has to keep the recipes green across every distro and stack version, and that someone is otherwise you.",
+  "whyPeopleStillPay": "Because server config is the kind of work where the first build is fun and month fourteen is not. People pay a panel to own the upgrade path, to give them a button for the twelve operations they perform rarely enough to have forgotten, and to make a server manageable by someone who is not the person who provisioned it. Agencies especially pay because a panel turns server work into something delegable. If you have exactly one box running exactly one app that you built yourself, none of that applies and your playbooks are the better deal.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great candidate for DIY at one server, bad candidate at ten.",
+  "prompt": "Build a personal server provisioning and management toolkit. No web UI, no accounts, no telemetry, no hosted service.\n\nStack, non-negotiable:\n- Ansible (core, latest stable) run from my laptop over SSH\n- Target OS: Ubuntu 24.04 LTS only. Fail fast with a clear message on anything else.\n- Web stack: Nginx, PHP-FPM 8.3, MariaDB, Redis\n- Certificates: certbot with the nginx plugin, plus a systemd timer for renewal\n- Backups: restic to an S3-compatible bucket, nightly via systemd timer\n- A thin Makefile as the only interface I type\n\nLayout:\n- inventory.ini with a single [servers] group, one host to start\n- group_vars/all.yml for stack versions and defaults\n- sites.yml: a declarative list of sites, each with domain, php version, doc root, git repo, branch, optional cron entries\n- roles/: base, nginx, php, mariadb, redis, certbot, backup, sites\n- .env.example for restic repo URL, restic password, S3 keys. Load via ansible-vault or environment, never commit real values.\n\nMake targets: bootstrap (harden: non-root deploy user, SSH keys only, ufw allowing 22/80/443, unattended-upgrades, fail2ban), stack (install web stack), sites (converge everything in sites.yml, issue certs, write vhosts, install crons), deploy SITE=domain (git pull on the named site, run composer install if composer.json exists, reload php-fpm), backup-now, restore-check (restic snapshots list plus a dry-run restore to /tmp), status (systemd unit states, disk, memory, cert expiry dates per site).\n\nRules:\n- Every role must be idempotent. Running make sites twice changes nothing the second time.\n- Templated nginx vhosts, one file per site, validated with nginx -t before reload. Never reload a config that fails the test.\n- Certbot must use --webroot or the nginx plugin against the real domain, and must be skipped with a warning if DNS does not resolve to the host.\n- Databases: create one database and one scoped user per site, password generated and written to a local gitignored secrets file.\n- Backups cover /var/www, all MariaDB databases via mariadb-dump, and /etc/nginx. Print the restic snapshot id at the end.\n\nOut of scope, do not build: multi-tenant UI, billing, user roles, Docker or Kubernetes, load balancing, Windows, email servers, DNS management.\n\nDeliver a README with the exact command order for a fresh VPS, a worked two-site sites.yml example, and a short section titled 'what breaks and how you notice' covering cert renewal failures, disk filling, and untested restores.",
+  "promptCurated": false
+}
