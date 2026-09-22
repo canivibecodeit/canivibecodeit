@@ -1,0 +1,52 @@
+{
+  "slug": "stats-fm",
+  "name": "Stats FM",
+  "domain": "stats.fm",
+  "category": "analytics",
+  "subcategory": "music listening stats",
+  "tagline": "Long-term Spotify listening stats: top tracks, artists, and full play history beyond what Spotify shows you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "stats.fm Plus",
+    "basis": null,
+    "unit": "flat",
+    "source": "https://stats.fm/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanism here is not secret: Spotify exposes a recently-played endpoint that returns your last 50 plays, and Spotify itself will hand you your entire streaming history as JSON if you request the extended data export. An agent can wire those two sources into SQLite and put charts on top of them in a single sitting, and the result is genuinely yours forever. The catch is that everything depends on a Spotify developer app, an OAuth redirect, and a machine that stays awake to poll every hour or so, which is where a weekend quietly goes. You also lose the phone app, the widgets, and the friend-comparison stuff, which for a lot of people is the whole point of installing it. Build it if you mainly want the data; keep paying if you mainly want to show people the data.",
+  "coreLoopDIY": "Polls the Spotify recently-played API on a schedule into a local SQLite database, backfills your full history from the Spotify data export, and serves a dashboard of top tracks, artists, albums, and listening time by any date range.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Spotify account and a free Spotify developer app for client ID/secret",
+    "An always-on machine or small VPS so the hourly poller does not miss plays",
+    "Your Spotify extended streaming history export for anything before day one (takes days to arrive)",
+    "Basic comfort with a one-time OAuth redirect on localhost"
+  ],
+  "whatYouLose": [
+    "Mobile apps, home screen widgets, and share cards that look good in a story",
+    "Friend comparisons, leaderboards, and the social layer around your taste",
+    "Apple Music and other platform support if you ever switch off Spotify",
+    "Zero-maintenance collection: if your poller dies for a week, those plays are gone from the API window",
+    "Enrichment like genre rollups and per-track metadata that they have already normalized for you"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "Their real dependency risk is the same as yours: Spotify's API terms. They have just been surviving them longer.",
+  "whyPeopleStillPay": "Because it already has your history, it runs whether your laptop is open or not, and it is on your phone. The data is technically yours and technically portable, but the pleasant part of Stats FM is that someone else has been diligently collecting it for three years while you did nothing. Paying a couple of dollars a month to never think about a cron job is a defensible trade, and the social features do not exist in a self-hosted version at all.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The data is portable, the habit of collecting it is not.",
+  "prompt": "Build a self-hosted personal Spotify listening tracker in an empty folder.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, SQLite via better-sqlite3, Tailwind for styling, Recharts for charts. Single process, runs with `npm run dev` or `npm start`. No auth system, no cloud services, no telemetry, no analytics.\n\nSecrets in .env.local: SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI (default http://127.0.0.1:3000/api/auth/callback). Write a README section telling me exactly how to create a Spotify developer app and register that redirect URI.\n\nWhat to build:\n1. A one-time OAuth flow at /api/auth/login and /api/auth/callback requesting scopes user-read-recently-played and user-top-read. Store the access and refresh tokens in the SQLite database, refresh automatically when expired.\n2. A poller that calls /v1/me/player/recently-played?limit=50 every 15 minutes while the server is running, started from a small node script (`npm run poll`) that I can also run under cron or systemd. Deduplicate on (track_id, played_at) so re-polling is safe.\n3. Normalized tables: plays, tracks, artists, albums, track_artists. Store duration_ms on tracks so listening time is computable.\n4. An importer script `npm run import -- ./path/to/export` that reads the Spotify extended streaming history JSON files (the Streaming_History_Audio_*.json shape, with ts, ms_played, master_metadata_track_name, spotify_track_uri) and backfills the plays table, skipping rows with ms_played under 30000 and deduplicating against existing plays.\n5. A dashboard at / with a date range selector (last 4 weeks, last 6 months, last year, all time, custom) showing: total listening minutes, total plays, unique tracks and artists, top 50 tracks, top 50 artists, top 50 albums, a bar chart of minutes per day, and an hour-of-day histogram.\n6. Detail pages at /artist/[id] and /track/[id] showing play count over time and first and last played.\n\nOut of scope, do not build: any mobile app, friend or social features, genre inference, recommendations, playlist editing, hosting config beyond a Dockerfile.\n\nSeed nothing. Ship a README that states plainly that plays are only captured while the poller runs, and that gaps must be filled by re-requesting the Spotify data export.",
+  "promptCurated": false
+}
