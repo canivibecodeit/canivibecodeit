@@ -1,0 +1,53 @@
+{
+  "slug": "dealseek",
+  "name": "DealSeek",
+  "domain": "dealseek.com",
+  "category": "commerce",
+  "subcategory": "deal finding and price tracking",
+  "tagline": "Finds discounts and tracks price drops across online retailers so you buy at the dip instead of at random.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://dealseek.com/",
+    "checkedOn": "2026-09-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Split the product in half and the answer gets obvious. The half you actually use, watch these twelve product pages and ping me when the price drops, is a weekend build: a scraper, a price history table, a cron job, a notification. The half you cannot build is the firehose: a curated feed of deals you did not know existed, assembled from retailer feeds, affiliate networks and other people's finds. A personal version only ever finds deals on things you already thought of, which is a real and permanent gap. Worth building if you are a targeted buyer, not worth building if you shop by browsing.",
+  "coreLoopDIY": "A local watchlist of product URLs that gets re-checked on a schedule, stores price history, and notifies you when something crosses your target price.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and a place to run a cron job that is awake when you are not",
+    "Playwright or similar headless browser, because half of retail pages render price in JavaScript",
+    "A per-retailer price selector or JSON-LD parser, written once per store and re-written when they redesign",
+    "A notification channel: ntfy, Telegram bot token, or SMTP credentials in .env",
+    "Tolerance for bot detection, captchas and IP blocks on the bigger retailers"
+  ],
+  "whatYouLose": [
+    "Discovery: you find deals on your list, never deals on things you did not think to list",
+    "Coverage breadth that comes from retailer and affiliate feeds rather than scraping one page at a time",
+    "Human or crowd curation that separates a real price floor from a fake strikethrough discount",
+    "Stock and variant awareness, sizes and colors and regional pricing quietly break naive scrapers",
+    "Someone else maintaining the parsers every time a retailer ships a new product page"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "network-effects"
+  ],
+  "moatNotes": "The durable asset is long price history plus direct retailer and affiliate feeds. Neither is scrapeable at your house in a weekend.",
+  "whyPeopleStillPay": "Because discovery is the product and tracking is just the feature people describe. A personal watcher answers \"is this cheaper yet\", which is useful maybe twice a month. A deal service answers \"what is absurdly cheap right now\", which is the reason anyone opens it daily, and that answer requires a feed volume and a curation layer no single-user setup reproduces. Add that retailers actively fight scrapers and reward feed partners, and paying starts looking less like laziness and more like buying access.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The price watcher is a weekend; the deal feed is a business with contracts.",
+  "prompt": "Build a local price-drop watcher. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- TypeScript, Node 20+, run with tsx\n- SQLite via better-sqlite3, file at ./data/prices.db\n- Playwright (chromium) for fetching pages\n- Hono for a tiny local web UI on port 8787, server-rendered HTML, no client framework\n- node-cron for scheduling\n\nData model:\n- watches: id, url, label, retailer, target_price, currency, selector_override, active, created_at\n- price_points: id, watch_id, price, in_stock, fetched_at, raw_snippet\n- notifications: id, watch_id, price, sent_at, channel\n\nExtraction order, per watch:\n1. Parse JSON-LD Product/Offer from the page and read offers.price and availability.\n2. Fall back to Open Graph product:price:amount and common meta tags.\n3. Fall back to selector_override if the user set one.\n4. If all three fail, mark the fetch as failed, keep the raw HTML snippet, and surface it in the UI as \"parser broken\" instead of silently writing a wrong price.\n\nScheduler: check every active watch once every 6 hours, jittered, at most 3 concurrent pages, realistic user agent, 1 retry with backoff. Never hammer a host more than once per minute.\n\nNotifications: when a new price is below target_price or is the lowest in the last 90 days, send one message. Support two channels chosen by .env: NTFY_TOPIC or TELEGRAM_BOT_TOKEN plus TELEGRAM_CHAT_ID. Dedupe so the same drop does not notify twice in 24 hours.\n\nWeb UI: one page listing watches with current price, 90-day low, sparkline as inline SVG, last checked, and a broken-parser badge. Forms to add a watch, set a target, pause, delete. A detail page with the full price history table and a \"check now\" button.\n\nIn scope: watchlist, history, scheduling, notifications, broken-parser visibility, seeding via a CLI command that takes a URL.\nOut of scope: deal discovery, coupon codes, affiliate links, multi-user auth, anything that tries to defeat captchas or bot detection. If a retailer blocks us, show the block in the UI and move on.\n\nShip a README with setup, a .env.example, and a note that per-retailer parsers will break and that is expected maintenance.",
+  "promptCurated": false
+}
