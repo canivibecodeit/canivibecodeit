@@ -1,0 +1,53 @@
+{
+  "slug": "cloudtalk",
+  "name": "CloudTalk",
+  "domain": "cloudtalk.io",
+  "category": "customer-support",
+  "subcategory": "cloud call center / business phone",
+  "tagline": "Cloud-based business phone and call center software with numbers, routing, recording and CRM integrations.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://www.cloudtalk.io/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software layer of a call center is not the hard part: a dialer, a call log, recordings, tags and a notes panel are a weekend of CRUD. The part you cannot one-shot is the telephony itself, meaning local phone numbers in dozens of countries, carrier interconnects, decent audio on bad networks, and the paperwork that lets you legally hold a number and record a call. Build a personal softphone on Twilio or Telnyx and you have replaced the UI while renting the entire actual product from someone else, which is the opposite of self-hosting. Add IVR trees, queues, skill routing, a mobile app, and two-way sync with a CRM and you are no longer in one-shot territory. The honest consolation prize is a single-user click-to-call app with recordings and searchable notes, which is genuinely useful if you make fifty calls a week and nothing more.",
+  "coreLoopDIY": "Click-to-call from a local contact list over a telephony API, with recordings, transcripts and searchable per-call notes stored in SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Twilio account with a purchased phone number and voice credits",
+    "A publicly reachable HTTPS URL for webhooks, ngrok is fine locally",
+    "Node 20+",
+    "Optional: an OpenAI key if you want transcripts"
+  ],
+  "whatYouLose": [
+    "Local numbers in many countries, plus the identity and address paperwork needed to get them",
+    "Carrier-grade call quality, failover and an SLA when a call drops mid-deal",
+    "IVR, queues, skill-based routing, warm transfers and supervisor barge-in",
+    "Native mobile and desktop apps your team will actually use",
+    "Two-way CRM sync, click-to-call browser extensions and the rest of the integration surface",
+    "Call recording consent handling and the regional retention rules that come with it"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Telephony is a regulated utility wearing a SaaS dashboard. Number provisioning, KYC and recording law are the product; the UI is the wrapper.",
+  "whyPeopleStillPay": "Because a phone system that sometimes works is worse than no phone system. Teams pay so that one vendor owns the number, the carrier route, the recording archive and the support ticket when audio goes one-way, and so a new rep can be dialing within an hour instead of after a webhook debugging session. The CRM integrations matter more than people admit too: a call that does not land in the deal record might as well not have happened.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can rebuild the dashboard in a weekend and the dial tone never. The moat is number provisioning, carrier interconnects and recording law, none of which ship in a repo.",
+  "prompt": "Build a single-user \"personal call desk\" web app. No accounts, no multi-tenancy, no telemetry.\n\nStack, no substitutions:\n- Node 20, TypeScript, Express for the server\n- SQLite via better-sqlite3, schema created on first run\n- Server-rendered EJS pages plus a little vanilla JS, no React\n- Twilio Voice for telephony: twilio Node SDK server side, Twilio Voice JS SDK in the browser\n\nFeatures in scope:\n1. Contacts: name, E.164 phone, company, freeform tags, notes. Full CRUD, plus CSV import.\n2. Click-to-call: browser softphone using a Twilio Voice access token minted at /api/token. Outbound calls hit a /voice TwiML endpoint that dials the target from my Twilio number.\n3. Inbound: a /voice/inbound TwiML webhook that rings the browser client if it is registered, otherwise plays a short message and records voicemail.\n4. Recording: enable dual-channel recording, store the Twilio recording URL and duration on the call row. Show a player in the call detail page.\n5. Transcripts: optional. If OPENAI_API_KEY is set, a \"transcribe\" button downloads the recording and sends it to Whisper, saves the text, and makes it searchable.\n6. Call log: table of every call with direction, contact, timestamp, duration, outcome dropdown (connected, voicemail, no answer, bad number), and a notes textarea that autosaves.\n7. Search: one box that does SQLite FTS5 across contact names, call notes and transcripts.\n8. Today view: calls made today, total talk time, and a simple call-back queue of contacts tagged \"followup\".\n\nOut of scope, do not build: IVR menus, queues, agent routing, teams or roles, dialer campaigns, CRM sync, mobile apps, billing, analytics dashboards beyond the Today counters.\n\nSecrets in .env only: TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_TWIML_APP_SID, TWILIO_NUMBER, PUBLIC_BASE_URL, OPENAI_API_KEY. Ship .env.example. Validate Twilio webhook signatures.\n\nDeliver: npm install then npm run dev on port 3000, seed with three fake contacts, and a README that spells out exactly which Twilio console steps I must do by hand (buy a number, create a TwiML App, point both voice webhooks at PUBLIC_BASE_URL) and states plainly that call recording consent is my legal problem, not the code's.",
+  "promptCurated": false
+}
