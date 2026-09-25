@@ -1,0 +1,52 @@
+{
+  "slug": "songtradr",
+  "name": "Songtradr",
+  "domain": "songtradr.com",
+  "category": "audio",
+  "subcategory": "music licensing and rights marketplace",
+  "tagline": "B2B music licensing platform connecting rights holders with brands, agencies and platforms that need cleared tracks.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://songtradr.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Songtradr is not really software you use, it is access to music you are legally allowed to use. The product is a catalog of tracks with rights cleared, metadata attached, and contracts already signed with the people who own the masters and publishing. An agent can absolutely build you a searchable audio library with mood tags and semantic search in an afternoon, and that is a useful thing to own. What it cannot build is the right to put someone else's song in a campaign, or the legal cover if a label disagrees. If your actual need is licensed music, no amount of code replaces the paperwork.",
+  "coreLoopDIY": "A local catalog of audio files you already have rights to, with auto-extracted tags, mood and genre labels, and natural-language search over the whole library.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Audio files you actually own or have licensed",
+    "ffmpeg installed locally",
+    "An OpenAI or local embedding model for text search",
+    "Python 3.11+"
+  ],
+  "whatYouLose": [
+    "Any music you do not already own the rights to, which is the entire point",
+    "Rights clearance, chain of title, and someone to indemnify you when a claim lands",
+    "Curated human-tagged metadata across millions of tracks",
+    "Direct relationships with labels, publishers and PROs",
+    "Sync deal flow if you are on the artist side rather than the buyer side"
+  ],
+  "moatTags": [
+    "content-rights",
+    "marketplace-liquidity",
+    "proprietary-data"
+  ],
+  "moatNotes": "The catalog is the asset. Every track represents a negotiated agreement, and those agreements do not fork.",
+  "whyPeopleStillPay": "Because the alternative to a licensing platform is not a self-hosted app, it is a lawyer and six weeks of emails per track. Brands and agencies pay for a single searchable pool of music where the rights question is already answered, plus one invoice instead of thirty. On the supply side, artists and labels stay because that is where the buyers are. Both halves of that are people and contracts, not features.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A semantic search engine over audio is a weekend project; a cleared catalog is not. The moat is content rights: thousands of signed agreements with rights holders, and a buyer pool big enough to keep them signing.",
+  "prompt": "Build a local, self-hosted music library and cue-search tool for audio I already own or have licensed. This is NOT a licensing marketplace and must not pretend to clear rights.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, SQLite via sqlite3 with an FTS5 table\n- Plain server-rendered Jinja2 templates plus a little vanilla JS, no React\n- ffmpeg and ffprobe shelled out for audio inspection and waveform peaks\n- Embeddings via OpenAI text-embedding-3-small, API key from .env, cached in SQLite so re-runs are free\n\nWhat it does:\n1. `python ingest.py /path/to/music` walks a folder, reads ID3 and ffprobe metadata (title, artist, duration, bpm if present, sample rate, loudness via ffmpeg ebur128), and stores rows in SQLite.\n2. For each track, build a short text description from filename, folder name, and tags, then embed it. Store the vector as a blob. Brute-force cosine similarity in numpy is fine, do not add a vector database.\n3. A tagging UI at /track/id where I set mood, genre, energy 1-5, and free-text notes. My tags override guessed ones and get re-embedded on save.\n4. A search page that accepts natural language like \"tense slow strings for a product reveal\" and returns ranked results combining embedding similarity with FTS5 keyword hits. Show an inline HTML5 audio player and the waveform PNG.\n5. A rights field per track: source, license type, expiry date, and a link to the contract file on disk. Show a loud red banner on any track where rights fields are empty. Never infer or assert that a track is cleared.\n6. `python export.py --project NAME` writes a CSV cue sheet of selected tracks with timings and the rights fields, for handing to whoever asks.\n\nExplicitly out of scope: user accounts, cloud storage, payments, any attempt to fetch or scrape commercial catalogs, stem separation, telemetry.\n\nShip a README with setup, a .env.example with OPENAI_API_KEY, and a seed script that generates three short silent test files so the app runs before I point it at real music.",
+  "promptCurated": false
+}
