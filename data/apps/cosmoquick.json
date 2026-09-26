@@ -1,0 +1,52 @@
+{
+  "slug": "cosmoquick",
+  "name": "CosmoQuick",
+  "domain": "cosmoquick.com",
+  "category": "social-media",
+  "subcategory": "multi-channel content distribution",
+  "tagline": "Write once, push the same piece of content out to a couple dozen distribution channels at once.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://cosmoquick.com/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop is unglamorous: take one payload, fan it out to N endpoints, log what worked. An agent can build that for the three or four channels you personally care about in a weekend, and the queue, retry and scheduling parts are genuinely easy. What is not easy is the tail: every new channel means a developer app, an OAuth dance, a review process, rate limits, and per-platform formatting rules that change without warning. A product whose pitch is \"20+ channels and growing\" is selling integration maintenance, and maintenance is the one thing a one-shot build cannot hand you. Build it if you post to a handful of places; pay if the breadth is the point.",
+  "coreLoopDIY": "A local CLI that takes one markdown post plus media and publishes or schedules it across the channels you have API tokens for, with per-channel formatting, retries, and a run log.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own developer app and OAuth credentials for each target platform",
+    "Accounts in good standing on every channel you want to post to",
+    "A machine or small VPS that can run a scheduler",
+    "Tolerance for adapters breaking when a platform changes its API"
+  ],
+  "whatYouLose": [
+    "The long tail of channels you would never bother wiring up yourself",
+    "Someone else fixing adapters when a platform ships a breaking change",
+    "Managed OAuth, so you do not file developer app reviews for each network",
+    "Per-channel formatting and asset resizing that has already been tuned by trial and error",
+    "Any analytics rollup across channels unless you build that too"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "Channel count is a treadmill, not a wall. It is a real moat only for as long as they keep running.",
+  "whyPeopleStillPay": "Because nobody wants to be the person who maintains twenty API adapters for a side effect of their marketing. The value is not the fan-out logic, which is trivial, it is that someone else has already suffered through each platform's developer onboarding and keeps suffering through it as APIs drift. If your distribution list is three channels, that labor is not worth paying for. If it is twenty, and you actually want the twenty-first next month, paying is the rational move.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The fan-out is a weekend; the adapter graveyard is forever.",
+  "prompt": "Build a local-first multi-channel publisher CLI in an empty folder.\n\nStack, no substitutions: TypeScript on Node 20, SQLite via better-sqlite3, commander for the CLI, zod for config validation, node-cron for scheduling. No web UI, no hosted backend, no telemetry, no accounts.\n\nData model in SQLite: posts (id, slug, body_markdown, media_paths, created_at), targets (id, channel, handle, enabled), jobs (id, post_id, target_id, scheduled_for, status, attempts, last_error, remote_url).\n\nContent source: a ./posts directory of markdown files with YAML frontmatter (title, channels, schedule, media). Parse with gray-matter.\n\nChannel adapters: implement a single interface { name, maxChars, supportsMedia, publish(payload): Promise<{remoteUrl}> }. Ship real adapters for Mastodon, Bluesky, Discord webhook, Telegram bot, and a generic outgoing webhook. Ship a \"dry-run\" adapter that writes rendered output to ./out/ instead of posting. Do not stub anything else; make adding an adapter a single file drop in src/channels/.\n\nFormatting: per-channel transform step that truncates to maxChars with a link back, strips markdown where the channel does not support it, and skips media if unsupported. Warn loudly instead of silently mangling.\n\nCommands: init (create db and config), add-target, plan <post-slug> (show exactly what would go where, rendered), publish <post-slug> [--dry-run] [--only channel], schedule <post-slug> --at <iso>, daemon (runs node-cron, drains due jobs), log [--failed], retry <job-id>.\n\nReliability: every job attempt is recorded, retries use exponential backoff with a hard cap of 5 attempts, idempotency key per (post, target) so a re-run never double-posts.\n\nSecrets: all tokens in .env, read with process.env, ship .env.example and a README table of which env var each adapter needs and where to get it. Never write tokens to the database or logs.\n\nOut of scope: analytics, OAuth flows requiring a hosted redirect, LinkedIn, X, Instagram, TikTok. Document them in README as \"needs a reviewed developer app, not worth it locally\".\n\nFinish with: pnpm install, pnpm build, a seeded example post, and a passing `publish example --dry-run` that writes five rendered files to ./out/.",
+  "promptCurated": false
+}
