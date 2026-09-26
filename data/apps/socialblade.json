@@ -1,0 +1,51 @@
+{
+  "slug": "socialblade",
+  "name": "Social Blade",
+  "domain": "socialblade.com",
+  "category": "analytics",
+  "subcategory": "creator stats tracking",
+  "tagline": "Public stats, historical charts and earnings estimates for YouTube, Twitch, Twitter and other creator accounts.",
+  "priceMonthly": 3.99,
+  "pricing": {
+    "plan": "Bronze",
+    "basis": "monthly flat",
+    "unit": "flat",
+    "source": "https://socialblade.com/",
+    "checkedOn": "2026-08-31",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Polling the YouTube Data API and Twitch API for subscriber and view counts, writing a daily row to SQLite and drawing a chart is a genuinely small build. An agent can do that in one sitting, and for tracking your own channels plus a handful of rivals it is honestly better than the paid version because you control the cadence and the fields. The gap is that your database starts empty today, while Social Blade hands you years of backfilled daily history for essentially any account on the platform. It also covers surfaces with no friendly public API, notably TikTok and Instagram, which is exactly the part you cannot reproduce cleanly. Build it if you want a forward-looking tracker, pay if you need to look backwards or sideways at accounts you do not own.",
+  "coreLoopDIY": "A daily job pulls public counts for a watchlist of accounts from official platform APIs, stores a snapshot row per account per day in SQLite, and serves a local dashboard with growth charts and deltas.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "YouTube Data API v3 key (free quota is plenty for a small watchlist)",
+    "Twitch client ID and secret if you want Twitch numbers",
+    "Something that stays awake daily: a always-on box, a cron on a cheap VPS, or a scheduled GitHub Action"
+  ],
+  "whatYouLose": [
+    "Historical backfill: your charts start the day you run it, theirs go back years",
+    "Coverage of any account you did not think to add before the data existed",
+    "Platforms without a usable public API, mainly TikTok and Instagram",
+    "Ranks, grades and percentile context that only exist because they index everybody",
+    "Earnings estimate ranges that people, rightly or wrongly, quote as a shared reference point"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is a decade of daily crawls across millions of accounts. The code around it is not the hard part, the archive is.",
+  "whyPeopleStillPay": "Most Social Blade usage is not about your own channel, where you already have native analytics that are strictly better. It is about looking at someone else: a competitor, an influencer you are about to pay, a channel that suddenly blew up. That requires history you did not collect and an index you do not have, and it requires it right now rather than ninety days from now. A few dollars a month to skip the waiting is an easy call.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Great tracker for accounts you already care about, useless for the ones you discover tomorrow.",
+  "prompt": "Build a local creator stats tracker in an empty folder. No accounts, no hosted backend, no telemetry.\n\nStack, no substitutions:\n- TypeScript on Node 20\n- SQLite via better-sqlite3, file at ./data/stats.db\n- Fastify for the local server on port 4321\n- Server-rendered HTML plus Chart.js from a CDN for charts. No React, no build step beyond tsc.\n\nData model:\n- accounts: id, platform ('youtube' | 'twitch'), handle, external_id, display_name, added_at\n- snapshots: id, account_id, captured_on (DATE, unique per account per day), subscribers, total_views, video_count, extra_json\n\nCollectors:\n- YouTube: channels.list with parts snippet and statistics, resolve handles to channel IDs once and cache external_id. Use YOUTUBE_API_KEY from .env.\n- Twitch: app access token from client credentials, then Get Users and Get Channel Followers. Use TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET from .env. If those are missing, skip Twitch silently instead of crashing.\n- One CLI: `npm run collect` captures today's snapshot for every account, idempotent, safe to run twice a day.\n- `npm run add -- youtube @handle` and `npm run add -- twitch handle` to manage the watchlist.\n\nDashboard at /:\n- Table of accounts with current subscribers, plus 1 day, 7 day and 30 day deltas computed from snapshots.\n- Per-account page /account/:id with a line chart of subscribers and total views over time, and a bar chart of daily gains.\n- A crude earnings estimate on the YouTube pages: recent 30 day view gain multiplied by configurable low and high RPM values from .env, clearly labelled as a guess.\n- CSV export at /export.csv.\n\nExplicitly out of scope: TikTok and Instagram scraping, ranks or grades, public sharing, auth, notifications.\n\nDeliver: .env.example, a README with a cron line for daily collection, and a seed command that inserts three well known channels so the dashboard is not empty on first run. Handle API failures by logging and moving on, never by wiping existing rows.",
+  "promptCurated": false
+}
