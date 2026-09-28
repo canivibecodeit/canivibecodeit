@@ -1,0 +1,52 @@
+{
+  "slug": "gemini-notebook-notebooklm",
+  "name": "NotebookLM",
+  "domain": "notebooklm.google.com",
+  "category": "notes-knowledge",
+  "subcategory": "document RAG and research assistant",
+  "tagline": "Upload your own documents and get a chat assistant, summaries and audio overviews grounded in only those sources.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "NotebookLM Plus (bundled in Google's consumer AI subscription and some Workspace tiers)",
+    "basis": "monthly per user, bundled",
+    "unit": "per-seat",
+    "source": "https://notebook.google.com/",
+    "checkedOn": "2026-09-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. The free tier is generous and the paid tier is sold as part of a larger Google bundle, so a standalone monthly figure is not meaningful.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "high",
+  "verdictSummary": "The core of NotebookLM is retrieval augmented generation over a small pile of documents you chose, with inline citations back to the source. That is one of the most copied patterns in software right now: chunk, embed, store, retrieve, answer, cite. An agent can give you a working local version in a weekend, and for a folder of PDFs it will be fine. What it will not give you is the Audio Overview, the video overviews, the mobile apps, the one-click ingestion of Google Docs and YouTube transcripts, or the long-context reliability that comes from Gemini plus Google's infra. You also cannot escape a third-party model API unless you are happy running a local model and accepting worse grounding.",
+  "coreLoopDIY": "Ingests your PDFs, text and web pages into a local vector index, then answers questions over only those sources with clickable citations back to the exact chunk.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for an LLM and an embedding model, or a local model via Ollama and lower expectations",
+    "Python 3.12 on your own machine",
+    "Disk space for the SQLite index",
+    "A text extraction library that copes with your ugliest PDFs"
+  ],
+  "whatYouLose": [
+    "Audio Overviews: two synthetic hosts discussing your documents, which depends on multi-speaker TTS you cannot self-host at that quality",
+    "Native mobile apps and sync, so your notebook lives on one laptop",
+    "One-click ingestion of Google Docs, Slides, Drive files and YouTube transcripts",
+    "Long-context answers over a hundred sources without the retrieval quietly missing the relevant bit",
+    "Sharing a notebook with other people and having it just work"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The retrieval layer is commodity. The multi-speaker audio generation and the cheap enormous context window are not, and both are pure model access.",
+  "whyPeopleStillPay": "Mostly because the free tier already does the job and the paid tier arrives attached to a subscription people bought for other reasons, which is a hard price to beat with a weekend of your own time. Beyond that, the grounding quality is genuinely good, the citation UI is better than what you will build, and Audio Overviews turned a research tool into something people actually use on a walk. A local clone wins on privacy and on owning your corpus, and that is a real reason to build one, but it will not produce a podcast about your tax documents.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The chat-over-your-docs part is a solved weekend project; the part people demo to their friends is the audio, which is model access you cannot clone.",
+  "prompt": "Build a local, single-user research notebook: a personal NotebookLM clone.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, uvicorn\n- SQLite with the sqlite-vec extension for vector search, one file at ./data/notebook.db\n- Server-rendered Jinja2 templates plus htmx for interactivity. No npm, no build step, no SPA.\n- OpenAI-compatible HTTP calls for embeddings and chat completion, base URL and model names read from .env so a local Ollama endpoint also works. Keys in .env, load with python-dotenv, ship a .env.example, never commit .env.\n\nData model: notebooks, sources, chunks (with embedding), messages.\n\nFeatures, all of them:\n1. Create and list notebooks.\n2. Add sources to a notebook: upload PDF, .txt, .md, or paste a URL. Extract text with pypdf for PDFs and trafilatura for URLs. Store the raw extracted text.\n3. Chunk each source to roughly 800 tokens with 100 token overlap, embed each chunk, store the vector in sqlite-vec. Show per-source ingest status in the UI.\n4. Chat panel per notebook: retrieve the top 12 chunks by cosine similarity across that notebook only, pass them to the model with a strict system prompt that says answer only from the provided sources and say you do not know otherwise.\n5. Every answer must render numbered citations. Clicking a citation opens a drawer showing the exact chunk text and the source title, with the chunk highlighted.\n6. Per-notebook buttons for Summary, Key questions, and Timeline, each a fixed prompt over a broader retrieval set. Save the output as a note in the notebook.\n7. Full text search over sources with SQLite FTS5 as a fallback next to vector search, and blend the two result sets before answering.\n\nExplicitly out of scope: accounts, auth, multi-user, telemetry, cloud deploy, audio or video overviews, mobile apps, Google Drive or YouTube ingestion.\n\nDeliver a README with exact run steps, a requirements.txt, and a seed script that ingests any PDFs found in ./samples so I can test in one command.",
+  "promptCurated": false
+}
