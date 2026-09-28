@@ -1,0 +1,50 @@
+{
+  "slug": "daisydisk",
+  "name": "DaisyDisk",
+  "domain": "daisydiskapp.com",
+  "category": "productivity-utilities",
+  "subcategory": "disk space visualizer",
+  "tagline": "A macOS app that scans your drives and shows what is eating the space as a clickable sunburst, then lets you delete it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Single license",
+    "basis": "one-time purchase",
+    "unit": "one-time",
+    "source": "https://daisydiskapp.com/",
+    "checkedOn": "2026-09-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is a directory walk, a sum, and a chart. There is no account, no sync, no network, no dataset you cannot generate yourself in ten seconds of disk churn, which is why free clones like ncdu, GrandPerspective and Disk Inventory X have existed for years. An agent can produce a working scanner plus a zoomable sunburst in one sitting, and the core value, finding the 40GB folder you forgot about, survives completely intact. What you will not match in one session is the scan speed on a multi-terabyte volume, the awareness of APFS snapshots and purgeable space, and the fact that DaisyDisk's interface is genuinely nice to use. It is also cheap enough that building your own is a hobby decision, not an economic one.",
+  "coreLoopDIY": "Recursively scans a chosen path, aggregates sizes, and renders an interactive zoomable sunburst in the browser where you can drill in, reveal in Finder, and move things to the trash.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+",
+    "A modern browser",
+    "Full Disk Access granted to your terminal if you want to scan system paths"
+  ],
+  "whatYouLose": [
+    "Scan speed: DaisyDisk chews through large volumes far faster than a naive recursive walk",
+    "Correct accounting for APFS snapshots, purgeable space, hardlinks and clones, so your numbers will not match Finder's 'available' figure",
+    "The polished drag-to-collector deletion flow and the animation work that makes the sunburst pleasant rather than merely informative",
+    "A signed, sandboxed, notarized app instead of a script you have to hand Full Disk Access",
+    "Scanning of remote and mounted network volumes without weird stalls"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat here is taste and speed, not lock-in. Nothing stops you leaving, which is why the price is a coffee.",
+  "whyPeopleStillPay": "Because it is a one-time purchase in the price range where building your own costs more attention than money, and because the thing genuinely feels good: the scan finishes before you get bored, the sunburst is legible, and dragging junk into the collector before committing the delete is safer than any rm you would write for yourself. People also pay for the confidence that it will not delete the wrong thing, which is exactly the confidence a weekend script does not come with.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the few paid apps where the free clones are genuinely fine and people buy it anyway, purely because it is nicer.",
+  "prompt": "Build a local macOS disk space visualizer. No accounts, no cloud, no telemetry, no analytics. Everything runs on localhost.\n\nStack, no substitutions:\n- Backend: Python 3.11, FastAPI, uvicorn, standard library only for scanning (os.scandir, os.lstat). Use send2trash for deletion.\n- Frontend: a single static index.html with D3 v7 loaded from a vendored local file. No build step, no npm, no framework.\n\nBehaviour:\n1. POST /scan takes a JSON body with a path. Walk it with os.scandir, follow no symlinks, use st_blocks * 512 for real on-disk size, and skip anything on a different device than the root path. Track scan progress and stream nothing, just return a nested JSON tree of {name, path, size, children}.\n2. Collapse any directory entry smaller than 0.2 percent of its parent into a single synthetic \"(small files)\" node so the chart stays readable. Keep the real file list for that node available on demand.\n3. Cache completed scans as JSON under ./cache keyed by a hash of the path, with a timestamp, so reopening is instant. A \"rescan\" button ignores the cache.\n4. GET / serves the UI: a zoomable D3 sunburst, breadcrumb trail at the top, and a side panel showing the selected node's absolute path, size in GB, file count, and modified date.\n5. Clicking a ring segment zooms into it. Clicking the breadcrumb zooms back out.\n6. Selected items can be added to a \"to delete\" list in the side panel. Nothing is deleted until an explicit Delete button is pressed, which asks for a typed confirmation and then uses send2trash, never os.remove. After deletion, mark those nodes as removed in the chart without a full rescan.\n7. POST /reveal opens the selected path in Finder via `open -R`.\n\nExplicitly out of scope: scanning remote or network volumes, APFS snapshot and purgeable space accounting, hardlink deduplication, a native app bundle, menu bar integration, multi-volume overview.\n\nHandle PermissionError and OSError per-entry by recording the entry as size 0 with a \"denied\" flag, never by crashing the scan. Show a count of denied paths in the UI with a one-line note that granting Full Disk Access to the terminal fixes most of them.\n\nDeliver a README with setup, a run script that starts uvicorn on port 8787 and opens the browser, and a requirements.txt. Put nothing in .env because there are no secrets. Write tests for the size aggregation and the small-file collapsing logic against a temp directory fixture.",
+  "promptCurated": false
+}
