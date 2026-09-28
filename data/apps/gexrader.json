@@ -1,0 +1,52 @@
+{
+  "slug": "gexrader",
+  "name": "GEX Radar",
+  "domain": "gexradar.io",
+  "category": "analytics",
+  "subcategory": "options gamma exposure dashboards",
+  "tagline": "Dashboards that chart dealer gamma exposure, gamma flip levels and options positioning for index and single-name tickers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://gexradar.io/",
+    "checkedOn": "2026-09-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The math here is not the hard part: gamma exposure is Black-Scholes gamma times open interest times contract multiplier times spot, summed per strike, and an agent can write that correctly in an afternoon. The hard part is the data. Delayed or end-of-day option chains with open interest are cheap or free, so a personal snapshot dashboard is very doable, but intraday refreshing GEX with real quotes means paying for an options feed and dealing with exchange redistribution rules. You also inherit every modeling assumption yourself: which expiries to include, how to treat dealer sign conventions, whether to weight by volume or open interest, how to smooth a gamma flip estimate. Build it if you want to understand the number. Subscribe if you want someone else's opinion on it delivered before the open.",
+  "coreLoopDIY": "Pulls an option chain for a ticker, computes per-strike gamma exposure and a zero gamma level with Black-Scholes, and charts it in a local dashboard with daily snapshots saved to SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a local machine or small VPS",
+    "An option chain source with open interest and implied volatility, free delayed data works for end-of-day",
+    "A risk-free rate assumption, or a Treasury yield fetch",
+    "Optional: paid options feed if you want intraday updates"
+  ],
+  "whatYouLose": [
+    "Real-time intraday GEX, free sources are delayed or end-of-day only",
+    "A historical archive of positioning going back years, yours starts empty today",
+    "Someone else's calibrated assumptions on dealer sign conventions and expiry weighting",
+    "Prebuilt levels, alerts and mobile-friendly charts before the bell",
+    "Cross-ticker screening and the commentary that tells you which levels mattered"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The real asset is the accumulated history of daily snapshots plus a modeling convention users have learned to read. Neither is in the formula.",
+  "whyPeopleStillPay": "Traders pay for this the way they pay for any pre-market prep: the number needs to be on screen at 9:20, correct, without them babysitting a data pipeline. A self-built version is fine for research and terrible when the feed silently returns a stale chain and you do not notice until you have sized a position off it. There is also the archive: knowing today's gamma flip is worth much less than knowing where it sat on the last twelve trend days, and you cannot backfill that from scratch.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The formula is public and short; the historical positioning series and the intraday feed are the products.",
+  "prompt": "Build a local options gamma exposure (GEX) dashboard. Single user, runs on my laptop, no accounts, no cloud, no telemetry.\n\nStack, not negotiable:\n- Python 3.11\n- Streamlit for the UI\n- yfinance for option chains and spot prices\n- pandas, numpy, scipy for math\n- SQLite via sqlite3 for daily snapshots\n- plotly for charts\n- python-dotenv, read RISK_FREE_RATE and DEFAULT_TICKERS from .env, ship a .env.example\n\nWhat it does:\n1. Ticker input box plus a dropdown of expiries pulled live from the chain.\n2. For each strike and expiry, compute Black-Scholes gamma using the chain's implied volatility, time to expiry in calendar days over 365, and the rate from .env. Handle missing or zero IV by dropping that row and reporting how many were dropped.\n3. Compute per-strike GEX as gamma * open_interest * 100 * spot * spot * 0.01, signed with the standard convention: calls positive, puts negative. Expose a toggle to flip the sign convention and a toggle for open interest versus volume weighting.\n4. Charts: horizontal bar chart of net GEX by strike with spot marked, a cumulative GEX curve, and an estimated zero gamma level found by linear interpolation of the cumulative curve. Label the estimate clearly as an estimate.\n5. Aggregate view: total GEX, call GEX, put GEX, and the largest absolute strike, for the selected expiries or all expiries.\n6. A \"snapshot\" button that writes ticker, timestamp, spot, per-strike GEX and the zero gamma estimate into SQLite, plus a history tab that plots saved zero gamma levels and total GEX over time for one ticker.\n\nIn scope: cache chain pulls for 10 minutes, show the data timestamp and a loud banner saying the feed is delayed, a pytest file with at least three tests on the gamma function against known Black-Scholes values.\n\nOut of scope: real-time streaming, multi-user auth, alerting, brokerage connections, trade execution, any paid data vendor.\n\nDeliver a README with setup commands and one paragraph explaining exactly what the GEX formula assumes and why the number is a model output rather than a measurement.",
+  "promptCurated": false
+}
