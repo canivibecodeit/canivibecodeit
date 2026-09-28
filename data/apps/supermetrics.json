@@ -1,0 +1,52 @@
+{
+  "slug": "supermetrics",
+  "name": "Supermetrics",
+  "domain": "supermetrics.com",
+  "category": "analytics",
+  "subcategory": "marketing data pipelines",
+  "tagline": "Pulls marketing and ad platform data into spreadsheets, BI tools, and warehouses on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://supermetrics.com/",
+    "checkedOn": "2026-09-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The thing Supermetrics actually sells is not a UI, it is a few hundred maintained connectors to ad and analytics APIs that break constantly. If you only need two or three sources, an agent can write the extract scripts, land them in DuckDB or BigQuery, and cron the whole thing in a sitting. The wall is not code, it is access: Google Ads wants an approved developer token, Meta wants app review with a business verification, LinkedIn and TikTok ads APIs are gated, and every one of them has its own OAuth refresh dance. Metric definitions are the second trap, since attribution windows, currency conversion, and late-arriving conversions are why your numbers will not match the platform UI. Doable for one person with a small stack, miserable as soon as you want ten platforms and a team relying on the numbers.",
+  "coreLoopDIY": "Scheduled extract scripts per ad platform that incrementally load into a local warehouse, with SQL views that produce the blended report you actually look at.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API credentials for each platform, including an approved Google Ads developer token and a reviewed Meta app if you use those",
+    "A place to run a daily job: a small VPS, a home box, or GitHub Actions",
+    "Comfort writing SQL for your own metric definitions",
+    "Optional service account if you want results pushed into Google Sheets"
+  ],
+  "whatYouLose": [
+    "Hundreds of prebuilt connectors, and the team that fixes them when an API version is deprecated",
+    "Backfills and automatic schema handling when a platform adds or renames fields",
+    "Normalized field naming across platforms, so blended reports just line up",
+    "Google Sheets and Looker Studio add-ons that non-technical people can refresh themselves",
+    "Someone to blame and email when yesterday's numbers are missing"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is API access plus maintenance labor. Getting approved developer access to ad platforms is a bureaucratic process a personal project barely survives.",
+  "whyPeopleStillPay": "Because connector rot is a permanent job, not a one-time build. Ad platforms deprecate API versions on their own schedule, rename fields, change attribution defaults, and rate-limit you for sport. Agencies paying for Supermetrics are buying the guarantee that Monday's client report populates without anyone looking at a stack trace, across a dozen platforms and dozens of accounts. A personal build covers two or three sources fine, which is exactly the case where paying feels absurd.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Writing the pipeline is a weekend; getting blessed by the ad platforms' API gatekeepers is the actual project.",
+  "prompt": "Build a small personal marketing data pipeline in an empty folder. No accounts, no SaaS, no telemetry.\n\nStack, not negotiable: Python 3.12 managed with uv, DuckDB as the warehouse (single file warehouse.duckdb), Typer for the CLI, httpx for API calls, pydantic-settings for config, pytest for tests.\n\nStructure:\n- connectors/ with one module per source, each exposing fetch(start_date, end_date) that returns a list of dicts.\n- Implement two connectors for real: ga4 (Google Analytics Data API, runReport, dimensions date + sessionSource, metrics sessions + conversions) and meta_ads (Graph API insights, level=campaign, fields spend, impressions, clicks, actions).\n- Add a stub connector google_ads with a clear comment that it needs an approved developer token, and make the CLI fail loudly with that message instead of pretending.\n\nLoading:\n- Raw responses land as JSON in raw/{source}/{date}.json so you can replay without refetching.\n- Load raw into DuckDB tables raw_ga4 and raw_meta_ads with a loaded_at column, idempotent per date so reruns overwrite that date instead of duplicating.\n- SQL models in models/*.sql executed in filename order: one normalizing view per source with unified columns (date, platform, campaign, spend, impressions, clicks, conversions, currency) and one blended fact table on top.\n\nCLI commands: init (create db, run models), pull --source X --since YYYY-MM-DD --until YYYY-MM-DD, backfill --days N, report --since --until (prints a spend and conversions table to the terminal as text), export --format csv --out path.\n\nSecrets in .env only, read via pydantic-settings, .env.example committed with every required key named and nothing real in it. Never log tokens. Handle OAuth refresh tokens for Google and long-lived tokens for Meta, with a single retry-with-backoff wrapper for 429 and 5xx.\n\nOut of scope, do not build: a web UI, a scheduler daemon, multi-user auth, a connector plugin marketplace. Instead write ops.md showing a cron line and a GitHub Actions workflow snippet for a daily pull.\n\nInclude a metrics.md file documenting exactly how each metric is defined and a blunt paragraph on why these numbers will not match the platform dashboards, covering attribution windows, timezone, and late conversions. Tests should use recorded JSON fixtures, no live API calls.\n\nEnd with a README that states the setup steps and which credentials require platform approval before anything works.",
+  "promptCurated": false
+}
