@@ -1,0 +1,51 @@
+{
+  "slug": "earthly-lunar",
+  "name": "Earthly Lunar",
+  "domain": "earthly.dev",
+  "category": "dev-tools",
+  "subcategory": "SDLC observability",
+  "tagline": "Instrumentation and observability for the software delivery pipeline: builds, tests, CI, and deploys in one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://earthly.dev/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The uncomfortable thing about SDLC observability is that the data belongs to you already: GitHub, your CI provider, and your deploy tooling all expose it over API. An agent can absolutely build a personal dashboard that polls one CI system, stores runs and PRs in SQLite, and computes deploy frequency, lead time, build duration, and failure rates in a single sitting. What it cannot build in a sitting is broad instrumentation across every CI provider, test runner, and build tool that a real engineering org actually runs, plus the collector maintenance when those APIs shift. For one person watching one repo, the DIY version is honestly fine. For a team that wants trustworthy numbers across heterogeneous pipelines and nobody assigned to babysit the ingestion, the product is doing real work.",
+  "coreLoopDIY": "Polls the GitHub API for workflow runs, pull requests, and deployments, stores them locally, and renders delivery metrics and build-time trends on a dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "GitHub personal access token with repo and actions read scope",
+    "Node 20 and a machine or small VM to run the poller on a schedule",
+    "Repos you actually have read access to"
+  ],
+  "whatYouLose": [
+    "Coverage beyond one CI provider: other runners, local builds, and non-GitHub deploy paths go unmeasured",
+    "Test-level and step-level granularity, including flaky test attribution across runs",
+    "Cross-team rollups and any notion of a shared, agreed-upon metric definition",
+    "Someone else fixing the collectors when upstream APIs change shape",
+    "Alerting and anomaly detection, so regressions show up only when you open the tab"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The integration surface is the product. Your own pipeline data is not proprietary to them, but stitching it together across every tool a team uses is the part nobody wants to own.",
+  "whyPeopleStillPay": "Because delivery metrics are only useful when everyone trusts them, and trust comes from coverage plus consistency. A homegrown dashboard that reads one CI provider gets argued with the first time a number looks wrong, and then someone spends a sprint on ingestion bugs instead of the thing they were trying to fix. Paying makes the numbers somebody else's job, which for a team is usually cheaper than it looks on the invoice.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline data is already yours; the pain is collecting it from six places forever.",
+  "prompt": "Build a local SDLC metrics dashboard for my own GitHub repos. Single project, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js (App Router) with TypeScript\n- SQLite via better-sqlite3, file at ./data/metrics.db\n- Recharts for charts\n- No auth, no multi-tenancy, no Docker\n\nSecrets in .env.local: GITHUB_TOKEN, GITHUB_REPOS (comma separated owner/repo list).\n\nIngestion:\n- A script at scripts/sync.ts run via \"npm run sync\", safe to re-run, idempotent upserts by id\n- Pull per repo: workflow runs (with conclusion, timing, head_sha, branch), pull requests (created, merged, first commit time), deployments and deployment statuses\n- Handle pagination and rate limit headers, back off on 403 secondary limits\n- Store raw fields plus a normalized events table, keep a sync_state table with last cursor per repo and resource\n\nMetrics page:\n- Deploy frequency per week, computed from successful deployments or merges to the default branch if no deployments exist\n- Lead time for change: first commit to merge, median and p90\n- Change failure rate: share of default-branch workflow runs that failed\n- Build duration trend per workflow, median and p90, plus the ten slowest runs\n- Per-job failure counts and a simple flaky signal: same workflow and head_sha with both a failed and a passing attempt\n- Filters for repo, branch, and a date range of 7, 30, or 90 days\n\nExplicitly out of scope: non-GitHub CI providers, test result parsing from artifacts, Slack alerting, user management, hosted deployment.\n\nDeliver: README with setup and the exact metric definitions used, npm scripts for dev and sync, and a seed script that inserts fake data so the UI renders before the first real sync.",
+  "promptCurated": false
+}
