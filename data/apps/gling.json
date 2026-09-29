@@ -1,0 +1,51 @@
+{
+  "slug": "gling",
+  "name": "Gling",
+  "domain": "gling.com",
+  "category": "audio-video",
+  "subcategory": "AI video editing for talking-head footage",
+  "tagline": "Uploads your talking-head video, cuts silences, filler words and bad takes, then hands back an edit or a timeline for your NLE.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://gling.com/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Gling has historically sold time-based credits rather than a flat seat price.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The expensive-sounding part is the cheapest: silence detection is an RMS threshold, and filler word removal is a transcript with word-level timestamps plus a blocklist. Whisper and ffmpeg get you a rough-cut pipeline in an afternoon, and it will genuinely save you the same twenty minutes per video. Where it falls over is the boring stuff: clean cut points that do not clip your consonants, repeated-take detection that actually picks the best take, and NLE round-trips that Premiere and Resolve will open without complaint. A local script that outputs a cut MP4 is easy. A script you trust to hand an FCPXML to a paid editor is not, and that gap is most of what you are paying for.",
+  "coreLoopDIY": "Transcribes your video locally with word-level timestamps, then removes silences and filler words and writes both a cut MP4 and an FCPXML timeline you can open in an editor.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "a local Whisper build (faster-whisper) and a GPU if you want it to finish this decade",
+    "a few GB of disk for intermediates",
+    "patience for tuning silence thresholds against your own speaking style"
+  ],
+  "whatYouLose": [
+    "Repeated-take detection that compares near-identical sentences and keeps the best one",
+    "A browser timeline where you can eyeball and veto every proposed cut before rendering",
+    "Tested export presets for Premiere, Final Cut and DaVinci that actually relink to your source media",
+    "Padding and crossfade heuristics tuned so cuts do not sound like a ransom note",
+    "Someone else's GPU doing the transcription while you do something useful"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Cut-point quality is a taste problem disguised as a signal-processing problem, and taste is expensive to encode.",
+  "whyPeopleStillPay": "Because the value is not the cut, it is trusting the cut. A DIY pipeline gives you a rough edit you then have to watch end to end to verify, which eats the time you just saved. Gling sells a review UI, sane defaults tuned on a lot of talking-head footage, and export files that open cleanly in the editor your workflow already lives in. If you publish weekly and edit in an NLE, that is worth the credits. If you publish occasionally and just want the dead air gone before upload, the local script is fine and free forever.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Silence removal is a solved weekend project; the part that earns money is the review screen you do not want to build.",
+  "prompt": "Build a local CLI tool called \"roughcut\" in Python 3.11 that turns raw talking-head video into a rough cut.\n\nStack, no substitutions:\n- Python 3.11, uv for dependency management, Typer for the CLI\n- faster-whisper for transcription with word_timestamps=True\n- ffmpeg invoked via subprocess, no moviepy\n- Everything runs offline on the local machine. No accounts, no cloud APIs, no telemetry.\n\nCommands:\n1. `roughcut analyze INPUT.mp4` : extract mono 16kHz wav, transcribe with faster-whisper, and write `INPUT.cuts.json` containing the full word-level transcript plus a proposed list of cut ranges.\n2. `roughcut render INPUT.mp4` : read the cuts json and produce `INPUT.cut.mp4` and `INPUT.fcpxml`.\n\nCut rules, all configurable via CLI flags with these defaults:\n- Silence: any gap between words longer than 0.6s gets trimmed down to 0.25s of retained pause. Detect gaps from word timestamps, and sanity check against ffmpeg silencedetect at -35dB.\n- Filler words: drop standalone \"um\", \"uh\", \"erm\", \"hmm\" when surrounded by pauses. Keep a blocklist in a top-level FILLERS constant so it is trivial to edit.\n- Padding: keep 60ms before and after every retained segment so consonants are not clipped.\n- Never create a segment shorter than 0.4s; merge it into its neighbour instead.\n\nRendering: build a concat-safe cut by re-encoding with libx264 crf 18 and aac 192k, using a single ffmpeg call with the filter_complex trim/atrim approach rather than N temp files. If the segment count exceeds 200, fall back to per-segment temp files plus concat demuxer and say so on stdout.\n\nFCPXML output: version 1.9, one project, one video asset, one clip per retained segment with correct offset/start/duration in the source frame rate. Validate that the file opens as XML before writing.\n\nOut of scope, do not build: multicam, repeated-take detection, a web UI, any GUI, speaker diarization, subtitle burn-in.\n\nAlso write: a README with a two-line quickstart, a `--dry-run` flag that prints total runtime saved and the number of cuts without rendering, and pytest tests for the segment-merging and padding math using synthetic word lists (no media files in tests).",
+  "promptCurated": false
+}
