@@ -1,0 +1,53 @@
+{
+  "slug": "schoolmaker",
+  "name": "Schoolmaker",
+  "domain": "schoolmaker.com",
+  "category": "creator-commerce",
+  "subcategory": "course and community platform",
+  "tagline": "Hosted platform for selling online courses with a built-in community and coaching layer aimed at getting students to actually finish.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://schoolmaker.com/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core of a course platform is gated content plus a payment webhook, and an agent will get you there in a sitting: lessons behind a paywall, progress tracking, a comment thread per lesson. What it will not get you in a sitting is the part people actually buy, which is video ingest and playback that does not fall over, transactional email that lands in inboxes, and the drip/cohort/nudge machinery that makes completion rates move. Video is the hard dependency: you will be renting Cloudflare Stream, Mux, or Bunny either way, so \"no third-party dependency\" is a lie here. If you are one creator with one course and a few hundred students, the DIY version is genuinely fine and cheaper. If you are running cohorts, refunds, tax, affiliates, and a support inbox, you have just hired yourself as a platform engineer.",
+  "coreLoopDIY": "A single-creator course site where Stripe Checkout unlocks a set of video lessons, tracks per-student progress, and hosts a comment thread under each lesson.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Stripe account for Checkout and webhooks",
+    "A video host with signed playback URLs, for example Cloudflare Stream or Bunny Stream",
+    "Transactional email provider for magic links and receipts, for example Resend or Postmark",
+    "A cheap VPS or Vercel-style host plus a Postgres database",
+    "A domain, because a paid course on a subdomain you do not own is a bad look"
+  ],
+  "whatYouLose": [
+    "Video pipeline you do not think about: transcoding, adaptive bitrate, mobile playback, resume-where-you-left-off across devices",
+    "Email deliverability and the whole lifecycle sequence: welcome, drip unlocks, nudges for stalled students, win-backs",
+    "Cohort and coaching mechanics: cohort start dates, assignments, accountability check-ins, coach dashboards",
+    "Commerce plumbing: refunds, failed payment dunning, VAT/sales tax handling, order bumps, coupons, affiliates",
+    "Community that feels alive: notifications, mentions, moderation tools, a feed that is not just a comments list"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The defensible bit is not the code, it is the opinionated completion-rate playbook baked into the product plus the five vendors it quietly wires together for you.",
+  "whyPeopleStillPay": "Because a course business is a support business wearing a content hat. The day a student's video buffers, or a receipt does not arrive, or a card declines silently and access drops, you are the one debugging it instead of recording the next module. Paying a platform converts an unbounded set of infrastructure problems into one invoice and someone else's on-call rotation, and for anyone whose revenue depends on students finishing, the drip, nudge, and cohort machinery is the product, not a nice-to-have.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build if you have one course and thick skin about email deliverability.",
+  "prompt": "Build a single-creator paid course site. One creator, one or more courses, students buy and watch. No multi-tenancy.\n\nStack, non-negotiable: Next.js App Router with TypeScript, Postgres via Drizzle ORM, Tailwind, deployed anywhere Node runs. No CMS, no auth SaaS, no admin framework.\n\nAuth: passwordless magic links. Sign the token yourself with a secret from .env, store single-use tokens in Postgres with a 15 minute expiry, set an httpOnly session cookie. Send mail through Resend using RESEND_API_KEY. No OAuth, no passwords.\n\nContent model: courses have modules, modules have lessons. A lesson has a title, markdown body, an optional video id, and an order index. Seed content from a /content directory of markdown files with frontmatter, parsed at build and synced into Postgres by a `pnpm sync` script. The creator edits files, not a WYSIWYG.\n\nVideo: do not host or transcode video. Store a Cloudflare Stream video id per lesson and generate short-lived signed playback URLs server side using CF_STREAM_ACCOUNT_ID and CF_STREAM_SIGNING_KEY from .env. If those env vars are missing, fall back to a plain HTML5 video tag pointed at a public URL so the app still runs locally.\n\nPayments: Stripe Checkout in payment mode, one price per course. Implement /api/stripe/webhook verifying the signature with STRIPE_WEBHOOK_SECRET, and on checkout.session.completed create or find the user by email and insert an enrollment row. Also handle charge.refunded by revoking that enrollment. No subscriptions in v1.\n\nAccess control: every lesson route checks for an active enrollment in that course server side. Do not gate in the client. Unenrolled visitors get a sales page with curriculum titles visible and bodies hidden.\n\nProgress: a lessons_completed table keyed by user and lesson. A \"mark complete\" button, a per-module progress bar, and a \"continue where you left off\" link on the dashboard.\n\nComments: one flat thread per lesson, enrolled users only, markdown escaped, creator replies badged, soft delete for moderation. No threading, no reactions.\n\nExplicitly out of scope: cohorts, drip scheduling, quizzes, certificates, affiliates, tax handling, coupons, mobile apps, analytics dashboards, and any telemetry. Do not add them.\n\nDeliver: drizzle schema and migrations, a seed script with one demo course and two lessons, .env.example listing every secret, and a README with local setup, Stripe CLI webhook testing instructions, and a one-paragraph note on what breaks at 1000 students.",
+  "promptCurated": false
+}
