@@ -1,0 +1,53 @@
+{
+  "slug": "altered-realtime-pro",
+  "name": "Altered Real-Time Pro",
+  "domain": "altered.ai",
+  "category": "ai-audio",
+  "subcategory": "real-time voice conversion",
+  "tagline": "Real-time AI voice changer that maps your live mic input onto a different voice for calls, streams and games.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.altered.ai/real-time-pro/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part here is not the app shell, it is a voice conversion model that runs at low enough latency to survive a live conversation. Open weights for retrieval-based voice conversion exist and run on a consumer GPU, so an agent can genuinely wire up mic capture, chunked inference and output into a virtual audio device in one long session. What you will not get for free is the tuned latency budget, the click-free crossfading between audio chunks, and a library of professionally recorded, cleared voices you are allowed to use in published content. Expect your first build to sound like a voice changer and Altered to sound like a person. If you only need one voice for gaming or a Discord bit, the DIY version is fine.",
+  "coreLoopDIY": "Captures mic audio in small chunks, runs each chunk through a local voice conversion model on the GPU, and writes the result to a virtual audio device so any app can select it as a microphone.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "NVIDIA GPU with at least 6GB VRAM, CPU-only will not hit usable latency",
+    "A virtual audio device driver, VB-CABLE on Windows or BlackHole on macOS",
+    "An open-weights voice conversion model checkpoint you are allowed to use",
+    "Python 3.11 and a working CUDA or Metal torch install",
+    "Patience for audio buffer tuning"
+  ],
+  "whatYouLose": [
+    "A catalog of licensed, studio-recorded target voices with clear usage rights",
+    "Latency that holds up in a real two-way conversation without people talking over you",
+    "Artifact-free chunk stitching, so no clicks, warbles or pitch wobble on plosives",
+    "Cross-platform installers and a UI your non-technical friend can run",
+    "Support when the audio routing breaks after an OS update, which it will"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "content-rights",
+    "execution-polish"
+  ],
+  "moatNotes": "The voices themselves are an asset: recorded talent, cleared for commercial use. That is a licensing business wearing a software UI.",
+  "whyPeopleStillPay": "Because real-time audio is a latency and artifact problem, and those are exactly the problems that separate a demo from a tool. Altered sells a set of voices you can legally ship in a game, a film dub or a published stream, tuned to run live without a technical setup phase. A local build gets you the transformation but not the clearance, and not the confidence that it will still sound clean twenty minutes into a session. Anyone doing this for money is buying the rights and the reliability, not the math.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The model is downloadable; the voice rights are not.",
+  "prompt": "Build a local real-time AI voice changer as a desktop tool. Empty folder, no cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11\n- sounddevice for audio IO, numpy for buffers\n- torch with CUDA if available, else fail loudly with a clear message about latency\n- An open-weights retrieval-based voice conversion inference implementation, vendored into vc/ as a local module\n- A small PySide6 window for control, no web UI\n\nWhat to build:\n1. Device picker: list input and output audio devices via sounddevice, let the user choose input mic and output device. Persist the choice in config.json.\n2. Streaming loop: capture mono float32 audio at 16000 Hz in configurable chunks, default 240 ms with 80 ms of lookahead context on each side. Run each padded chunk through the model, then crop back to the chunk and crossfade 20 ms with the previous output to kill clicks.\n3. Run inference in a dedicated worker thread with a bounded queue. If the queue backs up, drop the oldest chunk and log an underrun instead of growing latency.\n4. UI controls: pitch shift in semitones, model checkpoint file picker, dry/wet mix, input gain, a mute toggle, and a live readout of measured round-trip latency in ms plus an underrun counter.\n5. Passthrough mode that bypasses the model entirely, so the user can confirm routing works before blaming the model.\n6. models/ directory. Load any .pth checkpoint the user drops in. Ship no weights. README explains where to get a checkpoint and that licensing target voices is the user's problem.\n7. README section on virtual audio routing: VB-CABLE on Windows, BlackHole on macOS, with the exact steps to make Discord or OBS see the output as a microphone.\n\nExplicitly out of scope: training or fine-tuning voices, a bundled voice library, mobile, text to speech, noise suppression beyond a simple noise gate, any network calls.\n\nAny paths or tokens go in .env, read with python-dotenv. Include requirements.txt and a one-command run script. When done, print the measured end-to-end latency and say plainly whether it is under 300 ms.",
+  "promptCurated": false
+}
