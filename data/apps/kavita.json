@@ -1,0 +1,51 @@
+{
+  "slug": "kavita",
+  "name": "Kavita",
+  "domain": "kavitareader.com",
+  "category": "reading",
+  "subcategory": "self-hosted comic, manga and ebook server",
+  "tagline": "Self-hosted media server and web reader for comics, manga and ebooks, with a paid Kavita+ tier for metadata matching and scrobbling.",
+  "priceMonthly": 5,
+  "pricing": {
+    "plan": "Kavita+",
+    "basis": "monthly supporter tier",
+    "unit": "flat",
+    "source": "https://www.kavitareader.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Core Kavita is free and open source; the paid tier is a supporter subscription that unlocks external metadata and scrobbling."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is not magic: walk a folder tree, unzip CBZ archives, cache page thumbnails, store per-user reading progress in SQLite, serve a paginated web reader. An agent can get that working on your own library in a weekend, and for one person reading one series at a time it will feel fine. What falls over is everything around it: series and volume parsing from messy filenames, EPUB rendering that does not mangle CSS, CBR archives, OPDS so third-party mobile readers can connect, thumbnail generation that does not choke on a 40,000 file library, and the AniList/MyAnimeList matching and scrobbling that the paid tier actually sells. Worth saying plainly: Kavita itself is free and open source, so the honest comparison is your weekend scanner versus a mature self-hosted app you can run for nothing. Build it to learn, or if you want a reader shaped exactly like your brain.",
+  "coreLoopDIY": "Scans a local folder of CBZ archives and EPUBs, indexes series and volumes into SQLite, and serves a web reader that remembers your page per item.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or NAS that stays on, with Node 20+",
+    "A local library of CBZ or EPUB files you already own",
+    "Sharp or similar for thumbnail and page resizing",
+    "A reverse proxy with TLS if you want to read it away from home",
+    "unrar or a native RAR library if you insist on CBR support"
+  ],
+  "whatYouLose": [
+    "Metadata matching against AniList and MyAnimeList, plus scrobbling reading progress back to them",
+    "OPDS and the ecosystem of mobile readers that speak it, so no Paperback or Panels or Tachiyomi hookup",
+    "Multi-user accounts, per-library permissions and age restrictions for a family setup",
+    "Robust filename parsing for volumes, chapters, specials and oddly named scans",
+    "Years of edge-case handling: broken archives, huge libraries, EPUB quirks, progress sync across devices"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the reader, it is the long tail of file format sadness and the third-party metadata plumbing.",
+  "whyPeopleStillPay": "People pay for Kavita+ because they already run the free server and want the boring parts handled: correct covers and summaries pulled automatically, chapter counts that match reality, and reading progress pushed to the tracker they already use. That is integration work nobody enjoys doing twice. The subscription is also straightforwardly supporting maintenance of something that keeps a large personal library usable, which is a reasonable thing to buy.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The free tier is already self-hosted open source, so the real question is whether you would rather maintain your own scanner than someone else's.",
+  "prompt": "Build a single-user, self-hosted comic and ebook reader that runs on my LAN. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- TypeScript, Node 20, Fastify for the HTTP server\n- SQLite via better-sqlite3, file at ./data/library.db\n- sharp for cover and page image resizing\n- unzipper (or yauzl) for reading CBZ and EPUB archives in place, never extracting to disk permanently\n- Server-rendered HTML with a small amount of vanilla JS. No React, no build step for the frontend.\n\nConfig in .env only: LIBRARY_PATH, PORT, CACHE_DIR. Ship a .env.example.\n\nIn scope:\n1. A scanner that walks LIBRARY_PATH recursively and indexes .cbz and .epub files. Treat the immediate parent directory name as the series title, and parse a volume or chapter number out of the filename with a documented regex. Store series, items, page counts, file mtime and size.\n2. Incremental rescan: skip files whose path, size and mtime are unchanged. Expose POST /scan and print progress to stdout.\n3. Thumbnail cache: extract the first image of each CBZ as the cover, resize to 400px wide webp into CACHE_DIR, keyed by a hash of the file path.\n4. Library UI at /: grid of series with covers, click through to a list of volumes with read/unread state and a progress bar.\n5. CBZ reader at /read/:itemId: paginated single-page view, keyboard left/right and click zones, images streamed from the archive on demand and resized to a max width, lazy prefetch of the next two pages.\n6. EPUB reader: minimal is fine. Parse the OPF spine, serve each spine document in an iframe with a fixed reader stylesheet, next/prev chapter navigation. Do not try to reflow or paginate.\n7. Progress: persist current page or spine index per item, resume on reopen, mark read at the last page.\n8. A /health endpoint and a single `npm start`.\n\nOut of scope, do not build and do not stub: CBR/RAR, PDF, multi-user auth, OPDS, external metadata lookup, AniList or MAL scrobbling, downloads, transcoding, mobile apps.\n\nAlso deliver: a README with setup steps, the filename parsing rules, known limitations, and honest notes on where scanning will be slow. Include a seed script that generates a few fake CBZ files so the whole thing can be run and tested without my real library.",
+  "promptCurated": false
+}
