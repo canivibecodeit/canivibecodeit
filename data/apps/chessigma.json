@@ -1,0 +1,52 @@
+{
+  "slug": "chessigma",
+  "name": "Chessigma",
+  "domain": "chessigma.com",
+  "category": "education",
+  "subcategory": "chess training",
+  "tagline": "Web app for chess improvement: puzzle drilling, game analysis and coaching-style feedback.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.chessigma.com/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Chess is one of the few domains where the hard parts are already free and open: Stockfish compiles to WASM, chess.js handles rules, and the Lichess puzzle database is millions of rated positions under a permissive license. So an agent really can hand you a working board, an engine eval bar, blunder detection on your imported games and a puzzle queue in a single session. What it cannot hand you is the authored layer: the sequenced lessons, the opinionated explanations of why a move is bad in words a 1200 understands, the tuned difficulty curve that keeps you coming back. Bolting an LLM onto engine output gets you halfway there and costs an API key plus a lot of confidently wrong prose about positional nuance. Build it if you mostly want a private drilling rig, pay if you want the curriculum.",
+  "coreLoopDIY": "Local web app that imports your Lichess or Chess.com games, runs Stockfish in the browser to flag blunders and inaccuracies, and drills you on puzzles from those mistakes plus the open Lichess puzzle set with rating tracking.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a modern browser",
+    "stockfish.wasm bundled locally (multi-threaded build needs COOP/COEP headers)",
+    "A slice of the Lichess open puzzle database CSV, downloaded once",
+    "Optional: an LLM API key in .env if you want prose explanations instead of raw engine lines",
+    "Your own game archive via the public Lichess or Chess.com export endpoints"
+  ],
+  "whatYouLose": [
+    "Authored lessons and a coherent curriculum, which is the actual product rather than the engine",
+    "Human-readable move explanations that are reliably correct, not engine output laundered through a language model",
+    "Mobile app or even decent phone ergonomics, unless you spend the extra day on layout",
+    "Cross-device progress sync and a rating history you trust over years",
+    "Whatever tuning went into the difficulty and spaced-repetition scheduling, which is easy to build badly and hard to build well"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The engine and the puzzle corpus are commodities. The teaching sequence and the retention loop are not, and they are the part nobody one-shots.",
+  "whyPeopleStillPay": "Because a puzzle firehose is not a training plan. The open ingredients give you infinite positions and a perfect evaluator, which is exactly the setup that makes people drill aimlessly for six months and gain nothing. What a paid trainer sells is somebody having already decided what you should work on this week, in what order, with feedback phrased for your level, plus enough polish that you open it instead of opening a tab you forgot you built. Also, the DIY version has an audience of one, so there is nobody to be embarrassed in front of when you skip three days.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the whole engineering stack is free and open source, so the build is easy and the curriculum is the thing you are actually buying.",
+  "prompt": "Build a local-only chess training web app called \"pawnshop\". No accounts, no backend service, no telemetry.\n\nStack, non-negotiable: Vite + React + TypeScript, Tailwind for styling, chess.js for rules, react-chessboard for the board, stockfish.wasm (single-threaded build to avoid COOP/COEP setup) as a Web Worker, Dexie (IndexedDB) for all local storage. No server except Vite dev/preview.\n\nFeatures, in this order:\n1. Board screen: play through a position, arrow keys to step moves, engine eval bar and top 3 lines streaming from Stockfish at a configurable depth (default 18).\n2. Import: a text field where I paste a Lichess or Chess.com username, fetch my last 50 games from their public export API (Lichess: /api/games/user, Chess.com: /pub/player/{user}/games/archives), store PGNs in IndexedDB. Handle rate limits with a simple retry and show progress.\n3. Analysis pass: for each imported game, run Stockfish over every position of MY moves, classify each as ok / inaccuracy / mistake / blunder using centipawn loss thresholds (50 / 100 / 250) with a mate-score special case. Store results. Show a per-game timeline with the flagged moves.\n4. Puzzle queue: on first run, load a bundled CSV slice of the Lichess open puzzle database from /public/puzzles.csv (I will supply the file; write a tiny loader and document the expected columns: PuzzleId, FEN, Moves, Rating, Themes). Mix in puzzles generated from my own blunders: the position before the blunder, with the engine's best line as the solution.\n5. Rating: implement plain Glicko-free Elo (K=24) for me against puzzle ratings, persist history, show a sparkline.\n6. Themes view: accuracy by puzzle theme and by opening (derive opening from first 8 plies via a small bundled ECO table), so I can see what I am bad at.\n\nOptional and off by default: if OPENAI_API_KEY exists in .env, add a \"explain this move\" button that sends the FEN, the played move, the engine's line and the eval delta to the model and renders a 3 sentence explanation. Label the output clearly as model-generated and possibly wrong. Never call it automatically.\n\nExplicitly out of scope: multiplayer, online play, user auth, mobile app, lesson content, spaced repetition beyond \"show the ones I failed again after 1, 3 and 7 days\".\n\nDeliver: working app via npm install && npm run dev, a README with the puzzle CSV download link and license note, secrets only in .env, and a seeded demo mode that works with no username and no API key.",
+  "promptCurated": false
+}
