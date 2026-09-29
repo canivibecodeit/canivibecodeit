@@ -1,0 +1,52 @@
+{
+  "slug": "aesty",
+  "name": "Aesty",
+  "domain": "aesty.ai",
+  "category": "ai-image",
+  "subcategory": "AI stylist and virtual try-on",
+  "tagline": "An AI styling app that digitizes your wardrobe, suggests outfits, and renders virtual try-ons of clothes on you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.aesty.ai/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The boring half of this app is a photo database with tags, and an agent will build that in an afternoon: upload garment pics, have a vision model label color, category, season and fit, then ask an LLM to assemble outfits from what you own. The hard half is the try-on render, and there you are renting someone else's image model rather than building anything. A hosted editing model can put a jacket on your photo convincingly enough for a personal shop-or-skip decision, but it will fumble fabric drape, prints, shoes, and anything with complex structure in ways the paid app has spent real effort papering over. You also lose the shopping side entirely, since scraping retailer catalogs for try-on candidates is its own long project. Build it if you want a searchable closet with outfit ideas; do not expect the mirror to be honest.",
+  "coreLoopDIY": "A local web app where you photograph your clothes, get them auto-tagged by a vision model, ask for outfit combinations from your own wardrobe, and generate rough try-on images by compositing a garment onto a full-body photo via a hosted image editing model.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An image-capable model API key (Gemini or similar) for tagging and try-on edits",
+    "A few dozen decent photos of your own clothes, shot flat on a plain background",
+    "One or two full-body reference photos of yourself in neutral clothing",
+    "Local disk space for originals plus generated renders"
+  ],
+  "whatYouLose": [
+    "Try-on renders that survive being looked at twice: drape, prints, and footwear fall apart fast",
+    "A phone app with a camera flow, so cataloging becomes a laptop chore you abandon",
+    "Any connection to retailer catalogs, so you can only try on clothes you already own",
+    "Styling taste that comes from fashion-specific tuning rather than a general model guessing",
+    "Body and fit modeling, which is the part that makes a virtual try-on useful rather than decorative"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The defensible piece is whatever fine-tuning and pipeline work makes garments sit on a real body correctly. Everything around it is CRUD with nice animations.",
+  "whyPeopleStillPay": "Because nobody wants to run a wardrobe database. The paid version turns a chore into a thirty second camera flow, keeps the renders good enough to be flattering, and sits on your phone where clothing decisions actually happen. A self-hosted closet app that requires you to open a laptop and upload JPEGs will be abandoned within two weeks, and the DIY try-on quality gap is the kind of thing you notice immediately and cannot fix with better prompting.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wardrobe catalog is trivially yours; the believable try-on render is rented from whichever image model you can get an API key for.",
+  "prompt": "Build a local-first personal wardrobe and outfit app called Closet.\n\nStack, no substitutions:\n- Next.js 15 with App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/closet.db\n- Uploaded and generated images on local disk under ./data/images, served through a route handler\n- Google Gemini via @google/genai for both vision tagging and image editing, key in GEMINI_API_KEY in .env.local\n- No auth, no accounts, no telemetry, no cloud storage. Single user on localhost.\n\nFeatures, in scope:\n1. Upload page: drag in one or many garment photos. For each, call the vision model and store a JSON row with category (top, bottom, outerwear, shoes, accessory), colors, pattern, material guess, formality 1-5, warmth 1-5, and a short description. Let me edit any field afterwards.\n2. Closet grid: filter by category, color, formality, warmth. Click a garment to view, edit, or delete it.\n3. Outfit builder: I type a prompt like \"rainy office day, 12 degrees\". Send the full garment list as compact JSON to the text model and ask for three outfits, each referencing garment ids only, each with a one sentence rationale. Render them as image rows. Save an outfit to a saved_outfits table.\n4. Try-on: I upload one full-body reference photo, stored once as my model photo. From a garment page, hit \"try on\" to call the image editing model with the reference photo plus the garment photo and a prompt asking it to place the garment on the person, preserving face and pose. Save the render next to the garment. Show a visible disclaimer that renders are approximate.\n\nOut of scope, do not build: shopping or retailer catalogs, body measurement estimation, social sharing, mobile app, multi-user support, background job queues.\n\nRequirements:\n- Seed script that inserts five fake garments with placeholder images so the UI is not empty on first run.\n- All model calls in lib/ai.ts with typed wrappers and a mock mode enabled by MOCK_AI=1 so the UI works with no API key.\n- README with setup, .env.local.example, and one paragraph on expected cost per try-on render.\n- Handle model failures by showing the error inline, never a blank screen.",
+  "promptCurated": false
+}
