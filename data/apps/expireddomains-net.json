@@ -1,0 +1,52 @@
+{
+  "slug": "expireddomains-net",
+  "name": "ExpiredDomains.net",
+  "domain": "expireddomains.net",
+  "category": "seo-marketing",
+  "subcategory": "expired and dropped domain research",
+  "tagline": "Searchable database of expired, deleted, and auctioned domains with SEO and registry metrics attached.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://expireddomains.net/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface here is a filterable table, and a filterable table is a Tuesday afternoon. The product is not the table, it is the daily ingest of registry zone files and drop lists across hundreds of TLDs, joined against auction feeds and backlink and archive metrics that each come from their own gated source. Getting bulk .com and .net data legitimately means an ICANN CZDS request and approval per registry, and the interesting metrics sit behind paid APIs you would be re-buying anyway. You can absolutely build a personal watchlist that tracks a few thousand domains you care about and tells you the moment one drops, and for most people that is the actual use case. You cannot build the haystack, only the needle detector.",
+  "coreLoopDIY": "Watches a list of domains you supply, polls RDAP daily for expiry and status changes, and flags the ones that go available or enter redemption or pending delete.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 and a machine or small VPS that can run a daily job",
+    "Your own candidate list of domains, this build does not discover them for you",
+    "Polite RDAP polling, registries rate limit and will block you if you hammer them",
+    "Optional Wayback Machine and any SEO metric API keys you already pay for"
+  ],
+  "whatYouLose": [
+    "Discovery: millions of dropped domains you never thought to type in",
+    "Bulk registry coverage across hundreds of TLDs, including the zone file access that requires per-registry approval",
+    "Backlink, Majestic-style, and archive-age metrics pre-joined onto every row",
+    "Auction and marketplace listings from GoDaddy, Dynadot, Sedo and friends in one view",
+    "Fifteen years of saved filters, lists, and the community lore about which filters actually work"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Most of the moat is paperwork and pipes: ICANN CZDS approvals, registry drop lists, and a crawler that has been running long enough to have history.",
+  "whyPeopleStillPay": "Because domain hunting is a volume game, and volume is exactly the part you cannot self-host. The value is in scanning two million deleted names against thirty filters at 3am and surfacing the eleven that are short, aged, brandable, and have backlinks that are not porn. Replicating the ingest means legal requests, per-registry access, and paid metric APIs, and even then you are a year behind on history. A personal watchlist is genuinely useful if you already know which names you want. If you do not, you are paying for the haystack, and that is a fair trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The table is a weekend; the feed behind it is not. The moat is bulk registry access plus a decade of daily drop-list history nobody else bothered to keep.",
+  "prompt": "Build a personal expired-domain watchlist called dropwatch. Single Python 3.12 project, no framework menu: FastAPI + Jinja2 templates + SQLite via sqlite3 stdlib + httpx. Server-rendered HTML only, no JS build step, one small vanilla script for the table filter is fine.\n\nWhat it does:\n1. I give it a list of domains in a CSV (domain column, optional note column) or paste them into a textarea. Store them in SQLite.\n2. A daily job checks each domain via RDAP. Resolve the right RDAP server using the IANA bootstrap file at https://data.iana.org/rdap/dns.json, cache that file locally for 7 days.\n3. From each RDAP response record: registered vs not found (404 means available), expiry date, registrar, creation date, and EPP status codes. Detect and store clientTransferProhibited, redemptionPeriod, pendingDelete, autoRenewPeriod.\n4. Compute a lifecycle stage per domain: registered, expiring-soon (expiry within 45 days), redemption, pending-delete, available. Store one row per check in a history table so I can see transitions.\n5. Web UI: one table page listing every watched domain with stage, expiry, registrar, days-until-drop-estimate, and a colored badge. Filters for stage, TLD, name length, and substring. A detail page per domain showing the full check history.\n6. Optional enrichment, only if keys are present in .env: Wayback Machine availability API for first-archived year (no key needed, but make it opt-in via ENABLE_WAYBACK=true because it is slow). Skip cleanly if disabled.\n7. Rate limiting is mandatory: max 1 request per RDAP server per 2 seconds, exponential backoff on 429 and 5xx, and a configurable daily cap. Log every skip.\n\nExplicitly out of scope: crawling or mirroring zone files, scraping expireddomains.net or any registrar, auction listings, backlink metrics, email or push notifications, user accounts, multi-tenancy, telemetry.\n\nDeliverables: main.py, db.py, rdap.py, enrich.py, templates/, schema.sql, requirements.txt, .env.example with ENABLE_WAYBACK and DAILY_REQUEST_CAP, a cron-ready `python -m dropwatch.check` entrypoint, and a README with the one command to run it locally. Include a seed CSV of 20 example domains so the first run does something visible.",
+  "promptCurated": false
+}
