@@ -1,0 +1,51 @@
+{
+  "slug": "local-rank-guru",
+  "name": "Local Rank Guru",
+  "domain": "localrank.guru",
+  "category": "seo-marketing",
+  "subcategory": "local SEO rank tracking",
+  "tagline": "Geo-grid rank tracking for Google Maps listings, so you can see where a business shows up and where it disappears.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://localrank.guru/",
+    "checkedOn": "2026-09-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The math here is not the hard part: lay a grid of coordinates over a city, ask Google Maps for local results at each point, find your target listing, colour the dots. An agent can build that in a sitting and render a decent heatmap with Leaflet. The catch is that you do not get to ask Google nicely at scale, so you either pay a SERP API per query or run your own proxy pool and accept that your scraper breaks on a random Tuesday. You also lose the accumulated history, which is the part clients actually pay to look at, and the scheduled scans that build it. Fine for one business you care about, painful the moment you want fifty grids a week.",
+  "coreLoopDIY": "Runs a lat/lng grid of Google Maps queries for your keywords, records where your listing ranks at each point, and renders a heatmap plus rank-over-time chart from a local SQLite history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A SERP or Maps data API key with real per-query cost, or your own proxy pool and a tolerance for breakage",
+    "The target business Place ID and a keyword list",
+    "Somewhere to run a scheduled job if you want history instead of one-off snapshots"
+  ],
+  "whatYouLose": [
+    "Managed scraping infrastructure: proxies, retries, and the ongoing repair work when Google changes the page",
+    "Historical data you did not collect, which is most of the value in month one",
+    "Client-ready reports, white-labelling, and shareable links",
+    "Multi-location and multi-keyword dashboards that stay readable past a handful of grids",
+    "Competitor tracking and the share-of-visibility metrics layered on top of raw ranks"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the algorithm, it is paying for millions of queries and keeping the scrapers alive while you sleep.",
+  "whyPeopleStillPay": "Local SEO work is billable, and billable work needs artefacts. Agencies pay for a tool that produces a clean grid image and a month-over-month trend without anyone babysitting a cron job or explaining to a client why the data has a three week hole in it. The per-query cost of doing it yourself is also not trivial once you multiply keywords by grid points by locations by weekly scans, and at that volume you are buying someone else's proxy budget whether you like it or not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The heatmap is a weekend; the uninterrupted year of weekly scans behind it is not.",
+  "prompt": "Build a local SEO geo-grid rank tracker as a single-user local tool. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: TypeScript, Node 20, SQLite via better-sqlite3, a tiny Express server for the UI, Leaflet from a CDN for the map, Chart.js for trends. No React, no build step beyond tsc.\n\nData source: use SerpApi's Google Maps endpoint. Read SERPAPI_KEY from .env via dotenv. Put all provider calls behind one module named src/provider.ts that exports searchLocalPack(keyword, lat, lng) returning an ordered array of place results with place_id, name, rating. Anyone should be able to swap in DataForSEO or a scraper by editing that one file.\n\nCore loop:\n1. Read config.json: target place_id, business label, keywords array, center lat/lng, grid size (odd number, e.g. 7), and point spacing in kilometres.\n2. Generate the grid by offsetting from center in true kilometres, correcting longitude for latitude.\n3. For each keyword and each point, call the provider, find the target place_id in the results, record rank or null if not in the top 20.\n4. Write every point result into SQLite with a scan_id, timestamp, keyword, lat, lng, rank. Never overwrite, always append, this history is the whole point.\n\nBe defensive about cost: before running, print the exact number of API calls the scan will make and require a --yes flag to proceed. Rate limit to 2 concurrent requests with retry and exponential backoff. Cache identical keyword+point queries for 6 hours in SQLite so reruns during development are free.\n\nUI at localhost:3000: pick a keyword and a scan date, see the grid as coloured circle markers on Leaflet (green 1 to 3, yellow 4 to 10, orange 11 to 20, red not found), plus average rank, share of points in the top 3, and a line chart of average rank per scan over time. One extra page: export the current grid as CSV.\n\nCLI: npm run scan to execute a scan, npm run serve to view. Include a seed script that fabricates three fake historical scans so the trend chart is not empty on first run.\n\nOut of scope, do not build: competitor tracking, PDF or white-label reports, multi-tenant client management, scheduled jobs, email alerts, keyword suggestion.\n\nDeliver README.md with setup, the cost warning, and one paragraph on why the provider module is isolated.",
+  "promptCurated": false
+}
