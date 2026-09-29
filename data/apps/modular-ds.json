@@ -1,0 +1,52 @@
+{
+  "slug": "modular-ds",
+  "name": "Modular DS",
+  "domain": "modulards.com",
+  "category": "dev-tools",
+  "subcategory": "WordPress multi-site management",
+  "tagline": "A single dashboard for maintaining lots of WordPress sites: updates, backups, uptime, and client-facing maintenance reports.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "tiered by number of connected sites",
+    "unit": "usage",
+    "source": "https://modulards.com/",
+    "checkedOn": "2026-09-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Nothing here is technically exotic: WordPress exposes enough via REST, and anything missing you can bolt on with a small must-use plugin that reports versions and applies updates. An agent can absolutely produce a working panel in a sitting that lists your sites, flags pending updates, pings them every few minutes, and mails you when one falls over. Where the weekend runs out is the unglamorous half: offsite backup storage with an actual tested restore, update rollbacks when a plugin bricks a site, and the branded monthly report an agency hands to a client. If you run five of your own sites, the DIY version is genuinely fine. If you run eighty for paying clients, you are not buying a dashboard, you are buying someone else's responsibility for the 3am failure.",
+  "coreLoopDIY": "Polls every WordPress site you own through a small companion plugin, shows and applies pending core/plugin/theme updates, pings uptime on a cron, and renders a plain monthly PDF summary.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "SSH or filesystem access to each WordPress install to drop in the companion plugin",
+    "A small always-on box or VPS so the cron and uptime checks actually run",
+    "SMTP credentials for alert email",
+    "Somewhere to put backups that is not the same server as the sites"
+  ],
+  "whatYouLose": [
+    "Managed backup storage with a restore path someone has actually tested",
+    "Uptime probes from multiple locations instead of one box that can itself go down",
+    "Client-ready white label reports wired into Analytics, Search Console and rank data",
+    "Safe-update flows: staging checks, visual diffs, rollback when an update breaks a site",
+    "Vulnerability and malware feeds telling you which plugin version is the problem"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the panel, it is the surrounding plumbing: backup storage, distributed probes, and the report integrations agencies bill against.",
+  "whyPeopleStillPay": "Agencies do not buy this per feature, they buy it per hour of their own time and per unit of blame. Eighty client sites means eighty update queues, eighty backup retention policies, and eighty chances that an unattended plugin update takes down a storefront on a Friday. A self-hosted panel puts all of that on you, including the backups you will discover are corrupt at the exact moment you need them. Paying a few tens of euros a month to make that someone else's job is a rational trade once site count and client expectations pass a certain point.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Perfectly buildable for your own sites; the moment you are billing clients for maintenance, the backup and reporting half is the whole product.",
+  "prompt": "Build a self-hosted WordPress fleet dashboard called \"modular-diy\" for managing sites I own.\nStack: Next.js 15 App Router, TypeScript, Tailwind, SQLite via better-sqlite3, data in ./data/app.db. No third party auth: one admin password hash in .env and a signed session cookie.\nAlso generate a companion WordPress plugin file (single PHP file, drop into wp-content/mu-plugins) that registers REST routes under /wp-json/modular-diy/v1:\n  - GET /status: core version, PHP version, list of plugins and themes with current version and available update version\n  - POST /update: apply one named plugin, theme, or core update and return before/after versions\n  - GET /db-dump: stream a mysqldump of the site database in chunks\nEvery route requires an X-Modular-Secret header matching a per-site secret constant.\nDashboard stores per site: name, URL, secret (encrypted at rest with a key from .env), notes.\nPages: site list with health badges (updates pending, last backup, uptime 7d), site detail with an update list and per-item Apply button plus an Apply all button, uptime page with a 7 day chart, reports page.\nUptime: node-cron job every 5 minutes doing an HTTP GET on each site root, store status code and response time, send an SMTP email (creds in .env) after two consecutive failures and again on recovery.\nBackups: nightly cron per site that pulls /db-dump to ./backups/{site}/{date}.sql.gz, keeps the last 7, and logs success or failure. Files are out of scope: print the rsync command I should run myself in the README.\nUpdate history: table recording site, item, old version, new version, timestamp, and whether the post-update uptime check passed.\nReports: per site monthly HTML page (uptime percentage, updates applied, backup log), rendered to PDF with Playwright on demand.\nExplicitly out of scope: multi-user accounts, client portals, white label branding, Google Analytics or Search Console integration, malware scanning, one-click restore, staging or visual regression checks.\nDeliver: npm scripts for dev and the cron worker, .env.example, migrations, a seed script with two fake sites, and a README covering companion plugin install, secret generation, and manual restore steps.\nNo telemetry, no analytics, no external services other than SMTP.",
+  "promptCurated": false
+}
