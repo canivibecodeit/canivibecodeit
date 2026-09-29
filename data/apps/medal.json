@@ -1,0 +1,53 @@
+{
+  "slug": "medal",
+  "name": "Medal",
+  "domain": "medal.tv",
+  "category": "screen-recording",
+  "subcategory": "game clip capture and sharing",
+  "tagline": "Background gameplay recorder with hotkey instant replay clips and a social feed to share them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://medal.tv/",
+    "checkedOn": "2026-09-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Medal is freemium with a paid Premium tier.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part people actually use every session, hit a hotkey, keep the last 30 seconds, is a rolling buffer plus ffmpeg, and an agent can build that in a sitting. The part that is hard is everything around it: low-overhead GPU encoding while a game is running, game and window auto-detection, per-title profiles, a phone app, and hosted links your friends can open without downloading a 400MB file. Medal's real business is the feed and the CDN, not the recorder. If you only want clips on your own disk to drag into Discord, the DIY version is genuinely fine and uses less RAM. If you want a shareable URL and a clip library that follows you across machines, you are rebuilding hosting, and that stops being a one-shot.",
+  "coreLoopDIY": "Continuously records your screen into a ring of short segments and, on a global hotkey, stitches the last N seconds into a trimmed MP4 in a local library with a browser UI.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "ffmpeg on PATH with a hardware encoder available (NVENC, QuickSync, or AMF)",
+    "Python 3.11",
+    "Disk space for the rolling buffer, a few GB",
+    "Windows for gdigrab/dshow capture, or adapt the capture args for macOS/Linux",
+    "A global hotkey library, which may need accessibility permissions on macOS"
+  ],
+  "whatYouLose": [
+    "Shareable links: no hosting, no CDN, no page your friends can open on a phone",
+    "The social side entirely: feed, follows, comments, discovery, other people's clips of the same game",
+    "Mobile capture and the companion app",
+    "Automatic game detection, per-title profiles, and the tuned low-overhead capture path that does not tank your framerate",
+    "Polish like auto-generated highlights, montage tools, one-click vertical crops for TikTok, and stream integrations"
+  ],
+  "moatTags": [
+    "network-effects",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The recorder is commodity, OBS has had a replay buffer for years and it is free. What Medal owns is the link you paste in chat and the audience on the other end of it.",
+  "whyPeopleStillPay": "Because the value is the paste. A clip that lives in a folder on your PC is a 200MB file nobody watches; a clip with a URL gets seen in five seconds. Paid tiers buy longer clips, better bitrate, less friction, and storage someone else worries about, which is exactly the stuff a local build cannot hand you. People also pay to not think about encoder settings while they are mid-match, and that convenience is worth more than it looks on paper.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "If you already run OBS, turn on the replay buffer and you have 80 percent of this for zero lines of code.",
+  "prompt": "Build a local \"instant replay\" gameplay clip recorder. Windows first, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, ffmpeg invoked as a subprocess, FastAPI for a localhost web UI, SQLite via sqlite3 for the clip index, the `keyboard` package for the global hotkey. Plain HTML plus a little vanilla JS for the UI, no build step, no npm.\n\nHow the capture works:\n- On start, launch one long-lived ffmpeg process that captures the primary display with gdigrab and desktop audio via dshow, encoding with h264_nvenc and falling back to libx264 if NVENC is unavailable.\n- Write output as a rolling ring of 5 second segments using the segment muxer into ./buffer, with segment_wrap set so old files are overwritten. Never let ./buffer exceed a configurable cap.\n- A global hotkey (default Ctrl+Alt+C, configurable in .env) copies the most recent N seconds (default 30) out of the ring: pick the needed segments, concat them with ffmpeg stream copy, then re-mux a clean MP4 with faststart into ./clips.\n- Name clips by timestamp, insert a row into SQLite with path, duration, created_at, and the foreground window title at capture time as a best-effort \"game\" label.\n\nWeb UI at http://127.0.0.1:8777:\n- Grid of clips with HTML5 video preview, title, duration, game label, file size.\n- Rename, delete, and \"reveal in Explorer\".\n- A trim view: set in and out points with two number inputs, save as a new clip via ffmpeg re-encode.\n- A settings page for clip length, hotkey, output directory, and encoder choice, persisted to .env.\n- A status banner showing whether the capture process is alive, plus start/stop buttons.\n\nIn scope: single monitor, single audio device, MP4 output, running as a foreground console app with a clear log.\nOut of scope, do not build: uploading, sharing links, user accounts, mobile, multi-monitor stitching, microphone mixing, overlays, auto-highlight detection.\n\nDeliverables: main.py, capture.py, web.py, templates and static files, requirements.txt, .env.example, and a README that states the ffmpeg version assumed, how to grant hotkey permissions, and the exact disk usage of the default buffer settings. Handle ffmpeg missing, encoder missing, and disk full with readable errors instead of stack traces.",
+  "promptCurated": false
+}
