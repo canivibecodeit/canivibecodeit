@@ -1,0 +1,53 @@
+{
+  "slug": "plaud",
+  "name": "PLAUD",
+  "domain": "plaud.ai",
+  "category": "meeting-notes",
+  "subcategory": "wearable recorder plus AI transcription",
+  "tagline": "A pocket-sized AI voice recorder with an app that transcribes and summarizes everything you capture.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.plaud.ai/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Note that PLAUD is a hardware purchase plus a transcription subscription, so any single monthly number is misleading.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software half of PLAUD is genuinely a one-sitting build: record audio, run Whisper, feed the transcript to an LLM with a summary template, store it in SQLite, search it. None of that is hard anymore and the quality gap is smaller than the pricing suggests. The half you cannot build is the card-sized recorder that lives in your wallet with a month of standby battery and one physical button, which is the actual reason people bought in. If you are happy pressing record on your phone, a personal clone covers most of the value; if the point was capturing the conversation you did not plan to capture, you are buying hardware, not a web app.",
+  "coreLoopDIY": "A local web app that takes an audio file or a browser mic recording, transcribes it with Whisper, summarizes it against a template you choose, and keeps everything searchable in SQLite.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A phone or laptop mic for capture",
+    "An OpenAI-compatible API key for summarization, or a local model if you prefer",
+    "faster-whisper running locally, or a hosted transcription API",
+    "Disk space for the audio you keep",
+    "Discipline to actually hit record"
+  ],
+  "whatYouLose": [
+    "The dedicated wallet-card recorder with weeks of standby and a single button",
+    "Reliable phone call recording, which is the feature people quietly pay for",
+    "Polished speaker diarization and speaker naming",
+    "A real mobile app with background capture and cross-device sync",
+    "Someone else worrying about long-recording reliability and battery"
+  ],
+  "moatTags": [
+    "hardware",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The subscription is software, but the lock-in is a physical object you already paid for and now carry.",
+  "whyPeopleStillPay": "Because the hard problem was never transcription, it was being ready. A device on your keychain or stuck to the back of your phone removes the friction of unlocking, opening an app, and hoping the mic picks up the far side of the table. People pay the subscription to keep the thing they already bought useful, and because the polished summary templates and diarization are good enough that rebuilding them feels like a hobby rather than a saving.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the app in an afternoon and still not have the recorder in your pocket. The moat is a piece of plastic with a button.",
+  "prompt": "Build a local-first personal voice memo transcriber and summarizer. No accounts, no cloud storage, no telemetry.\n\nStack, non-negotiable: Python 3.11, FastAPI, SQLite via plain sqlite3, server-rendered Jinja2 templates with a little vanilla JS. No React, no Postgres, no Docker.\n\nFeatures in scope:\n1. A single-page UI at / with two ways to add a recording: drag-and-drop an audio file (m4a, mp3, wav, webm) or record directly in the browser with MediaRecorder.\n2. Store raw audio under ./data/audio/ and metadata in ./data/app.db. Never delete audio unless the user clicks delete.\n3. Transcribe with faster-whisper running locally, model size configurable via WHISPER_MODEL in .env, default \"base.en\". Run transcription in a background task and show a status badge (queued, transcribing, summarizing, done, failed) that polls every 3 seconds.\n4. Summarize the transcript by calling an OpenAI-compatible chat endpoint. Read OPENAI_API_KEY and OPENAI_BASE_URL from .env. Ship three prompt templates stored in a templates table: \"meeting notes with action items\", \"interview debrief\", \"plain summary\". Let the user pick one per recording and re-summarize with a different one.\n5. A detail page per recording: audio player, editable title, the summary, the full transcript with timestamps, and a copy-to-clipboard button for the summary.\n6. Full-text search across transcripts and summaries using SQLite FTS5.\n7. Export: a button that writes a single markdown file with title, date, summary, and transcript.\n\nExplicitly out of scope: speaker diarization, mobile apps, phone call capture, user auth, sharing links, calendar integrations, any hosted deployment.\n\nDeliver: requirements.txt, .env.example with WHISPER_MODEL, OPENAI_API_KEY, OPENAI_BASE_URL, a README with exact run commands, and seed data so the UI is not empty on first boot. Handle failed transcriptions by storing the error and showing it in the UI rather than crashing the worker.",
+  "promptCurated": false
+}
