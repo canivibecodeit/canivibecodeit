@@ -1,0 +1,51 @@
+{
+  "slug": "gsc-wizard",
+  "name": "GSC Wizard",
+  "domain": "gscwizard.com",
+  "category": "seo-marketing",
+  "subcategory": "Search Console analytics",
+  "tagline": "A reporting layer on top of Google Search Console that unpacks query and page data past the UI's limits.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.gscwizard.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The underlying data is not the product's, it is yours: Google Search Console exposes queries, pages, countries, devices and dates through a free API that any agent can call in a few dozen lines. A one-shot build can pull the full row set past the 1,000 row screen limit, park it in SQLite, and diff week over week for decay, new queries and cannibalization, which is most of what people actually open these tools for. The gap is not the analysis, it is the plumbing: a Google Cloud project, OAuth consent screen, refresh token handling, and a cron job that keeps collecting because Search Console only keeps 16 months. If you manage one or two sites you own, the DIY version is genuinely fine. If you manage forty client properties and need shareable reports, the setup tax starts to look like a subscription.",
+  "coreLoopDIY": "Pull the complete daily query and page dimensions from the Search Console API into a local SQLite store, then serve a dashboard that ranks movers, decayers, striking-distance queries and pages competing for the same term.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Google Cloud project with the Search Console API enabled",
+    "OAuth client credentials plus a one-time consent flow, refresh token stored locally",
+    "Verified ownership of the properties you want to query",
+    "Somewhere to run a daily job so history accumulates past the 16 month window"
+  ],
+  "whatYouLose": [
+    "No hosted scheduling: if your cron stops, your history quietly stops too",
+    "Multi-property, multi-client views and white-labeled client reports",
+    "Someone else's judgment about which metrics matter, baked into defaults",
+    "Alerting, PDF exports and the other dull-but-real agency deliverables",
+    "Any handholding when Google changes the API or your token silently expires"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is the OAuth and scheduling boilerplate nobody enjoys writing, plus opinionated report layouts. None of it is the data, which Google hands you for free.",
+  "whyPeopleStillPay": "Because the data is free but the pipeline is a chore, and chores compound. Agencies and consultants need twenty properties side by side, reports a client will actually open, and a guarantee that the 16 month history kept accumulating while they were on holiday. Paying a small monthly fee to never think about refresh tokens again is a rational trade for anyone billing by the hour. A solo site owner with one property and a cron job has much less reason to.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Your Search Console data is already yours; the product sells you the retention and the report layout.",
+  "prompt": "Build a local Google Search Console analytics tool. Stack: Python 3.12, SQLite, FastAPI with Jinja2 server-rendered templates, plain CSS. No React, no cloud services, no telemetry, no user accounts.\n\nScope in:\n1. An OAuth 2.0 installed-app flow using google-auth-oauthlib against the Search Console API scope. Client id and secret read from .env. Cache the refresh token in ./data/token.json. Provide a 'login' CLI command.\n2. A 'sync' CLI command that, for each configured site in .env (SITES=comma separated property URLs), walks the searchanalytics.query endpoint day by day for a date range, paginating with startRow in pages of 25000, for these dimension sets: [date,query], [date,page], [date,query,page], [date,country], [date,device]. Upsert into SQLite tables keyed on site, date and dimensions. Sync is idempotent and resumable: keep a sync_log table so a rerun only fetches missing days. Respect quota with retry and exponential backoff on 429 and 5xx.\n3. Default lookback of 490 days on first sync, then trailing 30 days on each later run so late-arriving data gets corrected.\n4. A FastAPI dashboard on localhost with these pages: Overview (clicks, impressions, CTR, average position by week, with a simple SVG sparkline drawn server side, no chart library); Movers (queries with the largest click delta between two chosen date windows, gainers and losers, minimum impression threshold as a query param); Decay (queries whose trailing 28 day clicks are down more than 30 percent versus the prior 28 days and were previously above a threshold); Striking Distance (queries in average position 5 to 20 with high impressions and low CTR); Cannibalization (queries where two or more pages each took over 10 percent of clicks in the window, with the per-page split).\n5. CSV download button on every table.\n\nScope out: multi-user auth, anything hosted, PDF reports, Google Analytics, keyword research, rank tracking against third party data, AI summaries.\n\nDeliver: pyproject.toml, .env.example listing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and SITES, a Makefile with login/sync/serve targets, a sample crontab line for a daily 6am sync, and a README that spells out how to create the Google Cloud project and enable the API. Ship a --dry-run flag that seeds synthetic rows so the dashboard can be reviewed before any real OAuth happens.",
+  "promptCurated": false
+}
