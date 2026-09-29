@@ -1,0 +1,53 @@
+{
+  "slug": "lightreel",
+  "name": "Lightreel",
+  "domain": "lightreel.ai",
+  "category": "ai-video",
+  "subcategory": "AI video generation",
+  "tagline": "AI tool that turns prompts, scripts or product assets into short-form video.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://lightreel.ai/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "Anything in this category is a thin app wrapped around video and voice models that nobody is running on a laptop. You can absolutely build the orchestration layer: script generation, shot list, clip fetch or generation, captions, music bed, render. What you cannot build is the generation itself, so your personal version is a billing account at somebody else's inference provider with a nicer UI on top. That is not a replacement, that is a different middleman, and it will cost you roughly what the product costs once you are paying per second of video. The honest DIY win is a deterministic template renderer where you supply the footage yourself, which is a real tool but a different product.",
+  "coreLoopDIY": "A local CLI that takes a script, generates voiceover and captions, stitches your own supplied clips or stock footage to the audio timing, and renders a vertical MP4.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and ffmpeg installed locally",
+    "An LLM API key for script and shot list generation",
+    "A TTS API key, or a local TTS model if you want zero cloud",
+    "Your own footage, or a stock video API key",
+    "Patience for font, caption timing and aspect ratio bikeshedding"
+  ],
+  "whatYouLose": [
+    "Actual generative video: no text-to-clip, no avatars, no lipsync",
+    "Model upgrades happening without you doing anything",
+    "Templates that already look like they belong on a feed instead of like a school project",
+    "Browser-based editing, previews and re-rolls of single shots",
+    "Any kind of brand kit, asset library or team review flow"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The interesting engineering is upstream in the video models and the GPU bill, not in the product surface you actually touch.",
+  "whyPeopleStillPay": "Because the alternative is assembling four API vendors, eating the per-second inference cost yourself, and still ending up with output that looks a generation behind. Products like this are buying you a curated pipeline and a set of defaults that make the result watchable, which is most of the value in generative video. The moment you want twenty variants of a thirty second ad by Thursday, the subscription is cheaper than your weekend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The timeline renderer is a weekend; the video model is not. The moat is model access plus the GPU capacity to serve it, and the taste baked into the default templates.",
+  "prompt": "Build a local CLI tool called reelsmith that renders vertical short-form videos from a script. No web app, no accounts, no telemetry, no cloud storage.\n\nStack, non-negotiable:\n- Node 20 with TypeScript, run via tsx\n- ffmpeg and ffprobe invoked as child processes, assume they are on PATH\n- commander for the CLI, zod for config validation\n- No database, everything is files on disk\n\nCommands:\n- reelsmith init: writes reel.config.json and a .env.example\n- reelsmith script \"topic\": calls an LLM to produce a JSON script of 5 to 8 beats, each beat with narration text and a short visual description, saved to project/script.json\n- reelsmith voice: sends each beat's narration to a TTS API, saves per-beat WAV files, runs ffprobe to record exact durations back into script.json\n- reelsmith build: assembles the video\n- reelsmith preview: builds at 480p with a fast preset\n\nBuild behavior:\n- Read clips from project/media, matched to beats by filename prefix (01-, 02-). If a beat has no clip, fall back to a solid color card with the visual description as placeholder text.\n- Scale and center-crop every clip to 1080x1920, trim or loop it to match that beat's audio duration\n- Concatenate beats with the concat demuxer, mix in project/media/music.mp3 at -18dB if present, duck nothing, keep it simple\n- Burn in captions from the narration text using drawtext, word-wrapped, bottom third, bundled font in assets/\n- Output project/out/reel.mp4, H.264 yuv420p, faststart\n\nRules:\n- OPENAI_API_KEY and TTS_API_KEY come from .env, never hardcoded, never logged\n- If a key is missing, fail with a clear message naming the env var\n- Deterministic: same script.json and same media means byte-identical output where ffmpeg allows\n- Explicitly out of scope: text-to-video generation, avatars, lipsync, stock footage search, publishing to any platform\n\nInclude a README with install steps, the ffmpeg requirement, and one worked example project checked into examples/.",
+  "promptCurated": false
+}
