@@ -1,0 +1,52 @@
+{
+  "slug": "suno-ai-music-generator",
+  "name": "Suno",
+  "domain": "suno.com",
+  "category": "ai-audio",
+  "subcategory": "text-to-music generation",
+  "tagline": "Type a prompt, get a full song with vocals, lyrics, and mastering.",
+  "priceMonthly": 10,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per user",
+    "unit": "usage",
+    "source": "https://suno.com/",
+    "checkedOn": "2026-09-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product here is a music foundation model, not an app. You can build the UI, the prompt box, the library, the waveform player, and the share page in an afternoon, and none of that is what you are paying for. What you are paying for is a model that renders coherent vocals, lyrics, structure, and a mastered mix in one pass, trained on an audio corpus nobody is handing you and served on GPUs nobody is lending you for free. Open weights exist and they are genuinely fun, but they are mostly instrumental, shorter, and noticeably rougher, and singing voice is the exact part they are worst at. Build the harness if you want a local sandbox, not if you want songs people will listen to twice.",
+  "coreLoopDIY": "A local web app where you type a prompt, an open-weights model renders a short instrumental clip, and everything lands in a browsable library you can replay and download.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A GPU with 12GB+ VRAM, or patience and a rented cloud instance",
+    "Python 3.11 and a few gigabytes of model weights on disk",
+    "Acceptance that output is instrumental and roughly 30 seconds",
+    "Disk space for generated audio, it adds up fast"
+  ],
+  "whatYouLose": [
+    "Vocals that sound like a person singing actual words",
+    "Lyric generation and lyric-to-melody alignment",
+    "Full song structure: intro, verse, chorus, bridge, outro",
+    "Mastered, loudness-normalized mixes that survive phone speakers",
+    "Extend, remix, cover, and stem features, plus the commercial usage terms on paid tiers"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The audio training corpus is both the moat and the ongoing legal exposure, which is its own kind of barrier to entry.",
+  "whyPeopleStillPay": "Because the gap between a local open-weights clip and a Suno track is not a polish gap, it is a capability gap. People pay to get a finished, singable, shareable song in ninety seconds without knowing anything about music production, and there is currently no self-hosted path to that. The monthly fee is buying model access and GPU time, and the app around it is almost incidental.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player, library, and prompt box are a weekend; the singing is not. The moat is a proprietary music model trained on an audio corpus you cannot assemble and served on GPUs you would rather not rent.",
+  "prompt": "Build a local text-to-music sandbox. Single machine, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn\n- Hugging Face transformers with facebook/musicgen-small for generation, torch with CUDA if available and CPU fallback\n- SQLite via sqlite3 for metadata, plain files on disk for audio\n- Frontend: one server-rendered Jinja2 page plus vanilla JS, no build step, no npm\n\nWhat it does:\n1. POST /generate takes a text prompt and a duration in seconds, capped at 30. Enqueue a job.\n2. A single background worker processes one job at a time. Keep the model loaded in memory between jobs.\n3. Write output as WAV, then transcode to MP3 with ffmpeg via subprocess if ffmpeg is on PATH, otherwise keep WAV.\n4. Store id, prompt, duration, seed, model name, created_at, file path, and status in SQLite.\n5. GET / renders a prompt box, a live queue with status, and a reverse-chronological library of past generations with an HTML5 audio element, the prompt text, a download link, and a delete button.\n6. POST /regenerate/{id} reuses the same prompt with a new random seed.\n\nExplicitly out of scope: vocals, lyrics, song structure, stem separation, mastering, multi-user auth, sharing links, any payment code.\n\nRules:\n- Model cache directory and output directory come from .env with sane defaults, ship a .env.example, never hardcode paths.\n- Free the CUDA cache after each job so long sessions do not leak VRAM.\n- If the model fails to load, say so plainly on the page instead of crashing the server.\n- README must state up front that output is short instrumental audio and will not sound like a finished song.\n- One command to run: uvicorn app:app --reload.",
+  "promptCurated": false
+}
