@@ -1,0 +1,51 @@
+{
+  "slug": "optionstrat",
+  "name": "OptionStrat",
+  "domain": "optionstrat.com",
+  "category": "personal-finance",
+  "subcategory": "options strategy visualizer",
+  "tagline": "Visual options strategy builder with payoff diagrams, greeks, and unusual options flow.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://optionstrat.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part everyone screenshots, the payoff diagram, is textbook math: Black-Scholes, a few partial derivatives, and an SVG chart. An agent can give you a working multi-leg builder with P/L at expiry, P/L at any date, and greeks per leg in a weekend, and it will be correct. What it cannot give you is the options chain: live bid/ask, implied volatility per strike, open interest, and the flow feed that makes the paid tiers interesting. Free data sources are delayed, rate-limited, or quietly wrong about greeks, and the good feeds cost more per month than the subscription you were trying to avoid. Build it if you mostly model strategies you already have in mind; keep paying if you browse for ideas.",
+  "coreLoopDIY": "A local multi-leg options builder that prices any combination of calls, puts, and stock with Black-Scholes and plots P/L at expiry and at arbitrary future dates with greeks per leg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a browser",
+    "An options chain data source, either a free delayed API key or manual entry of strikes and IVs",
+    "A risk-free rate you are willing to hardcode"
+  ],
+  "whatYouLose": [
+    "Live chains with real bid/ask spreads, so your modeled fills are fiction",
+    "Implied volatility surfaces per strike and expiry, the input that actually drives the numbers",
+    "Unusual options flow and open interest analytics, which is the real product on the paid tiers",
+    "The strategy optimizer that scans thousands of combos for a given thesis",
+    "Mobile app, shareable trade links, and saved portfolios that sync"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The math is public domain. The licensed OPRA data and the flow-tagging heuristics on top of it are not.",
+  "whyPeopleStillPay": "Because the diagram is not the product, the data behind it is. Paying for OptionStrat is paying for a clean, licensed, correctly-greeked options chain plus a flow feed, wrapped in a UI that loads fast on a phone while you are deciding something. A local build gives you a pricing engine, which is useful for modeling and for learning, and useless for discovery. Anyone who just wants to sanity check a spread they already picked will be fine with the DIY version; anyone who uses the scanner to find the spread will not be.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this to understand theta decay, not to find trades.",
+  "prompt": "Build a local-only options strategy visualizer. No accounts, no backend database, no telemetry.\n\nStack, non-negotiable:\n- Vite + React + TypeScript\n- Tailwind for styling\n- Recharts for charts\n- Zustand for state, persisted to localStorage\n- Vitest for the pricing tests\n\nCore features:\n1. A strategy builder table. Each leg has: type (call | put | stock), direction (long | short), quantity, strike, expiry date, and either an entry price or an implied volatility. Add and remove legs freely. Support up to 8 legs.\n2. Global inputs: underlying spot price, risk-free rate (default 0.04), dividend yield (default 0).\n3. Implement Black-Scholes in src/lib/bs.ts: price, delta, gamma, theta, vega, rho for calls and puts with continuous dividend yield. Also implement implied volatility solving via bisection on price. Write Vitest unit tests against at least six known textbook values, including a put-call parity check.\n4. Payoff chart: P/L on the y axis, underlying price on the x axis, over a range of spot * 0.6 to spot * 1.4 with 200 points. Draw two series: P/L at expiry (intrinsic value) and P/L at a user-selected analysis date (Black-Scholes value). Mark breakevens, max profit, max loss, and current spot with reference lines.\n5. A greeks panel: per-leg and net delta, gamma, theta, vega, quantity-weighted.\n6. A date slider that moves the analysis date from today to the nearest expiry and re-renders the mark-to-model curve so time decay is visible.\n7. Preset strategy templates that prefill legs: long call, covered call, vertical spread, iron condor, calendar, straddle, butterfly.\n8. Save and load named strategies to localStorage. Export a strategy to JSON, import from JSON.\n\nData:\n- No market data provider is bundled. Add src/lib/chain.ts with a single interface `fetchChain(symbol)` and one stub implementation that reads a local CSV from /public/chains for offline use. Document the CSV columns in the README. If the user sets OPTIONS_API_KEY in .env, that is their problem to wire up: leave a clearly commented TODO adapter, do not invent an endpoint.\n- All prices and IVs are user-editable by default. Never silently fabricate a quote.\n\nExplicitly out of scope: broker connections, order placement, live streaming quotes, unusual flow scanning, strategy optimization search, multi-user anything.\n\nDeliver: working `npm run dev`, passing `npm test`, and a README that states plainly that this is a modeling tool with no live data and no investment advice.",
+  "promptCurated": false
+}
