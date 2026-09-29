@@ -1,0 +1,52 @@
+{
+  "slug": "wati",
+  "name": "Wati",
+  "domain": "wati.io",
+  "category": "customer-support",
+  "subcategory": "WhatsApp Business messaging",
+  "tagline": "A shared WhatsApp inbox, broadcast tool and chatbot builder built on the WhatsApp Business API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://wati.io/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Plans bundle agent seats, and Meta conversation charges are separate and metered.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interesting part is that Meta opened the WhatsApp Cloud API to anyone, so the pipe Wati resells is available to you directly at Meta's own per-conversation rates. A coding agent can absolutely build you a personal inbox: webhook receiver, conversation threads, send box, template broadcasts, contact tags, all on SQLite. What it cannot build is the part where a Business Solution Provider holds your hand through WABA onboarding, number migration, display name review and template approvals, then keeps the thing alive when Meta changes the rules again. You also lose the multi-agent routing, the visual chatbot flow builder and the CRM connectors, which are the actual reason teams buy this rather than one person. Solo operator with one number and a few hundred contacts: build it. Five agents and a marketing calendar: pay.",
+  "coreLoopDIY": "A self-hosted single-number WhatsApp inbox that receives webhooks from Meta's Cloud API, threads conversations by contact, lets you reply inside the 24 hour window, and fires approved template broadcasts to a tagged contact list.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Meta developer app with WhatsApp Cloud API access, plus a verified business and a phone number not already tied to a WhatsApp account",
+    "Message templates submitted to Meta and approved before you can start any conversation",
+    "A public HTTPS endpoint for webhooks: a small VPS or a tunnel, not localhost",
+    "A credit card on the Meta side, since conversations are metered by Meta regardless of who built the UI"
+  ],
+  "whatYouLose": [
+    "BSP handholding: onboarding, display name review, number migration and the support ticket you file when Meta silently rejects a template",
+    "Multi-agent work: assignment, routing, canned replies, who-is-typing, per-agent metrics",
+    "The no-code chatbot flow builder, and the keyword automations that run without you awake",
+    "Prebuilt connectors to Shopify, HubSpot, Zoho and friends, plus the mobile agent app",
+    "Deliverability babysitting: quality rating monitoring, messaging tier limits, and warnings before you get throttled"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is less technical than procedural: Meta's approval machinery is tedious, and a BSP absorbs the tedium.",
+  "whyPeopleStillPay": "Nobody pays Wati for the chat UI, which is a solved problem. They pay because WhatsApp is a walled platform where access is granted, not bought, and a provider that already has the relationship turns a two week compliance slog into an afternoon of onboarding. Add agent seats, template libraries, chatbot flows and a mobile app for staff who are not at a laptop, and the subscription starts looking cheap next to one person maintaining a webhook server they do not fully understand. The DIY version is genuinely fine for one person with one number. It stops being fine the moment a second human needs to answer messages.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Meta's Cloud API being public is the whole reason this is a kinda and not a no · the resold pipe is available retail.",
+  "prompt": "Build a single-user, self-hosted WhatsApp Business inbox on top of Meta's WhatsApp Cloud API.\n\nStack, no substitutions:\n- Node 20 with TypeScript\n- Fastify for HTTP\n- SQLite via better-sqlite3, file at ./data/inbox.db, migrations in plain SQL on boot\n- Server-rendered HTML with Eta templates plus htmx for partial updates. No React, no build step for the frontend.\n- undici fetch for Graph API calls\n\nIn scope:\n1. Webhook endpoint POST /webhook that verifies the X-Hub-Signature-256 HMAC against APP_SECRET, and GET /webhook for the hub.verify_token handshake. Always return 200 fast, then process.\n2. Persist inbound messages: contacts (wa_id, name, tags), messages (direction, type, body, media_id, wamid, status, timestamp), conversations. Handle text, image, document and audio; store media by downloading to ./data/media via the media id endpoint.\n3. Inbox UI at /: contact list ordered by last message, unread counts, thread view with an htmx-polled message list every 5 seconds.\n4. Reply box that sends free-form text via /messages. Compute and display the 24 hour customer service window from the last inbound message; if it has expired, disable the box and show the template sender instead.\n5. Template sender: pull the approved template list from the message_templates endpoint, render a form for the body variables, send one or to a tag-filtered contact list.\n6. Broadcast queue: a simple SQLite-backed job table with a worker that sends at a configurable messages-per-second, records per-recipient wamid and status, and stops on error code 131049 or rate limit errors.\n7. Status webhooks update message rows to sent/delivered/read/failed and show ticks in the UI.\n8. Contact tags, plus CSV import of phone numbers with a name column.\n9. GET /health returning DB and token status.\n\nOut of scope, do not build: multi-agent auth or assignment, a visual chatbot flow builder, CRM integrations, billing, analytics dashboards, mobile apps, telemetry of any kind.\n\nConfig in .env only, never committed: WA_PHONE_NUMBER_ID, WA_BUSINESS_ACCOUNT_ID, WA_ACCESS_TOKEN, APP_SECRET, VERIFY_TOKEN, PORT, BROADCAST_RATE. Ship .env.example.\n\nDeliverables: README with the exact Meta App setup steps, webhook subscription fields to enable, a curl command to test the handshake, and a note that Meta bills per conversation. Include a fixtures script that inserts fake contacts and messages so the UI can be reviewed without a live WABA. Basic auth over the whole app via a single ADMIN_PASSWORD in .env, since this is public-facing by necessity.",
+  "promptCurated": false
+}
