@@ -1,0 +1,53 @@
+{
+  "slug": "qustodio",
+  "name": "Qustodio",
+  "domain": "qustodio.com",
+  "category": "security",
+  "subcategory": "parental controls",
+  "tagline": "Cross-platform parental control: screen time limits, app and web filtering, activity reports and location tracking for kids' devices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "annual, priced by device count",
+    "unit": "flat",
+    "source": "https://www.qustodio.com/",
+    "checkedOn": "2026-09-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard is the easy part and it is not the product. The product is a tamper-resistant agent that runs on iOS, Android, Windows, Mac and ChromeOS, hooks screen time and app launches, filters HTTPS traffic, and keeps reporting when a motivated twelve year old is actively trying to kill it. On iOS that means Apple's Screen Time and content filter entitlements plus MDM enrollment, on Android it means accessibility and device-admin permissions plus a Play Store listing that survives policy review, and both of those are gated by platforms, not by your coding ability. An agent can absolutely build you a household DNS filter with per-device schedules in an afternoon, and that covers a surprising amount of real-world web filtering on home wifi. It does not cover app blocking, screen time, cellular data, or a kid who knows what a mobile hotspot is.",
+  "coreLoopDIY": "A LAN DNS resolver that blocks categorized domains per device with time-of-day schedules, plus a local dashboard showing who requested what.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An always-on Linux box or Raspberry Pi on the home network",
+    "Router DHCP set to hand out that box as the only DNS server",
+    "DHCP reservations so each kid's device has a stable IP",
+    "Public blocklists (adult, ads, trackers) fetched on a schedule"
+  ],
+  "whatYouLose": [
+    "Screen time limits and per-app blocking: those need OS-level entitlements, not DNS",
+    "Anything off the home wifi: cellular data and neighbor networks bypass you entirely",
+    "URL-level filtering inside HTTPS, plus YouTube and search term visibility",
+    "Tamper resistance, uninstall protection and alerts when the agent goes quiet",
+    "Location tracking, geofences, and panic-button features",
+    "Curated site categorization that does not misfire on homework research"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard dependency is platform permission: Apple Family Controls entitlements, Android device admin, and app store review. No amount of local code grants those.",
+  "whyPeopleStillPay": "Because parents are not buying a filter, they are buying coverage they do not have to maintain. Qustodio ships one install per device, works off the home network, survives OS updates, and puts a weekly report in an inbox. A self-hosted DNS setup is genuinely good value for the blunt category blocking most families want, but it fails the moment a phone leaves the house, and the failure is silent. That silence is what the subscription is actually insuring against.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend build; the on-device agent is a platform negotiation. The moat is Apple and Google entitlements plus a filtering corpus nobody wants to curate themselves.",
+  "prompt": "Build a self-hosted family DNS filter for a home LAN. Single Node 20 + TypeScript project, no cloud, no accounts, no telemetry.\n\nStack, do not substitute:\n- DNS server: the `dns2` package, UDP on port 53, forwarding upstream over DNS-over-HTTPS to Cloudflare (1.1.1.1).\n- Storage: SQLite via `better-sqlite3`. One file at ./data/filter.db.\n- Web UI: Fastify serving server-rendered HTML with a single stylesheet. No React, no build step for the frontend.\n- Everything in one process, started with `npm start`.\n\nFeatures that are in scope:\n1. Blocklist ingestion: fetch hosts-format lists from URLs listed in config.json, normalize to domains, store in a `blocked` table tagged by list name (categories: ads, adult, social, gaming). Refresh on boot and every 24h.\n2. Devices: a `devices` table mapping LAN IP to a friendly name. Auto-create an entry the first time an unknown IP queries, named after its IP, so devices show up by themselves.\n3. Per-device policy: which categories are blocked, plus a list of always-allow and always-block domains.\n4. Schedules: per device, per weekday, time windows where an extra category set applies (example: block social and gaming 21:00 to 07:00, and 09:00 to 15:00 on weekdays). Store as rows, evaluate in local time.\n5. Resolution path: on each query, look up the source IP, resolve the effective policy for right now, and either return NXDOMAIN plus log a block, or forward upstream and log an allow. Cache upstream answers in memory respecting TTL.\n6. Query log in SQLite with a 14 day retention job.\n7. Dashboard at http://HOST:8080: device list with last-seen, top requested domains per device for the last 24h, a live-ish block feed, forms to rename devices, toggle categories, edit allow and block lists, and edit schedules. Add a \"pause filtering for 30 minutes\" button per device.\n\nOut of scope, do not attempt and do not stub: any mobile app, screen time or app-level blocking, HTTPS interception, location tracking, DHCP serving, remote access, user login.\n\nSecrets and config: no secrets are needed, but put PORT, DNS_PORT, UPSTREAM_DOH and TZ in .env with an .env.example checked in.\n\nDeliver a README that states plainly: this only filters devices using this box as their DNS server, it can be bypassed by hardcoded DNS, DoH in browsers, VPNs, and cellular data, and it sees domains only, never URLs. Include the router DHCP change and a systemd unit. Include tests for policy evaluation and schedule boundary conditions using vitest.",
+  "promptCurated": false
+}
