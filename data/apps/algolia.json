@@ -1,0 +1,52 @@
+{
+  "slug": "algolia",
+  "name": "Algolia",
+  "domain": "algolia.com",
+  "category": "dev-tools",
+  "subcategory": "hosted search API",
+  "tagline": "Hosted search API with instant, typo-tolerant results and drop-in UI components for sites and apps.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage based, search requests and indexed records",
+    "unit": "usage",
+    "source": "https://www.algolia.com/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Search over your own data is not magic anymore: Meilisearch or Typesense in a container gives you typo tolerance, facets, and sub-50ms queries on a single box, and an agent can wire an indexer plus an instant-results UI in one sitting. What you are actually buying from Algolia is not the algorithm, it is the global replica network, the relevance tooling, and never thinking about the search box again. At personal or single-site scale, that overhead mostly does not exist, so the DIY build is genuinely close. It stops being close the moment you need multi-region latency, A/B tested ranking, personalization, or an SLA someone else signs. Call it a weekend if you want the query UI to feel as good as theirs.",
+  "coreLoopDIY": "Indexes your documents into a self-hosted search engine and serves a debounced instant-search endpoint plus a results UI with facets and highlighting.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker for the search engine container",
+    "a data source to index: JSON, a database table, or a content folder",
+    "a small always-on host if you want it available to a public site",
+    "Node 20+"
+  ],
+  "whatYouLose": [
+    "Global distributed replicas, so users far from your server feel the latency",
+    "Relevance tooling: rules, synonyms dictionaries, A/B tests, merchandising UI",
+    "Search analytics out of the box: no-result queries, click and conversion tracking",
+    "Personalization and recommend features built on aggregate behavior",
+    "Someone else's uptime guarantee and on-call for your search box"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The hard part they solved is not ranking, it is running a low-latency replica network and making relevance tunable by people who are not search engineers.",
+  "whyPeopleStillPay": "Because search is the feature users notice instantly when it is bad, and nobody wants to be paged about it. Teams pay Algolia to make search a line item instead of a subsystem: no cluster to size, no reindex job to babysit, no arguing about BM25 weights, plus dashboards that tell product people which queries return nothing. For a personal project none of that overhead exists, but for a commerce site where search drives revenue, a tuned hosted engine with click analytics pays for itself and the migration risk of moving off it is real.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The engine is a free download; the operational calm is the product.",
+  "prompt": "Build a self-hosted instant search service for my own content. Stack: Meilisearch in Docker, a TypeScript indexer, and a small Fastify server with a vanilla JS frontend. No accounts, no cloud services, no telemetry.\n\nStructure:\n- docker-compose.yml running Meilisearch v1.x with a persistent volume and MEILI_MASTER_KEY read from .env\n- .env.example with MEILI_HOST, MEILI_MASTER_KEY, PORT, DATA_DIR\n- src/index.ts: indexer that walks DATA_DIR for .md and .json files, parses frontmatter for markdown, and upserts documents with fields id, title, body, url, tags, updatedAt\n- src/search.ts: Fastify server exposing GET /api/search?q=&tags=&page= that proxies Meilisearch with a search-only API key, returns highlighted snippets, facet counts for tags, and total hits\n- public/index.html plus public/app.js: single page with a search input, 150ms debounce, results rendered as you type, tag facet checkboxes, keyboard up/down/enter navigation, and an empty state\n\nRequirements:\n- Configure the index on first run: searchableAttributes ordered title then tags then body, filterableAttributes tags, typo tolerance on, 200 char crop length\n- npm run index does a full reindex idempotently, npm run dev starts the API and serves public/\n- Log queries that return zero hits to a local no-results.log, one JSON line each, so relevance can be tuned by hand\n- Never expose the master key to the browser: generate and use a search-only key server side\n- README with three commands: docker compose up -d, npm run index, npm run dev\n\nOut of scope: multi-region replicas, A/B testing of ranking, personalization, click tracking dashboards, auth, multi-tenancy. Do not add a UI framework. Keep total code under 600 lines.",
+  "promptCurated": false
+}
