@@ -1,0 +1,52 @@
+{
+  "slug": "https-www-blotato-com",
+  "name": "Blotato",
+  "domain": "blotato.com",
+  "category": "social-media",
+  "subcategory": "AI content creation and multi-platform publishing",
+  "tagline": "AI writes, repurposes and schedules social posts, then publishes them across a dozen platforms from one queue.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.blotato.com/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The generative half of this is a weekend, maybe an afternoon: a prompt library, a content calendar, a queue table and an LLM call that turns one idea into eight platform-shaped variants. The publishing half is where you lose your weekend and then some. Bluesky, Mastodon and a self-hosted webhook are trivial; Instagram, TikTok, YouTube, Threads, Facebook and Pinterest all want a reviewed app, a business account, tokens that expire, and in several cases a video upload dance with resumable sessions. A personal build that drafts well and posts to two or three friendly networks is realistic; one that actually fires everywhere on schedule without you babysitting refresh tokens is not a one-shot. Blotato's API is also a load-bearing piece of a lot of n8n workflows, which is a different kind of dependency than pretty UI.",
+  "coreLoopDIY": "Turn one idea into per-platform post variants with an LLM, park them in a local queue with scheduled times, and auto-publish to the platforms whose APIs do not require an app review.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "Developer credentials per platform, plus app review for most of the Meta family, TikTok and YouTube",
+    "A machine or small VPS that is actually awake when posts are due",
+    "Object storage or a local folder for images and video, plus ffmpeg if you want per-platform aspect ratios"
+  ],
+  "whatYouLose": [
+    "Working publishing integrations for the hard platforms: Instagram, TikTok, YouTube Shorts, Threads, Pinterest",
+    "Token refresh, rate limit handling and retry logic that someone else maintains when a platform silently changes its API",
+    "Video repurposing and captioning pipelines, plus asset hosting that the platforms will actually fetch from",
+    "An API other automations can call, which matters if you live in n8n or Make",
+    "Analytics per post and per platform, which you would have to rebuild against each network's insights endpoint"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the AI writing. It is being an approved app on eight platforms at once and keeping those approvals alive.",
+  "whyPeopleStillPay": "Because nobody wants to fill out a Meta app review form to post their own carousel. The value here is a single button that reliably lands content on networks that each have a hostile, slowly shifting upload API, and the cost of maintaining that yourself is measured in recurring irritation rather than initial build time. Add the fact that many users wire Blotato into n8n as the publishing step for a larger automation, and the switching cost is the whole workflow, not the app.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Drafting and scheduling are easy; being a blessed OAuth client on eight platforms is the actual product.",
+  "prompt": "Build a local-first social content studio and publishing queue. No accounts, no telemetry, single user, runs on my machine.\n\nStack, non negotiable: Next.js with the App Router and TypeScript, SQLite via better-sqlite3 with Drizzle, Tailwind for UI, and a node-cron worker started from a separate `worker.ts` process. No auth, it binds to localhost.\n\nData model: `ideas` (title, raw notes, source url), `posts` (idea_id, platform, body, media_path, scheduled_at, status: draft | queued | posted | failed, external_url, error), `accounts` (platform, handle, credentials_ref), `logs`.\n\nFeatures in scope:\n1. An idea inbox: paste a note, a link, or a long blob of text.\n2. A \"fan out\" action that calls an LLM (OpenAI, key from .env, model in .env) once per target platform using per-platform system prompts stored as editable markdown files in `/prompts`. Respect character limits: 300 for Bluesky, 500 for Mastodon, 280 for X, 3000 for LinkedIn. Return drafts, never auto-publish.\n3. A calendar and list view where I edit drafts inline, attach an image from a local `/media` folder, and set `scheduled_at`.\n4. A worker that polls every minute, picks up due queued posts, publishes, and writes result or error back to the row. Exponential backoff, max 3 tries, then status failed.\n5. Real publishing adapters for exactly three targets: Bluesky (AT Protocol, app password), Mastodon (access token), and a generic outgoing webhook that POSTs the post JSON anywhere.\n6. For every other platform, generate a \"copy pack\": the finished text plus correctly cropped image variants via ffmpeg (1080x1080, 1080x1920, 1200x628) and a copy button. Manual posting, clearly labeled as such. Do not pretend to integrate with Instagram, TikTok, YouTube or Threads.\n\nOut of scope: analytics, team review flows, video editing, mobile app, hosted anything.\n\nSecrets in .env only, with a .env.example. Seed the prompts folder with sensible per-platform voice instructions. Ship a README with the two commands to run the app and the worker, and a one paragraph honest note that the hard platforms are manual on purpose.",
+  "promptCurated": false
+}
