@@ -1,0 +1,52 @@
+{
+  "slug": "t3code",
+  "name": "T3code",
+  "domain": "t3.codes",
+  "category": "dev-tools",
+  "subcategory": "ai coding agent",
+  "tagline": "A hosted AI coding agent, part of the T3 family of tools that started with T3 Chat.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://t3.codes/",
+    "checkedOn": "2026-09-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The agent loop itself is not the hard part anymore: read file, write file, run command, feed the output back, repeat until the model stops asking for tools. A competent agent can write you a working terminal coding agent in an afternoon, and it will genuinely edit your repo. What you do not get for free is the harness: sandboxing so a bad command does not eat your home directory, diff review that is pleasant to use, context selection that does not blow your token budget on node_modules, and a hosted surface you can poke from a phone. You also still rent the actual intelligence from someone else, so this is never truly self-contained. Build it to understand it, keep paying for whichever product's ergonomics you like.",
+  "coreLoopDIY": "A local CLI that takes a task in plain English, loops a frontier model over read/write/search/shell tools inside your repo, and commits each step so you can undo it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a frontier model, and tolerance for per-token billing",
+    "Node 20+ and git",
+    "Docker or a throwaway VM if you want the shell tool to be even slightly safe",
+    "Patience for context management on repos larger than toy size"
+  ],
+  "whatYouLose": [
+    "The model bill is now yours, itemized and uncapped",
+    "No sandbox unless you build one, and an agent with shell access is a loaded footgun",
+    "Diff review, checkpointing and rollback UX that took someone months to get right",
+    "Any web or mobile surface: your agent lives in one terminal on one machine",
+    "Prompt and tool tuning per model, which is quiet ongoing work you will not want to do"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "Coding agents are converging on the same loop; the differentiation is harness quality, speed, and whether you trust the person shipping it.",
+  "whyPeopleStillPay": "Because the gap between an agent that technically edits files and an agent you let near a repo you care about is almost entirely polish, and polish is the thing one-shot builds do worst. Paid agents ship sandboxing, sane context selection, diff review, cancellation, retries on model flakiness, and support for whatever model is best this month, all of which are boring and endless. There is also the trust dimension: people buy coding tools from people whose taste they already follow, and that is not something you can self-host.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Writing your own coding agent is a great weekend because it demystifies the category, then you go back to using someone else's.",
+  "prompt": "Build a local terminal coding agent called \"minicode\" in an empty folder.\n\nStack, no substitutions:\n- TypeScript on Node 20, run via tsx, no build step\n- Anthropic Messages API with tool use, model and key from .env (ANTHROPIC_API_KEY, MODEL)\n- No web server, no database, no telemetry, no accounts\n\nBehavior:\n- `pnpm start \"task description\"` starts an agent loop in the current working directory\n- Tools exposed to the model: read_file(path), write_file(path, contents), list_dir(path), search(regex) via ripgrep if present else a JS fallback, run_command(cmd)\n- Every tool call is printed as one compact line before it executes\n- write_file and run_command require y/n confirmation unless --yolo is passed\n- Refuse any path outside the working directory, refuse paths inside .git\n- Before the first mutation, if the repo is dirty, stop and say so; then create a git commit after each successful write_file with message \"minicode: step N\"\n- Loop until the model returns no tool calls, or 40 steps, then print a summary of files touched\n- Ctrl-C cancels cleanly mid-step\n\nContext rules:\n- Never dump whole directories: list_dir returns names only, capped at 200 entries\n- read_file truncates past 2000 lines and says it truncated\n- Respect .gitignore in list_dir and search\n\nAlso include:\n- A --plan flag that makes the model output a numbered plan and exit without touching anything\n- Token and cost counters printed at the end, read from the API response usage fields\n- .env.example, a 15 line README with the exact commands, and a warning that run_command is unsandboxed\n\nOut of scope: web UI, multi-model support, MCP, editor plugins, conversation history across runs.\nWrite the code, then run it on a scratch file to prove the loop works end to end.",
+  "promptCurated": false
+}
