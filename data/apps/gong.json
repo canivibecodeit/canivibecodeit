@@ -1,0 +1,52 @@
+{
+  "slug": "gong",
+  "name": "Gong",
+  "domain": "gong.io",
+  "category": "sales-outreach",
+  "subcategory": "revenue intelligence and call recording",
+  "tagline": "Records and analyzes sales calls, then scores deals and coaches reps against what actually closed.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per user per year plus platform fee, quote only",
+    "unit": "custom",
+    "source": "https://www.gong.io/",
+    "checkedOn": "2026-09-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Gong does not publish pricing.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build the visible half: join a call, record it, transcribe it with Whisper, summarize it, tag objections and next steps. That covers a solo consultant who wants searchable call notes, and it works fine. What you cannot build is the part sales leaders actually buy, which is a comparison layer: thousands of recorded calls across a team, wired into the CRM, telling you which talk patterns correlate with closed revenue and which deals are quietly dying. That requires a team's worth of calls, CRM deal outcomes to join against, and years of aggregate data to make the benchmarks mean anything. Also, recording other people's calls at company scale drags in consent rules, retention policies, and security reviews that nobody wants to own personally.",
+  "coreLoopDIY": "A local tool that ingests a meeting recording, transcribes it, and produces a structured summary with objections, commitments, and follow-ups, all searchable across past calls.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "OpenAI or Anthropic API key for summarization",
+    "local Whisper or a hosted transcription API",
+    "a way to get the audio: system audio capture, Zoom cloud recordings, or manual file upload",
+    "SQLite plus a full text search index"
+  ],
+  "whatYouLose": [
+    "Automatic call capture across a whole team without anyone lifting a finger",
+    "CRM sync, so deal risk scoring and pipeline hygiene alerts disappear",
+    "Cross-team benchmarks: no idea whether your talk ratio is good or terrible",
+    "Coaching workflows, scorecards, and shareable call snippets for managers",
+    "Consent handling, retention controls, and the compliance paperwork enterprises demand"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The transcript is commodity. The join between transcript and closed-won outcome, across thousands of reps, is not.",
+  "whyPeopleStillPay": "Nobody buys Gong for transcripts. They buy it because a VP wants to know, without asking anyone, which deals are slipping and why, and because the answer is derived from calls the reps would never have written up honestly. That answer depends on capturing every call automatically, joining it to CRM outcomes, and having enough history that the patterns are real rather than vibes. A personal build gets you your own memory back, which is genuinely useful, but it does not get you the org-wide mirror that is the actual product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The transcribe-and-summarize loop is a weekend; the revenue correlation is not. The moat is every call a whole sales org ever made, joined to whether the deal closed.",
+  "prompt": "Build a local-first call intelligence tool for a single person. No accounts, no cloud backend, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11 with FastAPI for the API\n- SQLite via sqlite3, with an FTS5 virtual table for transcript search\n- faster-whisper for local transcription, model size configurable, default \"small\"\n- Anthropic API for summarization, key from .env as ANTHROPIC_API_KEY\n- Plain server-rendered Jinja2 templates plus a little vanilla JS. No React, no build step.\n\nWhat it does:\n1. An upload page accepts audio or video files (mp3, m4a, wav, mp4). Store the file under ./media/ and a row in a calls table with title, participants (free text), deal name (free text), date, and status.\n2. A background worker (simple threaded queue is fine, no Celery) transcribes the file with faster-whisper, storing segments with start time, end time, and text. Attempt speaker diarization only if pyannote is available; otherwise label segments as Unknown and move on. Do not block on diarization.\n3. Once transcribed, send the full transcript to Claude with a structured prompt and store JSON with: one paragraph summary, list of objections raised, list of commitments made by either side, list of open questions, list of next steps with owner, and a 1-5 sentiment read. Validate the JSON, retry once on parse failure.\n4. A call detail page shows the summary panel on the left and the timestamped transcript on the right. Clicking a transcript line seeks an HTML5 audio player to that timestamp.\n5. A search page does FTS5 search across all transcripts, returning call title, date, and a highlighted snippet that links to the timestamp.\n6. A deals page groups calls by deal name, shows the calls in date order, and shows every commitment and next step collected across those calls so you can see what was promised and never delivered.\n\nExplicitly out of scope: no CRM integration, no meeting bot that joins calls automatically, no multi-user accounts, no team benchmarks, no scorecards, no email sending, no Zoom or Meet OAuth.\n\nDeliverables: app.py, worker.py, db.py, templates/, .env.example, requirements.txt, and a README with exact run commands. Ship a scripts/seed.py that inserts two fake transcribed calls so the UI is not empty on first run. Everything must run with: pip install -r requirements.txt then uvicorn app:app --reload.",
+  "promptCurated": false
+}
