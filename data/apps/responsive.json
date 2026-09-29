@@ -1,0 +1,50 @@
+{
+  "slug": "responsive",
+  "name": "Responsive",
+  "domain": "responsive.io",
+  "category": "sales-outreach",
+  "subcategory": "RFP and security questionnaire response",
+  "tagline": "Enterprise platform for answering RFPs, RFIs, and security questionnaires from a shared, AI-matched answer library.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://responsive.io/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Responsive (formerly RFPIO) sells annual enterprise contracts through sales, no public list price."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The actual mechanism here is not exotic: a library of past answers, embeddings, and a spreadsheet round-trip that fills the answer column and flags low-confidence rows. An agent can build that in a sitting, and for one person grinding through security questionnaires it covers most of the pain. What it cannot build in a sitting is the part Responsive actually sells: routing questions to the subject matter expert who owns them, nagging that person, tracking approvals, and proving to an auditor who approved what and when. Also gone is ingesting questionnaires that arrive as Word docs, PDFs, or vendor portal web forms, which is how a depressing share of them arrive. Solo or two-person: build it. Anything with a legal reviewer and a security team in the loop: you are buying workflow, not search.",
+  "coreLoopDIY": "Ingests your past completed questionnaires into a local searchable answer library, then auto-drafts answers into a new spreadsheet with per-row confidence scores for you to accept or edit.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An OpenAI API key for embeddings, or a local embedding model if you would rather not send question text out",
+    "A corpus of past completed questionnaires to seed the library, otherwise it has nothing to match against",
+    "Questionnaires that arrive as .xlsx or .csv; Word, PDF, and portal forms need manual copy-paste"
+  ],
+  "whatYouLose": [
+    "SME assignment, reminders, and the whole nag-until-answered loop that makes deadlines happen",
+    "Approval chains and audit trails, which is exactly what your security reviewer and legal will ask for",
+    "Parsers for Word, PDF, and vendor portal questionnaires, plus the browser extension that fills web forms",
+    "Salesforce, Slack, Teams, and CRM hooks that tie a response back to the deal",
+    "Content governance: ownership, review cycles, and someone noticing your SOC 2 answer went stale eighteen months ago"
+  ],
+  "moatTags": [
+    "collaboration",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The answer library is your data, not theirs, which weakens the moat. The workflow wrapped around it, and the fact that fifty people already learned it, is the sticky part.",
+  "whyPeopleStillPay": "Because RFP response is a coordination problem wearing a search problem's clothes. The hard part was never finding the old answer, it was getting the one engineer who knows the encryption-at-rest detail to confirm it before Friday, and then being able to show later that they did. Responsive sells the chasing, the approval record, and the integrations that keep the response attached to the deal. A local answer library makes one person faster; it does nothing to make eight people accountable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The retrieval half is a solved weekend problem. The chasing-people half is the product.",
+  "prompt": "Build a local RFP and security questionnaire answer library. Call it Answerdesk.\n\nStack, no substitutions: Python 3.12, FastAPI, server-rendered Jinja2 templates, SQLite. No React, no accounts, no telemetry, no hosted anything. Embeddings via the OpenAI embeddings API with the key read from .env as OPENAI_API_KEY. Use sqlite-vec for vector search; if it will not install, fall back to numpy cosine similarity over vectors stored as blobs.\n\nIn scope:\n- Answer library table: question text, answer text (markdown), tags, owner name, last_reviewed date, review_interval_days, and a computed stale flag.\n- Seed script that walks a ./corpus folder of completed questionnaires (.xlsx and .csv), asks which columns are question and answer, and bulk-inserts them as library entries.\n- Import: upload a new .xlsx or .csv, preview the sheet, pick the question column and the target answer column.\n- Auto-draft: embed each imported question, retrieve the top 5 library matches, write the best match into the target column with a similarity score. Leave the cell blank if the top score is under a configurable threshold (default 0.80).\n- Review screen: one row per question showing the question, the proposed answer, the score, and the other four candidates. Accept, edit, or skip per row. Keyboard shortcuts j/k/a.\n- Export: write reviewed answers back into the uploaded spreadsheet, preserving every other column, cell, and sheet order. Use openpyxl, not pandas, for the xlsx round-trip.\n- Harvest: after export, offer to save any hand-written answers into the library as new entries with today's review date.\n- Search page: semantic plus substring search over the library, filterable by tag and stale flag.\n\nOut of scope, do not build: user accounts, SME assignment or reminders, approval workflows, audit logs, Word or PDF parsing, vendor portal form filling, CRM or Slack integrations, any deployment config.\n\nDeliver a README with exact setup steps, a .env.example, a run script, 20 rows of fake seed data, and pytest tests covering the matcher threshold behaviour and the spreadsheet round-trip preserving untouched columns.",
+  "promptCurated": false
+}
