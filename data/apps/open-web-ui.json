@@ -1,0 +1,50 @@
+{
+  "slug": "open-web-ui",
+  "name": "Open WebUI",
+  "domain": "openwebui.com",
+  "category": "ai-assistant",
+  "subcategory": "self-hosted LLM chat interface",
+  "tagline": "Self-hosted web front end for local and remote LLMs, with chat history, RAG, model management and multi-user access.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://openwebui.com/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Core project is free to self-host; paid tiers are enterprise-flavored.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A chat UI that streams tokens from an OpenAI-compatible endpoint and stores threads in SQLite is one of the most reliably one-shottable things in software right now. An agent can get you model selection, streaming, markdown rendering, code blocks, conversation history and a system prompt box in a single session, and the result runs on your laptop with no account. What you will not get in that session is the long tail Open WebUI has accumulated: document RBAC, pipelines, tool calling, image generation hooks, workspace prompts, a hundred settings toggles. The odd part is that Open WebUI is already free and self-hosted, so a DIY build is less about escaping a bill and more about escaping a large codebase you did not write. Build it if you want something small you fully understand; otherwise just run theirs.",
+  "coreLoopDIY": "Runs a local web app that talks to any OpenAI-compatible API, streams replies, and keeps every conversation in a local SQLite file you can grep.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An OpenAI-compatible endpoint: Ollama running locally, or an API key for a hosted provider",
+    "Python 3.11+",
+    "A browser; no mobile app"
+  ],
+  "whatYouLose": [
+    "RAG over your own documents, with chunking, embeddings and a vector store already wired up",
+    "Multi-user accounts, groups and per-model permissions",
+    "Tool calling, pipelines, functions and the plugin ecosystem around them",
+    "Model management UI: pulling, deleting and configuring Ollama models from the browser",
+    "The accumulated settings surface: voice input, image generation, web search, memory, export formats"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat here is breadth of features and a contributor base, not data or lock-in. Your threads are yours either way.",
+  "whyPeopleStillPay": "Most people do not pay: the project is free to run, and that is the point. Money changes hands at the organizational edge, where someone needs SSO, audit trails, support with a name attached, and a license story their legal team will sign off on. For a single person with one machine and one model, the paid tier is answering a question you do not have. For a company handing an LLM interface to two hundred employees, rebuilding the permissions and document layer is not a weekend, and that is what the invoice covers.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the incumbent is already free and self-hosted, so the DIY pitch is code you can read rather than money you save.",
+  "prompt": "Build a single-user, self-hosted chat interface for LLMs. Run it locally, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11 with FastAPI and uvicorn\n- SQLite via plain sqlite3, one file at ./data/chat.db, schema created on startup\n- Server-rendered Jinja2 templates plus HTMX for interactions, no build step, no npm\n- Tailwind via CDN script tag is fine, do not set up a bundler\n- httpx for calling the model API\n\nBehavior:\n- Left sidebar lists conversations newest first, with rename and delete. Main pane shows the active thread.\n- Message composer posts to /chat/{id}/send. Stream the assistant reply back with Server-Sent Events so tokens appear as they arrive.\n- Talk to any OpenAI-compatible /v1/chat/completions endpoint. Read BASE_URL, API_KEY and DEFAULT_MODEL from .env via python-dotenv. Ship a .env.example with the Ollama defaults (http://localhost:11434/v1, key \"ollama\").\n- A model dropdown in the header, populated from GET /v1/models, falling back to DEFAULT_MODEL if that call fails.\n- Per-conversation system prompt, editable in a collapsible panel, stored with the conversation and sent as the first message.\n- Render assistant markdown server-side with the markdown library, syntax-highlight code blocks with Pygments, add a copy button to each code block.\n- Send the full thread history on every request. Add a token-ish guard: if the thread exceeds roughly 20 messages, drop the oldest non-system messages.\n- GET /export/{id} returns the conversation as markdown.\n\nExplicitly out of scope: authentication, RAG or file uploads, tool calling, image generation, voice, multi-user, Docker orchestration.\n\nDeliver: app.py, templates/, static/, schema.sql, requirements.txt, .env.example, and a README with the exact two commands to install and run. Handle a dead model endpoint by showing an inline error in the thread rather than a stack trace.",
+  "promptCurated": false
+}
