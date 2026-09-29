@@ -1,0 +1,51 @@
+{
+  "slug": "emailengine",
+  "name": "EmailEngine",
+  "domain": "emailengine.app",
+  "category": "dev-tools",
+  "subcategory": "IMAP/SMTP to REST API gateway",
+  "tagline": "Self-hosted service that turns IMAP and SMTP mailboxes into a REST API with webhooks for new mail.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://emailengine.app/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "For one or two mailboxes you control, an agent can absolutely wire ImapFlow to a webhook and Nodemailer to a send endpoint in an evening, and it will work. What you are actually buying is the long tail: OAuth2 token refresh for Gmail and Microsoft, IDLE connections that survive provider hiccups, per-provider IMAP weirdness, sane threading and message IDs, and queued sending that does not silently drop. EmailEngine is also already self-hosted, so the usual 'own your data' argument for DIY does not apply here, you are only saving license money. If your use case is 'notify my script when mail arrives in my personal inbox', build it. If it is 'sync hundreds of customer mailboxes and never lose an event', do not.",
+  "coreLoopDIY": "Keeps an IMAP IDLE connection open to one mailbox, POSTs a normalized JSON payload to your webhook on each new message, and exposes small REST endpoints to list, fetch, and send mail via SMTP.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A mailbox with IMAP and SMTP access, plus an app password or Google OAuth client if you use Gmail",
+    "A machine that stays online, or a small VPS",
+    "Node 20 or newer"
+  ],
+  "whatYouLose": [
+    "OAuth2 app registration and automatic token refresh for Gmail and Microsoft 365, which is the ugliest part of email integration",
+    "Scale: connection pooling, Redis-backed queues, and hundreds of simultaneous accounts without falling over",
+    "Provider quirk handling accumulated over years of real IMAP servers behaving badly",
+    "Reliable webhook delivery with retries and backoff, plus a message store you can actually search",
+    "Someone else fixing it when Gmail changes something on a Tuesday"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is not lock-in, it is the thousand small IMAP behaviors you only discover in production.",
+  "whyPeopleStillPay": "Because email protocols are a swamp and this is a drained patch of it. Anyone who has written their own IMAP sync knows the first version works, the second version works for a week, and then some server returns a malformed BODYSTRUCTURE or drops your IDLE silently and you are reading RFCs at midnight. Teams building a product on top of customer mailboxes pay so that email plumbing never becomes their problem, and the fact that it is already self-hosted removes the usual objection to depending on someone else's service.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One mailbox and a webhook is a weekend. Five hundred mailboxes and an SLA is a company.",
+  "prompt": "Build a single-mailbox email gateway service. Node 20, TypeScript, Fastify, better-sqlite3, ImapFlow, Nodemailer, mailparser. No Docker, no Redis, no frontend framework.\n\nScope: exactly one mailbox, configured via .env. No multi-account support, no OAuth, no UI beyond a plain HTML status page.\n\n.env keys: IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASS, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, WEBHOOK_URL, API_TOKEN, PORT. Ship a .env.example. Never log passwords.\n\nBehavior:\n1. On start, connect to IMAP with ImapFlow, open INBOX, and enter IDLE. Reconnect with exponential backoff on any disconnect, capped at 60 seconds.\n2. Track the highest seen UID plus the mailbox UIDVALIDITY in SQLite. On reconnect, fetch anything newer than the stored UID so nothing is missed while offline. If UIDVALIDITY changed, resync from the last 50 messages and log a warning.\n3. For each new message, parse it with mailparser and store id, uid, messageId, inReplyTo, date, from, to, cc, subject, text body, html body, and attachment metadata (filename, size, contentType) in SQLite. Do not store attachment bytes.\n4. POST a normalized JSON payload of that record to WEBHOOK_URL. Retry up to 5 times with exponential backoff. Persist webhook attempts and final status in a deliveries table so failures are visible.\n\nREST API, all routes require an Authorization: Bearer API_TOKEN header:\n- GET /messages with limit and before query params, newest first\n- GET /messages/:id returning the full stored record\n- GET /messages/:id/raw streaming the raw source fetched from IMAP on demand\n- POST /send taking to, cc, subject, text, html, inReplyTo, and sending via Nodemailer with correct References and In-Reply-To headers\n- GET /health returning IMAP connection state, last event time, and pending webhook retries\n\nAlso serve GET / as a plain HTML page showing connection state, the last 20 messages, and recent webhook failures. No JavaScript build step.\n\nOut of scope: OAuth2, multiple mailboxes, folders other than INBOX, full text search, calendar, contacts, telemetry.\n\nWrite a README with setup steps, a Gmail app password note, and a systemd unit file example. Include a fake-IMAP integration test if practical, otherwise unit test the parsing and UID tracking logic.",
+  "promptCurated": false
+}
