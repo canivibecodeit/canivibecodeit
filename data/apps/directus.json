@@ -1,0 +1,52 @@
+{
+  "slug": "directus",
+  "name": "Directus",
+  "domain": "directus.com",
+  "category": "databases",
+  "subcategory": "headless CMS / data platform",
+  "tagline": "An instant REST and GraphQL API plus admin app layered on top of any SQL database.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://directus.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Directus is open source with a source-available license and paid cloud tiers.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Directus is already open source, so the honest answer is that you do not need to rebuild it, you need to decide whether you need it. If you actually want a personal replacement, an agent can absolutely scaffold a generic CRUD admin over your existing Postgres schema in one sitting: introspect tables, generate list and edit views, expose REST endpoints. What it will not produce in a weekend is the part Directus spent years on: granular per-field permissions, relational field types with sane UI, file storage with transforms, flows and webhooks, revisions, and an admin app that does not fall apart on a table with forty columns. For a single-user side project the DIY version is genuinely fine. For anything with non-technical editors or multiple roles, you will rebuild Directus badly and slowly.",
+  "coreLoopDIY": "Introspects an existing Postgres database and serves an auto-generated admin UI plus a JSON REST API for every table, with basic auth and role-gated write access.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Postgres database you already control",
+    "Node runtime and somewhere to host it",
+    "Local or S3-compatible storage if you want file uploads"
+  ],
+  "whatYouLose": [
+    "Fine-grained field and item level permissions, including conditional rules per role",
+    "Relational and repeater field UIs that editors can actually use without breaking data",
+    "File library with on-the-fly image transformations and asset presets",
+    "Flows: event hooks, webhooks, scheduled operations and the no-code trigger builder",
+    "Revisions, activity log and content versioning out of the box",
+    "A GraphQL layer that stays in sync with schema changes"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat here is not data or network, it is the enormous surface area of an admin UI that handles every SQL field type gracefully. That surface area is exactly what one-shot builds get wrong.",
+  "whyPeopleStillPay": "People pay Directus Cloud to not run it, not to have it. The software itself is free to self-host, so the money buys managed upgrades, backups, scaling and the support contract you need when a client's CMS goes down at 4pm. Teams also pay because the admin app is handed to non-developers, and non-developers do not tolerate the rough edges of a generated CRUD panel. If you are the only user and you can read SQL, the economics favour building or self-hosting.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rebuilding an open source project is a strange hobby, but a 500-line personal admin panel beats a 40-service Docker stack for one developer with one database.",
+  "prompt": "Build a self-hosted generic database admin panel and JSON API over an existing Postgres database. Single Node project, no Docker Compose stack, no cloud services.\n\nStack, non-negotiable:\n- TypeScript, Node 20, Fastify for the server\n- Postgres via the pg driver, raw SQL only, no ORM\n- Server-rendered HTML with Handlebars plus a little vanilla JS, no React, no build step\n- Session cookie auth, users table with argon2 hashed passwords\n- Config from .env only: DATABASE_URL, SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD\n\nWhat it must do:\n1. On boot, introspect information_schema to build a model of every table in the public schema: columns, types, nullability, primary keys, foreign keys. Cache it in memory with a /admin/refresh-schema route.\n2. Serve an admin UI at /admin: sidebar listing tables, paginated list view per table with sortable columns and a simple text search across text columns, and a create/edit form per row with inputs chosen from the column type (text, textarea for long text, number, checkbox for boolean, date pickers, select dropdown for foreign keys showing a readable label column).\n3. Serve a REST API: GET /api/:table with limit, offset, sort and basic field filters, GET /api/:table/:id, POST, PATCH, DELETE. Return JSON. Validate the request body against the introspected column types and reject unknown fields.\n4. Roles: an admin_config table storing per-role, per-table read/write/delete booleans. Enforce it in one middleware used by both the UI and the API. Two roles is enough: admin and editor.\n5. Append-only activity log table recording user, table, row id, action and a JSON diff on every write.\n\nExplicitly out of scope, do not build: GraphQL, file uploads and image transforms, a no-code automation builder, realtime subscriptions, multi-database support, a design system.\n\nDeliverables: working server, SQL migration for the users, admin_config and activity_log tables, a seed script that creates the admin from .env, and a README with setup in under ten lines. Include one integration test that boots against a throwaway Postgres schema and round-trips a row through the API.",
+  "promptCurated": false
+}
