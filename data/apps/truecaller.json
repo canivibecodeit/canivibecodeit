@@ -1,0 +1,52 @@
+{
+  "slug": "truecaller",
+  "name": "Truecaller",
+  "domain": "truecaller.com",
+  "category": "security",
+  "subcategory": "caller ID and spam blocking",
+  "tagline": "Caller ID, spam call blocking and number lookup built on a crowdsourced global phone number database.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Premium",
+    "basis": "monthly, varies by region",
+    "unit": "flat",
+    "source": "https://www.truecaller.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app part of Truecaller is trivial: a call screening service, a local list of numbers, a rule engine. The product is not the app, it is the database of hundreds of millions of numbers mapped to names, built by harvesting and cross-referencing the address books of a very large user base over more than a decade. An agent can hand you a blocker that stops numbers you already know are bad, which is the easy half of the problem. It cannot tell you who the unknown number calling you right now is, and that is the only reason anyone installs Truecaller. Spam scoring also degrades fast without a constant firehose of fresh reports, since spam campaigns rotate numbers weekly.",
+  "coreLoopDIY": "An Android call screening app that silently rejects or flags incoming calls against a local blocklist of exact numbers and prefix patterns, with CSV import and a manual report button.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Android device or emulator, plus Android Studio",
+    "Willingness to grant the app call screening role on Android",
+    "Your own CSV of numbers to block, or a public spam list you trust",
+    "iOS is effectively out: CallKit extensions cap list sizes and require a signed build"
+  ],
+  "whatYouLose": [
+    "Name lookup for unknown numbers, which is the entire point of the product",
+    "Live crowdsourced spam scores that keep up with rotating campaigns",
+    "iPhone support without an Apple Developer account and real distribution hassle",
+    "Search by name, business identification, and inbound SMS spam filtering",
+    "Any coverage outside numbers you personally added"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "The dataset is the asset and it was assembled by a decade of users uploading their contact books. You cannot bootstrap that alone, and honestly you would not be allowed to.",
+  "whyPeopleStillPay": "People pay Truecaller because an unrecognized number rings and they want a name before they answer, or they want the ring suppressed entirely without maintaining anything. That answer only exists if someone somewhere has already labeled that number, and there is no public API that hands you that labeling for free. Premium mostly buys ad removal, unlimited lookups and contact request features on top of the same database. A self-built blocker gives you control and privacy, which is a genuine upgrade for some people, but it answers a narrower question.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The blocker is a weekend build; the identity lookup is not. The moat is a decade of harvested address books, so large that it answers who is calling before you do.",
+  "prompt": "Build an offline Android call screening app called Doorman. Kotlin, Jetpack Compose, minSdk 29, Gradle Kotlin DSL, single module. No backend, no accounts, no analytics, no network permission at all.\n\nWhat it does:\n1. Implements a CallScreeningService that runs on every incoming call and decides: allow, silence, or reject.\n2. Matching rules stored in a local Room database: exact E.164 numbers, prefix patterns like +4470, and a flag for calls with no caller ID.\n3. Each rule has an action (silence or reject) and an optional label.\n4. Every screened call is written to a local log table: number, timestamp, matched rule, action taken.\n\nUI, all Compose, three tabs:\n- Recent: the screening log, newest first, with a one-tap \"block this number\" and \"unblock\" action.\n- Rules: list, add, edit, delete. Adding a rule validates the number with libphonenumber and normalizes to E.164.\n- Settings: a button to request the CallScreeningService role via RoleManager with a clear explanation screen, plus import and export.\n\nImport and export: read and write a plain CSV with columns pattern,type,action,label from a user-picked file using the Storage Access Framework. No bundled lists, no downloads.\n\nHard rules:\n- No INTERNET permission in the manifest. If a dependency needs it, drop the dependency.\n- Store nothing outside app-private storage.\n- If the app does not hold the call screening role, show a persistent banner saying screening is inactive instead of failing silently.\n- Unit test the matcher: exact match, prefix match, unknown caller, no match.\n\nOut of scope, do not build: identifying unknown numbers by name, any remote lookup, SMS filtering, iOS, cloud sync.\n\nFinish with a README that states plainly that this blocks numbers you already know about and cannot tell you who an unknown caller is.",
+  "promptCurated": false
+}
