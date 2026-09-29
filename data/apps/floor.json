@@ -1,0 +1,52 @@
+{
+  "slug": "floor",
+  "name": "Floot",
+  "domain": "floot.com",
+  "category": "no-code-apps",
+  "subcategory": "AI app builder",
+  "tagline": "Prompt-to-app builder that generates, hosts and deploys full-stack web apps from a chat interface.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://floot.com/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. AI app builders in this category typically meter credits or messages, so treat any single number as fiction until checked.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is the weird recursive case: the thing you would use to build the replacement is already most of the replacement. If you have a coding agent and a terminal, you can generate full-stack apps all day without ever loading a prompt-to-app builder, and the output is usually better because you can see and edit the files. What you cannot one-shot is the rest of the product: a browser editor, live preview URLs, a managed database, auth scaffolding, deploy on click, and version rollback when the model wrecks your schema. A weekend gets you a local CLI harness that takes a prompt, writes a Next.js app, runs it, and loops on errors, which covers the personal use case if you are comfortable with a shell. It does not cover building from your phone or handing a working link to someone else in thirty seconds.",
+  "coreLoopDIY": "A local CLI that turns a plain-English app description into a running Next.js + SQLite project and iterates on it until the build and the smoke test pass.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a terminal you are not afraid of",
+    "Your own model API key, billed to you, in .env",
+    "Git for the version history the hosted product gives you for free",
+    "Optional: a Vercel or Fly account if you want public URLs"
+  ],
+  "whatYouLose": [
+    "Instant public preview links you can send to someone else",
+    "Managed Postgres and auth wired up before you ask for them",
+    "Building and fixing from a phone or a borrowed laptop",
+    "One-click rollback when a generation trashes working code",
+    "The error-repair loop the vendor has tuned on thousands of failed builds"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the code generation, that is a commodity API call. It is the hosting, the database provisioning, and the fact that a non-developer never sees a terminal.",
+  "whyPeopleStillPay": "People pay because the gap between generated code and a working, reachable URL is where every DIY version dies. Floot and its peers sell the boring parts: a database that exists, environment variables that are set, a build that deploys, a link that loads on someone else's phone. If you are already a developer with an agent in your editor, you are paying for convenience you mostly do not need. If you are not, you are paying for the only path from idea to live app that never mentions the word npm.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Judging an AI app builder by whether an AI can replace it is fair, and the answer is mostly yes for people who already live in a terminal.",
+  "prompt": "Build a local, single-user CLI tool called \"appsmith\" that turns a plain-English app description into a running Next.js project.\n\nStack, no substitutions:\n- TypeScript, Node 20+, run with tsx\n- commander for the CLI\n- Anthropic Messages API via fetch, model and key from .env (ANTHROPIC_API_KEY, MODEL)\n- Generated apps: Next.js App Router, Tailwind, better-sqlite3 for data\n- No web UI for the tool itself, no accounts, no telemetry, no cloud calls except the model API\n\nCommands:\n- appsmith new \"description of the app\" --dir ./out/myapp\n  1. Ask the model for a file plan, then for file contents, as strict JSON: an array of objects with path and content.\n  2. Write files into --dir. Refuse to write outside that dir. Refuse absolute paths.\n  3. Run npm install, then npm run build.\n  4. If the build fails, send the last 80 lines of stderr plus the current file list back to the model, apply the returned patch as full file rewrites, retry. Max 4 attempts.\n  5. On success, print the dev command and exit 0.\n- appsmith edit \"change I want\" --dir ./out/myapp\n  Same loop, but include the existing file tree and the contents of files the model asks for by path.\n- appsmith snapshot --dir ./out/myapp\n  git init if needed, git add -A, commit with the last prompt as the message. This is the rollback story.\n\nRules:\n- Every generated project must include a seeded SQLite file, a .env.example, and a README with run instructions.\n- Stream model output to stdout so long generations do not look frozen.\n- Log every request and response to .appsmith/log/ as JSON for debugging.\n- Hard cap: refuse prompts that would generate more than 40 files, tell the user to narrow the scope.\n- Ship a Makefile with setup, new, edit targets and a sample run in the README.\n\nOut of scope, do not build: hosted preview URLs, multi-user auth, a browser editor, deploy automation, billing.",
+  "promptCurated": false
+}
