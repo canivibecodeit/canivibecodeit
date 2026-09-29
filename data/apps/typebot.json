@@ -1,0 +1,51 @@
+{
+  "slug": "typebot",
+  "name": "Typebot",
+  "domain": "typebot.io",
+  "category": "forms",
+  "subcategory": "conversational forms and chatbots",
+  "tagline": "Drag-and-drop builder for conversational forms and chatbots you embed on a site or ship as a standalone page.",
+  "priceMonthly": 39,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly, includes chat volume limits",
+    "unit": "flat",
+    "source": "https://typebot.io/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Strip away the visual editor and Typebot is a state machine that asks one question at a time, branches on answers, and writes rows to a database. That part an agent builds in a sitting: a JSON flow file, a chat-style renderer, conditional jumps, variable interpolation, and a results table. The thing you are actually paying for is the builder canvas, the 50-odd integration blocks, and the fact that the embed behaves on every browser and CMS someone glues it into. Note also that Typebot is open source and self-hostable, so the honest first move is running the real thing rather than cloning it. Build your own if you want one or two flows you control end to end and would rather edit JSON than drag boxes.",
+  "coreLoopDIY": "Renders a JSON-defined question flow as a chat conversation with branching logic and variables, then stores each completed session as a row you can export.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+",
+    "SQLite file on disk (or Postgres if you want hosted)",
+    "Somewhere to host if you want public embeds",
+    "Optional SMTP or webhook URL for submission notifications"
+  ],
+  "whatYouLose": [
+    "The visual flow builder: you are editing JSON by hand, and complex branching gets ugly fast",
+    "Integration blocks for CRMs, Sheets, Zapier, OpenAI, payment steps and the rest",
+    "Polished embed modes: bubble, popup, standalone, and the script that survives every weird site",
+    "Analytics on drop-off per step, plus partial-answer capture",
+    "Themes, fonts, and the general it-looks-designed quality of the hosted widget"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Open source core means the moat is convenience and integration surface, not secrecy. The hosted plan sells you not running Postgres.",
+  "whyPeopleStillPay": "Because a conversational form is usually built by someone in marketing who is never going to touch a JSON file, and because the value shows up on the fifteenth flow, not the first. Paid tiers also cover the boring parts: uptime for a public embed, per-step analytics to see where people bail, and the integration blocks that push an answer into a CRM without you writing a webhook handler. If your form is load-bearing for revenue, forty dollars a month is cheaper than debugging your own embed script at midnight.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "If you need more than three flows or anyone but you will edit them, self-host the real Typebot instead of cloning it.",
+  "prompt": "Build a self-hosted conversational form runner. Single Next.js 15 app, App Router, TypeScript, Tailwind. No auth, no accounts, no telemetry, no external services.\n\nStack, non-negotiable:\n- Next.js 15 App Router, TypeScript strict\n- Tailwind for styling, no component library\n- SQLite via better-sqlite3, file at ./data/forms.db, created on boot\n- Zod for flow file validation\n\nFlow definition:\n- Flows live in ./flows/*.json, one file per form, filename is the slug\n- A flow is { title, theme: { accent }, steps: [...] }\n- Step types: text, email, number, choice (with options), rating (1 to 5), statement (bot says something, no input), end (final message)\n- Every input step has: id, prompt, variable name, optional required flag, optional validation regex\n- Branching: any step may have next as a string step id, or an array of { when: { variable, op, value }, goto } rules evaluated in order with a fallback goto. Ops: eq, neq, contains, gt, lt\n- Prompts support {{variable}} interpolation from earlier answers\n- Validate every flow file with Zod at startup and fail loudly with the offending path\n\nRuntime:\n- Route /f/[slug] renders a chat-style view: bot messages appear one at a time with a short typing delay, the input control swaps to match the current step type, answered steps stay visible above\n- Keyboard first: Enter submits, choice options are clickable and number-key selectable\n- Sessions are server side. POST /api/session starts one, POST /api/answer posts one answer and returns the next step. Resolve branching on the server so the flow logic never ships to the client\n- Persist sessions table (id, slug, started_at, completed_at) and answers table (session_id, step_id, variable, value, answered_at). Partial sessions are kept\n\nResults:\n- Route /admin (no login, gate it with a BASIC_TOKEN from .env checked in middleware) lists flows, completion counts, and per-step drop-off\n- /admin/[slug] shows a table of sessions with answers pivoted into columns, plus a CSV export endpoint\n- On completion, if WEBHOOK_URL is set in .env, POST the full answer object to it. Fire and forget, log failures\n\nEmbedding:\n- Ship /embed/[slug] as a minimal iframe-friendly page and a 20-line public/embed.js that injects an iframe with a fixed height attribute\n\nOut of scope: drag-and-drop builder, file uploads, payments, multi-user, i18n, AI steps.\n\nDeliver two example flows in ./flows: a contact form with branching on a choice step, and a 5-question feedback survey. Include a README with setup, .env.example with BASIC_TOKEN and WEBHOOK_URL, and vitest tests for branch resolution and variable interpolation.",
+  "promptCurated": false
+}
