@@ -1,0 +1,51 @@
+{
+  "slug": "chiaro",
+  "name": "Chiaro",
+  "domain": "chiaro.ai",
+  "category": "ai-assistant",
+  "subcategory": "museum audio guide",
+  "tagline": "Point your phone at an artwork and get an AI-narrated audio guide, plus follow-up chat about what you just saw.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://chiaro.ai/",
+    "checkedOn": "2026-09-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is public plumbing: photo goes to a vision model, model guesses the work, a text model writes a script, a TTS endpoint reads it out. An agent can wire that up in a session and it will feel magical on the Mona Lisa and the Rothkos. It falls apart on the stuff you actually needed help with: the unlabeled minor Dutch still life in room 14, where a vision model will happily invent an artist and a date and read them to you in a warm voice. Closing that gap means a verification layer, a recognition loop that knows when to say it does not know, and streaming that starts before you lose interest, which is a weekend of real work and still not as good. Build it for the confidence you can tolerate, not for the confidence you want.",
+  "coreLoopDIY": "Snap a photo, get a vision-model identification that is cross-checked against Wikidata and Wikipedia before anything is spoken, then hear a streamed narration and ask follow-up questions with the rest of your visit as context.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a vision model and a streaming TTS voice, plus a few cents per artwork",
+    "A phone browser that will give a local dev server camera access, which usually means HTTPS or a tunnel",
+    "Willingness to ship an honest 'not sure' instead of a confident wrong label",
+    "Wikidata and Wikipedia as the only free corroboration source you get"
+  ],
+  "whatYouLose": [
+    "Recognition tuned on works that are not the twenty paintings everyone photographs",
+    "A verification layer someone else already tuned, so hallucinated artists and dates stay out of your ears",
+    "Audio that starts in a second or two rather than after an awkward wait on museum wifi",
+    "Voices that sound like a person rather than a text reader having a mild episode",
+    "Length calibration: a real masterpiece earns six minutes, a wall filler earns forty seconds, and your build gives everything the same treatment unless you code it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat is not the model, it is the willingness to say 'I do not know' plus whatever recognition and correctness work makes that rare.",
+  "whyPeopleStillPay": "Because you use this thing standing up, tired, on bad wifi, with a queue behind you. The gap between a five second wait and a one second wait is the whole product, and so is the difference between a guide that says 'circa 1660, attributed to' and one that invents a painter with total confidence. A personal build gets you 80 percent of the feature list and maybe 40 percent of the trust, and trust is what you are buying when you cannot check the answer yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The photo-to-narration loop is a weekend; knowing when the model is guessing is the product.",
+  "prompt": "Build \"Pocket Curator\", a local mobile-first web app that identifies an artwork from a photo and narrates it out loud.\nStack: Vite + React + TypeScript client, small Express server in the same repo. No database, no accounts, no telemetry, no cloud deploy.\nSecrets in .env: OPENAI_API_KEY. Only the server touches the key; the client never sees it.\nClient is one screen: a big shutter button using getUserMedia with a file-input fallback, an audio player, and a scrolling \"this visit\" list of everything identified so far, held in React state and mirrored to localStorage.\nServer endpoint POST /identify does three things in order:\n1. Send the photo to a vision model, demand strict JSON: title, artist, year, medium, visible_clues array, confidence 0 to 1. Tell it explicitly that returning nulls with low confidence is the correct answer when unsure.\n2. Verification pass: search Wikidata for the guessed title and artist, pull the Wikipedia summary. If the artist is not corroborated, or the year disagrees by more than five years, demote the result to status \"unverified\".\n3. If status is unverified, do not print a label. Generate a \"what I can actually see\" script instead: composition, palette, technique, probable period, what to look for. Say plainly that the attribution is uncertain.\nLength rule: if the verified work has a substantial Wikipedia article, generate a 4 to 6 minute script; otherwise cap it at 90 seconds. Put the threshold in one constant so it is easy to tune.\nSecond endpoint POST /speak: call a streaming TTS API and pipe chunks straight to the client so playback begins within about two seconds. Client feeds the stream to an audio element via MediaSource, falling back to buffering the whole clip if MediaSource is unavailable.\nThird endpoint POST /followup: a chat turn that receives the visit list plus the current work as context, so \"who painted the one before this\" resolves correctly.\nUI must always show the verification badge: verified, partial, unverified. Never hide it, never soften it.\nOut of scope: native apps, offline mode, floor maps, translations, logins, payments, any analytics.\nShip a /fixtures folder with five test images referenced in the README: two famous paintings, two obscure works, one blurry wall label, so the failure modes are visible on day one.\nREADME covers .env setup, how to reach the dev server from a phone over HTTPS, and roughly what one identification costs in API calls.\nRun with npm run dev: client on 5173, server on 8787, Vite proxying /api to the server.",
+  "promptCurated": false
+}
