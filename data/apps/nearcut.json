@@ -1,0 +1,52 @@
+{
+  "slug": "nearcut",
+  "name": "NearCut",
+  "domain": "nearcut.com",
+  "category": "scheduling",
+  "subcategory": "barbershop and salon booking",
+  "tagline": "Booking and client management software for barbershops and salons, with an online booking page, calendar, reminders and deposits.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://nearcut.com/en-US",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Salon booking tools usually scale with chair or staff count, so treat any single number with suspicion.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core of this is a calendar, a services list, a client table and a public booking page that respects working hours and slot length. An agent can produce that in a weekend and it will genuinely take bookings for a single chair. The gaps are the boring, expensive parts: SMS reminders that actually deliver, card-on-file deposits to punish no-shows, a client-facing app people already have installed, and the sort of timezone and double-booking edge cases that only show up when a real customer books a real haircut. If you are one barber with a regular book and a phone, the DIY version is fine. If you run staff, rotas, commissions and deposits, you are rebuilding a business system, not a form.",
+  "coreLoopDIY": "A self-hosted booking page plus an admin calendar where you define services, durations and opening hours, and clients pick an open slot and get an email confirmation.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on host and a domain, since the booking page has to be public",
+    "SMTP credentials for confirmation and reminder emails",
+    "Optional Twilio or similar if you want SMS reminders, which is the part that costs real money",
+    "Optional Stripe if you want deposits or prepayment"
+  ],
+  "whatYouLose": [
+    "SMS reminders with decent deliverability, which is the single biggest no-show lever in this category",
+    "Card-on-file deposits and no-show charges, including the payments compliance that comes with them",
+    "A polished client-side booking flow on mobile, plus rebooking prompts and client history at a glance",
+    "Multi-staff rotas, holidays, commission splits and reporting for a shop with more than one chair",
+    "Any discovery from the vendor's consumer side, so every booking has to come from your own link"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The lock-in is years of client records, rebooking habits and stored cards, not clever code. Moving a shop mid-year is a bigger risk than paying the subscription.",
+  "whyPeopleStillPay": "A barber's downside is not a missing feature, it is an empty chair at 2pm because the reminder text never arrived, or a double booking because two people tapped the same slot. Paid tools have already eaten those failure modes, plus payments, deposits, staff calendars and a support line you can shout at during a busy Saturday. Self-hosting means you are the on-call engineer for your own appointment book, which is a bad trade when your revenue is time-sliced and non-refundable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build for a solo chair; the moment you add a second barber the weekend build starts growing a rota engine.",
+  "prompt": "Build a self-hosted appointment booking system for a single-chair barbershop. Empty folder, no existing code.\n\nStack, non negotiable: Next.js with the App Router, TypeScript, SQLite via Prisma, Tailwind for styling. No external UI kit. No auth provider: a single admin password read from .env and stored in an httpOnly session cookie is enough.\n\nData model: Service (name, durationMinutes, priceCents, active), BusinessHours (weekday, openTime, closeTime, closed flag), Closure (date range, reason) for holidays, Client (name, email, phone, notes), Booking (clientId, serviceId, startsAt, endsAt, status of confirmed or cancelled or noshow, cancelToken).\n\nPublic side, at /book: pick a service, pick a date, see available slots generated from business hours minus existing bookings minus closures, stepping by 15 minutes and requiring the full service duration to fit. Enter name, email, phone. Confirm. Show a confirmation page and email the client a confirmation with a cancel link that uses cancelToken. Reject bookings in the past and inside a configurable minimum notice window.\n\nAdmin side, at /admin behind the password: a day view and a week view of bookings, ability to create, move and cancel bookings by hand, mark a booking as no-show, CRUD for services and business hours, add closures, and a client list showing visit count, last visit and notes.\n\nOther requirements: store all times in UTC in the database and render in a single configured shop timezone from .env. Guard against double booking with a transaction plus a uniqueness check at insert, not just a UI check. Expose /calendar.ics as a read-only feed of confirmed bookings so the owner's phone calendar stays in sync. Add a script that sends reminder emails for bookings 24 hours out, runnable from cron, idempotent so it never double-sends.\n\nOut of scope: SMS, card payments, deposits, multiple staff members, commissions, loyalty schemes, marketing campaigns, any analytics or telemetry.\n\nSecrets in .env only: ADMIN_PASSWORD, SHOP_TIMEZONE, SMTP_URL, FROM_EMAIL, PUBLIC_BASE_URL. Ship a .env.example, a seed script with three sample services and normal opening hours, and a README covering local run, deploy and the cron line for reminders.",
+  "promptCurated": false
+}
