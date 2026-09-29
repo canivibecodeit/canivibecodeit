@@ -1,0 +1,52 @@
+{
+  "slug": "braintrust",
+  "name": "Braintrust",
+  "domain": "braintrust.dev",
+  "category": "dev-tools",
+  "subcategory": "LLM evals and observability",
+  "tagline": "Hosted platform for evaluating, logging and iterating on LLM applications: datasets, scorers, trace viewing and a prompt playground.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://braintrust.dev/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is not magic: run a task function over a dataset of inputs, score the outputs with a handful of graders, store the results, and diff run A against run B. An agent can build that locally in a sitting, and the scoring library pattern (LLM-as-judge plus deterministic string and JSON checks) is well trodden public knowledge. Where it gets thin is everything around the loop: ingesting production traces at volume, a review UI other people will actually use, a playground that speaks to every provider, and the CI integration that makes evals a gate instead of a hobby. For one developer babysitting one or two prompts, a local runner plus a results table is honestly enough. For a team where three people argue about whether the new prompt regressed, the hosted thing starts earning its keep.",
+  "coreLoopDIY": "Runs your task function over a versioned dataset, scores each output with deterministic and LLM-judge graders, writes every run to SQLite, and serves a web view to compare two runs row by row.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for at least one model provider, in .env",
+    "Python 3.12 and uv",
+    "Your app logic importable as a plain function",
+    "Willingness to write your own scorers for anything domain specific"
+  ],
+  "whatYouLose": [
+    "Production trace ingestion and search at real volume, with sampling and retention",
+    "A shared review queue where non-engineers label outputs and those labels flow back into datasets",
+    "The multi-provider playground and prompt versioning that lives outside your repo",
+    "Maintained autoeval scorers and the tuning that went into them",
+    "Team permissions, audit trails and the ability to point at a URL in a pull request"
+  ],
+  "moatTags": [
+    "collaboration",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The defensible part is the human workflow around evals, not the eval math. Once three people and a CI pipeline depend on the same run history, leaving gets expensive.",
+  "whyPeopleStillPay": "Because evals are the chore nobody wants to own. A local runner works great until someone asks for the trace from last Tuesday, a PM wants to grade fifty outputs without cloning your repo, and CI needs a stable artifact to compare against. Paying converts an internal tool that one engineer maintains into infrastructure the whole team can point at, which is usually cheaper than that engineer's attention.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The eval loop is a weekend; the review workflow is the product. Build the local runner first and see whether you actually miss the rest.",
+  "prompt": "Build a local LLM evaluation harness. Stack: Python 3.12, uv for deps, SQLite via sqlite3 (no ORM), FastAPI with Jinja2 templates for the UI. No accounts, no cloud, no telemetry. Model keys come from .env via python-dotenv.\n\nCLI, exposed as `evals`:\n- `evals dataset add NAME path/to/file.jsonl` : imports rows of {input, expected?, metadata?}, stores a content hash so dataset versions are distinguishable.\n- `evals run --dataset NAME --task module:function --scorers exact,json_match,llm_judge --tag \"prompt-v3\"` : imports the task callable, runs it over every row with a bounded thread pool and retries, records per-row output, latency, token counts if the provider returns them, and each scorer's numeric score plus rationale.\n- `evals compare RUN_A RUN_B` : prints a per-scorer mean delta and the ten rows that moved the most.\n- `evals serve` : starts the web UI on localhost:8000.\n\nScorers live in scorers.py as plain functions taking (input, output, expected) and returning (score float 0..1, rationale str). Ship four: exact_match, includes, json_match (deep compare with key order ignored), and llm_judge (a single chat call to an OpenAI-compatible endpoint, base URL and model from .env, returns a 0..1 score and one sentence of reasoning, parsed from strict JSON with one retry on parse failure).\n\nSchema: datasets, dataset_rows, runs, results, scores. Every run stores the task reference, scorer list, dataset hash, git commit if available, and a free-text tag.\n\nWeb UI, server-rendered, no build step, minimal CSS:\n- Run list with dataset, tag, timestamp and mean score per scorer.\n- Run detail: table of rows with input, output, expected, per-scorer scores, expandable rationale, sortable by score ascending so failures surface first.\n- Compare view for two run ids, side by side outputs with score deltas highlighted.\n- A button on any row to write it back into a dataset as a regression case.\n\nExplicitly out of scope: authentication, multi-user review queues, production trace ingestion, streaming, a prompt playground, hosted deployment.\n\nInclude a seed dataset of 20 rows, one example task in example_task.py, a pytest suite covering the scorers and the compare math, and a README with the exact commands to go from empty folder to a comparison view in under five minutes.",
+  "promptCurated": false
+}
