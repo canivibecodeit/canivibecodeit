@@ -1,0 +1,52 @@
+{
+  "slug": "papercut",
+  "name": "PaperCut",
+  "domain": "papercut.com",
+  "category": "productivity-utilities",
+  "subcategory": "print management",
+  "tagline": "Print management software that tracks, costs, quotas and securely releases print jobs across an organization's printers and copiers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://papercut.com/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. PaperCut is licensed by printer and user tiers through resellers, usually quoted rather than listed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part most individuals actually want, knowing who printed what, how many pages, and what it cost, is a log parser with a dashboard, and an agent can do that in a session if you run your own CUPS server. Where it falls apart is everything that makes PaperCut an enterprise purchase: embedded apps running on Ricoh and Xerox and Canon copier panels, badge readers, Active Directory sync, Windows print server hooks, and reports someone will accept in an audit. Enforcement is also much harder than reporting: holding a job and releasing it from a phone is doable via CUPS job hold, but blocking color on a driver you do not control is not. So a home or small studio setup, yes. A school district, no. Call it a weekend with real gaps.",
+  "coreLoopDIY": "Tails the CUPS page log into SQLite, then shows per-user page and cost totals with quotas, plus a hold-and-release queue for jobs you want to approve before they print.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A CUPS print server you control on Linux or macOS",
+    "Read access to the CUPS page_log and lpadmin rights",
+    "Python 3.11 and SQLite on the same host",
+    "Optional SMTP credentials if you want quota emails"
+  ],
+  "whatYouLose": [
+    "Embedded apps on copier control panels, plus badge and PIN release at the device",
+    "Active Directory and LDAP user sync, and Windows print server integration",
+    "Driver-level detection of color versus grayscale, duplex, and paper size on clients you do not manage",
+    "BYOD and mobile printing that just works across iOS, Android and Chromebooks",
+    "Audit-grade reporting, chargeback exports, and a vendor to call when accounting disputes the numbers"
+  ],
+  "moatTags": [
+    "hardware",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The real product is a certified integration matrix with every major copier vendor's firmware, which is not something you reverse engineer on a Saturday.",
+  "whyPeopleStillPay": "Nobody buys print management because counting pages is hard. They buy it because a fleet of mixed-vendor copiers, a directory of two thousand users, a finance team that wants departmental chargeback, and a compliance officer who wants to know which account printed the student records all have to agree on one number. PaperCut sits in the middle of that as the vendor-certified layer, installs on the copier panel itself, and gives someone a support contract to point at. A self-hosted log parser gives you the number. It does not give you the agreement, or the hardware, or the person to blame.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for one household printer and a roommate who prints their entire thesis twice. Stops being fine the moment a copier panel or an auditor is involved.",
+  "prompt": "Build a self-hosted print accounting and release tool for a single CUPS print server. Empty folder, no scaffolding tools.\n\nStack, non negotiable: Python 3.11, FastAPI, SQLite via sqlite3 stdlib, Jinja2 templates, plain CSS, no JS framework. Single process started with uvicorn. No Docker.\n\nCore behavior:\n1. A background task tails /var/log/cups/page_log (path configurable via env PAGE_LOG). Parse the standard CUPS page_log format: printer, user, job id, timestamp, page number, copies, job billing, hostname. Handle log rotation by reopening on inode change.\n2. Store one row per page event in SQLite, deduplicated on printer+job+page. Derive per-job rollups.\n3. Cost model in a costs.json file: per-printer cost per page, with an optional multiplier key for color if the log carries it. If color cannot be determined, record it as unknown and say so in the UI rather than guessing.\n4. Web UI at /: totals by user for the current month, by printer, and a job list with filters for date range and user. One chart is enough, render it as inline SVG, no chart library.\n5. Quotas: quotas.json maps user to monthly page allowance. Show a progress bar per user. If SMTP_URL is set in .env, email the address in quotas.json when a user crosses 80 and 100 percent. If it is not set, log the warning and move on.\n6. Hold and release: an endpoint that lists held jobs via lpstat, and buttons that call lp -i JOBID -H resume or cancel JOBID. Document in the README that this only works for jobs submitted to a printer whose default policy is hold, and include the lpadmin command to set that.\n7. CSV export of the job rollups for any date range.\n\nExplicitly out of scope, do not attempt: Active Directory or LDAP sync, copier panel apps, badge readers, Windows print server support, client-side popups, driver installation, multi-server aggregation, user accounts in the app itself.\n\nSecurity: bind to 127.0.0.1 by default, single shared password from ADMIN_PASSWORD in .env enforced by HTTP basic auth, nothing else. No telemetry, no outbound calls except the optional SMTP.\n\nDeliver: app.py, a tailer module, templates, costs.json and quotas.json examples, .env.example, requirements.txt, and a README with the exact CUPS commands needed to enable page logging and job holding. Seed a fake page_log fixture and a make-believe run mode so the UI can be demoed without a printer attached.",
+  "promptCurated": false
+}
