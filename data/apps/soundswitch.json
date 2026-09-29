@@ -1,0 +1,52 @@
+{
+  "slug": "soundswitch",
+  "name": "SoundSwitch",
+  "domain": "soundswitch.com",
+  "category": "audio-video",
+  "subcategory": "DMX lighting control for DJs",
+  "tagline": "Software that drives DMX lighting rigs in sync with DJ software, with auto-generated and hand-timed light shows per track.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.soundswitch.com/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The output side is boring in a good way: DMX is a documented protocol, Art-Net is UDP packets, and a USB interface is a serial device, so an agent can absolutely make your lights move to a beat in one session. Beat-reactive scenes driven by a live audio input are a weekend project, and if you run rekordbox or Engine DJ you can pull real beat grid and track position off the network with existing reverse-engineered link libraries. What you cannot one-shot is the boring infrastructure around it: a fixture profile library covering thousands of cheap Chinese moving heads, a timeline editor that survives you dragging cues around at 1am, and autoloops that make a show look composed instead of strobing randomly. Serato in particular has no friendly hook, so per-track scripted shows mean either manual triggering or a sketchy workaround. Build it if your rig is eight fixtures you know the channel map for and you enjoy debugging DMX addressing; buy it if you are being paid to show up and have the lights work.",
+  "coreLoopDIY": "Reads live audio or a DJ link stream for tempo and beats, then pushes beat-synced DMX frames to your fixtures over Art-Net or a USB interface with a few switchable scenes.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A USB-DMX interface (FTDI/Enttec Open DMX style) or an Art-Net node on the same network",
+    "Hand-written channel maps for each fixture you own, pulled from its manual",
+    "An audio input feeding the machine, or rekordbox/Engine DJ on the LAN for beat data",
+    "Willingness to test in a dark room before testing in front of people"
+  ],
+  "whatYouLose": [
+    "The fixture profile library, so every new light means reading a PDF and typing channel offsets",
+    "A real timeline editor for scripting shows to specific tracks, plus the autoloop generation that fakes good taste",
+    "Native hooks into Serato, Virtual DJ and Engine DJ, including track ID and position without network guesswork",
+    "First-party hardware like Control One and the DMX interfaces that are known to work under load",
+    "Crash resistance during a paid gig, which is the only reliability metric that matters here"
+  ],
+  "moatTags": [
+    "integrations",
+    "hardware",
+    "proprietary-data"
+  ],
+  "moatNotes": "Being owned by inMusic means the Engine DJ and Denon side of the integration is inside the house, not reverse engineered.",
+  "whyPeopleStillPay": "Because the thing being replaced is not the DMX math, it is the accumulated grunt work: a fixture library someone else maintained, DJ software integrations that would otherwise be packet sniffing projects, and hardware that has been beaten on at real events. A DIY controller that works in your living room is a genuinely fun build and a completely different risk profile from a rig you carry into a venue where the promoter is watching. Anyone getting paid to light a room tends to pay for software that fails less often than their own code.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The protocol is trivial and the fixture library is not, which is the usual shape of this answer.",
+  "prompt": "Build a local, offline DMX lighting controller for a small DJ rig. No accounts, no cloud, no telemetry.\n\nStack: Python 3.11. Use sounddevice for audio capture, numpy for analysis, a plain socket for Art-Net output, pyserial for USB-DMX output, and FastAPI plus a single static HTML page with htmx for the control UI. No database, config lives in YAML files.\n\nIn scope:\n1. fixtures.yaml: a list of fixtures, each with name, dmx_start_address, and a channel map (e.g. dimmer, red, green, blue, pan, tilt, gobo) given as offsets from the start address.\n2. scenes.yaml: named scenes. Each scene declares per-fixture target values plus an effect: static, pulse_on_beat, chase, or color_cycle. Include a beat_division field (1, 2, 4) so effects can fire on every beat, every other beat, or every bar.\n3. A DMX output layer that maintains a 512-channel universe buffer and writes it at a steady 40 frames per second. Two backends, selected by an env var: ARTNET (UDP to ARTNET_HOST:6454, proper ArtDMX packet header) and SERIAL (Enttec Open DMX style break plus frame over SERIAL_PORT). Frame rate must not stutter when the UI is being used, so run output in its own thread.\n4. A beat detector: capture the selected input device, compute a spectral flux onset envelope in short hops, track tempo with autocorrelation over a rolling window, and emit beat timestamps with a confidence value. When confidence drops below a threshold, fall back to a manual tap-tempo BPM.\n5. A local web UI at 127.0.0.1:8080 showing current BPM, beat confidence, a beat blink indicator, buttons to switch scenes, a master dimmer slider, a tap tempo button, and a big blackout button that zeroes the universe immediately.\n6. A --dry-run flag that prints a compact text visualisation of the universe instead of sending packets, so it can be developed without hardware.\n\nOut of scope: no per-track scripted timelines, no Serato or rekordbox integration, no fixture profile library, no mobile app, no multi-universe support.\n\nPut ARTNET_HOST, SERIAL_PORT, AUDIO_DEVICE and DMX_BACKEND in .env, loaded with python-dotenv, and commit a .env.example. Write a README with wiring notes, a worked fixtures.yaml example for a 4-channel RGB par and a 12-channel moving head, and a loud warning to test the blackout button before any real use.",
+  "promptCurated": false
+}
