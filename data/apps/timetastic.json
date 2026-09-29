@@ -1,0 +1,52 @@
+{
+  "slug": "timetastic",
+  "name": "Timetastic",
+  "domain": "timetastic.co.uk",
+  "category": "hr",
+  "subcategory": "staff leave and holiday tracking",
+  "tagline": "Staff holiday planner: leave allowances, requests, approvals and a shared absence calendar.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per user per month",
+    "unit": "per-seat",
+    "source": "https://timetastic.co.uk/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The data model here is genuinely small: people, allowances, leave requests, approvals, public holidays, a calendar view. An agent can get a working version running in an afternoon and it will cover the 80 percent case for a team of five. The gaps are the unglamorous parts: part-time working patterns, TOIL, carryover rules, accrual by start date, half days across timezones, and the Slack, Google Calendar and Outlook hooks that make people actually use it instead of ignoring it. You also inherit auth, hosting and the fact that HR records are the one thing nobody forgives you for losing. Buildable, but it is a small internal tool you now maintain forever, not a one-shot you forget about.",
+  "coreLoopDIY": "A self-hosted web app where staff request time off, managers approve or decline, allowances decrement automatically, and everyone sees a shared month calendar plus an ICS feed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A box or VPS to host it on, since this is multi-user by nature",
+    "Some auth story, even if it is just magic links or a shared team login",
+    "SMTP credentials if you want request and approval emails",
+    "Regular backups, because this becomes the record of who took what"
+  ],
+  "whatYouLose": [
+    "Slack, Google Calendar and Outlook integrations that put leave where people already look",
+    "Mobile-friendly polish and the daily or weekly 'who is off' digest",
+    "Accrual, carryover, TOIL and part-time pattern logic that HR will ask for by month two",
+    "An audit trail someone else is responsible for keeping intact",
+    "Public holiday calendars maintained per country, which you now update by hand"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the database, it is being wired into Slack and calendars plus years of edge cases around part-time and carryover that look trivial until you hit them.",
+  "whyPeopleStillPay": "Because the per-user price is small enough that nobody in the company argues about it, and because holiday tracking is exactly the kind of thing you never want to be the on-call engineer for. When someone's allowance is wrong or a booking vanishes, that is a people problem, not a bug report. Paying a few quid a head to make it someone else's problem, with the notifications and calendar sync already done, is an easy trade for any team that is not deliberately building it as a learning exercise.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project, mediocre thing to own in year three.",
+  "prompt": "Build a self-hosted staff leave tracker as a single Next.js 15 app (App Router, TypeScript, Tailwind). No external SaaS.\n\nStorage: SQLite via better-sqlite3, file at ./data/app.db, with a migrations script and seed script. No ORM beyond thin query helpers.\n\nAuth: email magic links using nodemailer with SMTP creds from .env. Sessions in a signed httpOnly cookie. Two roles: member and admin. First user to sign up becomes admin. No OAuth, no third-party auth provider.\n\nData model: users (name, email, role, manager_id, start_date, annual_allowance_days, working_days bitmask), leave_types (holiday, sick, unpaid, configurable), leave_requests (user, type, start_date, end_date, half_day_start, half_day_end, note, status pending/approved/declined/cancelled, decided_by, decided_at), public_holidays (date, name, region).\n\nFeatures, in scope:\n- Request form with a date range picker that computes working days consumed, skipping weekends, the user's non-working days, and public holidays.\n- Manager approve/decline queue, with email notification to requester on decision and to manager on submission.\n- Personal dashboard: allowance, taken, booked, remaining.\n- Team month calendar showing who is off, colour coded by leave type, filterable by department.\n- Read-only ICS feed per user and per team at a signed unguessable URL so it can be subscribed to in any calendar app.\n- Admin screens: add/edit users, set allowances, import public holidays from a pasted CSV of date,name.\n- CSV export of all requests in a date range.\n\nOut of scope, do not build: accrual schedules, carryover, TOIL banks, Slack or Google Calendar write integrations, mobile apps, billing, analytics or telemetry of any kind.\n\nDeliver: README with setup, .env.example (SMTP_*, SESSION_SECRET, APP_URL), npm scripts for migrate, seed and dev, a Dockerfile, and a backup script that copies the SQLite file with a timestamp.\n\nKeep it boring and readable. Server components and server actions where possible, minimal client JS.",
+  "promptCurated": false
+}
