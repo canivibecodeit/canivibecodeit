@@ -1,0 +1,52 @@
+{
+  "slug": "otterly-ai",
+  "name": "Otterly.ai",
+  "domain": "otterly.ai",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility monitoring",
+  "tagline": "Tracks whether your brand gets mentioned and linked in AI search answers from ChatGPT, Perplexity and Google AI Overviews.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://otterly.ai/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is embarrassingly simple: keep a list of prompts, fire them at the model APIs on a schedule, check if your brand name or domain shows up, store the result, chart it over time. An agent will hand you that in an afternoon and it will work fine for ChatGPT and Perplexity, both of which have real APIs. The wall you hit is Google AI Overviews, which has no API, renders differently by location and account, and has to be scraped or bought through a SERP provider that will charge you anyway. You also start from zero history, so your first month of data is noise with no baseline and no competitor set to compare against. Good enough if you track one brand and a few dozen prompts, not good enough if someone is paying you for the report.",
+  "coreLoopDIY": "Runs a fixed list of prompts through the ChatGPT and Perplexity APIs on a schedule, records whether your brand and domain are mentioned or cited, and renders a trend report.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "OpenAI API key",
+    "Perplexity API key",
+    "somewhere to run a daily cron job",
+    "a SERP or scraping API key if you want Google AI Overviews at all"
+  ],
+  "whatYouLose": [
+    "Google AI Overviews coverage without paying a scraping vendor, and even then it drifts by locale and device",
+    "Historical data from before you started, so no baseline and no seasonality",
+    "Competitor share-of-voice benchmarking across a prompt set someone else already curated",
+    "Prompt suggestion: figuring out which questions actually matter for your category is the real work",
+    "Maintenance when model endpoints, response formats or citation shapes change, which they do constantly"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The longitudinal panel is the asset. Anyone can query a model today; nobody can query it retroactively for last March.",
+  "whyPeopleStillPay": "Because agencies need a chart with someone else's logo on it, and because the Google AI Overviews half of the story is genuinely annoying to get: no official API, geo-dependent, and it changes without warning. Paying also outsources the judgment call of which prompts represent your market, which is the part most people get wrong when they roll their own. If you are monitoring one brand for yourself, a script is fine. If you are reporting to a client every month, the subscription is cheaper than the maintenance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A weekend script covers two of the three surfaces; the third is Google, and Google does not want you scraping it.",
+  "prompt": "Build a local AI search visibility tracker as a Node.js 20 + TypeScript CLI. No web server, no accounts, no telemetry.\n\nStack: TypeScript, better-sqlite3 for storage, zod for config validation, commander for the CLI, and plain EJS templates to render a static HTML report. Nothing else.\n\nConfig: a prompts.yaml at the project root with fields: brand (string), domains (string array), competitors (string array of names), prompts (array of question strings), locale (string, informational only). Validate it with zod and fail loudly on a bad file.\n\nSecrets in .env, loaded with node --env-file: OPENAI_API_KEY and PERPLEXITY_API_KEY. Never hardcode keys, never commit .env, ship a .env.example.\n\nCommand: `run`. For each prompt, query the OpenAI Responses API with web search enabled and the Perplexity chat completions API. Store for each (prompt, provider, run) row: timestamp, raw answer text, list of cited URLs if the provider returns them, brandMentioned boolean, domainCited boolean, and a per-competitor mentioned boolean. Detection is case-insensitive substring matching on brand and competitor names, plus hostname matching for domains. Keep the matcher in one file so it is easy to improve later.\n\nBe polite: sequential requests with a 1 second gap, 3 retries with exponential backoff, and write partial results to SQLite as you go so a crash does not lose the run.\n\nCommand: `report`. Render report.html showing, per provider: overall mention rate for this run, mention rate over time as an inline SVG line chart (no chart library, compute the points yourself), a table of prompts where the brand was absent, and a simple share-of-voice table of brand vs competitors based on mention counts.\n\nExplicitly out of scope: Google AI Overviews scraping, Google Gemini, multi-brand workspaces, auth, hosted dashboards, PDF export, email alerts. Do not stub them, do not add menus of options.\n\nInclude a README with setup in under ten lines, a sample prompts.yaml with five prompts, and a note that API answers differ from what logged-in users see in the consumer apps, so treat trends as directional rather than absolute.",
+  "promptCurated": false
+}
