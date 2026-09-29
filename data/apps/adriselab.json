@@ -1,0 +1,51 @@
+{
+  "slug": "adriselab",
+  "name": "AdRiseLab",
+  "domain": "adriselab.com",
+  "category": "seo-marketing",
+  "subcategory": "paid ads management and reporting",
+  "tagline": "A paid-ads tool for launching, tracking and reporting on ad campaigns across the big platforms from one dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://adriselab.com/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The dashboard half of an ads tool is genuinely easy: pull spend, impressions, clicks and conversions into a local database, compute CPA and ROAS, render charts, export a client-ready PDF. The hard half is the plumbing. Meta, Google and TikTok ad APIs all want a reviewed app, OAuth scopes, and a business verification dance before they hand over a token, and each one names the same metric differently and revises numbers for days after the fact. If you only manage a handful of accounts you can skip all of that by dropping in the CSV exports each platform already gives you, and a one-session build will happily chew on those. What you will not get in one sitting is write access, so campaign creation, budget shifts and automated rules stay in the native ad managers.",
+  "coreLoopDIY": "A local dashboard that ingests ad platform CSV exports (or API pulls if you already have tokens) into SQLite, normalizes them into one schema, and shows spend, CPA and ROAS per campaign with a printable report view.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine to run it on",
+    "CSV exports from your ad accounts, or existing API tokens in .env",
+    "Conversion or revenue data from somewhere, otherwise ROAS is fiction"
+  ],
+  "whatYouLose": [
+    "Write access: no creating campaigns, editing budgets or pausing losers from your own UI without full API app review",
+    "Automated rules and alerts that act on spend thresholds while you sleep",
+    "Cross-platform attribution and dedupe logic, which is the part nobody enjoys building",
+    "Creative library, previews and asset versioning",
+    "Someone else keeping up with ad platform API changes, which happen constantly and break things quietly"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the charts, it is being an approved app on five ad platforms and staying approved.",
+  "whyPeopleStillPay": "Agencies and in-house buyers pay for the write path and the not-thinking-about-it path. Getting read-only numbers out of ad platforms is annoying but doable; getting approved to change budgets programmatically, keeping tokens alive across dozens of client accounts, and having the report land in the inbox every Monday without anyone touching it is a maintenance job, not a build. If you run one or two accounts, a local dashboard plus the native ad managers is honestly fine. If you run thirty, the subscription is cheaper than the hours.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Ads tooling always splits into a trivial reporting half and a bureaucratic API half; build the first, live with the second.",
+  "prompt": "Build a local paid-ads reporting dashboard. Single user, runs on my machine, no accounts, no telemetry, no cloud.\n\nStack, non-negotiable:\n- Next.js 15 App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/ads.db\n- Recharts for charts\n- No auth, no external services at runtime\n\nData model:\n- accounts: id, platform (meta | google | tiktok | linkedin | other), name\n- campaigns: id, account_id, external_id, name, objective\n- daily_stats: date, campaign_id, spend, impressions, clicks, conversions, revenue\n- Unique index on (date, campaign_id) so re-imports upsert instead of duplicating\n\nIngest:\n- An /import page that accepts CSV files dropped in the browser\n- A mapping step: show the CSV headers, let me map each one to a field in daily_stats, remember the mapping per platform in a mappings table so the second import is one click\n- Parse currency strings and thousands separators; treat blank numerics as 0\n- Show a preview of the first 10 parsed rows before committing\n\nDashboard:\n- Date range picker with presets: last 7, last 28, last 90, custom\n- Top row of cards: spend, conversions, CPA, ROAS, CTR\n- Time series chart of spend and conversions\n- Sortable campaign table with the same metrics per campaign, plus period-over-period delta columns\n- Filter by account and platform\n\nReport:\n- A /report route that renders one clean print-friendly page per account for the selected range, styled for Ctrl+P to PDF. No headless browser dependency.\n\nExplicitly out of scope: writing to any ad platform, OAuth flows, attribution modelling, creative previews, multi-user, scheduled email sending.\n\nOptional and off by default: a scripts/pull.ts stub that reads META_ACCESS_TOKEN and GOOGLE_ADS_DEVELOPER_TOKEN from .env and writes into daily_stats. Leave it unimplemented with clear TODO comments, do not fake responses.\n\nShip with a seed script that generates 90 days of plausible fake data across 3 accounts so the UI is not empty, a .env.example, and a README with exact run commands.",
+  "promptCurated": false
+}
