@@ -1,0 +1,53 @@
+{
+  "slug": "bruin",
+  "name": "Bruin",
+  "domain": "getbruin.com",
+  "category": "dev-tools",
+  "subcategory": "data pipelines and orchestration",
+  "tagline": "A CLI-first data platform that bundles ingestion, SQL and Python transformations, orchestration, quality checks and lineage in one binary.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getbruin.com/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. The CLI is open source, so the paid surface is the hosted/cloud tier.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The shape of Bruin is genuinely agent friendly: assets declared in YAML and SQL files, a DAG resolved from dependencies, quality checks as config, lineage derived from the queries. An agent can build a personal version of that loop in a weekend: a Python runner over DuckDB that topologically sorts asset files, renders Jinja, materializes tables, runs not-null and uniqueness checks, and emits a Mermaid lineage graph. What it cannot one-shot is the ingestion surface, which is hundreds of maintained source connectors, plus multi-warehouse dialect support and a hosted scheduler with alerting. Worth noting the Bruin CLI itself is open source and free, so a DIY build is really competing with the cloud tier, not the product. If your pipelines touch two systems and one warehouse, your own runner is fine; if they touch twelve, you are about to become a connector maintainer.",
+  "coreLoopDIY": "A local CLI that reads YAML plus SQL asset files, resolves the dependency DAG, materializes each asset into DuckDB, runs declared quality checks, and renders a lineage diagram.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 plus",
+    "DuckDB (local file warehouse)",
+    "Git for versioning pipeline definitions",
+    "cron or a systemd timer for scheduling",
+    "credentials in .env if you pull from any real source"
+  ],
+  "whatYouLose": [
+    "Ingestion connectors: your build gets CSV, HTTP JSON and Postgres if you are lucky, not a maintained catalog of sources",
+    "Warehouse portability: a DuckDB-only runner does not speak BigQuery, Snowflake and Redshift dialects",
+    "Hosted scheduling, retries, backfills and alerting that someone else keeps awake",
+    "Column-level lineage from real SQL parsing, as opposed to whatever you infer from dependency lists",
+    "Team surface: a UI, run history, permissions, and anyone but you understanding the pipeline"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The connector layer is the expensive part, and it is expensive forever because upstream APIs keep moving.",
+  "whyPeopleStillPay": "Because the boring parts are the product. Writing a DAG runner is a pleasant weekend; keeping fifty source integrations working, handling incremental strategies and backfills correctly across four warehouse dialects, and having runs that fire at 03:00 without you is a job. People pay for the hosted tier to stop being the on-call engineer for their own orchestrator, and because pipeline definitions in someone else's format get stickier every quarter.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The declarative core is very copyable; the connector catalog is not, which is exactly why the CLI can afford to be open source.",
+  "prompt": "Build a local, single-user data pipeline runner called \"pipe\" in an empty folder.\n\nStack, no substitutions:\n- Python 3.11, uv for dependency management\n- DuckDB as the only warehouse, file at ./warehouse.duckdb\n- Typer for the CLI, Jinja2 for templating, PyYAML, rich for output\n- No web server, no accounts, no telemetry, no cloud anything\n\nPipeline format: a ./assets directory. Each asset is one .sql file with a YAML front matter block in a leading SQL comment containing: name, type (sql or python), depends (list of asset names), materialization (table or view), and checks (list like {column: id, check: unique} or {column: email, check: not_null} or {check: row_count_min, value: 1}). Python assets are .py files with the same front matter in a docstring, exposing a function materialize(con) that writes to DuckDB.\n\nCLI commands:\n- pipe validate: parse all assets, fail loudly on unknown dependencies, duplicate names, or cycles\n- pipe run [--asset NAME] [--downstream] [--full-refresh]: topologically sort, render Jinja (expose ref('asset_name') to the resolved table name and vars from ./pipe.yml), execute, then run that asset's checks; stop the branch on failure but keep unrelated branches going\n- pipe test: run checks only against existing tables\n- pipe lineage [--out lineage.md]: emit a Mermaid graph of the DAG\n- pipe seed: load every CSV in ./seeds into a table named after the file\n\nIngestion: implement exactly two loaders, chosen by a ./sources.yml file. One for HTTP JSON endpoints (paginated by page param, appends to a raw table) and one for Postgres tables via a DSN read from .env. Nothing else. Do not attempt a generic connector framework.\n\nRuntime behavior: log each asset with duration and row count, write a JSON run record to ./.pipe/runs/, exit non-zero if any check fails so cron and CI can see it.\n\nExplicitly out of scope: a UI, a scheduler (document a cron line instead), multi-warehouse dialects, incremental merge strategies beyond full refresh, column-level lineage parsing, and users or permissions.\n\nDeliverables: working code, a sample pipeline with 3 assets and at least 2 checks that runs end to end from a seeded CSV, .env.example, and a README with the cron example and the asset front matter spec.",
+  "promptCurated": false
+}
