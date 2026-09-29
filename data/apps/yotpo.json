@@ -1,0 +1,52 @@
+{
+  "slug": "yotpo",
+  "name": "Yotpo",
+  "domain": "yotpo.com",
+  "category": "commerce",
+  "subcategory": "reviews, UGC and loyalty for ecommerce",
+  "tagline": "Ecommerce retention suite: product reviews, photo UGC, loyalty programs, SMS marketing and subscriptions, mostly bolted onto Shopify.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://yotpo.com/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of Yotpo, a star rating widget and a review carousel, is a genuinely easy build: a form, a table, an embed script, some JSON-LD. The part people actually pay for is everything behind it. Review requests that land in inboxes instead of spam folders, SMS that does not get your sending number blocked or land you a TCPA problem, review syndication into Google Seller Ratings and Shopping surfaces through a licensed partner relationship, and a loyalty engine that stays consistent with Shopify discount codes and checkout. You can replicate the widget in an afternoon and the trust signals never show up. If you sell things for a living, the rich snippet and the deliverability are the product, not the CSS.",
+  "coreLoopDIY": "Collect, moderate and display product reviews with photos on your own store, plus a post-purchase email request, all self-hosted.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a store platform you can inject a script tag into",
+    "an SMTP provider or transactional email API key",
+    "a small VPS or serverless host with a database",
+    "somewhere to store uploaded review photos"
+  ],
+  "whatYouLose": [
+    "Google Seller Ratings and Shopping review syndication, which requires being an approved review partner",
+    "email and SMS deliverability at scale, plus the carrier registration and consent plumbing that keeps SMS legal",
+    "deep Shopify integration: order verification, discount code issuance, checkout and subscription hooks",
+    "the loyalty and referral engine, tiers, points expiry, and the reporting merchants actually argue about in meetings",
+    "moderation and fraud tooling, plus review importing and migration when you change platforms"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "Syndication into Google surfaces is a partner program, not an API you sign up for on a Tuesday.",
+  "whyPeopleStillPay": "Because a review is worth money only when it shows up as stars in search results, in Shopping ads and in a paid social creative, and getting there means being an approved Google review partner with verified order data behind every rating. Layer on SMS, where the difference between a marketing channel and a legal liability is consent records and carrier registration, and the self-hosted version stops looking cheap. Merchants also do not want a homegrown widget in the checkout path of a business doing real revenue. The widget is free; the distribution and the indemnity are not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The review widget is an afternoon; the stars in Google search results are not. The moat is approved syndication into Google surfaces plus the deliverability and SMS consent infrastructure underneath it.",
+  "prompt": "Build a self-hosted product reviews widget for a single ecommerce store. This is the consolation build: reviews on my own site, no syndication.\n\nStack, no substitutions: Next.js (App Router) with TypeScript, SQLite via better-sqlite3, Tailwind for the admin, plain vanilla JS for the public embed. Runs with `npm run dev` and deploys to a single VPS with `npm run build && npm start`.\n\nIn scope:\n- Data model: products (external_id, title, url), reviews (product_external_id, author_name, email, rating 1-5, title, body, photo_path, verified_order boolean, status: pending/approved/rejected, created_at).\n- Public API: GET /api/reviews?product=EXTERNAL_ID returns approved reviews plus average rating and rating distribution. POST /api/reviews accepts a new review with optional photo upload, stores it as pending, rate limited by IP.\n- Embed script at /embed.js that finds elements with data-reviews-product, renders star average, review list with photo thumbnails, and a write-a-review form in a modal. Shadow DOM so store CSS does not leak in. No framework in the embed bundle, keep it under 20KB.\n- JSON-LD helper endpoint GET /api/schema?product=EXTERNAL_ID returning AggregateRating and Review structured data, plus a short README note that Google may not render stars without an approved review partner. Be honest about this in the README.\n- Admin at /admin behind a single password from ADMIN_PASSWORD in .env, using an httpOnly signed cookie. List pending reviews, approve, reject, reply. No user accounts, no roles.\n- Review request emails: a POST /api/request-review endpoint taking order_id, email, product_external_id, and a nodemailer send using SMTP creds from .env. Store a unique token so the review form can mark verified_order true. Include a simple cron-ready script `npm run send-requests` that emails pending requests older than N days.\n- Photo uploads to a local ./uploads dir, served through a route that enforces max 5MB and image mime types only.\n\nOut of scope, do not build: SMS, loyalty points, referrals, subscriptions, multi-store tenancy, analytics dashboards, any Shopify OAuth app.\n\nSecrets in .env only (ADMIN_PASSWORD, SMTP_*, PUBLIC_BASE_URL) with a .env.example. No telemetry, no external analytics. Seed script with one product and five fake reviews. README covers install, adding the script tag to a product page, and the honest limits.",
+  "promptCurated": false
+}
