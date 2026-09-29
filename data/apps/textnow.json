@@ -1,0 +1,53 @@
+{
+  "slug": "textnow",
+  "name": "TextNow",
+  "domain": "textnow.com",
+  "category": "productivity-utilities",
+  "subcategory": "phone numbers, SMS and calling",
+  "tagline": "Free US phone number with texting and calling over the internet, ad supported, with paid ad-free tiers and prepaid mobile plans.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.textnow.com/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app part of TextNow is a chat list, a dialer, and push notifications, which an agent can scaffold in an afternoon. The actual product is a real phone number on the real phone network, which means number inventory from a carrier, SMS and voice interconnect, 10DLC and A2P registration rules, E911 address routing, and a wholesale data deal for the SIM plans. You cannot self-host any of that; you rent it, and the moment you rent it you are paying Twilio or Telnyx per number, per message, and per minute instead of paying TextNow nothing. TextNow's whole trick is giving the number away and recovering the cost with ads and upsells, which is a business model, not a feature you can code. A DIY build is genuinely reasonable if you want a private number you control, just do not expect it to be free.",
+  "coreLoopDIY": "A self-hosted web app wired to a Twilio number that sends and receives SMS and MMS, places and answers calls in the browser, and keeps threaded history in SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Twilio account with a purchased phone number, plus SMS and Voice enabled",
+    "Carrier registration for A2P/10DLC before outbound texting works reliably in the US",
+    "A public HTTPS URL for webhooks (a small VPS, or a tunnel for local dev)",
+    "Ongoing per-number, per-message and per-minute spend",
+    "An E911 address on file if you want emergency calling to work at all"
+  ],
+  "whatYouLose": [
+    "A free number: every text and minute now shows up on a usage bill",
+    "A real mobile app with reliable push, so you will miss messages when the browser tab is closed",
+    "The prepaid SIM data plans, which need an MVNO agreement, not code",
+    "Number portability, spam filtering, voicemail transcription and group MMS handling that mostly just works today",
+    "Multi-device sync and the account recovery flow you get when someone else owns your identity"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard parts are all upstream of the app: number inventory, carrier interconnect, A2P registration, E911, and a wholesale data contract. None of it is software you can write.",
+  "whyPeopleStillPay": "Because a working phone number is a regulated utility with a supply chain, and TextNow subsidizes it so aggressively that paying them to remove ads is cheaper than any number you provision yourself. People also pay because the number is their identity for banking codes, delivery drivers and old friends, and moving it is a porting request, not a config change. The paid tiers buy quiet, not capability.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The client is a weekend project; the phone number is not. The moat is carrier interconnect plus telecom compliance, and a subsidy model that makes free numbers cheaper than your own.",
+  "prompt": "Build a self-hosted personal SMS and voice client backed by a Twilio phone number. Single user, no accounts, runs on my own box.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/app.db, schema created on boot\n- Twilio Node SDK for REST, Twilio Voice JS SDK for in-browser calling\n- Deploy target: a single VPS behind HTTPS. For local dev, document using a tunnel for webhooks.\n\nFeatures in scope:\n1. Thread list sorted by last activity, unread counts, contact names stored locally.\n2. Thread view with full message history, send box, MMS image attachments stored on disk and served from a local route.\n3. Inbound webhook POST /api/twilio/sms that validates the Twilio signature, stores the message, and returns 204.\n4. Outbound send route that calls the Twilio Messages API and records status; a status-callback webhook updates delivered/failed.\n5. Browser calling: a /api/twilio/token route that mints a Voice access token, a dialer UI to place calls, and an inbound TwiML route that rings the browser client.\n6. Call log table with direction, duration, and status.\n7. Simple blocklist: numbers in a table get their inbound messages dropped.\n\nExplicitly out of scope: native mobile apps, push notifications, number porting, group MMS, voicemail transcription, billing, multi-user auth, telemetry.\n\nSecrets in .env only: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_TWIML_APP_SID, TWILIO_NUMBER, APP_PASSWORD. Gate the whole UI behind one password cookie.\n\nWrite a README that states plainly: this costs money per message and per minute, US outbound texting requires A2P/10DLC registration before it works, and emergency calling will not function unless an E911 address is registered with the carrier.\n\nShip working code, seed script, and npm scripts for dev and start.",
+  "promptCurated": false
+}
