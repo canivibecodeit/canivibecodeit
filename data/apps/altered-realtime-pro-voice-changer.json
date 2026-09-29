@@ -1,0 +1,52 @@
+{
+  "slug": "altered-realtime-pro-voice-changer",
+  "name": "Altered Real-Time Pro Voice Changer",
+  "domain": "altered.ai",
+  "category": "ai-audio",
+  "subcategory": "real-time voice conversion",
+  "tagline": "Desktop app that converts your voice into a different target voice live, for calls, streaming and games.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.altered.ai/real-time-pro/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The hard part here is not the app, it is the model and the latency budget. Open real-time voice conversion is genuinely usable now: RVC-style checkpoints plus a small Python audio loop will change your voice live on a decent GPU or recent Apple silicon. An agent can wire that up, add a device picker and a pitch slider, and hand you a working local voice changer in a weekend. What it cannot conjure is a curated library of licensed target voices, sub-50ms latency tuned per platform, and a virtual microphone that just appears in Zoom without you installing a driver yourself. Fine for messing around and streaming, annoying if you need it to work reliably on a laptop during a client call.",
+  "coreLoopDIY": "Captures your mic, runs each audio chunk through a local voice conversion model, and pushes the result into a virtual output device your call software can select as a microphone.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a CUDA GPU or Apple silicon machine",
+    "A virtual audio device installed manually: BlackHole on macOS, VB-CABLE on Windows",
+    "An open voice conversion checkpoint, or your own trained one plus clean training audio",
+    "Patience for buffer size and latency tuning"
+  ],
+  "whatYouLose": [
+    "A stocked library of ready, licensed target voices you did not have to train",
+    "Latency that holds up under load without you fiddling with block sizes",
+    "A signed installer and a virtual mic that appears automatically in every app",
+    "Cross platform behaviour that is someone else's problem when a macOS update breaks audio routing",
+    "Any argument that the voices you use are cleared for commercial work"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "Voice conversion quality and latency are a model plus engineering problem, and the licensed voice catalogue is quietly the part you cannot download.",
+  "whyPeopleStillPay": "Because real-time audio is a category where a 120ms stutter ruins the whole illusion, and paying someone to own that problem is rational. The DIY build sounds fine when you record into it and test alone; it sounds different when you are on a call, your GPU is also running the game, and the buffer underruns. Add the fact that professional use wants voices with clear usage rights, and the subscription starts looking like the cheaper option for anyone doing this for money rather than for laughs.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Open voice conversion got good enough that this went from impossible to merely fiddly. The remaining gap is latency polish and voices you are allowed to use.",
+  "prompt": "Build a local real-time voice changer as a desktop Python app. Empty folder, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, uv for dependency management\n- sounddevice for audio I/O, numpy for buffers\n- torch plus torchaudio for inference\n- A local RVC-style voice conversion checkpoint loaded from a models/ directory; do not download anything silently, print clear instructions if the folder is empty\n- Simple GUI with PySide6: input device picker, output device picker, target voice picker, pitch shift slider, block size selector, latency readout, big Start/Stop button\n\nCore loop:\n- Open an input stream at 16kHz mono with a configurable block size, default 512 samples\n- Maintain a ring buffer with crossfaded overlapping windows so output has no clicks at block boundaries\n- Run conversion on each window in a worker thread, never on the audio callback thread\n- Write converted audio to the selected output device, which the user points at a virtual audio device\n- Show measured round trip latency and a dropped-frame counter in the UI, updated once per second\n\nAlso do:\n- A config.toml for device names, block size and default voice, plus .env for any optional paths\n- A --passthrough flag that skips the model, for testing routing before blaming the model\n- A README that explains installing BlackHole on macOS or VB-CABLE on Windows and selecting it as the mic in Zoom or Discord\n\nExplicitly out of scope: training new voices, a bundled voice library, code signing, installers, auto-update, any network calls at runtime.\n\nWhen done, print a short checklist for verifying end to end audio with passthrough mode first, then with the model enabled.",
+  "promptCurated": false
+}
