@@ -1,0 +1,51 @@
+{
+  "slug": "dataforseo",
+  "name": "DataForSEO",
+  "domain": "dataforseo.com",
+  "category": "seo-marketing",
+  "subcategory": "SEO data APIs",
+  "tagline": "Pay-as-you-go APIs for SERP results, keyword volumes, backlinks, on-page audits and business listings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage, priced per API call or per task",
+    "unit": "usage",
+    "source": "https://dataforseo.com/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "DataForSEO is not an app, it is a firehose: live and cached Google SERPs across thousands of locations and languages, keyword volume data, a crawled backlink index, and business listing data, all behind one billing account. The software wrapper around that is genuinely boring and an agent could clone it in an afternoon. The part you cannot clone is the scraping fleet, the residential and datacenter proxy budget, the CAPTCHA arms race, and years of crawl history sitting in a petabyte-scale index. You can absolutely build your own on-page crawler and a rank tracker for ten keywords, and for one personal site that is often enough. You cannot build keyword volumes or a backlink graph without either buying data or becoming a scraping company yourself.",
+  "coreLoopDIY": "Crawls sites you own, flags on-page issues, and optionally tracks a handful of keyword positions through whatever SERP source you already pay for, all stored in local SQLite with an HTML report.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 and a machine that can run a crawler for a few minutes",
+    "A SERP source if you want rank tracking at all: your own scraping setup, or an API key in .env",
+    "Tolerance for Google blocking naive scrapers within a few dozen requests"
+  ],
+  "whatYouLose": [
+    "Keyword search volume and CPC data, which originates from ad platforms and cannot be derived from crawling",
+    "A backlink index, which requires crawling a meaningful slice of the web continuously",
+    "SERPs from arbitrary cities, languages and devices, which requires a proxy fleet and constant parser maintenance",
+    "Business listing, review and Maps data",
+    "Someone else absorbing the legal and blocking risk of scraping at volume"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The API surface is commodity. The crawl fleet, the historical index and the parser maintenance treadmill are not.",
+  "whyPeopleStillPay": "Because the alternative is running a scraping operation. Google breaks SERP parsers regularly, blocks datacenter IPs aggressively, and does not publish search volumes at all. DataForSEO sells the outcome of absorbing all of that: normalized JSON, per-call pricing, no proxy invoices, no CAPTCHA vendor, no one on your team owning a parser that silently returns garbage on a Tuesday. Agencies and tool builders resell it precisely because building the pipeline is the entire business, not a feature.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The API wrapper is a weekend; the index is not. The moat is a permanently funded scraping fleet plus years of crawl history nobody else has a copy of.",
+  "prompt": "Build a local SEO audit toolkit called \"sitelens\". No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.12, uv for dependencies, httpx with async, selectolax for HTML parsing, Typer for the CLI, SQLite via stdlib sqlite3, Jinja2 for reports. No frameworks beyond that, no database server.\n\nCommands:\n1. `sitelens crawl https://example.com` : polite async crawler, same-origin only, respects robots.txt, configurable concurrency (default 5) and max pages (default 500), 1 request per second per host by default. Follows links from HTML only. Stores every page: url, status, redirect chain, content type, byte size, response time, raw title, meta description, h1s, canonical, meta robots, hreflang, word count, and all outbound links with anchor text.\n2. `sitelens audit` : runs rule checks over the stored crawl and writes findings to a `findings` table. Rules: missing or duplicate title, title length outside 15-60 chars, missing or duplicate meta description, missing h1, multiple h1s, 4xx and 5xx pages, redirect chains longer than one hop, non-canonical self reference, noindex pages that are internally linked, images without alt, pages orphaned from the internal link graph, thin content under 200 words. Each finding has severity: error, warning, info.\n3. `sitelens report` : renders a single self contained HTML file with a summary table, findings grouped by rule, and an internal link depth histogram. Open it with the file protocol, no server needed.\n4. `sitelens diff` : compares the two most recent crawls of a host and prints pages added, removed, and status code changes.\n\nRank tracking, optional and explicitly pluggable: a `providers/` module with one interface `fetch_serp(keyword, location, device) -> list of urls`. Ship exactly one implementation that reads SERP_API_KEY and SERP_API_URL from .env and posts a generic JSON payload, plus a `null_provider` that raises a clear error saying no SERP source is configured. Do not write a Google scraper. In the README state plainly that search volume and backlink data are out of scope because they cannot be obtained by crawling one site.\n\n`sitelens track add \"keyword\"` stores keywords, `sitelens track run` records positions with a timestamp, `sitelens track chart` adds a position-over-time section to the HTML report.\n\nSecrets in .env, loaded with python-dotenv, .env.example committed and .env gitignored. Write pytest tests for the rule engine using fixture HTML files, no network calls in tests. README: install, crawl one site, read the report, in under ten lines.",
+  "promptCurated": false
+}
