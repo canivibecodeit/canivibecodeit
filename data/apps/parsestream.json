@@ -1,0 +1,51 @@
+{
+  "slug": "parsestream",
+  "name": "ParseStream",
+  "domain": "parsestream.com",
+  "category": "dev-tools",
+  "subcategory": "data extraction / parsing pipeline",
+  "tagline": "A hosted service for turning messy incoming documents and data streams into clean structured output.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://parsestream.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Parsing tools look like magic and are mostly a loop: accept input, apply a schema, call a model or a regex, emit JSON, retry the failures. A coding agent can absolutely stand up a local version that watches a folder or an inbox, extracts against a schema you define, and writes results to SQLite with a webhook out. The gap is not the parser, it is everything around it: per-format edge cases, OCR for bad scans, retries and dead-letter handling, and the fact that your accuracy is now your problem on a Sunday night. You will also be renting somebody else's model to do the actual extraction, so this is self-hosted in the plumbing sense, not the independence sense. Fine for a personal pipeline over a few hundred documents a month, thin once volume or accuracy actually matters.",
+  "coreLoopDIY": "Watches an input source, extracts fields against a JSON schema you wrote, stores the results locally, and posts them to a webhook with a review queue for the ones it got wrong.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for the extraction step, or local models if you want zero external calls",
+    "Somewhere to run it continuously if you want unattended parsing",
+    "A tolerance for babysitting accuracy on new document formats"
+  ],
+  "whatYouLose": [
+    "Tuned handling for the long tail of formats: bad scans, multi page tables, rotated PDFs, weird encodings",
+    "OCR quality that somebody else already fought for",
+    "Managed retries, queueing and dead-letter behavior when a batch goes sideways",
+    "Prebuilt connectors into inboxes, storage buckets and downstream apps",
+    "Anyone to blame but yourself when a field silently parses wrong for three weeks"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat in parsing is boring reliability on inputs you did not anticipate, plus the connectors that put results where they need to go.",
+  "whyPeopleStillPay": "Because extraction is easy to demo and miserable to operate. The first ten documents work in an afternoon; document eleven is a fax of a scan of a spreadsheet, and that is the entire business. People pay so that accuracy regressions, format surprises and queue failures are somebody else's pager, and so the output lands in their existing systems without another integration to maintain.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The happy path is a weekend; the unhappy path is the product.",
+  "prompt": "Build a local, self-hosted structured data extraction pipeline. No accounts, no cloud dashboard, no telemetry.\n\nStack, non negotiable: TypeScript, Node 20, Fastify for the HTTP layer, SQLite via better-sqlite3, Zod for schemas, plain server rendered HTML with a little vanilla JS for the review UI. No React, no ORM, no Docker.\n\nWhat it does:\n1. Input: watch a local ./inbox directory for new files (pdf, png, jpg, txt, csv, eml). Also expose POST /ingest for direct uploads.\n2. Extraction schemas live in ./schemas/*.ts as exported Zod objects, each with a name and a short description per field. The user picks which schema applies via a filename prefix, or defaults to the single schema if only one exists.\n3. For text based inputs, read the text directly. For PDFs use pdf-parse. For images run OCR with tesseract.js. Store the raw extracted text.\n4. Call an LLM with the text plus a JSON schema derived from the Zod object, requesting strict JSON output. Read OPENAI_API_KEY and MODEL from .env. Validate the response with Zod. On validation failure, retry twice with the validation error appended, then mark the job failed.\n5. Persist jobs in SQLite: id, source path, schema name, raw text, result json, status (pending, done, needs_review, failed), confidence notes, timestamps. Never delete raw text.\n6. Confidence: mark a job needs_review if any optional field came back null or the model output failed validation once.\n7. Outputs: write ./out/{id}.json for every completed job. If WEBHOOK_URL is set in .env, POST the result with three retries and exponential backoff, logging failures to a dead_letter table.\n8. Review UI at GET /: table of jobs with status filters, a detail page showing raw text beside an editable JSON form, buttons to approve, correct and re-run. Corrections overwrite the result and re-emit the webhook.\n9. CLI: npm run parse -- ./some/file.pdf for one off runs, and npm run reprocess -- --status=failed.\n\nOut of scope, do not build: multi user auth, billing, a queue server, cloud storage connectors, email inbox polling, analytics.\n\nDeliver a README with setup steps, a .env.example, one example schema for invoices, and a sample test file so npm run parse works immediately after install.",
+  "promptCurated": false
+}
