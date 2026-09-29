@@ -1,0 +1,52 @@
+{
+  "slug": "mediafast",
+  "name": "MediaFast",
+  "domain": "mediafa.st",
+  "category": "audio-video",
+  "subcategory": "media processing and delivery",
+  "tagline": "Hosted media pipeline: upload files, transcode and optimize them, serve them fast over URLs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.mediafa.st/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of a media pipeline is unglamorous and well trodden: accept an upload, hand it to ffmpeg or sharp, cache the output, serve it behind a stable URL. An agent can stand that up in a weekend and it will genuinely work for one person's blog, app, or side project. What it will not do is match the boring parts that cost real money: edge delivery, cold start latency, every weird codec a phone camera produces, and a queue that does not fall over when someone uploads a two hour video. Details of the hosted product are unverified here, so treat the price and plan shape as unknown rather than as a comparison. If your traffic is small and your inputs are predictable, self hosting is fine; if either changes, you are now running infrastructure.",
+  "coreLoopDIY": "A local service that takes uploads, runs ffmpeg and sharp transforms on demand, caches the results on disk, and serves them from signed URLs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or VPS with ffmpeg installed and disk to spare",
+    "Node 20 and basic comfort with a terminal",
+    "A reverse proxy plus TLS if you want it reachable from the internet",
+    "Patience for codec errors that are technically your fault"
+  ],
+  "whatYouLose": [
+    "Edge caching, so your first byte comes from wherever your box lives",
+    "Battle tested handling of malformed and exotic input files",
+    "Autoscaling when someone drops a huge video into your queue",
+    "Usage dashboards, alerting, and someone else carrying the pager",
+    "Drop in SDKs and framework integrations you would otherwise not think about"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the ffmpeg invocation, it is the delivery layer and the thousand input files that break naive pipelines.",
+  "whyPeopleStillPay": "Because media is the one part of a product where doing it yourself shows. Users notice a slow first frame, a broken thumbnail, or a phone upload that silently failed, and each of those is a separate afternoon of debugging codecs you did not want to learn about. Paying a service converts an ongoing infrastructure chore into a line item, and for anything with real traffic the edge delivery alone is hard to replicate on one box.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Product specifics here are unverified, so the build is judged on the generic media pipeline it appears to be.",
+  "prompt": "Build a self hosted media processing and delivery service for a single owner. No SaaS accounts, no telemetry, no cloud dependencies.\n\nStack, non negotiable: Node 20 with TypeScript, Fastify for HTTP, better-sqlite3 for metadata, sharp for images, ffmpeg called via child_process for audio and video, local disk for storage. No Docker required to run, but include a Dockerfile.\n\nLayout: /src for server code, /storage/originals, /storage/derived, /data/app.db, .env for secrets.\n\nFeatures in scope:\n1. POST /upload accepts multipart uploads, streams to /storage/originals under a content hashed key, records mime type, size, duration and dimensions in SQLite, returns the asset id.\n2. GET /a/:id/:transform serves a derived file. Transform grammar is a compact string, for example w_800,h_600,fit_cover,q_80,f_webp for images and preset_720p, preset_audio_mp3, thumb_at_5s for video.\n3. Derivatives are generated on first request, written to /storage/derived, and served from cache on every subsequent request. Return correct Content-Type, ETag, Cache-Control and support HTTP range requests for audio and video.\n4. A simple in process job queue with a concurrency cap so two large transcodes never run at once. Requests for a pending derivative get a 202 with a retry hint, or block briefly for cheap image work.\n5. Signed URLs: HMAC over asset id plus transform plus expiry, secret from .env. Unsigned requests are rejected unless PUBLIC_MODE is true.\n6. A tiny HTML admin page listing assets with thumbnails, upload form, delete button, and disk usage. Protected by a bearer token from .env.\n7. CLI script to reprocess or purge all derivatives.\n\nOut of scope, do not build: user accounts, billing, multi tenancy, CDN or multi region replication, live streaming, DRM, AI tagging.\n\nCorrectness requirements: reject uploads over MAX_UPLOAD_MB, validate real mime type by sniffing bytes not the filename, never shell interpolate user input into ffmpeg args, time out any ffmpeg job past FFMPEG_TIMEOUT_SEC and record the failure with stderr.\n\n.env keys: PORT, STORAGE_DIR, DB_PATH, SIGNING_SECRET, ADMIN_TOKEN, PUBLIC_MODE, MAX_UPLOAD_MB, FFMPEG_TIMEOUT_SEC, TRANSCODE_CONCURRENCY. Ship a .env.example.\n\nTests with vitest: transform string parsing, signature verification including expiry, cache hit path, and a rejected oversized upload.\n\nREADME: install ffmpeg, run dev, curl examples for upload and for a signed transform URL, and a short note on putting Caddy or nginx in front for TLS.",
+  "promptCurated": false
+}
