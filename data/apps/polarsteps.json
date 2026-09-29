@@ -1,0 +1,51 @@
+{
+  "slug": "polarsteps",
+  "name": "Polarsteps",
+  "domain": "polarsteps.com",
+  "category": "travel",
+  "subcategory": "trip tracking and travel journal",
+  "tagline": "Automatically tracks where you travel in the background and turns the route into a map, timeline and journal you can share.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.polarsteps.com/",
+    "checkedOn": "2026-09-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. The app is free to use with paid extras, historically including printed travel books and a premium tier."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The data model here is genuinely simple: a stream of GPS points, some clustering to guess which city you slept in, photos and text pinned to days. An agent can write that in a weekend, and a local SQLite plus map view will happily draw your route. The hard part is not the app, it is being a well behaved background location tracker on a phone that does not eat the battery or get killed by the OS, which is exactly the part Polarsteps has spent years tuning. You also lose the shareable public trip link that your family actually watches, and the printed book pipeline that is the real business. If you just want a private record of your own movements, build it; if you want people following along, you are rebuilding a social product, not a logger.",
+  "coreLoopDIY": "A local phone app that records background GPS into SQLite, groups the points into trips and daily stops, and lets you attach photos and notes to each day on a map timeline.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A real iOS or Android device, simulators are useless for this",
+    "Expo dev build tooling, background location does not work in Expo Go",
+    "An Apple Developer account for iOS sideloading, or just use Android",
+    "Free OpenStreetMap raster tiles, or a tile key in .env if you want something prettier"
+  ],
+  "whatYouLose": [
+    "Battery sane, OS resistant background tracking that survives a two week trip without babysitting",
+    "Automatic place, country and flight detection that names your stops without you typing",
+    "A public trip link relatives can follow in a browser with no app install",
+    "Cloud backup and multi device sync, if your phone dies your trip dies with it",
+    "The printed travel book, which is the thing people actually pay for"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "network-effects"
+  ],
+  "moatNotes": "The moat is battery physics and years of trip history you cannot re-record.",
+  "whyPeopleStillPay": "Because a travel tracker that fails silently is worse than none at all, and you only find out it failed when you get home. Polarsteps has already lost the battles with iOS background execution, timezone drift, airplane mode and 20,000 point routes, and it backs the whole thing up so the trip survives a lost phone. On top of that, most of the paid money is the printed book, which needs a print partner, fulfillment and shipping, none of which an agent can one-shot. A local build is a fine private logbook, it is not a keepsake.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The logger is a weekend, the trust that it is still logging on day nine is not.",
+  "prompt": "Build a local first travel tracking app called Wander. No accounts, no server, no telemetry.\n\nStack, pick this and do not deviate:\n- React Native with Expo, TypeScript, expo-router\n- expo-location with a background location task for tracking\n- expo-sqlite for storage, expo-image-picker for photos\n- react-native-maps on Android and Apple Maps on iOS, plain OSM style, no paid tiles\n- Any tile or API key goes in .env and is read via expo-constants, never hardcoded\n\nData model in SQLite:\n- trips: id, name, started_at, ended_at nullable\n- points: id, trip_id, lat, lon, accuracy, recorded_at\n- stops: id, trip_id, label, lat, lon, arrived_at, departed_at\n- entries: id, trip_id, day (date string), text, photo_uris JSON array\n\nFeatures that are in scope:\n1. Start Trip and End Trip buttons. While a trip is active, register a background location task with balanced accuracy, a distance interval of about 100 meters and a foreground service notification on Android. Persist every fix into points.\n2. A stop detector that runs on demand, not continuously: cluster consecutive points within 300 meters that span more than 90 minutes into a stop row, and reverse geocode the centroid once with expo-location to get a label. Cache the label.\n3. Map screen showing the active trip as a polyline plus stop markers, with a fit to bounds button.\n4. Timeline screen grouping the trip by local day, showing distance travelled that day, stops visited, and any journal entry.\n5. Journal editor per day: free text plus photos, stored as local file URIs, never uploaded anywhere.\n6. Export: write the whole trip to a GeoJSON FeatureCollection plus a Markdown journal into the app documents directory and open the share sheet.\n\nExplicitly out of scope, do not build these:\n- Any login, cloud sync, or public sharing link\n- Friend feeds, likes, comments\n- Printed book generation\n- Flight detection\n\nOther requirements:\n- Handle permission denial and the iOS Always allow prompt with clear in app copy explaining why background location is needed.\n- Throttle writes and cap in memory point arrays so a 20,000 point trip still renders; downsample the polyline for display.\n- Include a Debug screen showing fix count, last fix time and battery state so I can tell whether tracking is actually alive.\n- README with exact commands to create an Expo dev build and install it on a physical device, because background location will not work in Expo Go.",
+  "promptCurated": false
+}
