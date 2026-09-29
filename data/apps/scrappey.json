@@ -1,0 +1,53 @@
+{
+  "slug": "scrappey",
+  "name": "Scrappey",
+  "domain": "scrappey.com",
+  "category": "dev-tools",
+  "subcategory": "anti-bot scraping API",
+  "tagline": "A hosted scraping API that fetches pages behind Cloudflare, DataDome and friends, with proxies and CAPTCHA handling built in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://scrappey.com/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "An agent can absolutely write you a headless browser wrapper with stealth patches, a cookie jar and a proxy rotator in one session, and it will work beautifully on the first three sites you try. Then a target flips on a new challenge version, your TLS fingerprint stops matching your user agent string, and you are now employed as an unpaid anti-bot researcher. The actual product here is not the code, it is the continuous reverse engineering of Cloudflare and DataDome plus a pool of residential and mobile IPs you cannot rent at hobby scale. Self-hosting gets you the easy 70 percent of targets, which may genuinely be all you need for a personal scraper. It does not get you the hard 30 percent, which is exactly why anyone pays for this.",
+  "coreLoopDIY": "A local HTTP service that takes a URL, drives a stealth-patched headless Chromium through an optional proxy, reuses cookies per domain, and returns the rendered HTML.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 plus Playwright and a few hundred MB of browser binaries",
+    "A machine that can stay on, ideally not your laptop",
+    "A proxy subscription if you want IPs that are not obviously yours",
+    "Optional third party CAPTCHA solving key for anything interactive",
+    "Tolerance for the build breaking when a target updates its defenses"
+  ],
+  "whatYouLose": [
+    "A residential and mobile IP pool you cannot realistically assemble solo",
+    "Maintained bypasses for the current generation of Cloudflare, DataDome and PerimeterX challenges",
+    "CAPTCHA solving that is already wired in and paid for",
+    "Concurrency: one box running Chromium is a handful of sessions, not hundreds",
+    "Someone else absorbing the operational and legal messiness of the whole exercise"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The IP pool is the capital expense; the bypass knowledge is the depreciating asset that has to be re-earned every few weeks.",
+  "whyPeopleStillPay": "Because bypassing modern bot detection is not a feature, it is a subscription to someone else's ongoing arms race. You are paying for IP diversity you cannot buy in single units, for fingerprint work that goes stale monthly, and for the ability to scale past what one machine of headless Chromium can hold open. If your scraping needs are a few thousand pages a month from moderately defended sites, the DIY build is fine and cheaper. If your business depends on pages loading reliably tomorrow, outsourcing the fight is rational.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The browser wrapper is a weekend; the arms race is not. The moat is a residential IP pool plus permanent reverse engineering of anti-bot vendors, neither of which is code.",
+  "prompt": "Build a local scraping service called fetcher. Stack: Node 20, TypeScript, Fastify, Playwright with Chromium, better-sqlite3. No cloud, no accounts, no telemetry.\n\nWhat it does:\n- POST /fetch takes JSON: { url, render: boolean, waitFor?: css selector, timeoutMs?, proxyLabel?, sessionId? }\n- If render is false, do a plain HTTP request with a realistic header set and return status, headers and body.\n- If render is true, drive a persistent Chromium context through Playwright, wait for load plus optional waitFor selector, then return the rendered HTML and final URL.\n- Reuse browser contexts keyed by sessionId so cookies and localStorage persist across calls. Idle contexts close after 5 minutes.\n- Store cookies per domain in SQLite so a restart does not lose sessions.\n\nProxies:\n- Read a proxies.json file of { label, server, username, password } entries, path from PROXY_FILE in .env.\n- proxyLabel picks one; if omitted, round robin across all entries; if the file is missing, go direct.\n- Track per proxy success and failure counts in SQLite and expose GET /proxies to see them.\n\nEvasion, best effort and clearly labelled as such in the README:\n- Launch Chromium with automation flags stripped, set a consistent user agent, viewport, locale, timezone and platform so they do not contradict each other.\n- Patch navigator.webdriver and a small set of obvious leaks via an init script.\n- Random 200 to 900ms jitter before navigation. Per domain concurrency cap of 2, configurable.\n\nAlso:\n- GET /health, plus a simple CLI: npm run fetch -- --url ... --render\n- Retry once on 403 or 429 with a different proxy label.\n- Structured JSON logs to stdout, request body truncated.\n\nExplicitly out of scope: CAPTCHA solving, TLS fingerprint spoofing, anything that pretends to be a maintained anti-bot bypass. Put a short section in the README saying which of those Scrappey handles and this does not, and that heavily defended targets will fail.\n\nSecrets in .env only. Ship a Dockerfile, a docker-compose.yml, and a test script that fetches three example URLs and prints byte counts.",
+  "promptCurated": false
+}
