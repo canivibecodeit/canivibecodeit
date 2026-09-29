@@ -1,0 +1,52 @@
+{
+  "slug": "rise-sleep-tracker",
+  "name": "Rise : sleep tracker",
+  "domain": "risescience.com",
+  "category": "wellness",
+  "subcategory": "sleep debt and circadian tracking",
+  "tagline": "Tracks sleep debt and predicts your daily energy peaks and dips from your circadian rhythm.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://apps.apple.com/us/app/rise-sleep-tracker/id1453884781",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math here is less mysterious than the marketing suggests: sleep debt is a rolling 14-day sum of how far each night fell short of your estimated need, and the energy curve is a sine-ish function anchored to your average sleep midpoint. An agent can read that data straight out of HealthKit and compute both in a session, and the resulting chart will track Rise's fairly closely most weeks. What you cannot one-shot is the packaging: a phone app you actually open every morning, notifications that fire at the right minute, and the years of tuning that make their sleep-need estimate feel personal rather than a formula. You also need a Mac, Xcode, and a signing identity before anything lands on your wrist or home screen. Buildable, genuinely useful, and noticeably rougher than the thing you are replacing.",
+  "coreLoopDIY": "Pulls your nightly sleep from HealthKit, computes a rolling 14-day sleep debt against an estimated sleep need, and draws today's predicted energy peaks and dips anchored to your recent sleep midpoint.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Mac with Xcode",
+    "An iPhone with sleep data in Apple Health, ideally from a watch or ring",
+    "A free Apple developer account for on-device signing, re-signed every 7 days without a paid one",
+    "At least two weeks of existing sleep history for the debt number to mean anything"
+  ],
+  "whatYouLose": [
+    "Rise's tuned personal sleep-need estimate, which is the one number the whole app hangs on",
+    "Reliable, well-timed notifications for melatonin window, caffeine cutoff, and peak windows",
+    "Android, iPad, and any hope of a widget you did not build yourself",
+    "Their habit and behavior-change content, which is the part that actually changes behavior",
+    "Someone else fixing it when HealthKit changes its sleep stage schema"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The circadian science is public; the calibration of sleep need per user across millions of nights is not, and that is the number everything else is derived from.",
+  "whyPeopleStillPay": "Because a sleep app that does not nag you at the right moment is just a chart, and charts do not fix bedtimes. Rise wins on timing and tone: it tells you to stop drinking coffee at 1:42pm, not to consult a graph. People also pay because they want a confident personalized sleep-need number rather than a formula they typed in themselves, and because the app is polished enough to survive the first boring week, which is where every DIY health tracker dies.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The formula is a weekend; the nagging is the product.",
+  "prompt": "Build a single-screen iOS app called DebtClock that tracks sleep debt and predicted daily energy from Apple Health data.\n\nStack, non-negotiable: Swift 5.9+, SwiftUI, HealthKit, Swift Charts, iOS 17 minimum. One Xcode project, no Swift packages, no backend, no accounts, no analytics, no network calls at all. Everything computes on device.\n\nSetup:\n- Create the Xcode project structure and an Info.plist with NSHealthShareUsageDescription explaining read-only sleep access.\n- Enable the HealthKit entitlement. Request read access to HKCategoryTypeIdentifier.sleepAnalysis only. Never request write access.\n\nCore logic in a SleepModel type:\n- Query the last 21 days of sleepAnalysis samples. Merge overlapping samples from multiple sources, preferring the source with the most granular stage data.\n- Collapse samples into nightly sessions: group by the night they belong to, where a night runs from noon to noon.\n- For each night compute total asleep time, excluding inBed and awake stages.\n- Sleep need: default 8h 10m, user-adjustable with a stepper in 10 minute steps, persisted in UserDefaults. Do not pretend to estimate it, label the field \"your guess\" in the UI.\n- Sleep debt: sum of max(0, need - asleep) over the trailing 14 nights, capped display at 20 hours. Show it in hours and minutes.\n- Sleep midpoint: circular mean of the last 7 nights' midpoints, handled correctly across midnight.\n- Energy curve: a function of time-of-day producing 0 to 100, built as a cosine with its trough about 2 hours before the sleep midpoint plus a secondary afternoon dip roughly 7 hours after wake, then scaled down linearly by current sleep debt.\n\nUI, one scrolling screen:\n- Big sleep debt number at top with a one-line plain-language read.\n- A Swift Chart of today's energy curve with a now marker, shaded peak windows where energy is above 70 and dip windows below 45.\n- Derived times listed as rows: melatonin window start, caffeine cutoff, suggested bedtime. Derive these from the midpoint with fixed offsets and label them as heuristics, not medical advice.\n- A bar chart of the last 14 nights, asleep hours versus the need line.\n- An empty state that says exactly which permission or data is missing.\n\nAlso include:\n- Local notifications for caffeine cutoff and bedtime, scheduled daily, toggleable, requested only after the user taps the toggle.\n- Unit tests for the nightly grouping, the 14-day debt sum, and the circular midpoint mean, including a night that crosses DST.\n\nOut of scope, do not build: cloud sync, widgets, Apple Watch target, onboarding flow, any sleep staging model, any claim of clinical accuracy. Add a README with build steps, the exact HealthKit permission path in Settings, and a note that free provisioning profiles expire after 7 days.",
+  "promptCurated": false
+}
