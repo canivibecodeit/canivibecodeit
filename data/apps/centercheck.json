@@ -1,0 +1,52 @@
+{
+  "slug": "centercheck",
+  "name": "CenterCheck",
+  "domain": "centercheck.com",
+  "category": "forms",
+  "subcategory": "inspection and audit checklists",
+  "tagline": "Mobile checklist software for running health, safety and licensing inspections across childcare and early education sites.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://centercheck.com/",
+    "checkedOn": "2026-09-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core here is a form engine: templates with pass, fail and N/A items, photo attachments, a score, a timestamp, a signature, and a PDF at the end. An agent will get you that in a session, and the local version will feel faster than most field inspection tools because it is not carrying ten years of enterprise configuration. The gaps are the parts that make it usable in a hallway with no signal: offline capture with conflict-free sync, camera handling on real tablets, and role separation between the person inspecting and the director who reads the trend report. The other half of the product is content you do not have, meaning checklist libraries mapped to actual licensing requirements per jurisdiction. Build it if you run a couple of sites and write your own checklists; do not build it if the checklists are the reason you bought it.",
+  "coreLoopDIY": "A phone-friendly web app where you define checklist templates, run an inspection on a site with photos and notes, and get a scored PDF plus a history of past inspections per location.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a tablet or phone browser for the actual walkthrough",
+    "somewhere to host it, or a laptop on the same wifi",
+    "local disk or S3-compatible bucket for inspection photos",
+    "your own checklist content, written by someone who knows the rules"
+  ],
+  "whatYouLose": [
+    "Prebuilt checklist libraries that map to real licensing and health code requirements",
+    "Reliable offline capture and sync when the building has no signal",
+    "Multi-site rollups, trend charts and corrective action tracking that a regional director actually reads",
+    "Audit-grade records you can hand to an inspector without arguing about who edited what",
+    "Someone else's problem when the tablet dies mid-inspection"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The checklist content is the product. Anyone can render a radio button; knowing which twelve things a licensor will fail you for is the part that took years.",
+  "whyPeopleStillPay": "Because inspection software is bought by the person who signs the compliance paperwork, not the person who fills it out. They want a defensible trail of who inspected what and when, a template set that someone else keeps current with changing rules, and evidence they can produce in a dispute. A homegrown app satisfies none of that, not because it is technically worse, but because its records are only as trustworthy as the person who can edit the database. Also, the failure mode of DIY here is not a bug report, it is a citation.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The form engine is a weekend; the checklist library and the audit trail are the product.",
+  "prompt": "Build a self-hosted site inspection app called \"Walkthrough\". Single organization, no multi-tenancy.\n\nStack, non-negotiable:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via Drizzle ORM, file at ./data/app.db\n- Photo uploads written to ./data/uploads and served through a route handler\n- Auth: a single shared password from PASSWORD in .env, checked into an httpOnly session cookie. No OAuth, no user accounts table beyond a simple `inspectors` name list.\n- PDF generation server side with pdf-lib\n\nData model:\n- sites: name, address, notes\n- templates: name, version, active flag\n- template_items: template_id, section, label, guidance text, weight, allows_photo, requires_note_on_fail\n- inspections: site_id, template_id, inspector_name, started_at, completed_at, score, status (draft | complete)\n- responses: inspection_id, template_item_id, result (pass | fail | na), note, created_at\n- photos: response_id, filename, caption\n- actions: inspection_id, response_id, description, due_date, resolved_at\n\nScreens:\n1. /sites: list and create sites\n2. /templates: create and edit templates with sections and items, duplicate a template to a new version\n3. /inspect: pick a site and template, then a one-item-per-screen mobile flow with big pass/fail/NA buttons, note field, and a camera file input. Autosave every response immediately.\n4. /inspections: history table filtered by site and date, with score trend per site as a simple line chart (no chart library, draw an inline SVG)\n5. /inspections/[id]: full read-only report, list of failed items with photos and notes, open corrective actions with due dates, and a \"Download PDF\" button\n\nRules:\n- A fail with requires_note_on_fail cannot be saved without a note.\n- Score = sum of weights of passes divided by sum of weights of non-NA items, rendered as a percentage.\n- Once an inspection is marked complete, responses become read-only. Corrective actions can still be resolved.\n- Everything must be usable one-handed on a phone. Tap targets at least 44px.\n\nExplicitly out of scope: offline mode, service workers, push notifications, email sending, telemetry, any hosted third party service, any prebuilt checklist content. Seed the database with one example site and one short 8-item template so the app is clickable on first run.\n\nInclude a README with setup, .env.example containing PASSWORD, and a `npm run dev` that works in an empty folder after install.",
+  "promptCurated": false
+}
