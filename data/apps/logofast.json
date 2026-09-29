@@ -1,0 +1,52 @@
+{
+  "slug": "logofast",
+  "name": "LagoFast",
+  "domain": "lagofast.com",
+  "category": "productivity-utilities",
+  "subcategory": "game network acceleration",
+  "tagline": "A game booster and routing client that claims to cut ping, jitter and packet loss by tunneling your game traffic through its own relay network.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.lagofast.com/tr/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The client is the boring part: pick a route, raise a tunnel, mark the game's packets, show a pretty latency graph. The product is the thing the client dials into, which is racks of relay nodes sitting close to game server clusters in dozens of regions, with peering deals and per-title routing tables built from years of measured traffic. An agent can hand you a WireGuard tunnel to one VPS you rent, and sometimes that genuinely beats your ISP's default path to one specific game, and often it is worse. What you cannot generate is twenty exit points to test against, or the knowledge of which one wins for your ISP and your game at 9pm. You can build a useful diagnostic and a single-relay experiment in a weekend, and you should, but it is not a replacement.",
+  "coreLoopDIY": "Measures baseline latency, jitter and loss to a game's servers, then does the same through a WireGuard tunnel on a VPS you rent, and routes only that game through the tunnel if it actually wins.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A VPS or two in plausible regions, billed hourly so you can throw them away",
+    "WireGuard on both ends and root on the client",
+    "Linux desktop (or WSL2 with a Linux game host) for per-process routing; Windows split tunneling is its own project",
+    "The game server IP ranges, which you sniff yourself"
+  ],
+  "whatYouLose": [
+    "A menu of relay locations you did not have to rent, so no way to shop for the path that actually helps",
+    "Per-game routing profiles tuned by someone who measured them across many ISPs",
+    "Automatic failover when the relay you picked starts flapping mid match",
+    "Per-process split tunneling on Windows and consoles, which is the platform most of the users are on",
+    "Support for the case where the acceleration makes things worse and you want a refund rather than a debugging session"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The relay footprint is capital, not code. The routing tables are measurement data you would need thousands of sessions to reproduce.",
+  "whyPeopleStillPay": "Because the alternative is renting VPSs in six regions, learning enough about policy routing to send one process through a tunnel, and then discovering that five of the six paths are worse than your ISP's default. People buying a game booster are trying to stop dying to rubber banding tonight, not run a network measurement lab. A subscription that lets you click through twenty exit nodes until one feels better is a reasonable trade, even when the honest answer for many users is that nothing can help because the bottleneck is their last mile.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A tunnel is a weekend; a relay network is not. The moat is the footprint of exit nodes near the game clusters plus the measured routing data that says which one to use.",
+  "prompt": "Build a local CLI tool called \"pingprobe\" that tests whether routing a game's traffic through my own relay actually reduces latency, and routes it there only if it wins.\n\nStack, no substitutions:\n- Python 3.12, standard library plus \"typer\", \"rich\", and \"scapy\". uv for deps.\n- Linux client only. Assume root via sudo. No GUI, no web dashboard.\n- WireGuard for the tunnel, configured via wg-quick.\n\nWhat it does:\n1. \"pingprobe sniff --process NAME --seconds 120\": watches traffic for that process, collects the destination IP:port pairs that carry sustained UDP, and writes them to targets.json with ASN and geo from a local offline lookup if available, otherwise just IPs.\n2. \"pingprobe measure\": for each target, sends timestamped UDP probes for 60 seconds and reports p50, p95, jitter (mean absolute delta) and loss percent. Print a rich table. Append raw samples to results.sqlite.\n3. \"pingprobe measure --via RELAY\": same measurement with packets sourced through the WireGuard interface named RELAY, using ip rule and a dedicated routing table so ONLY the probe socket uses the tunnel. Do not touch the default route.\n4. \"pingprobe compare\": diffs baseline against each relay and prints a verdict per target: better, worse, or no difference, with the deltas. Be blunt when the relay loses.\n5. \"pingprobe route on --relay RELAY --targets targets.json\": installs ip rules sending only those destination prefixes through the tunnel. \"route off\" removes them cleanly and is idempotent.\n\nRules:\n- Read relay endpoints and keys from .env, never hardcode. Ship .env.example.\n- No accounts, no telemetry, no cloud calls except the probes themselves.\n- Ship a README with a wg-quick server config for a fresh Debian VPS and one paragraph stating plainly that this helps only when your ISP's default path is bad, and that it cannot fix a saturated or noisy last mile.\n- Out of scope: Windows, per-process split tunneling for arbitrary binaries, multipath or packet duplication, any GUI.\n- Include pytest coverage for the statistics and the ip rule builder, with the routing calls mocked.",
+  "promptCurated": false
+}
