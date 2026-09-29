@@ -1,0 +1,51 @@
+{
+  "slug": "polsia",
+  "name": "Polsia",
+  "domain": "polsia.com",
+  "category": "ai-assistant",
+  "subcategory": "AI agent platform",
+  "tagline": "An AI agent you point at work, with a configuration surface wide enough to be its own learning curve.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://polsia.com/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of any agent product is a loop: send context to a model, let it call tools, feed results back, repeat until done or until it embarrasses itself. That loop is genuinely a one-sitting build, and a local version with shell, file and HTTP tools plus an approval gate covers a surprising amount of real work. What you cannot one-shot is the boring scaffolding around it: retry behavior, cost caps, sandboxing, run history you trust, and the dozens of pre-wired connectors that make an agent useful on other people's systems. If your actual use case is two or three repeatable tasks, the DIY build is arguably better because you delete every option you do not need. If you want an agent that touches your email, calendar, CRM and internal docs without you writing an integration each time, you are paying for the connector work, not the loop.",
+  "coreLoopDIY": "Runs a local tool-calling agent loop against a frontier model API, with a small set of tools, per-run cost caps, human approval for anything destructive, and a searchable log of every run.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a frontier model, kept in .env",
+    "Node 20+ and SQLite",
+    "Tolerance for per-token costs on long runs",
+    "A machine or container you are willing to let run shell commands"
+  ],
+  "whatYouLose": [
+    "Pre-built integrations: every service you want the agent to touch is OAuth work you now own",
+    "Sandboxing someone else thought hard about, so your blast radius is whatever your shell can reach",
+    "Hosted scheduling and long-running jobs that survive your laptop closing",
+    "Evaluation and guardrail tuning, meaning your agent fails in novel ways and you find out later",
+    "Someone else's prompt engineering, which is usually more of the product than anyone admits"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "Agent products compete on connectors and on how gracefully they fail, not on the loop itself. The loop is a weekend's reading.",
+  "whyPeopleStillPay": "Because the second half of an agent is the part nobody wants to write. Getting a model to call a function is a fun afternoon; getting it to authenticate against six SaaS APIs, respect rate limits, resume after a timeout, refuse to delete the wrong thing, and leave an audit trail your colleagues will accept is weeks of unglamorous work. Paid agent platforms also absorb model churn: when a new model changes tool-calling semantics, they fix it and you notice nothing. A local build means you are the maintenance team, forever, for something that changes every few months.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A bloated options panel usually means the product is trying to be an agent for everyone; your version only has to be an agent for you.",
+  "prompt": "Build a local AI agent runner called \"loop\" in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: TypeScript on Node 20, Hono for the HTTP server, SQLite via better-sqlite3, plain server-rendered HTML with a little vanilla JS for live updates. No React, no ORM, no auth.\n\nCore behavior:\n1. Read OPENAI_API_KEY and MODEL from .env. Ship a .env.example. Never log the key.\n2. Implement a tool-calling loop against an OpenAI-compatible chat completions endpoint: send messages, if the model returns tool calls, execute them, append results, repeat.\n3. Tools, exactly these: read_file, write_file, list_dir, run_shell, http_get. All file tools are jailed to a WORKSPACE directory from .env. run_shell has a 60 second timeout.\n4. Classify write_file and run_shell as destructive. When the agent requests one, pause the run, persist a pending_approval row, and show an approve or reject button in the UI. Nothing destructive executes without a click.\n5. Enforce per-run limits from .env: max steps, max total tokens, max wall clock seconds. On breach, stop the run and mark it capped.\n6. Persist everything in SQLite: runs, messages, tool calls with arguments and output, token counts, estimated cost, final status.\n\nUI at localhost:8787:\n- A box to start a run: task text, optional system prompt, model override.\n- A run page that streams steps as they happen via server-sent events, shows each tool call and its output collapsed by default, and surfaces approval prompts inline.\n- A run list with status, duration, token count and cost.\n- A saved-tasks page: name a prompt, rerun it with one click. That is the whole \"automation\" feature.\n\nExplicitly out of scope: multi user, scheduling, vector search, browser automation, third party SaaS connectors, anything resembling a plugin system.\n\nDeliver a README with setup in four commands, a seed script that runs one harmless example task, and one integration test that drives the loop against a stubbed model response so the test suite needs no API key.",
+  "promptCurated": false
+}
