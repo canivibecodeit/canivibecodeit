@@ -1,0 +1,52 @@
+{
+  "slug": "sellassist",
+  "name": "SellAsist",
+  "domain": "sellasist.pl",
+  "category": "commerce",
+  "subcategory": "multichannel order and listing management",
+  "tagline": "Polish e-commerce back office that pulls orders from marketplaces and your own store into one panel, then handles invoices, shipping labels and stock.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sellasist.pl/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The screen you look at is a table of orders with status buttons, and yes, an agent will build that before lunch. Everything behind the table is the product: authenticated connections to Allegro and other marketplaces, courier APIs that print compliant labels, accounting exports that a Polish bookkeeper will accept, and stock sync that does not oversell when two channels take the last unit at once. Each of those is a separate integration with its own auth flow, sandbox, rate limits and breaking changes, and they break on someone else's schedule, not yours. A personal clone is realistic only if you sell on exactly one channel and ship with exactly one courier, at which point you probably do not need a panel at all. Build the read-only dashboard if you want visibility, but do not route real money through a weekend project.",
+  "coreLoopDIY": "A local panel that imports orders from one marketplace plus CSV, normalises them into one list with statuses, and exports an accounting-friendly CSV.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Marketplace developer account and API credentials for at least one channel",
+    "OAuth client setup and a callback URL you control",
+    "Courier API contract if you ever want real labels",
+    "Somewhere always-on to run the sync, since polling on a laptop misses orders"
+  ],
+  "whatYouLose": [
+    "Working connectors to multiple marketplaces and your own storefront, kept alive as their APIs change",
+    "Courier label generation and tracking that shipping companies actually accept",
+    "Invoicing and accounting exports shaped for Polish tax and bookkeeping practice",
+    "Stock sync across channels with oversell protection",
+    "Someone to call at 9am on Black Friday when a channel connector dies"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "Marketplace and courier APIs are the whole product. They are boring, badly documented, and they change without asking you.",
+  "whyPeopleStillPay": "Because the alternative to paying is maintaining a dozen integrations you did not choose against partners who do not care that you are one person. An order that silently fails to import is real lost money, and a shipping label rejected at the depot is a real angry customer, so the tolerance for homemade flakiness in this category is close to zero. The subscription is cheaper than one afternoon of untangling why stock went negative across two channels.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The order table is a one-shot; the connectors are a full-time job. The moat is every marketplace, courier and tax integration staying green while their owners quietly ship breaking changes.",
+  "prompt": "Build a local, single-user e-commerce order dashboard. This is a read-mostly visibility tool, not an order management system that ships anything.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind for styling.\n- SQLite via better-sqlite3, file at ./data/orders.db, schema created on boot with plain SQL migrations.\n- No auth, no accounts, no telemetry. It runs on localhost only.\n\nIn scope:\n1. Data model: orders (external_id, channel, buyer_name, buyer_email, total_gross, currency, placed_at, status, raw_json) and order_items (order_id, sku, name, qty, unit_gross). Unique index on (channel, external_id) so re-imports are idempotent.\n2. Import path A: a CSV importer at /import that accepts a file, shows a column mapping step, previews the first 10 rows, then upserts. Keep the mapping in a small JSON config so repeat imports skip the mapping step.\n3. Import path B: one marketplace connector behind an interface. Implement a single adapter that reads credentials from .env (CHANNEL_CLIENT_ID, CHANNEL_CLIENT_SECRET, CHANNEL_REFRESH_TOKEN), fetches recent orders, and normalises them into the schema. If the env vars are absent, hide the connector in the UI instead of crashing.\n4. UI: one orders table with search, channel filter, status filter, date range, and sortable columns. Click a row for a detail drawer with items and the stored raw payload.\n5. Local statuses: new, packed, shipped, done, problem. Changing status writes a row to an order_events audit table. Make it obvious in the UI that these statuses are yours and are never pushed back to any channel.\n6. Exports: a CSV export of the current filtered view, and a monthly summary export with gross per channel per day.\n7. A sync log page showing each import run, rows seen, rows inserted, rows updated, errors.\n\nExplicitly out of scope, and say so in the README: courier labels, tracking numbers pushed to channels, invoices, VAT handling, stock sync, multi-user access, writing anything back to any marketplace.\n\nDeliver a README with setup steps, a .env.example, seed data so the UI is not empty on first run, and one test covering idempotent upsert.",
+  "promptCurated": false
+}
