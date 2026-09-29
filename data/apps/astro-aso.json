@@ -1,0 +1,51 @@
+{
+  "slug": "astro-aso",
+  "name": "Astro ASO",
+  "domain": "tryastro.app",
+  "category": "seo-marketing",
+  "subcategory": "app store optimization",
+  "tagline": "App Store and Google Play keyword research, rank tracking and listing optimization for mobile apps.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tryastro.app/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical half of an ASO tool is genuinely easy: the iTunes Search API and the Play Store's public listing pages will tell you where your app ranks for a given term, and a nightly job plus SQLite gives you the history nobody hands you for free. The hard half is keyword volume and difficulty, which no free public API exposes. Apple Search Ads has a popularity score but you need an advertiser account and it is a 1 to 5 bucket, not a search count, and Google gives you nothing comparable. So a one-shot build gets you rank tracking, competitor metadata diffing and character-limit-aware listing drafts, while the numbers that tell you which keyword is worth chasing stay estimates you either buy or guess at. If you track five terms for one app you will not miss the SaaS; if you are picking keywords from scratch across locales, you will.",
+  "coreLoopDIY": "A nightly scraper that records your app's rank for a keyword list across stores and locales, stores the history locally, and shows trends plus competitor metadata diffs in a small dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS that can run a nightly cron",
+    "Your app IDs (App Store numeric ID, Play package name) and target locales",
+    "Optional Apple Search Ads API credentials if you want popularity scores",
+    "Tolerance for scraping the Play Store, which has no stable public search API"
+  ],
+  "whatYouLose": [
+    "Keyword volume and difficulty scores, the actual reason people buy ASO tools",
+    "Historical rank data from before you started collecting, which is the thing you cannot backfill",
+    "Curated keyword suggestions and gap analysis against competitors",
+    "Someone else maintaining the scrapers when Apple or Google changes a page layout or rate limit",
+    "Multi-locale coverage at scale without getting throttled or IP-blocked"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is the accumulated rank and popularity time series plus whatever volume model they layer on top. Scrapers are commodity; the archive is not.",
+  "whyPeopleStillPay": "ASO decisions are guesses unless you have volume estimates and a long baseline, and both of those are inventory you accumulate or license rather than code. A paid tool starts you with years of history for apps you do not own, which is how you actually find a term your competitor ranks for and you do not. Add the unglamorous work of keeping store scrapers alive across dozens of locales and the subscription starts looking like rent on someone else's maintenance burden rather than software you could have written.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rank tracking is a weekend; knowing which ranks matter is the product.",
+  "prompt": "Build a local app store rank tracker and ASO workbench. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: TypeScript, Node 20, better-sqlite3 for storage, Hono for a tiny local HTTP server, plain server-rendered HTML with a little vanilla JS for charts via Chart.js from a CDN. Single repo, npm scripts, no Docker, no ORM.\n\nData sources:\n1. Apple: use the public iTunes Search API (https://itunes.apple.com/search) with term, country, entity=software, limit=200. Record the 1-based position of my trackId in the results, or null if absent. Also fetch https://itunes.apple.com/lookup for my app and each competitor to capture title, subtitle where available, rating, rating count, version and release notes.\n2. Google Play: scrape the search results page and the app detail page with fetch plus a real user agent. Parse defensively: if the HTML shape changes, log a clear parse error and keep the row null instead of crashing the run.\n3. Optional: if APPLE_SEARCH_ADS_TOKEN exists in .env, call the Search Ads keyword popularity endpoint and store the 1 to 5 score. If the env var is missing, skip it silently and mark the column unavailable. Never fake a number.\n\nConfig lives in config.json: my apps (apple trackId, play packageName), competitor app IDs, a keyword list, and a list of locale pairs (country code plus language).\n\nSchema: apps, keywords, locales, rank_snapshots (app, keyword, locale, store, position, collected_at), metadata_snapshots (app, locale, field, value, collected_at).\n\nCommands:\n- npm run collect: one full pass over keywords times locales times stores, sequential with a 1 to 2 second jitter between requests, retry twice on 5xx, write every result including nulls.\n- npm run serve: dashboard on localhost:8787.\n\nDashboard pages: rank trend chart per keyword with one line per tracked app; a table of today's ranks with delta versus 7 and 30 days ago, sorted by biggest movers; a metadata diff view showing when a competitor changed title, subtitle or release notes; and a listing editor that counts characters against the real App Store limits (30 title, 30 subtitle, 100 keyword field) and Play limits (30 title, 80 short description) and flags keyword duplication across fields.\n\nIn scope: collection, history, trends, diffs, character-limit linting.\nOut of scope: keyword volume estimates, difficulty scores, install or revenue estimates, review sentiment analysis, anything requiring App Store Connect auth. If a feature would need data you cannot get, render the word unavailable rather than a guess.\n\nInclude a README with a crontab line for a daily collect run, an .env.example, and a one-paragraph honest warning that Play Store scraping is brittle and rate-limited.",
+  "promptCurated": false
+}
