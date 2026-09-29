@@ -1,0 +1,52 @@
+{
+  "slug": "blogr",
+  "name": "Blogr",
+  "domain": "blogr.ai",
+  "category": "ai-writing",
+  "subcategory": "AI blog post generation and publishing",
+  "tagline": "AI tool that drafts SEO-oriented blog posts and pushes them to your site on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://blogr.ai/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The writing part is genuinely commodity: a prompt, a model call, a markdown file with frontmatter, done in an afternoon. What you do not get for free is the stuff around it: keyword and SERP data that costs money to license, internal linking across an existing archive, image generation, and one-click publishing into whatever CMS you actually use. A one-shot build handles a static site or a WordPress endpoint fine and falls apart the moment you want Webflow, Shopify, Ghost, and Notion all working. If your goal is volume of mediocre posts, you can absolutely self-host that, and you should ask whether volume of mediocre posts is the goal. Call it a weekend, with the keyword research left as an exercise.",
+  "coreLoopDIY": "Takes a list of topics or keywords, generates structured blog drafts with an LLM, writes them as markdown with frontmatter, and optionally posts them to WordPress.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "Node 20+ and a terminal",
+    "A target site: a static site repo, or WordPress with an application password",
+    "Your own keyword ideas, since real search volume data is paid"
+  ],
+  "whatYouLose": [
+    "Keyword and SERP data: you are guessing at topics instead of pulling volume and difficulty numbers",
+    "Multi-CMS publishing connectors, so anything beyond your one chosen target is manual",
+    "Automatic internal linking and site-wide content planning across an existing archive",
+    "Hosted scheduling, so the cron job is your problem and your laptop's uptime",
+    "Inline image generation, alt text pipelines, and the small formatting polish that makes drafts publishable"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible bits are the CMS connector zoo and licensed search data, not the writing.",
+  "whyPeopleStillPay": "Because nobody who buys this wants to maintain a publishing pipeline. They want to type a topic, or not even that, and have posts appear on a live site with images and links and a schedule that keeps running when they are asleep. The model call is the cheap part of that sentence; the connectors, the retry logic, the keyword feed, and the dashboard that makes it feel like a system are the expensive parts. A self-hosted script covers the cheap part perfectly and leaves you owning the rest.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Generating blog posts is a weekend script; getting them to appear on six different CMSes with real keyword data behind them is the actual product.",
+  "prompt": "Build a local CLI tool called \"postmill\" that drafts and publishes blog posts.\n\nStack, no substitutions: TypeScript, Node 20, tsx for running, commander for the CLI, zod for config validation, gray-matter for frontmatter, the OpenAI SDK for generation. No web UI, no database, no accounts, no telemetry.\n\nLayout:\n- topics.yaml: a list of entries, each with title or keyword, optional angle, optional target word count.\n- content/: generated markdown files, slugified filenames, YAML frontmatter with title, description, slug, date, tags, draft: true.\n- postmill.config.yaml: site name, audience, tone, default word count, forbidden phrases list.\n- .env for OPENAI_API_KEY and optional WP_URL, WP_USER, WP_APP_PASSWORD. Ship .env.example, gitignore .env.\n\nCommands:\n- postmill outline \"keyword\": prints a proposed H2/H3 outline, does not write a file.\n- postmill draft: for each topic in topics.yaml without a matching file in content/, generate an outline, then generate the full post section by section (one model call per section, so long posts do not degrade), then a meta description. Write markdown. Skip anything already drafted unless --force.\n- postmill publish FILE: POST to the WordPress REST API at /wp-json/wp/v2/posts using basic auth from .env, status draft by default, --live to publish. Store the returned post id back into the frontmatter so re-publishing updates instead of duplicating.\n- postmill list: table of files, titles, word counts, published ids.\n\nRules: retry model calls twice with backoff, never overwrite a file silently, strip any phrase in the forbidden list and regenerate that section once, write a run log to .postmill/runs.jsonl.\n\nOut of scope, do not build: keyword volume or SERP data, image generation, Webflow/Ghost/Shopify connectors, scheduling (tell me the cron line to add instead), any hosted dashboard.\n\nFinish with a README showing a first run: install, .env setup, three topics in topics.yaml, draft, publish as a WordPress draft.",
+  "promptCurated": false
+}
