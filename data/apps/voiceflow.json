@@ -1,0 +1,52 @@
+{
+  "slug": "voiceflow",
+  "name": "Voiceflow",
+  "domain": "voiceflow.com",
+  "category": "no-code-apps",
+  "subcategory": "conversational AI agent builder",
+  "tagline": "Visual builder for designing, testing and deploying chat and voice AI agents across channels.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.voiceflow.com/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If what you want is one agent that answers questions about your own documents and lives on your own site, that is a short build: embeddings, a retrieval step, a system prompt, a chat widget. What Voiceflow actually sells is the surrounding apparatus: a drag-and-drop canvas where non-engineers design branching conversations, a test harness, versioning, and one-click deployment into WhatsApp, Twilio voice, web widgets and helpdesk tools. Rebuilding the canvas is a product, not a weekend. So the honest answer is that a personal or single-purpose agent is very doable, and a platform for a team to collaborate on twenty of them is not.",
+  "coreLoopDIY": "Ingest your docs into a local vector store, then serve a retrieval-augmented chat agent with a simple tool-calling loop behind an embeddable widget.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "Python 3.11 and a place to run a small web service",
+    "Your own docs or FAQ content to ingest",
+    "Optional: a Twilio number if you want phone/SMS"
+  ],
+  "whatYouLose": [
+    "The visual flow canvas, so every branch and handoff becomes code you maintain",
+    "Prebuilt channel connectors: WhatsApp, Twilio voice, Intercom, Zendesk, web widget theming",
+    "Transcript review, analytics and the loop of spotting where conversations failed",
+    "Team collaboration, drafts, versioning and staged publishing",
+    "Hosted uptime and scaling, which matters the moment the agent faces real customers"
+  ],
+  "moatTags": [
+    "collaboration",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The canvas is the product. It exists so a support lead can edit agent behaviour without filing a ticket with engineering.",
+  "whyPeopleStillPay": "Teams pay Voiceflow because the person who knows what the agent should say is usually not the person who can deploy it. A visual canvas, shared drafts and a publish button turn conversation design into something a support or marketing team can own, and the channel integrations mean nobody has to learn the Twilio or WhatsApp Business API. A solo builder gets none of that value and pays for all of it, which is exactly why a self-hosted single agent makes sense for one person and stops making sense at three.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the agent, skip the agent builder.",
+  "prompt": "Build a self-hosted retrieval-augmented chat agent with an embeddable web widget. No accounts, no telemetry, no cloud services beyond the LLM API.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn\n- SQLite for documents, chunks, embeddings (stored as JSON float arrays) and conversation transcripts\n- OpenAI API for embeddings and chat completions, key from .env as OPENAI_API_KEY\n- Vanilla JS + a single CSS file for the widget, no build step, no framework\n\nWhat to build:\n1. An ingest CLI: `python ingest.py ./docs` walks a folder of .md, .txt and .html files, strips HTML, chunks to roughly 800 tokens with 100 token overlap, embeds each chunk, and upserts into SQLite keyed by file path + hash so re-running is idempotent.\n2. Cosine similarity search in Python over the stored vectors. Personal scale, no vector database.\n3. POST /chat taking {conversation_id, message}. Retrieve top 6 chunks, build a system prompt from prompts/system.md (a plain file the user edits), stream the reply back with server-sent events, persist both turns to the transcripts table.\n4. A tool-calling loop with exactly two tools: `search_docs(query)` for extra lookups and `escalate(reason, email)` which writes a row to an escalations table. Cap at 4 tool iterations.\n5. GET /widget.js serves a self-contained script that injects a floating chat bubble and panel into any page and talks to /chat. One config object at the top for colour, greeting and placeholder.\n6. GET /admin, no auth, bind to localhost only: list transcripts, expand a conversation, see which chunks were retrieved per turn, list escalations.\n\nExplicitly out of scope: visual flow editor, multi-agent orchestration, user accounts, WhatsApp or Twilio, analytics dashboards.\n\nDeliver: README with setup in five commands, .env.example, requirements.txt, a docs/ folder with two sample files, and a smoke test that ingests the samples and asserts /chat returns a grounded answer citing a source file.",
+  "promptCurated": false
+}
