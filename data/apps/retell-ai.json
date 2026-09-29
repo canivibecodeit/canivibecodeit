@@ -1,0 +1,52 @@
+{
+  "slug": "retell-ai",
+  "name": "Retell AI",
+  "domain": "retellai.com",
+  "category": "voice-ai",
+  "subcategory": "phone call agents",
+  "tagline": "Platform for building and running AI voice agents that make and take real phone calls.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage, per minute of call time plus telephony",
+    "unit": "usage",
+    "source": "https://www.retellai.com/",
+    "checkedOn": "2026-09-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pipeline is no longer exotic: telephony websocket in, streaming speech to text, an LLM turn, streaming text to speech back out. An agent can wire Twilio Media Streams to Deepgram, an OpenAI model and a streaming voice API in a weekend and you will get a bot that answers your phone number and holds a passable conversation. What you will not get in one sitting is the boring part that makes voice agents tolerable: sub-second round trips, interruption and barge-in handling, endpointing that does not cut people off mid sentence, warm transfers, and behavior under fifty concurrent calls. Retell is essentially a latency and orchestration product wrapped around models it does not own, which means a personal replacement is real but a production one is not. Also note you are renting the same models and phone numbers either way, so this is never a fully self-hosted win.",
+  "coreLoopDIY": "Stand up a server that answers a Twilio phone number, streams the caller's audio to a speech to text service, runs each turn through an LLM with your prompt and a couple of tools, and streams synthesized speech back with basic barge-in.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Twilio account and a purchased phone number",
+    "Public HTTPS tunnel or a small VPS for the media websocket",
+    "API keys for streaming STT, an LLM, and a streaming TTS voice",
+    "Tolerance for debugging audio codecs and 8kHz mulaw"
+  ],
+  "whatYouLose": [
+    "Tuned end to end latency; a naive pipeline lands around two seconds of dead air per turn and callers hang up",
+    "Real turn taking: interruption, backchannels, and endpointing that does not talk over people",
+    "Concurrency, retries, and call queueing when more than a few calls land at once",
+    "Batch outbound campaigns, call transfer to humans, post-call analysis and scoring dashboards",
+    "Prebuilt integrations, webhooks, and the compliance paperwork buyers ask for before an AI calls their customers"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The models are rented by everyone. The defensible part is the millisecond budget and the telephony edge cases nobody wants to learn.",
+  "whyPeopleStillPay": "Because a voice agent that is 800ms slower than the competition is not a slightly worse product, it is an unusable one, and closing that gap is weeks of unglamorous work on jitter buffers, endpointing thresholds and provider failover. Teams buying this are usually putting it in front of paying customers, where a dropped call or a bot that interrupts a confused human costs real money, so they are paying for someone else to own uptime, concurrency and the call transfer path. The DIY build is genuinely useful for a personal receptionist, an appointment reminder bot, or a screening line for your own number, and that is a real chunk of the value. It stops being enough the moment other people's calls matter.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal phone agent is a weekend; a phone agent you would point at customers is not. The moat is the latency budget and the telephony edge cases, not the model.",
+  "prompt": "Build a self-hosted AI phone agent that answers a real phone number and holds a voice conversation. One project, no menus, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Node 20 + TypeScript, Fastify with @fastify/websocket\n- Twilio Voice with Media Streams for telephony (inbound and outbound)\n- Deepgram streaming STT for transcription\n- OpenAI chat completions with streaming for the dialogue turn\n- A streaming TTS HTTP API (ElevenLabs or Cartesia) for audio out\n- SQLite via better-sqlite3 for call records and transcripts\n- All keys in .env, loaded with dotenv, with a .env.example checked in\n\nWhat it must do:\n1. POST /voice returns TwiML that opens a bidirectional Media Stream to /ws.\n2. /ws handles Twilio's websocket protocol: decode inbound 8kHz mulaw base64 frames, forward to Deepgram with interim results and endpointing enabled.\n3. On a final utterance, call the LLM with a system prompt loaded from agent.md plus the running conversation, stream the reply text into TTS, re-encode to 8kHz mulaw, and send media frames back on the same socket.\n4. Barge-in: if new speech is detected while the agent is talking, stop sending audio and send a Twilio clear message to flush the buffer.\n5. Two tools the LLM can call: end_call (hang up via the Twilio REST API) and take_message (write name, number and text to SQLite).\n6. POST /outbound with a phone number places a call using the same agent.\n7. GET / serves a plain HTML page listing calls with timestamps, duration and full transcript. No framework, no CSS library.\n8. Log per-turn latency: speech end to first audio byte out. Print it to stdout. You will need it.\n\nOut of scope, do not build: multi-tenant auth, billing, campaign scheduling, voice cloning, a phone number marketplace, a visual flow editor, warm transfer to a human.\n\nDeliver README.md with exact steps: install, fill .env, run, expose with a tunnel, paste the tunnel URL into the Twilio number's voice webhook, call it. Include a troubleshooting section for garbled audio (wrong sample rate or codec) and for the agent talking over the caller (endpointing threshold).",
+  "promptCurated": false
+}
