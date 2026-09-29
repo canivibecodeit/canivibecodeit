@@ -1,0 +1,51 @@
+{
+  "slug": "rb2b",
+  "name": "RB2b",
+  "domain": "rb2b.com",
+  "category": "sales-outreach",
+  "subcategory": "website visitor identification",
+  "tagline": "Identifies individual people who visit your B2B website and pushes their profiles into Slack or your CRM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.rb2b.com/",
+    "checkedOn": "2026-09-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Plans are credit based on identified visitors, with a free tier.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The tracking script is trivial: a few lines of JavaScript posting page views to your own endpoint. The product is not the script, it is the identity graph that turns an anonymous hit into a named person with a LinkedIn profile and a work email, US traffic only, built from cookie pools and data partnerships you cannot replicate in an afternoon or legally assemble yourself. You can absolutely self-host first-party analytics and get company-level guesses from IP and ASN lookups, which is a different and much weaker product. Person-level resolution without the graph is not a build problem, it is a data access problem. Build the tracker, rent the identity.",
+  "coreLoopDIY": "A self-hosted first-party visitor tracker that logs sessions to SQLite, guesses the company from IP and ASN data, and fires a Slack alert when a visitor hits high-intent pages.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A server or small VPS to host the collector endpoint",
+    "A Slack incoming webhook URL",
+    "Optional paid IP-to-company API key if you want company names instead of raw ASN strings"
+  ],
+  "whatYouLose": [
+    "Person-level identification: names, LinkedIn URLs, work emails. Your version stops at maybe-this-company.",
+    "The identity cooperative behind the match rate, which is the entire reason anyone pays.",
+    "Native pushes into HubSpot, Salesforce, Clay and the rest of the outbound stack.",
+    "Someone else owning the consent, opt-out and privacy posture of de-anonymizing strangers.",
+    "Match quality that improves as their network grows, versus your static IP lookup table."
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The graph is assembled from cookie pools and data partnerships across many sites, so it gets better the more sites run the pixel. That is a network effect wearing a data moat's coat.",
+  "whyPeopleStillPay": "Because the alternative to person-level resolution is not a cheaper tool, it is not knowing. Sales teams pay for the name and the LinkedIn profile, not for the pageview log, and no amount of clean code produces a name out of an IP address. Every self-hosted version bottoms out at company-level guessing, which most teams already get from their analytics tool for free. The pricing is credit based precisely because the value is the lookup, and the lookup is rented.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pixel is an afternoon; the identity graph is not. The moat is a cooperative of cookie data across thousands of sites plus the legal appetite to resolve it to a named human.",
+  "prompt": "Build a self-hosted first-party website visitor tracker with company-level enrichment and Slack alerts. Stack: TypeScript, Hono running on Node, SQLite via better-sqlite3, no framework beyond that. Single repo, no monorepo, no Docker compose sprawl.\n\nDeliver three parts.\n\n1. A tracking snippet, public/track.js, under 2KB unminified. It generates a persistent visitor id in localStorage, a session id in sessionStorage, and POSTs page url, referrer, title, screen size, timezone and time-on-page to /collect. Use navigator.sendBeacon on pagehide. No third party calls from the browser.\n\n2. A collector API. POST /collect validates the payload, resolves the client IP from x-forwarded-for, and writes a pageview row. Enrich the IP once per session: reverse DNS lookup plus an optional call to an IP-to-company API keyed by IPINFO_TOKEN in .env. If no token is set, fall back to reverse DNS hostname and ASN string only, and store enrichment_source so it is obvious how weak the guess is. Cache enrichment by IP in a table for 30 days. Drop known datacenter, VPN and bot traffic using a simple user-agent blocklist and an ASN heuristic.\n\n3. A dashboard at / behind HTTP basic auth from .env. Server-rendered HTML, no client framework. Show sessions grouped by inferred company, then by visitor id, with the page path sequence, first and last seen, and total time. Add a filter for last 24 hours, 7 days, 30 days. Add a scoring rule engine defined in rules.json: a list of path patterns with point values, for example /pricing is 10 points and /careers is minus 5. When a session crosses SCORE_THRESHOLD, POST a message to SLACK_WEBHOOK_URL with the inferred company, the page path sequence and a link to the session in the dashboard. Fire at most once per session.\n\nExplicitly out of scope, and say so in the README: person-level identification. This build cannot and will not resolve a visitor to a named human, a LinkedIn profile or an email address. That requires a third party identity graph. Do not fake it, do not scrape LinkedIn, do not add a placeholder field pretending it exists.\n\nAlso include: a /collect rate limiter by IP, a /health endpoint, a DELETE /visitor/:id route plus a documented opt-out cookie so you have something to point at in a privacy policy, a seed script generating fake traffic for local testing, and a README with the snippet install line and a note that IP-based company guessing is wrong often enough that you should treat it as a hint and not a fact. All secrets in .env, .env.example committed, no telemetry, no analytics on the analytics tool.",
+  "promptCurated": false
+}
