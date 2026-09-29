@@ -1,0 +1,52 @@
+{
+  "slug": "querypanel",
+  "name": "Querypanel",
+  "domain": "querypanel.io",
+  "category": "databases",
+  "subcategory": "SQL query interface with semantic layer",
+  "tagline": "A query panel for your database that puts a modeled semantic layer between plain questions and the SQL that actually runs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://querypanel.io/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of this is very buildable: a read-only connection, a YAML file describing tables, joins, metrics and grain, an LLM call that gets that YAML as context, and a results grid. An agent will hand you a working version of that in a session, and for one database you know well it will be decent, because you are the semantic layer. What it will not hand you is the accumulated modeling discipline: the join paths that avoid fan-out, the metric definitions everyone agreed on, the query validation that catches a plausible but wrong aggregate before someone pastes it into a deck. Semantic layers are cheap to implement and expensive to maintain, and the maintenance is the product. Build it if you want one analyst's tool, buy it if the answers need to be the same answers for everyone.",
+  "coreLoopDIY": "Ask a question in plain English, get SQL generated against a hand-written YAML model of your schema, see the SQL before it runs, execute it read-only and browse or export the rows.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A database you can give a read-only user on (Postgres, MySQL or DuckDB file)",
+    "An LLM API key",
+    "Willingness to hand-write and maintain the semantic model YAML yourself",
+    "Python 3.11+ locally"
+  ],
+  "whatYouLose": [
+    "A maintained semantic layer with validated join paths and metric definitions instead of your own YAML guesses",
+    "Connectors to warehouses you did not think about: Snowflake, BigQuery, Redshift, ClickHouse",
+    "Shared saved queries, permissions and the idea of one agreed definition of revenue",
+    "Guardrails against confident wrong SQL: fan-out joins, double counting, silent partial filters",
+    "Charting, scheduling, and anything resembling a dashboard other people can read"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The defensible part is not text-to-SQL, which is commodity now. It is the modeling layer staying correct as the schema drifts, plus enough warehouse connectors that nobody has to think about it.",
+  "whyPeopleStillPay": "Because a wrong number that looks right is worse than no number, and a personal YAML file drifts out of sync with the schema within a month of you losing interest in it. Teams pay for a semantic layer so that two people asking the same question get the same answer, and so that the person who defined the metric is not the only one who can query it. The one-shot build solves the single-user case fine; it does not solve the argument in the meeting about whose number is right.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Text-to-SQL is a weekend; a semantic layer that stays true is a job.",
+  "prompt": "Build a local, single-user SQL query panel with a hand-written semantic layer. No accounts, no cloud, no telemetry.\n\nStack, do not deviate:\n- Python 3.11, FastAPI, uvicorn\n- SQLAlchemy for the target database connection\n- Server-rendered Jinja2 templates plus htmx, no frontend build step\n- SQLite file for local history of queries\n- Secrets in .env via python-dotenv: DATABASE_URL_READONLY, OPENAI_API_KEY, MODEL\n\nFeatures in scope:\n1. semantic.yml in the project root defines the model: tables, their grain, column descriptions, allowed join paths with explicit keys and cardinality, and named metrics with a SQL expression and the grain they are valid at. Ship a commented example file for a toy Postgres schema of customers, orders, order_items.\n2. On startup, introspect the database and diff it against semantic.yml. Print warnings for tables or columns in the model that no longer exist, and for real tables not described in the model. This diff is a first-class feature, not an afterthought.\n3. A single page with a question box. Submitting it calls the LLM with semantic.yml, the relevant table DDL, and a system prompt that demands one SELECT statement, no DDL or DML, an explicit LIMIT, and a one-sentence explanation of the join path chosen.\n4. Show the generated SQL and the explanation first. Nothing runs until the user clicks Run. The SQL box is editable.\n5. Before executing, validate: parse with sqlglot, reject anything that is not a single SELECT, reject any statement touching tables not in semantic.yml, and inject LIMIT 1000 if absent.\n6. Execute on a read-only connection with a statement timeout. Render results in a plain table with row count and elapsed time. Add a CSV download.\n7. Save every question, generated SQL, edited SQL, and outcome to the SQLite history table. A history page lists them and lets the user rerun or fork one.\n8. A fan-out warning: if the chosen join path includes a one-to-many edge and the query aggregates a column from the one side, show a visible warning above the results.\n\nExplicitly out of scope: charts, dashboards, scheduled reports, multi-user auth, sharing links, warehouse connectors beyond what SQLAlchemy gives for free, vector search over schemas.\n\nDeliver: README with setup in under ten commands, .env.example, a docker-compose.yml that spins up Postgres with seeded toy data, and pytest tests covering the SQL validator with at least six rejection cases.",
+  "promptCurated": false
+}
