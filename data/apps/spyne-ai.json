@@ -1,0 +1,54 @@
+{
+  "slug": "spyne-ai",
+  "name": "Spyne.ai",
+  "domain": "spyne.ai",
+  "category": "ai-image",
+  "subcategory": "automotive catalog imagery",
+  "tagline": "AI photo editing, background replacement and 360 spins for car dealership and marketplace listings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://spyne.ai/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible core here is cut the car out of a messy parking lot, drop it onto a clean studio plate, fake a shadow, crop everything to the same frame. An agent can wire that up locally with rembg and Pillow in a weekend, and for one car or ten it looks fine. Where it falls apart is the parts nobody screenshots: vehicle-specific segmentation that does not eat spoilers, alloy spokes and window glass, shadows and floor reflections that read as real, plate and face masking that is reliable rather than mostly, and the guided capture app that makes a bored lot attendant shoot the same eight angles every time. Add dealer feeds into marketplaces and hundreds of cars a day and you are buying a pipeline, not a filter. Personal replacement for selling your own car: yes. Replacement for a dealership group: no.",
+  "coreLoopDIY": "Batch-processes a folder of car photos: masks the vehicle, composites it onto a chosen studio background with a soft ground shadow, normalizes crop and size, and emits a contact sheet plus an optional 360 spin viewer.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 locally",
+    "first-run download of the rembg segmentation model (a few hundred MB)",
+    "your own studio background plates (a handful of PNGs or JPGs)",
+    "reasonably lit source photos shot from consistent angles",
+    "a GPU is optional but makes batch runs bearable"
+  ],
+  "whatYouLose": [
+    "Segmentation tuned on vehicles specifically: generic models chew through thin spoilers, roof racks, alloy spokes and semi-transparent glass",
+    "Convincing grounding: real shadow direction, floor reflection and wheel contact rather than a blurry ellipse",
+    "Guided mobile capture with angle prompts and automatic QC rejection, which is what actually produces consistent catalogs",
+    "Reliable number plate, face and background-signage masking at volume",
+    "Marketplace and DMS feed delivery, so processed images land in listings without anyone dragging files around",
+    "Throughput and turnaround guarantees when it is 400 cars this week, not four"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The model is trained on an enormous pile of dealership photos, which is the kind of dataset you do not assemble by scraping a weekend.",
+  "whyPeopleStillPay": "Dealerships do not have a photo problem, they have a consistency and throughput problem. One person shoots inventory on a phone in a gravel lot, and the business needs every one of those cars to look like it was shot in the same studio, with plates masked, in the same aspect ratio, pushed into six listing sites, before the car sells. A local script handles the pretty part of that and none of the operational part. The money is paying for the pipeline plus someone to blame when it stops.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for making your own used car look less tragic on a classifieds site; the dealership version is a logistics product wearing a photo filter.",
+  "prompt": "Build a local command line tool called carshot that turns messy used-car photos into consistent listing images.\n\nStack, no substitutions: Python 3.11, uv for dependency management, Typer for the CLI, rembg (u2net model) for vehicle masking, Pillow for compositing, OpenCV for blur and edge refinement, Jinja2 for the HTML output. Everything runs on the local machine. No accounts, no cloud APIs, no telemetry, no database. No secrets are needed, so do not create a .env file.\n\nCommands:\n1. carshot init : creates ./input, ./backgrounds, ./output and a config.toml with defaults (output size 1600x1200, car height as a fraction of frame, shadow opacity and blur radius, jpeg quality).\n2. carshot process : for every image in ./input, run rembg to get an RGBA cutout, trim to the alpha bounding box, scale so the car occupies the configured fraction of the frame height, place it on a configurable horizontal baseline, composite onto a background plate chosen by --bg or round-robin across ./backgrounds, draw a soft elliptical ground shadow under the wheel line using the mask footprint, then save to ./output with the original filename plus a suffix.\n3. carshot plate : given an image and pixel coordinates from the CLI, apply a strong pixelation to that rectangle for manual number plate masking. Do not pretend to auto-detect plates.\n4. carshot sheet : generate ./output/index.html, a plain responsive contact sheet of before and after pairs so the user can eyeball failures fast.\n5. carshot spin : given an ordered folder of processed frames, emit a single self-contained spin.html that cycles frames on mouse drag or touch drag. Vanilla JS, no dependencies.\n\nRules:\n- Refine the mask edge: erode by one or two pixels and feather the alpha so the cutout does not have a halo.\n- Skip and log any image where the mask covers less than 5 percent or more than 90 percent of the frame, instead of producing garbage.\n- Process in parallel across CPU cores, show a progress bar, never overwrite input files.\n- Explicitly out of scope: interior shots, reflections on the ground plane, relighting, damage detection, face blurring, uploading anywhere.\n- Ship a README that states plainly where this looks worse than a paid service: thin parts of the car, glass, and shadow realism.\n- Include three generated placeholder background plates (simple gradients with a floor line) so the tool works immediately after init.",
+  "promptCurated": false
+}
