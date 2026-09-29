@@ -1,0 +1,53 @@
+{
+  "slug": "jules",
+  "name": "Jules",
+  "domain": "jules.google.com",
+  "category": "dev-tools",
+  "subcategory": "async coding agent",
+  "tagline": "Google's asynchronous coding agent: it clones your GitHub repo into a cloud VM, does the task, and opens a pull request.",
+  "priceMonthly": 19.99,
+  "pricing": {
+    "plan": "Google AI Pro",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://jules.google.com/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Jules has a limited free tier and higher task limits bundled into Google AI Pro and Ultra subscriptions rather than sold standalone.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The harness is not the hard part. Clone a repo into a container, feed the diff and test output to a model in a loop, push a branch, open a PR: that is a weekend of plumbing, and several open source projects already did it. What you cannot one-shot is the model doing the actual reasoning, or the fleet of disposable VMs Google runs so you can fire off five tasks at once and walk away. Build the harness and you are still renting a frontier model by the token, which is the exact thing you were trying to stop paying for. The wrapper is free; the brain is not.",
+  "coreLoopDIY": "A local CLI that spins up a Docker container per task, checks out a git branch, runs an LLM tool-use loop against the repo until tests pass, and pushes a branch with a PR description.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker installed and running locally",
+    "Python 3.12",
+    "A Gemini or Anthropic API key in .env, billed per token",
+    "A GitHub personal access token for pushing branches",
+    "Repos with an actual test command, otherwise the loop has no feedback signal"
+  ],
+  "whatYouLose": [
+    "Cloud VMs you do not own: your laptop fan becomes the compute budget, and parallel tasks compete for it",
+    "Metered token billing instead of a flat subscription, which bites hardest on long agent loops",
+    "The GitHub App integration, plan approval UI, and clean PR review flow",
+    "Whatever tuning and scaffolding Google does on top of raw Gemini, which is invisible but not zero",
+    "Mobile and browser access: your build runs where your terminal is"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Agent products are thin shells around models nobody else can train. The shell is commodity, the shell's compute bill is not.",
+  "whyPeopleStillPay": "Because the subscription bundles the expensive part. Paying for a frontier model by the token while an agent grinds through a test suite for twenty minutes gets uncomfortable fast, and a flat monthly fee with task limits is a much calmer way to experience the same thing. Add the fact that tasks run on someone else's machine, so you can queue three refactors and close the laptop, and the value proposition is less about the software and more about the electricity. People who genuinely want local control already use Aider or OpenHands, and they still pay an API bill.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The harness is a weekend build; the loop is genuinely fun to own. The moat is a model you cannot train and a VM fleet you cannot afford, and the subscription is mostly a hedge against your own token bill.",
+  "prompt": "Build a local asynchronous coding agent CLI called \"solo\" in an empty folder.\n\nStack, no substitutions:\n- Python 3.12, uv for deps, Typer for the CLI\n- Docker via the docker Python SDK, one throwaway container per task\n- google-genai as the model client, model name read from .env\n- SQLite via plain sqlite3 for the task log, file at ./solo.db\n- No web UI, no accounts, no telemetry, no cloud anything\n\nCommands:\n- solo run REPO_PATH \"task description\" : creates a task row, builds a container from a small Dockerfile (python + node + git), bind mounts nothing, instead git clones the local repo into the container, checks out a new branch solo/TASK_ID\n- solo status : table of tasks with state, branch, token count, duration\n- solo log TASK_ID : full transcript of the agent loop\n- solo ship TASK_ID : pushes the branch to origin and prints a PR body generated from the diff\n\nAgent loop inside the container:\n- Tools exposed to the model: read_file, write_file, list_dir, run_shell (captured stdout/stderr, 120s timeout), run_tests (reads the test command from .solo.toml in the repo, defaults to pytest -q)\n- Loop until tests pass or 25 iterations, whichever comes first, then commit with a generated message\n- Stream every tool call and result into the transcript table as it happens, so solo log works on a running task\n- Hard token budget per task from .env, abort cleanly when exceeded\n\nOut of scope, do not build: GitHub App OAuth, a web dashboard, multi-user anything, plan-approval screens, any retry-on-billing-error cleverness.\n\nSecrets in .env: GEMINI_API_KEY, SOLO_MODEL, SOLO_TOKEN_BUDGET, GITHUB_TOKEN. Ship a .env.example and a README with one worked example against a toy repo. Include the Dockerfile. Make it actually run end to end before you call it done.",
+  "promptCurated": false
+}
