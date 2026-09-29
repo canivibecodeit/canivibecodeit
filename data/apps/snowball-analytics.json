@@ -1,0 +1,51 @@
+{
+  "slug": "snowball-analytics",
+  "name": "Snowball Analytics",
+  "domain": "snowball-analytics.com",
+  "category": "personal-finance",
+  "subcategory": "portfolio and dividend tracking",
+  "tagline": "Portfolio tracker for stock and ETF investors with dividend forecasting, allocation breakdowns and performance analytics.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://snowball-analytics.com/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app itself is arithmetic: positions, cost basis, weights, yield on cost, a dividend calendar, a few charts. An agent can build all of that against a SQLite file in an afternoon and it will be correct for your own portfolio. What it cannot conjure is the data layer: clean split and dividend histories, multi currency FX, ticker changes, delistings, and ETF holdings for the look through allocation charts. Free market data tiers will rate limit you, return stale closes, and quietly get corporate actions wrong, which is exactly the class of error that makes a portfolio tracker useless. Build it if you like owning your numbers and will paste CSVs yourself; keep paying if you want dividend forecasts you actually trust.",
+  "coreLoopDIY": "Imports broker CSV transactions into SQLite, fetches prices and dividend history from one market data API, then renders holdings, allocation, returns and a forward dividend calendar.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A market data API key with dividend and split history, in .env",
+    "CSV transaction exports from each broker you use",
+    "Node 20+ and a willingness to hand fix corporate actions when the API is wrong"
+  ],
+  "whatYouLose": [
+    "Broker connections and auto sync, so every new trade is a manual CSV or a typed row",
+    "Trustworthy corporate action handling: splits, spinoffs, ticker changes, delistings",
+    "ETF look through, so your sector and geography charts stop at the fund level",
+    "Dividend forecasts that account for cut announcements, ex date shifts and withholding tax",
+    "A mobile app, and anything resembling a polished chart on a phone screen"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is licensed and cleaned financial data plus broker plumbing, not the dashboard on top of it.",
+  "whyPeopleStillPay": "Because a portfolio tracker is only worth having if you believe the numbers, and believing the numbers means someone else is paying for data licenses, reconciling corporate actions and keeping broker importers alive as those brokers change their export formats. A self hosted version handles your ten positions fine until a spinoff or a currency conversion silently corrupts your cost basis, at which point you are debugging a data pipeline instead of looking at your holdings. The monthly fee is basically rent on someone else's data hygiene.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the dividend history that makes the dashboard honest is not.",
+  "prompt": "Build a local, single user portfolio tracker web app. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Next.js 15 with the App Router and TypeScript\n- SQLite via better-sqlite3, one file at ./data/portfolio.db, migrations as plain SQL in ./migrations\n- Tailwind for styling, Recharts for charts\n- Market data from a single provider, read the key from MARKET_DATA_API_KEY in .env.local, wrap it in one module at lib/marketData.ts with an interface so it can be swapped\n\nData model:\n- accounts (name, currency, broker)\n- transactions (account_id, date, type in BUY/SELL/DIVIDEND/FEE/SPLIT/DEPOSIT/WITHDRAWAL, ticker, quantity, price, fees, currency, fx_rate, note)\n- instruments (ticker, name, asset_class, sector, country, currency)\n- prices (ticker, date, close) cached locally\n- dividends (ticker, ex_date, pay_date, amount_per_share, currency) cached locally\n\nFeatures, in scope:\n1. CSV import page: upload a file, map columns to transaction fields in the UI, preview rows, commit. Store the mapping per broker so the next import is one click.\n2. Manual transaction add and edit form.\n3. Holdings table: quantity, average cost using FIFO lots, market value, unrealised gain, weight of portfolio, realised gain to date.\n4. Allocation charts: by asset class, sector, country and currency. Fund level only, do not pretend to do ETF look through.\n5. Performance: simple return, and a money weighted return computed with an IRR solver over cash flows. Show both and label the method.\n6. Dividend view: income received by month for the last 24 months, forward 12 month estimate based on the last known dividend per share times current quantity, clearly labelled as an estimate.\n7. Nightly-ish price refresh via a manual Refresh button plus a npm script, no cron daemon.\n\nOut of scope, do not build: broker OAuth or screen scraping, multi user auth, tax reporting, ETF constituent look through, push notifications, mobile app.\n\nCorrectness requirements:\n- All money stored in minor units as integers, formatted at the edge.\n- Handle multi currency by storing native currency plus an fx_rate on each transaction, and show a base currency set in .env.\n- Splits are handled as explicit SPLIT transactions that adjust quantity and cost basis; do not auto apply them from the API.\n- Write unit tests for the FIFO cost basis engine and the IRR solver, and make them pass.\n\nDeliver a README with setup steps, the .env.local keys needed, and an explicit list of known data limitations.",
+  "promptCurated": false
+}
