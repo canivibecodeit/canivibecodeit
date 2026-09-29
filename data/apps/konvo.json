@@ -1,0 +1,52 @@
+{
+  "slug": "konvo",
+  "name": "konvo",
+  "domain": "apps.apple.com",
+  "category": "social-media",
+  "subcategory": "direct messaging",
+  "tagline": "An iOS app that strips social down to direct messages, no feed, no posts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://apps.apple.com/hk/app/konvo-dms-only/id6794756261?l=en-GB",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "A chat app is the easiest thing in the world to build and the hardest thing in the world to fill. The code is a websocket server, a message table, and a list of conversations: a competent agent does that before lunch. What you cannot generate is the other person sitting in the app waiting to reply, which is the entire product. Even for a two-person setup you inherit push notifications, background delivery, media handling, and an App Store review queue, none of which are one-session problems. Build a private group chat if you enjoy it, but understand you are building a room, not a party.",
+  "coreLoopDIY": "Stands up a self-hosted realtime DM server with a web client where a small invite-only group can exchange text and images in one-to-one threads.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small VPS or home server with a public hostname and TLS",
+    "Node 20+ and SQLite",
+    "Everyone you want to talk to willing to open a bookmarked web app instead of their existing messenger",
+    "Object storage or a local disk for image uploads"
+  ],
+  "whatYouLose": [
+    "The other people, which is the product",
+    "Mobile push notifications that actually arrive when the app is closed",
+    "A real iOS client, background sync, and share sheet integration",
+    "Read receipts, typing indicators, and delivery guarantees that hold up on flaky mobile networks",
+    "Whatever discovery or identity layer lets you message someone you do not already have a link for"
+  ],
+  "moatTags": [
+    "network-effects",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "Messaging is the textbook network-effects product: utility is strictly a function of who else installed it. A DMs-only positioning makes that dependence worse, not better, because there is no feed to browse while you wait for your friends to show up.",
+  "whyPeopleStillPay": "Nobody pays for the message-passing. They pay, when they pay at all, for a place where the specific people they want to talk to already are, plus reliable mobile delivery that a self-hosted web app will never match. A private server you run is a chat app with a population of you and maybe three patient friends, and the first time a push notification silently fails to land, the experiment is over.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The websocket server is an afternoon; the contact list is not. The moat is that a messenger is worth exactly as much as the number of people already inside it.",
+  "prompt": "Build a self-hosted, invite-only direct messaging app. Web only. No feed, no posts, no public profiles: one-to-one threads and nothing else.\n\nStack, no substitutions:\n- TypeScript everywhere.\n- Fastify HTTP server with the @fastify/websocket plugin.\n- SQLite via better-sqlite3, single file at ./data/konvo.db, schema created on boot if missing.\n- React + Vite + Tailwind for the client, served as static files by Fastify in production.\n- Single repo, npm workspaces: packages/server and packages/web. One `npm run dev` starts both.\n\nData model:\n- users: id, handle (unique, lowercase), display_name, password_hash (argon2), created_at.\n- threads: id, user_a, user_b, unique on the sorted pair.\n- messages: id, thread_id, sender_id, body (text), attachment_path (nullable), created_at, read_at (nullable).\n- invites: token, created_by, used_by (nullable), expires_at.\n\nBehaviour:\n- No open signup. First boot reads ADMIN_HANDLE and ADMIN_PASSWORD from .env and creates one account. Any user can mint an invite link; registration requires a valid unused token.\n- Session cookie, httpOnly, signed with COOKIE_SECRET from .env.\n- Websocket per authenticated session. Server pushes new messages, typing indicators, and read receipts to connected peers. On reconnect the client pulls anything it missed by last-seen message id.\n- Image uploads up to 10MB stored on local disk under ./data/uploads, served behind auth. Nothing else, no video, no voice notes.\n- Thread list sorted by last message, unread count per thread, keyboard-first composer, Enter sends.\n\nExplicitly out of scope: push notifications, native mobile apps, end-to-end encryption, group chats, search, reactions, telemetry, any third-party API.\n\nDeliverables: working app, .env.example with every variable, a README covering `npm run dev`, production build, TLS via a reverse proxy, and how to back up the SQLite file. Seed script that creates two users and a short conversation so the UI is not empty on first run.",
+  "promptCurated": false
+}
