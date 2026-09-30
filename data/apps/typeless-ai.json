@@ -1,0 +1,52 @@
+{
+  "slug": "typeless-ai",
+  "name": "typeless.ai",
+  "domain": "typeless.ai",
+  "category": "voice-dictation",
+  "subcategory": "AI dictation with cleanup",
+  "tagline": "Hold a hotkey, talk, and get cleaned-up text pasted into whatever app you were in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://typeless.ai/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is genuinely small: capture audio on a hotkey, run it through a speech model, run the transcript through an LLM with a \"clean this up, do not add anything\" instruction, then paste. An agent can wire that up in an afternoon and local Whisper-class models are good enough for normal desk speech. What you will not get in one session is the part people actually pay for: sub-second latency, reliable text insertion across every app including the weird Electron ones, custom vocabulary that sticks, and a version that works on your phone. Dictation is a tool you touch fifty times a day, so a 400ms regression or one dropped transcript per hour is the difference between using it and abandoning it. Buildable, yes. Buildable to the standard where you stop noticing it, not in one sitting.",
+  "coreLoopDIY": "A background hotkey daemon that records while you hold a key, transcribes locally, has an LLM strip the ums and fix punctuation, and pastes the result into the focused app.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS with accessibility and microphone permissions granted to the terminal or app",
+    "Python 3.11 plus ffmpeg",
+    "faster-whisper with a local model download, roughly 1 to 3 GB depending on size",
+    "Either Ollama running locally or an OpenAI-compatible API key in .env for the cleanup pass"
+  ],
+  "whatYouLose": [
+    "Latency tuning: a polished dictation app streams and pre-warms, a naive build waits for the whole file",
+    "Mobile and iPad dictation, which is most of the value for some people",
+    "Per-app behavior, custom dictionaries, and names or jargon that survive across sessions",
+    "Reliable insertion into every text field, clipboard-paste hacks break in password fields, terminals, and some Electron apps",
+    "Someone else owning the model upgrades when a better ASR model ships"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat is milliseconds and edge cases, not data. That is a real moat for a tool in the typing hot path, just not a durable one.",
+  "whyPeopleStillPay": "Because dictation lives or dies on feel. A tool in the path between your thought and the text field gets judged on whether it is invisible, and invisible costs weeks of fighting audio buffers, permissions prompts, focus detection, and the specific way each app eats keystrokes. People pay to skip that, and to have it on their phone too. The local build is a very reasonable answer if you dictate at one desk on one machine and can tolerate half a second of thinking time.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Local Whisper got good enough that the model is no longer the hard part; the hard part is the operating system.",
+  "prompt": "Build a local push-to-talk dictation tool for macOS. Python 3.11, no web UI, no accounts, no telemetry.\n\nStack, non negotiable:\n- pynput for a global hotkey listener\n- sounddevice + numpy to record 16 kHz mono audio to an in-memory buffer\n- faster-whisper for transcription, model name from .env, default \"small.en\"\n- an OpenAI-compatible chat call for cleanup, base URL and key from .env, so Ollama or a hosted endpoint both work\n- pyobjc for clipboard write and synthetic cmd+v\n- rumps for a tiny menu bar item showing idle / recording / thinking\n\nBehavior:\n1. Hold right option to record. Release to stop. Play a short system sound on start and stop.\n2. Transcribe the buffer with faster-whisper. If the transcript is empty or under 2 characters, do nothing and return to idle.\n3. Send the transcript to the LLM with a strict prompt: fix punctuation and capitalization, remove filler words and false starts, do not add content, do not answer questions, do not summarize, return only the corrected text.\n4. Save the old clipboard, write the result, send cmd+v, restore the old clipboard after 300 ms.\n5. Append every run to ~/.typeless/log.jsonl with timestamp, raw transcript, cleaned text, and durations for each stage.\n\nAlso build:\n- A vocabulary file at ~/.typeless/vocab.txt, one term per line, injected into both the whisper initial_prompt and the LLM system prompt.\n- A --no-llm flag that pastes the raw transcript, for when the cleanup pass is slower than it is worth.\n- Warm the whisper model at startup so the first dictation is not slow.\n\nOut of scope: streaming partial results, iOS, per-app profiles, speaker diarization, any cloud storage. Audio never leaves the machine except the text sent to the cleanup endpoint, and say so in the README.\n\nDeliver: main.py, requirements.txt, .env.example, and a README that lists the exact System Settings permissions to grant (Microphone, Accessibility, Input Monitoring) and how to run it on login with launchd.",
+  "promptCurated": false
+}
