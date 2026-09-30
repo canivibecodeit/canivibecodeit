@@ -1,0 +1,52 @@
+{
+  "slug": "foca-upscaler",
+  "name": "Foca Upscaler",
+  "domain": "focaupscaler.com",
+  "category": "ai-image",
+  "subcategory": "image upscaling and enhancement",
+  "tagline": "Web app that upscales and enhances images with AI models, aimed at photos, art, and low-res assets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://focaupscaler.com/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is a thin, pleasant wrapper around an upscaling model: drop an image, pick a factor, wait, download. An agent can rebuild that wrapper in an afternoon using Real-ESRGAN or a hosted upscaling endpoint, and for most 2x jobs the output is genuinely comparable. The gap is not the UI, it is the model choice and the GPU: plausible skin texture, clean text edges, and 4x or 8x output on large source files is where cheap pipelines visibly fall apart into plastic or mush. Running it locally also means either owning a decent GPU or paying per call to someone else's, which quietly rebuilds the thing you were trying to avoid. Build it if you upscale occasionally and can tolerate babysitting a queue.",
+  "coreLoopDIY": "A local web app where you drop an image, choose a scale factor and model, and get an upscaled file back from a self-hosted or API-backed upscaling model.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and Node, or just Python if you use the templated UI",
+    "An NVIDIA GPU with 8GB+ VRAM for local inference, or a Replicate API token for hosted inference",
+    "Model weights (Real-ESRGAN, and optionally a face restoration model like GFPGAN or CodeFormer)",
+    "Patience with large-file memory usage and tiling artifacts"
+  ],
+  "whatYouLose": [
+    "Tuned model selection: knowing which model to run for a face vs a screenshot vs a scanned drawing is product work you now do yourself",
+    "Fast, queued cloud GPUs, so big 4x and 8x jobs go from seconds to minutes on consumer hardware",
+    "Guardrails around memory: oversized inputs will OOM your local build instead of gracefully tiling",
+    "Batch processing, history, and shareable output links unless you build them",
+    "Anything mobile or shareable with non-technical people without hosting it yourself"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The visible moat is whichever weights and tiling strategy they picked, plus GPUs that make it feel instant. Neither is unobtainable, both are annoying.",
+  "whyPeopleStillPay": "Because nobody wants a GPU babysitting job to make one wedding photo printable. Paid upscalers sell a single decision removed: you do not pick a model, tune tile size, or discover that 8x on a 6000px input eats 20GB of VRAM. The per-image cost is trivial against the setup time, and for occasional users the hosted version will always be the right call. The DIY build wins only if you upscale in volume, care about keeping images off other people's servers, or want to swap in newer weights the moment they drop.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wrapper is a weekend; the weights and the GPU are the product.",
+  "prompt": "Build a local AI image upscaler as a single-user web app. No accounts, no telemetry, no cloud storage.\n\nStack, non-negotiable:\n- Python 3.11 with FastAPI for the backend\n- Server-rendered Jinja2 templates plus a little vanilla JS for the UI, no React\n- SQLite via sqlite3 stdlib for a job table, no ORM\n- Local inference with Real-ESRGAN (realesrgan-ncnn-vulkan binary or the PyTorch weights, pick the PyTorch path if torch with CUDA is available), plus optional GFPGAN for face restoration\n- Optional hosted fallback: if REPLICATE_API_TOKEN is set in .env, offer a \"hosted\" backend that calls a Replicate upscaling model instead of local inference\n\nWhat it does:\n- One page: drag and drop or file-pick an image (png, jpg, webp), choose scale (2x or 4x), toggle \"restore faces\", choose backend (local or hosted, hosted only shown if the token exists)\n- Submit creates a job row, returns immediately, UI polls /jobs/{id} and shows status: queued, running, done, failed\n- Inference runs in a background worker thread with a single-slot queue so two jobs never fight for VRAM\n- Tile large inputs automatically: if the source is over 2000px on the long edge, process in overlapping tiles and stitch, so it does not OOM\n- On completion show a before/after slider and a download button, original and result both stored under ./data/\n- A simple history list of past jobs with thumbnails, deletable\n\nExplicitly out of scope: user auth, payments, batch upload, video, multi-GPU, model training, any analytics.\n\nRequirements:\n- Secrets only in .env, read with python-dotenv, and commit a .env.example\n- requirements.txt pinned, plus a README with exact setup steps for both the CPU-only path (slow, warn the user) and the CUDA path\n- Fail loudly and readably: if weights are missing, say which file to download and where to put it\n- Reject inputs over 50MB with a clear message rather than crashing\n- Include a smoke test that upscales a tiny bundled test image 2x and asserts output dimensions",
+  "promptCurated": false
+}
