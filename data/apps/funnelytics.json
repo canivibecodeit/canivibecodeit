@@ -1,0 +1,52 @@
+{
+  "slug": "funnelytics",
+  "name": "Funnelytics",
+  "domain": "funnelytics.io",
+  "category": "analytics",
+  "subcategory": "funnel mapping and conversion tracking",
+  "tagline": "A drag-and-drop canvas for mapping marketing funnels, with real traffic and conversion numbers drawn on top of the map.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://funnelytics.io/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Two products are stapled together here, and only one of them is hard. The canvas, boxes for pages and ads and emails, arrows between them, icons, notes, is a React Flow tutorial with a nice coat of paint, and an agent will get you there in an afternoon. The tracking half is the real work: a script tag, an ingest endpoint, stable visitor identification across pages and subdomains, then path queries that answer \"how many people who hit step 2 ever reached step 5\". You can absolutely build a version that works on your own sites and gives honest step-to-step conversion numbers over a weekend. You will not match the polish of the canvas, the ad platform cost imports, or the confidence that your pixel fired correctly on every browser with every blocker installed.",
+  "coreLoopDIY": "A local web app where you draw a funnel on a canvas, paste a tracking snippet into your sites, and see visitor counts and step-to-step conversion rates rendered on the arrows.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS to receive tracking events, localhost will not collect real traffic",
+    "A domain or subdomain for the tracker script and ingest endpoint, ideally first-party so blockers leave it alone",
+    "Edit access to the sites you want to track, to install the snippet",
+    "Enough traffic that step conversion rates are not noise"
+  ],
+  "whatYouLose": [
+    "Ad platform and CRM imports, so no cost per step, no ROI on the canvas, just traffic and conversion",
+    "Robust identity stitching across domains, devices and paid-ad redirects, which is where cheap analytics quietly lies to you",
+    "Shared funnel templates and the client-facing presentation polish agencies actually buy this for",
+    "Multiplayer editing and commenting on the same canvas",
+    "Someone else maintaining the pixel against browser privacy changes and consent requirements"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The defensible part is not the math, it is a canvas that looks good enough to show a client and a pixel that keeps working after the next Safari release.",
+  "whyPeopleStillPay": "The buyers are mostly agencies and performance marketers, and they are not paying for conversion arithmetic. They are paying for an artifact they can put on a screen in a client call that makes a funnel look legible and expensive, with spend and revenue numbers pulled in from platforms they do not want to integrate themselves. A self-hosted version gives you the numbers for your own sites, which is genuinely most of the value if you are the only audience. It gives you nothing if the deliverable is the diagram.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The canvas is the demo, the pixel is the product, and only one of those survives contact with real traffic.",
+  "prompt": "Build a self-hosted funnel mapping and conversion analytics app. No accounts, no third-party SaaS, no telemetry.\n\nStack, non-negotiable:\n- Next.js (App Router) with TypeScript, single repo, single process\n- SQLite via better-sqlite3, file at ./data/funnels.db, schema created on boot\n- React Flow for the canvas, Tailwind for styling, no component library\n- Recharts only if a chart is needed, otherwise plain HTML\n\nFeature 1, the canvas:\n- A funnel editor at /funnels/[id] using React Flow\n- Node types: page, ad, email, offline-step, note. Each node has a label and, for page nodes, a match rule: exact path, path prefix, or regex\n- Draw directed edges between nodes, drag to reposition, autosave layout to SQLite on change (debounced)\n- Funnel list at /, create and delete funnels\n\nFeature 2, the tracker:\n- Serve /t.js: a tiny script (under 2KB, no dependencies) that sets a first-party visitor id in localStorage plus a session id in sessionStorage, then POSTs pageview events to /api/collect with url, path, referrer, utm params, timestamp, visitor id, session id\n- Expose window.fnl('event', name, props) for custom events like form submits and purchases\n- /api/collect validates and inserts into an events table, indexed on visitor_id and created_at. Reject bodies over 8KB. Return 204 with permissive CORS\n- Store nothing that needs a cookie banner: no IP persistence, no fingerprinting. Hash the IP with a daily salt for bot dedupe only\n\nFeature 3, the numbers on the map:\n- /api/funnels/[id]/stats resolves each page node's match rule against events over a chosen date range and returns unique visitors per node\n- For each edge, compute how many visitors hit the source node and later hit the target node in the same visitor timeline, plus the conversion rate\n- Render node visitor counts inside the nodes and edge conversion rates as edge labels. Date range picker: 7d, 30d, custom\n- A drop-off table under the canvas listing each edge, entered, converted, rate\n\nExplicitly out of scope: ad spend or CRM integrations, session replay, multi-user editing, auth, email reports, cross-domain identity stitching beyond shared localStorage.\n\nDeliverables: README with install, how to add the snippet to a site, and a seed script that generates 30 days of fake events so the UI is not empty. Config in .env (PORT, TRACKER_ALLOWED_ORIGINS, IP_SALT), with .env.example committed and .env gitignored. Include a Dockerfile and a docker-compose.yml that mounts ./data as a volume.",
+  "promptCurated": false
+}
