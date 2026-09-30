@@ -1,0 +1,52 @@
+{
+  "slug": "photoai",
+  "name": "PhotoAI",
+  "domain": "photoai.com",
+  "category": "ai-image",
+  "subcategory": "AI headshots and personal photo generation",
+  "tagline": "Trains a model on your selfies, then generates photorealistic photos of you in places you have never been.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://photoai.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Tiered monthly plans gated on photo and model counts.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The underlying trick is not secret: fine-tune a LoRA on 15 to 25 photos of your face, then run it through a good base model with a well-written prompt. An agent can wire that up against a hosted GPU API in a weekend, and the output at the top end is genuinely comparable. What you are actually paying for is the prompt library, the training hyperparameters someone already burned money finding, and a UI that hides all of it. The gap shows up in the boring 80 percent: face consistency across styles, hands, upscaling, cropping for LinkedIn, and not shipping photos that look like a 2023 avatar app. Budget real GPU spend for the failed runs, because there will be many.",
+  "coreLoopDIY": "Upload a zip of your selfies, kick off a LoRA fine-tune on a hosted GPU API, then generate images from a local prompt pack and browse the results in a simple gallery.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Replicate or fal API key and a credit card, training a Flux LoRA costs real money per run",
+    "15 to 25 varied, well-lit photos of one face",
+    "Python 3.11 and comfort waiting 20 minutes for a training job to finish",
+    "Patience for prompt iteration, the first hundred outputs will be bad"
+  ],
+  "whatYouLose": [
+    "A curated prompt and style pack that someone already tested, you start from a blank text box",
+    "Tuned training defaults, so your first few LoRAs will overfit or drift",
+    "Polish like face upscaling, aspect ratio presets, and auto-retry on bad hands",
+    "Mobile app and shooting from your phone camera roll",
+    "Extras layered on top over time: video, clothing and background edits, batch packs"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is empirical: thousands of paid training runs taught them which settings and prompts hold a face. That knowledge is in the product, not in a paper.",
+  "whyPeopleStillPay": "Because the honest DIY version costs a weekend plus maybe twenty dollars of GPU time to discover that your LoRA makes you look like your own cousin. People buying AI headshots want twelve usable images today, not a hobby in diffusion tuning, and the subscription is cheaper than an actual photographer. There is also a trust component: the hosted product has visible receipts from a lot of users, so you know roughly what you are getting before you upload your face.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fun weekend project, mediocre product. The distance between the two is entirely prompt curation and training defaults.",
+  "prompt": "Build a local personal AI photo generator. No accounts, no cloud database, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, Jinja2 templates, htmx for interactivity, plain CSS. No React.\n- SQLite via sqlite3 stdlib for job and image records.\n- Replicate Python client for both LoRA training and inference. Read REPLICATE_API_TOKEN from .env via python-dotenv. Commit a .env.example, never a real token.\n- Files on disk under ./data: ./data/uploads, ./data/models, ./data/outputs.\n\nFeatures in scope:\n1. Subject page: upload 15 to 25 images, show thumbnails, warn if fewer than 15 or if any image is under 1024px on the short side. Zip them server side into a training archive.\n2. Train: POST to a Flux LoRA trainer on Replicate with a fixed trigger word derived from the subject name, 1000 steps, batch size 1. Poll the prediction, store status and the resulting LoRA weights URL in SQLite. Show a live status badge with htmx polling every 5 seconds.\n3. Prompt packs: a prompts/ directory of YAML files, each a named pack with a list of prompt templates containing a {trigger} placeholder. Ship three starter packs: corporate-headshot, outdoor-casual, studio-bw. Make them easy to edit by hand.\n4. Generate: pick a subject, pick a pack or type a single prompt, choose count and aspect ratio from a fixed list, run inference with the trained LoRA at a default strength of 0.9. Download results to ./data/outputs and record them.\n5. Gallery: grid of all generated images, filter by subject and pack, click for full size, a favourite toggle and a delete button. Show the exact prompt and seed under each image so good results are reproducible.\n6. A costs page that sums the Replicate predictions run so far using a hardcoded per-run estimate from config, so the user can see money burning.\n\nExplicitly out of scope: authentication, multi user, payments, inpainting, video, face upscaling, any mobile app, any hosted deployment.\n\nDeliverables: single `uv run` or `python -m app` entry point, README with setup in under ten lines, a seed script that creates the SQLite schema. Handle Replicate failures by storing the error text and showing it in the UI instead of crashing.",
+  "promptCurated": false
+}
