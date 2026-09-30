@@ -1,0 +1,51 @@
+{
+  "slug": "rankbull",
+  "name": "Rankbull",
+  "domain": "rankbull.io",
+  "category": "seo-marketing",
+  "subcategory": "rank tracking",
+  "tagline": "SEO rank tracking and keyword position monitoring with reporting dashboards.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://rankbull.io/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app around rank tracking is genuinely simple: a keyword list, a daily job, a positions table, a line chart. An agent will hand you that in an afternoon and it will work. The catch is where the positions come from: Google does not want a script asking it 400 questions a day from one IP, so you either pay a SERP API per query or spend your weekends losing an arms race against bot detection. Once you are paying DataForSEO or SerpAPI you have swapped one subscription for another, and your version has no historical backfill, no local device and location matrix, and no share of voice math. Fine for tracking twenty keywords for one site you own. Not fine as an agency reporting tool.",
+  "coreLoopDIY": "A cron job that queries a SERP API for each tracked keyword daily, stores the position in SQLite, and renders a dashboard of rank history per keyword with change deltas and CSV export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A SERP data API key (DataForSEO, SerpAPI, or similar) with a per-query budget",
+    "Somewhere the cron can run daily: a small VPS, a Raspberry Pi, or a scheduled GitHub Action",
+    "A list of keywords and target domains you actually care about"
+  ],
+  "whatYouLose": [
+    "Position history before the day you hit run, which is the whole point of a rank tracker",
+    "Per-country, per-city, per-device SERP variants without multiplying your API bill",
+    "SERP feature detection: featured snippets, local packs, AI overviews, people also ask",
+    "Competitor tracking, share of voice, and client-ready PDF reports",
+    "Someone else absorbing the cost and maintenance when Google changes the result page layout again"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The durable asset in rank tracking is not the UI, it is the archive of daily positions across locations that you cannot retroactively collect, plus the infrastructure that scrapes at scale without getting banned.",
+  "whyPeopleStillPay": "Because rank data is time-series data and you cannot go back and get last year. People pay for the archive, the geographic grid, and the fact that someone else eats the blocked-proxy problem every time Google ships a layout change. Agencies additionally pay for the export: a branded report that a client will accept as proof of work is worth more than the numbers in it. A personal build is very reasonable if you are one person watching one site and you start collecting now.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, but you are renting the only part that matters. Budget for the SERP API before you budget for the weekend.",
+  "prompt": "Build a personal SEO rank tracker that runs locally and stores all data in SQLite.\n\nStack, no substitutions: Node 20 with TypeScript, Fastify for the HTTP server, better-sqlite3 for storage, and plain server-rendered HTML with a single Chart.js script tag. No React, no build step beyond tsc, no cloud services, no accounts, no telemetry.\n\nData model:\n- sites: id, domain, label\n- keywords: id, site_id, phrase, country (ISO code), device (desktop|mobile), active\n- checks: id, keyword_id, checked_on (date), position (int, null if not in top 100), found_url, created_at\nUnique index on (keyword_id, checked_on) so re-running a day is idempotent.\n\nSERP fetching:\n- Write a single provider module with one function: fetchSerp(phrase, country, device) returning an ordered array of result URLs.\n- Implement it against a SERP API read from SERP_API_KEY and SERP_API_URL in .env. Put the request shape in one place so it can be swapped.\n- Do NOT scrape Google directly. Add a comment saying why.\n- Include a MOCK_SERP=1 mode that returns deterministic fake results so the whole app is runnable and testable with no API key.\n- Rate limit to one request per second, retry twice with backoff, log failures to a runs table instead of crashing.\n\nCLI: `npm run track` checks every active keyword for today, skipping any keyword already checked today. Print a summary of movers.\n\nWeb UI on localhost:3000:\n- Site list, then keyword table with today's position, change vs 7 and 30 days ago, and best-ever position.\n- Keyword detail page with a position-over-time line chart, y-axis inverted so rank 1 is on top.\n- Add and deactivate keywords via plain form posts. CSV export of all checks.\n\nInclude a README with setup, a sample .env.example, and a crontab line for a daily 6am run. Ship a seed script that loads a few example keywords in mock mode so `npm run dev` shows a populated dashboard immediately.",
+  "promptCurated": false
+}
