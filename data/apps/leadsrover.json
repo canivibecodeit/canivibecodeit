@@ -1,0 +1,53 @@
+{
+  "slug": "leadsrover",
+  "name": "LeadsRover",
+  "domain": "leadsrover.io",
+  "category": "sales-outreach",
+  "subcategory": "lead sourcing and enrichment",
+  "tagline": "A B2B lead sourcing tool: find companies and contacts, enrich them, and push the list into your outreach stack.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://leadsrover.io/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The UI on a lead sourcing tool is the cheap part: a table, some filters, a CSV button. What you are actually paying for is a maintained corpus of companies and contacts, plus the email verification pipeline that keeps your bounce rate low enough that your sending domain survives. An agent can build you a very respectable local pipeline in an afternoon, and then it will sit there with nothing to search, because you do not have the crawl, the licensed data feeds, or the verification infrastructure. The honest DIY version is a scraper plus enrichment over sources you already have keys for, which gets you maybe a tenth of the coverage at a fraction of the cost. If your niche is narrow and public, that tenth may be all you need; if you are doing volume outbound, it is not.",
+  "coreLoopDIY": "A local CLI and small web UI that scrapes a handful of public sources you specify, enriches rows through API keys you already pay for, dedupes and scores them into SQLite, and exports clean CSV.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a local SQLite file",
+    "Your own API keys for any enrichment or email verification service",
+    "A defined, narrow source list: you supply the URLs or directories to crawl",
+    "Patience for selector maintenance when those sources change their markup",
+    "Awareness of the terms of service and privacy rules for whatever you scrape"
+  ],
+  "whatYouLose": [
+    "The contact database itself: millions of pre-crawled companies and people you can filter instantly",
+    "Email verification at scale, which is the difference between a healthy sending domain and a burned one",
+    "Refresh: job changes, dead domains, and churned contacts get corrected for you",
+    "Native push into CRMs and sequencers, so you are back to CSV imports",
+    "Someone else carrying the legal and compliance weight of holding personal data"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "Every lead vendor's real asset is the crawl and the verification loop. The app around it is a spreadsheet with opinions.",
+  "whyPeopleStillPay": "Because the alternative is your own time, and outbound only works at volume. Sourcing a thousand qualified contacts by hand is a week of work that produces a stale list; a query against someone else's maintained corpus is thirty seconds and the list is mostly still valid next month. People also pay for deliverability insurance: a verified list keeps bounce rates low, and low bounce rates keep your domain out of spam folders. That is a risk transfer, not a feature, and self-hosting does not transfer it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The interface is a weekend; the data behind it is not. The moat is a continuously refreshed contact corpus plus the verification pipeline that keeps it from wrecking your sending reputation.",
+  "prompt": "Build a local B2B lead sourcing pipeline. Not a SaaS, no accounts, no telemetry, runs on my machine.\n\nStack, no substitutions: TypeScript on Node 20, SQLite via better-sqlite3, Playwright for scraping, Hono for a tiny local web UI on port 8787, Zod for config validation. Plain HTML plus a little vanilla JS for the UI, no React.\n\nWhat it does:\n1. Reads sources.yml, which I will fill in. Each entry: name, start URL, a CSS selector for list rows, selectors for company name, website, and optional contact name and title, plus pagination rules.\n2. A `crawl` command runs Playwright over those sources, writes raw rows to a `raw_rows` table with source name, scraped_at, and the full HTML snippet for debugging.\n3. A `normalize` command cleans rows: strip tracking params, lowercase and canonicalize domains, drop rows with no resolvable domain, collapse whitespace in names. Dedupe on domain first, then on normalized company name. Keep a `merge_log` so I can see what collapsed.\n4. An `enrich` command calls optional providers if keys exist in .env: one generic HTTP enrichment endpoint and one email verification endpoint, both configured by URL and header in config so I can point them at whatever I already pay for. If no keys, skip enrichment and mark rows `enrichment: none`. Never fabricate an email address, never guess patterns like first.last@domain and store them as real.\n5. A `score` command applies rules from scoring.yml: keyword matches on company name or description, domain TLD allowlist, presence of a verified email, source weight. Store an integer 0-100 with a human readable breakdown per row.\n6. `export --min-score 60 --limit 500` writes a CSV with stable column order and a matching JSON file.\n\nLocal UI: one table view with filters for source, score range, enrichment status, and free text search. Row detail panel shows the score breakdown, the merge log, and the raw snippet. A button to mark rows rejected so they are excluded from future exports.\n\nExplicitly out of scope: any bundled contact database, email sending, sequences, CRM sync, or multi user anything.\n\nRate limit crawls: configurable delay per source, default 2 seconds, respect robots.txt and log when a source disallows a path instead of silently fetching it. All secrets in .env with a .env.example committed.\n\nDeliver a README that states plainly that coverage depends entirely on the sources I configure and that unverified emails should not be mailed.",
+  "promptCurated": false
+}
