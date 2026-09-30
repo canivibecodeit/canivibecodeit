@@ -1,0 +1,52 @@
+{
+  "slug": "blotato",
+  "name": "Blotato",
+  "domain": "blotato.com",
+  "category": "social-media",
+  "subcategory": "AI repurposing and multi-platform publishing",
+  "tagline": "Turns one idea into platform-specific posts and videos, then publishes them to a dozen social accounts from one dashboard or API.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.blotato.com/",
+    "checkedOn": "2026-09-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The AI half of Blotato is genuinely trivial: prompt a model to spin one source into an X thread, a LinkedIn post and a caption, then keep a queue in SQLite. The half that matters is publishing, and that half is not a coding problem, it is a platform approval problem. Posting to Instagram, TikTok, YouTube, Facebook and LinkedIn on a schedule means registered apps, review submissions, business account requirements and tokens that rot on their own timetable. A large share of Blotato's actual customers are automation tinkerers who already built the drafting part themselves and pay purely for the posting endpoint. You can build a very pleasant personal version that publishes to Bluesky, Mastodon and Telegram and hands you clipboard text for everything else, which is a different product.",
+  "coreLoopDIY": "Paste a source, have an LLM generate per-platform variants from editable prompt templates, queue them on a calendar, and auto-publish to the few platforms whose auth is a token rather than a review process.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An OpenAI-compatible API key",
+    "Bluesky app password, Mastodon token, Telegram bot token, or a Discord webhook for the automatable targets",
+    "A machine or cheap VPS that stays awake for the scheduler",
+    "Willingness to paste manually into Instagram, TikTok and LinkedIn"
+  ],
+  "whatYouLose": [
+    "Automated publishing to Instagram, TikTok, YouTube, Facebook, Threads and Pinterest, which is the entire point",
+    "Someone else eating the breakage every time a platform changes its API or revokes a token",
+    "AI video generation with stock footage, captions and voiceover attached",
+    "A hosted API you can call from n8n or Make without running your own box",
+    "Media hosting and per-platform format handling: aspect ratios, durations, size caps"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The barrier is not code, it is being an approved publishing app on platforms that gatekeep write access and change the rules quarterly.",
+  "whyPeopleStillPay": "Because the thing they need is write access to closed platforms, and you cannot self-host that. Getting Instagram Graph API or TikTok content posting approved for a one-person setup ranges from tedious to flatly not worth it, and once approved you inherit the maintenance: token refreshes, deprecated endpoints, silent rate limits, format rules that differ per surface. Blotato sells a single endpoint that absorbs all of it, which is why it shows up as a node in other people's automations rather than as the whole workflow. If your posting surface is Bluesky, Mastodon and a newsletter, none of that applies and you should build it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Drafting the posts is the easy half, and an agent will nail it in an afternoon. The moat is approved write access across a dozen walled platforms plus the unglamorous work of keeping it alive when each one breaks.",
+  "prompt": "Build a local-first social content repurposer and publishing queue called \"postpile\".\n\nStack: TypeScript, Node 20, SQLite via better-sqlite3, one small Express server with server-rendered HTML plus htmx. No React, no bundler, no build step beyond tsc. Start with `npm run dev`, database at ./data/postpile.db.\n\nIn scope:\n1. Add a source: pasted text, a URL that gets fetched and stripped to readable text, or a local transcript file.\n2. Generate variants by calling an OpenAI-compatible API, base URL and key from .env. Targets: X thread, LinkedIn post, Instagram caption with hashtags, short-form video hook script, newsletter blurb.\n3. Keep one prompt template per target as editable markdown in ./prompts so voice can be tuned without touching code.\n4. Queue table with columns: source_id, platform, body, media_paths, scheduled_at, status, attempts.\n5. Editor view per queued item with a live character counter and a hard per-platform cap.\n6. Real publish adapters for the platforms with token auth only: Bluesky via AT Protocol app password, Mastodon via access token, Telegram channel via bot token, Discord via webhook. One adapter interface, each adapter pure and unit tested against a fake HTTP client.\n7. For X, LinkedIn, Instagram, TikTok and YouTube do not pretend. Implement a \"manual handoff\" adapter that renders copy-ready text, lists media files to download, and marks the item posted only when I confirm.\n8. A node-cron worker in the same process that publishes due items, retries three times with exponential backoff, and writes every attempt to a runs table.\n9. Calendar view for the next 30 days, plus a dead-letter list.\n\nOut of scope: user accounts, multi-tenancy, OAuth flows, analytics scraping, AI video generation, hosted media, mobile app, telemetry of any kind.\n\nRules: every secret in .env with a committed .env.example, no network calls at import time, a seed script with three fake sources, and a README that states plainly which platforms this can automate and which it cannot, with the reason being platform approval rather than missing code.",
+  "promptCurated": false
+}
