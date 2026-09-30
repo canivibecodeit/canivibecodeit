@@ -1,0 +1,51 @@
+{
+  "slug": "grailpay",
+  "name": "GrailPay",
+  "domain": "grailpay.com",
+  "category": "finance-accounting",
+  "subcategory": "bank-to-bank payments infrastructure",
+  "tagline": "Payments infrastructure for bank-to-bank (ACH-style) transfers with risk scoring baked in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.grailpay.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Payments infrastructure is typically priced per transaction or by custom contract, not a flat monthly plan.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is money movement, which means it is not a software problem, it is a licensing, bank partnership and fraud liability problem. An agent can build you a beautiful payment request UI in an afternoon and it will move exactly zero dollars, because the actual product is access to bank rails plus the risk model that decides whether a given transfer is going to bounce or be a fraud loss you eat. Even if you skipped the licensing question and wrapped someone else's ACH API, you would just be paying a different provider and inheriting their risk decisions. The one thing you can genuinely build for yourself is the boring half: tracking who owes what, reconciling settled transfers, and chasing failures. Do that and keep the rails rented.",
+  "coreLoopDIY": "A local ledger that tracks payment requests, imports bank transaction CSVs, matches them to expected payments, and flags what never arrived.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Bank or processor CSV exports (no live rails)",
+    "Node 20+ and SQLite",
+    "A real payment provider if you ever want to actually move money"
+  ],
+  "whatYouLose": [
+    "Actual bank rails: nothing you build initiates a transfer",
+    "Risk and return scoring, so every failed debit is your loss to discover late",
+    "Compliance posture: money transmission licensing, KYC, dispute handling",
+    "Webhooks and settlement status updates, replaced by you downloading CSVs",
+    "Anyone to call when a payment is stuck in a bank's overnight void"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "Bank partnerships and a loss history on failed debits are not things you can code around. The risk model is only as good as the volume that trained it.",
+  "whyPeopleStillPay": "Because the alternative to paying a payments company is becoming one, and becoming one means licensing, bank sponsorship, KYC vendors, chargeback and return handling, and a capital buffer for the debits that fail after you already shipped the goods. The API is the thin part. What you are buying is somebody else holding the regulatory and fraud risk, and doing it at enough volume that their guess about whether a given account will clear is better than yours. No self-hosted anything touches that.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the rails are not. The moat is bank sponsorship plus a loss history on failed debits that only accrues with volume.",
+  "prompt": "Build a local payment reconciliation tracker called \"paytrack\". It does NOT move money. It tracks money you expect and matches it against what actually landed.\n\nStack, no substitutions:\n- Node 20+, TypeScript, Hono for the HTTP server\n- SQLite via better-sqlite3, file at ./data/paytrack.db\n- Server-rendered HTML with htmx for interactivity, plain CSS, no build step for the frontend\n- Run with a single `npm run dev`\n\nData model:\n- payer: id, name, email, notes\n- request: id, payer_id, amount_cents, currency, due_date, memo, status (open | matched | failed | written_off), created_at\n- bank_txn: id, posted_date, amount_cents, description, external_ref, source_file, matched_request_id nullable\n\nFeatures, in scope:\n1. CRUD for payers and payment requests.\n2. CSV import of bank transactions. Let the user map columns on upload (date, amount, description, reference) and remember the mapping per source_file name in a small mappings table. Deduplicate on (posted_date, amount_cents, external_ref).\n3. Auto-match: for each unmatched credit, suggest open requests with the same amount and a due_date within 14 days, ranked by name or memo appearing in the description. Show suggestions, require one click to confirm. Never auto-confirm.\n4. Aging view: open requests grouped by 0-7, 8-30, 31-60, 60+ days past due, with totals.\n5. Mark a request failed with a free-text reason, and a written_off action.\n6. Export a CSV of open and failed requests.\n\nExplicitly out of scope: do not integrate any payment API, do not attempt ACH, do not add auth, accounts, telemetry, or cloud anything. Single user on localhost.\n\nPut nothing secret in code. If you add optional email reminders later, read SMTP config from .env and ship a .env.example. Include a seed script with 3 payers, 12 requests, and a sample bank CSV so the matching UI is demonstrable on first run. Write a README that states plainly, at the top, that this tool tracks payments and cannot initiate them.",
+  "promptCurated": false
+}
