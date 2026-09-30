@@ -1,0 +1,52 @@
+{
+  "slug": "wayari",
+  "name": "Wayari",
+  "domain": "wayari.com",
+  "category": "dev-tools",
+  "subcategory": "coding agent orchestration",
+  "tagline": "Desktop orchestrator that runs Claude Code and Codex in isolated git worktrees, gates the output behind checks and an independent review, then opens a pull request.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://wayari.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core here is shell plumbing: create a git worktree, spawn an agent CLI in it, run the repo's own checks, pipe the diff back through a second model for review, then call gh to open a PR. An agent can write a working single-repo version of that in one sitting, and it will genuinely be useful. What one sitting does not get you is the boring 80 percent: stalled sessions, agents that blow their context mid task, half-applied patches, worktrees that need cleaning up, parallel runs competing for the same lockfile, and a review gate whose prompts have actually been tuned against real failures. There is also no vendor lock-in to escape, since it drives the same agent subscriptions you already pay for, so the only question is whether you want to maintain the harness yourself. Buy it if your time is worth more than a weekend plus ongoing breakage every time the underlying CLIs change their flags.",
+  "coreLoopDIY": "A CLI that takes a task description, opens a fresh git worktree, runs your coding agent inside it non-interactively, runs lint and tests, has a second model review the resulting diff, and opens a pull request only if both gates pass.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "git 2.15+ for worktree support",
+    "Claude Code and/or Codex CLI installed and already signed in locally",
+    "gh CLI authenticated against your repo host",
+    "a repo with real lint and test commands, otherwise the gate is theatre",
+    "an API key for the reviewer model in .env, or a second agent CLI to shell out to"
+  ],
+  "whatYouLose": [
+    "Recovery: your version will happily leave a wedged agent and an orphaned worktree behind, and you will find out an hour later",
+    "A desktop UI with live session streaming instead of tailing log files in a second terminal",
+    "Review prompts and evidence artifacts that were tuned against real failure modes rather than guessed at once",
+    "Safe parallelism across several repos and tasks at the same time without them stepping on each other",
+    "Someone else absorbing the maintenance when the agent CLIs change their non-interactive flags, which they do"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is failure handling, not features. Every hour spent on the happy path is cheap and every hour spent on stalls, retries and cleanup is not.",
+  "whyPeopleStillPay": "Because the demo build works and the daily driver does not. Anyone who has run agents unattended knows the value is entirely in what happens when things go sideways: the agent loops, the tests hang, the patch lands half applied, the review passes something obviously wrong. That is a long tail of specific fixes, and paying for it is cheaper than discovering each one yourself at 11pm. It also runs on the agent subscriptions you already have, so the spend is on the harness rather than on tokens, which is a much easier decision than most tooling purchases.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The first version of this is a 200 line script; the tenth version is a product.",
+  "prompt": "Build a local CLI tool called \"hutch\" that runs coding agents in isolated git worktrees and gates their output before opening a pull request.\n\nStack, no substitutions: Node 20, TypeScript, pnpm, commander for the CLI, execa for subprocesses, yaml for config, chalk for output. No server, no database, no web UI, no accounts, no telemetry.\n\nCommands:\n- hutch init: writes hutch.yaml in the current repo with agent command, check commands, base branch, and reviewer model.\n- hutch run \"task description\": the main loop.\n- hutch list: shows active runs read from .hutch/runs/*.json.\n- hutch clean: removes finished worktrees and stale run records.\n\nThe run loop, in order:\n1. Refuse to start on a dirty working tree. Create a branch named hutch/{slug}-{shortid} and a worktree under .hutch/worktrees/.\n2. Spawn the configured agent CLI inside the worktree in non-interactive mode with the task text, streaming stdout and stderr to .hutch/logs/{runid}.log. Enforce a configurable wall clock timeout and kill the process group on timeout.\n3. Run each check command from hutch.yaml in the worktree, in order, capturing exit code and last 100 lines of output. Stop at the first failure.\n4. On check failure, feed the failing output back to the agent once as a repair turn, then re-run checks. One repair attempt only, then mark the run failed.\n5. On checks passing, produce the diff against the base branch and send it plus the task text to the reviewer model via a single HTTP call using an API key from .env. Ask for a strict JSON verdict: {\"decision\": \"approve\" | \"reject\", \"reasons\": [...]}. Parse defensively and treat unparseable output as reject.\n6. On approve, push the branch and open a PR with the gh CLI. The PR body must include the task text, the check commands with exit codes, and the reviewer reasons.\n7. On reject or failure, leave the worktree in place and print the log path.\n\nPersist every run as JSON in .hutch/runs/ with status transitions and timestamps so hutch list works after a crash. Add a signal handler that marks in-flight runs as interrupted instead of leaving them as running.\n\nIn scope: one repo at a time, sequential runs, .env for the reviewer API key, a README with a two minute quickstart. Out of scope: parallel runs, a GUI, multi-repo management, agent auth handling, any hosted component.\n\nWrite tests for the config parser, the diff-to-review payload builder, and the reviewer JSON parsing including the malformed cases.",
+  "promptCurated": false
+}
