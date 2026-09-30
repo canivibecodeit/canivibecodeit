@@ -1,0 +1,51 @@
+{
+  "slug": "trustindex",
+  "name": "Trustindex",
+  "domain": "trustindex.io",
+  "category": "testimonials",
+  "subcategory": "review aggregation and widgets",
+  "tagline": "Pulls reviews from Google, Facebook, Trustpilot and dozens of other platforms and renders them as embeddable widgets and badges on your site.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.trustindex.io/",
+    "checkedOn": "2026-09-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible product is a review carousel in a div, and an agent will absolutely build you that in an afternoon, including JSON-LD markup and a decent grid layout. The part that does not come for free is the supply side: Trustindex maintains connectors to a long list of review platforms, and most of those have no friendly public API. Google Places will hand you five reviews per place and that is the documented cap, Facebook page reviews need an approved app and page token, and the rest ends up as scraping you have to babysit. If your reviews live in one place, or you are happy pasting them in as data you curate yourself, the DIY version is genuinely fine and loads faster than a third-party script. If you wanted the auto-syncing many-platform firehose plus the review collection emails, you are rebuilding an integrations company.",
+  "coreLoopDIY": "Fetches reviews from the Google Places API on a schedule, stores them in SQLite alongside manually imported reviews from other platforms, and serves a one-line embeddable script that renders a carousel or grid with rating schema markup.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Google Maps Platform API key and your place ID",
+    "Somewhere to host a small Node process and a static script (a $5 VPS or any small container host)",
+    "Manual export or copy-paste for reviews living on platforms without an API"
+  ],
+  "whatYouLose": [
+    "Connectors to dozens of review sources kept working as those sources change their markup and auth",
+    "Getting past the five-review Google Places cap, which Trustindex works around at the platform level",
+    "Review collection: request emails, SMS, QR flows, landing pages for gathering new reviews",
+    "Prebuilt widget layouts, badges and AMP or page-builder plugins that non-technical people can drop in",
+    "Sentiment tagging, reply management and multi-location dashboards if you ever grow into them"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is unglamorous connector maintenance plus platform-level API access that a personal project will not be granted.",
+  "whyPeopleStillPay": "Because the widget is the easy 20 percent. Businesses pay so that someone else is on the hook when Facebook rotates a token format or Google changes a response shape, and so the marketing person can pick a layout from a dropdown instead of filing a ticket. There is also a real trust angle: a badge that says the reviews are verified from the source carries more weight than a JSON file you control, even if the reviews are identical. And the collection side, nudging customers into leaving reviews at all, is worth more to most buyers than the display side they think they are paying for.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this if your reviews live on one platform, buy it if they live on six.",
+  "prompt": "Build a self-hosted review widget service. Single Node 20 + TypeScript project, no framework menus.\n\nStack, non negotiable:\n- Hono for the HTTP server, running on Node.\n- better-sqlite3 for storage, single file data/reviews.db, migrations as plain SQL run at boot.\n- Vanilla TypeScript compiled with esbuild for the embeddable widget. No React in the widget.\n- Zod for validating config and imported review payloads.\n\nWhat it does:\n1. A sync job (node src/sync.ts, also runnable on an interval from the server) that calls the Google Places Details API with GOOGLE_MAPS_API_KEY and GOOGLE_PLACE_ID from .env, and upserts returned reviews into the reviews table keyed by a hash of author plus time. Assume the API returns at most five reviews; do not pretend otherwise, log the cap in the sync output.\n2. A manual import path: node src/import.ts path/to/reviews.json accepts an array of { source, author, rating, text, date, url } and upserts the same way. This is how reviews from Facebook, Trustpilot, Yelp and anywhere else get in.\n3. Admin: a single server-rendered HTML page at /admin protected by basic auth (ADMIN_USER, ADMIN_PASS in .env) listing all reviews with toggles for hidden and pinned, plus a free text note field. No user accounts, no signup, one operator.\n4. Public API: GET /api/reviews returns visible reviews ordered pinned first then newest, with ETag and Cache-Control, plus an aggregate { count, average }.\n5. Embed: GET /embed.js serves the compiled widget. Host page usage is one script tag with data attributes for layout (carousel or grid), max count, min rating, and theme (light or dark). The widget renders into its own Shadow DOM so host CSS cannot touch it, is keyboard navigable, lazy loads, and never exceeds 15KB gzipped.\n6. SEO: the widget also injects a JSON-LD AggregateRating plus Review blocks built from the same data. Put a clear comment in the code noting that fabricating or filtering ratings to inflate this is a policy violation, and make min rating filtering apply only to display, never to the JSON-LD aggregate.\n\nExplicitly out of scope: review request emails, SMS, multi-tenant accounts, billing, scraping any site that lacks an API, telemetry of any kind.\n\nDeliver: README with setup in under ten commands, .env.example, npm scripts for dev, build, sync and import, one seed JSON of fake reviews so the widget renders before any API key exists, and a demo.html at the repo root that loads the embed against the local server.",
+  "promptCurated": false
+}
