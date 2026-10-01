@@ -1,0 +1,52 @@
+{
+  "slug": "yuno",
+  "name": "Yuno",
+  "domain": "y.uno",
+  "category": "commerce",
+  "subcategory": "payment orchestration",
+  "tagline": "One API that sits in front of many payment providers, with smart routing, retries, fraud tooling and a card vault.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://y.uno/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Payment orchestration is quoted per merchant, usually volume based, and not published.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Yuno is not an app you use, it is a layer you route real money through. The product value is the pile of pre-built, certified, maintained connections to hundreds of acquirers, wallets and local payment methods across markets where each one has its own quirks, settlement rules and failure modes. On top of that sits PCI DSS scope, card vaulting, network tokenization and the acquirer relationships that make routing and retries actually lift authorization rates. An agent can absolutely build you a clean routing abstraction over two or three gateways in sandbox, and that is a genuinely useful internal tool. It cannot build the certifications, the connector maintenance, or the years of decline-code telemetry that decide where a transaction should go next.",
+  "coreLoopDIY": "A self-hosted payments facade: one internal API that normalizes charges, refunds and webhooks across a couple of gateways, with rule-based routing and failover retries, in sandbox.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Sandbox accounts and API keys for at least two payment gateways",
+    "A public HTTPS endpoint or tunnel for webhook delivery",
+    "Hosted fields or provider-side tokenization so raw card data never touches your server",
+    "Somewhere real to run it if you ever take live traffic, plus someone who understands your PCI obligations"
+  ],
+  "whatYouLose": [
+    "Hundreds of maintained connectors to local methods, wallets and acquirers per country, including the ones that break quietly every quarter",
+    "PCI DSS Level 1 scope and a card vault, so stored cards and network tokens become your problem instead of theirs",
+    "Routing intelligence built on aggregate decline codes and auth-rate data you will never have from one merchant's traffic",
+    "Reconciliation, settlement reporting and chargeback workflows across providers",
+    "Fraud screening, 3DS orchestration and the compliance paperwork that comes with cross-border payments"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "proprietary-data"
+  ],
+  "moatNotes": "Connector count is the visible moat; the invisible one is keeping all of them alive while acquirers change APIs and local regulators change rules.",
+  "whyPeopleStillPay": "Because the alternative is a payments team. Every gateway you add by hand is a new set of error semantics, a new webhook format, a new settlement file, a new compliance question, and a permanent maintenance obligation. Orchestration is bought at the exact moment a merchant realizes the second and third provider cost more engineering than the first, and that nobody internally wants to own card data. The fee buys scope reduction and someone to call at 2am when authorizations drop in one country.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The facade is a multi-day build; the connector fleet and the PCI scope are not. The moat is hundreds of maintained, certified provider integrations plus the auth-rate data that makes routing worth anything.",
+  "prompt": "Build a self-hosted payment orchestration facade. This is an internal tool for routing sandbox payments across multiple gateways, not a production payment processor.\n\nStack, no substitutions: TypeScript, Node 22, Fastify, SQLite via better-sqlite3, Zod for validation, Vitest for tests. Server-rendered admin UI with Fastify plus EJS templates and plain CSS. No React, no ORM, no cloud services.\n\nCore model:\n- A single internal API: POST /payments, POST /payments/:id/refund, GET /payments/:id.\n- Provider adapters behind one interface: authorize, capture, refund, parseWebhook. Implement two adapters against sandbox APIs, Stripe and Adyen, plus a MockProvider that returns scriptable success, soft decline and hard decline results.\n- Never accept raw card numbers. The API takes a provider-side token or payment method id only. Reject any request body containing a field that looks like a PAN and log the rejection.\n\nRouting:\n- Rules stored in SQLite: ordered list matching on currency, country, amount range and payment method, each pointing at a provider.\n- Failover: on a soft decline or provider timeout, retry the next eligible provider, max two retries, with idempotency keys so a retry never double charges.\n- Record every attempt: provider, latency, raw status, normalized status, decline code.\n\nWebhooks:\n- POST /webhooks/:provider verifies the provider signature using secrets from .env, normalizes to one internal event shape, and is idempotent on provider event id.\n\nAdmin UI:\n- Payments list with filters, a payment detail page showing the full attempt chain, a rules editor, and an auth-rate-by-provider summary.\n\nIn scope: routing, retries, idempotency, normalized events, attempt auditing.\nOut of scope: card vaulting, 3DS, fraud scoring, settlement and reconciliation, PCI compliance, multi-tenant auth, real money.\n\nAll secrets in .env, with .env.example committed. Seed script that creates sample rules and runs ten mock payments. README that states plainly this is sandbox only and that going live means PCI scope you have not addressed.",
+  "promptCurated": false
+}
