@@ -1,0 +1,52 @@
+{
+  "slug": "eatapp",
+  "name": "EatApp",
+  "domain": "eatapp.co",
+  "category": "scheduling",
+  "subcategory": "restaurant reservations and table management",
+  "tagline": "Reservation, waitlist and table management software for restaurants, with a host-facing floor plan and guest CRM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://restaurant.eatapp.co/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The booking form and the floor plan are the easy part: an agent can give you tables, time slots, double-booking checks and a guest history table in an afternoon. What you cannot generate is inbound demand, which is the actual product here. EatApp plugs into reservation channels, Google and social booking buttons, POS systems, payment holds and SMS confirmations, and it does that while a host is tapping an iPad during a Friday rush with no patience for your bugs. A restaurant that loses covers because a self-built system double-sat table 12 has lost more money than a year of software. The honest build is an internal reservation book for a very small place that takes bookings by phone, not a replacement.",
+  "coreLoopDIY": "A local web app where a host books guests onto tables across time slots, sees a floor plan and a nightly list, and keeps a simple guest history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or cheap VPS that stays up during service",
+    "A tablet or laptop at the host stand",
+    "Twilio or similar if you want SMS confirmations, which means a paid account and sender approval",
+    "Someone on call when it breaks mid service"
+  ],
+  "whatYouLose": [
+    "Inbound reservations from external booking channels and search or social booking buttons",
+    "POS integration, so covers, checks and no-show tracking never line up",
+    "SMS and email confirmation and reminder flows that actually reduce no-shows",
+    "Deposits and card holds for large parties",
+    "Reliability and support during service, plus staff who already know the interface"
+  ],
+  "moatTags": [
+    "integrations",
+    "network-effects",
+    "switching-costs"
+  ],
+  "moatNotes": "Restaurant software moats are boring and real: POS connectors, booking channel plumbing, and staff muscle memory.",
+  "whyPeopleStillPay": "Restaurants do not buy reservation software because the data model is hard, they buy it because it fills seats and because it does not fall over at 8pm on a Saturday. The distribution side, bookings arriving from search, maps, social and partner channels, is worth more than the software itself, and no self-hosted build produces it. Add POS sync, card holds, SMS reminders and a support line, and the monthly fee is cheaper than two lost tables.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The reservation book is a weekend build; the demand that fills it is not. The moat is distribution plus POS integrations plus staff who already trust the screen.",
+  "prompt": "Build a local-first restaurant reservation book for a single small venue that takes bookings by phone and walk-in.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/book.db\n- Drizzle for schema and migrations\n- Runs with `npm run dev` on localhost, no auth, no cloud, no telemetry\n\nData model:\n- tables: id, label, seats, x, y (for floor plan placement)\n- reservations: id, guestId, tableId, startsAt, durationMinutes (default 90), partySize, status (booked, seated, done, no_show, cancelled), notes\n- guests: id, name, phone, email, tags (text), notes, createdAt\n- Unique constraint logic in code: reject a booking if it overlaps an existing non-cancelled reservation on the same table\n\nScreens:\n1. Service view: pick a date, see a timeline grid of tables (rows) by 15 minute slots (columns), click an empty cell to open a booking drawer, drag a reservation block to move it (keep this simple, HTML5 drag is fine)\n2. Floor plan view: absolutely positioned table shapes from x/y, colored by current status, click to seat or close a reservation\n3. Guest lookup: search by name or phone, show past visits, no-show count, notes\n4. Tonight list: printable plain list of the day's reservations by time\n\nRules and behavior:\n- Overbooking check must run server side before insert, return a clear error\n- Seating a reservation sets status seated and stamps seatedAt\n- Auto-mark booked reservations as no_show 30 minutes past start via a button, not a background job\n- Seed script creates 12 tables and 20 sample reservations\n\nExplicitly out of scope: online booking widget, SMS or email sending, payments and deposits, POS integration, multi venue, user accounts, mobile app.\n\nDeliverables: working app, seed script, README with setup in under 10 lines, and a .env.example even if it only holds DATABASE_PATH.",
+  "promptCurated": false
+}
