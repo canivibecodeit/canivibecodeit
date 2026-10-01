@@ -1,0 +1,51 @@
+{
+  "slug": "spendee",
+  "name": "Spendee",
+  "domain": "spendee.com",
+  "category": "personal-finance",
+  "subcategory": "budgeting and expense tracking",
+  "tagline": "Expense tracking and budgeting app with bank account sync, shared wallets, and category breakdowns.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://spendee.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The accounting part of Spendee is not hard: transactions, categories, budgets per category per month, a couple of charts. An agent will produce that in an afternoon and it will do everything you actually look at. The part that breaks is bank sync, which Spendee buys from an open banking aggregator that will not sell to one person with a hobby project, so you are importing CSVs by hand or writing a scraper that dies every time a bank ships a redesign. You also lose the phone app, which matters a lot for a tool whose whole premise is logging a coffee thirty seconds after buying it. Build it if you are happy to import statements weekly; skip it if the automatic feed is the only reason you stayed.",
+  "coreLoopDIY": "A local web app where you import bank CSVs or add transactions by hand, auto-categorize them with rules, and see spend against monthly budgets per category.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Somewhere to run it: a laptop, a home server, or a cheap VPS",
+    "Bank statement CSV exports, downloaded manually",
+    "Willingness to write category rules for your own merchants"
+  ],
+  "whatYouLose": [
+    "Automatic bank and card feeds via open banking providers",
+    "Native iOS and Android apps, including widgets and quick-add",
+    "Shared wallets with a partner or household",
+    "Multi-currency handling with live rates",
+    "Someone else worrying about backups and data loss"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "collaboration"
+  ],
+  "moatNotes": "The real asset is the licensed bank aggregation layer plus the regulatory paperwork behind it. Nobody one-shots a PSD2 connection.",
+  "whyPeopleStillPay": "Because manual expense tracking fails for almost everyone within three weeks. The value is not the pie chart, it is that transactions show up without you doing anything, on a phone you already have in your hand, categorized well enough that the pie chart is not a lie. Paying a few dollars a month to never think about CSV exports is a rational trade, and the shared wallet feature quietly locks in couples who have built a year of joint history in it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ledger is trivial; the feed is the product.",
+  "prompt": "Build a local-first personal finance tracker called \"Ledger\" as a single self-hosted web app.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript\n- SQLite via Prisma, database file at ./data/ledger.db\n- Tailwind CSS for styling, Recharts for charts\n- No auth, no accounts, no telemetry, no external APIs. It runs on localhost or behind my own reverse proxy.\n\nData model:\n- Account: id, name, type (cash, checking, card), currency, openingBalance\n- Category: id, name, kind (expense or income), monthlyBudget (nullable, minor units)\n- Transaction: id, accountId, categoryId (nullable), date, amountMinor (signed integer), description, rawDescription, notes, importHash (unique, nullable)\n- Rule: id, matchType (contains or regex), pattern, categoryId, priority\n\nFeatures in scope:\n1. CSV import: upload a bank CSV, map columns (date, description, amount, or separate debit/credit) in the UI, preview rows, skip duplicates using importHash built from account + date + amount + rawDescription. Remember the column mapping per account.\n2. Rule engine: on import and on demand, apply rules by priority to set categories. Uncategorized transactions surface in an inbox with a one-click \"always categorize this merchant as X\" that creates a rule.\n3. Manual entry and inline edit of any transaction, including split into multiple category lines.\n4. Dashboard for a selected month: total in, total out, net, spend by category as a bar list with budget progress, and a 12-month trend line.\n5. Transactions page with filters by date range, account, category, and free text search.\n6. Settings page to manage accounts, categories, budgets, and rules.\n7. Export everything to CSV and JSON. A \"Backup now\" button that copies the SQLite file into ./data/backups with a timestamp.\n\nOut of scope, do not attempt: bank or open banking connections, scraping, OAuth, mobile apps, multi-user sharing, live exchange rates, investment tracking.\n\nRules:\n- Store all money as signed integer minor units. Never use floats for amounts.\n- Single currency per account; display the account's currency symbol, do no conversion.\n- Any config goes in .env with a committed .env.example. No secrets in code.\n- Seed script with a handful of accounts, categories, and sample transactions so the dashboard is not empty on first run.\n- README with: install, prisma migrate, seed, dev, and how to point it at a different data directory.",
+  "promptCurated": false
+}
