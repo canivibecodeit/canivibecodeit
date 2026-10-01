@@ -1,0 +1,52 @@
+{
+  "slug": "issuu",
+  "name": "Issuu",
+  "domain": "issuu.com",
+  "category": "publishing",
+  "subcategory": "PDF to flipbook hosting",
+  "tagline": "Uploads a PDF and turns it into a hosted, embeddable flipbook with reader stats and a public catalog page.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://issuu.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The thing most people actually buy here is a PDF that looks like a magazine in a browser and an embed code for their own site. That is pdf.js plus a page turn animation plus a static file, and a coding agent can put all three together in an afternoon. Issuu layers extras on top: reader analytics, lead capture, auto-clipping pages into social assets, and its own browsable publication network. The network part is real but almost nobody chooses Issuu for inbound readers from issuu.com, they choose it because embedding a 40MB PDF nicely is annoying. Once you self-host, that annoyance is a solved problem.",
+  "coreLoopDIY": "Drop PDFs in a folder, get a URL per publication that renders it as a swipeable page-flip reader with a copyable iframe embed snippet.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+",
+    "Somewhere to host static files plus a tiny server, or just a VPS",
+    "The source PDFs, ideally compressed first",
+    "A CDN or decent bandwidth if the PDFs are large or popular"
+  ],
+  "whatYouLose": [
+    "Issuu's own discovery surface and whatever trickle of readers comes from it",
+    "Per-page reader analytics, dwell time, and lead gen forms inside the reader",
+    "Automatic repurposing: article conversion, GIFs, and social clips cut from pages",
+    "Bandwidth and CDN handling for heavy, image-dense PDFs that someone else worries about",
+    "Mobile reading polish that has been sanded down by years of real traffic"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "network-effects",
+    "execution-polish"
+  ],
+  "moatNotes": "The infra moat is only a moat if your PDFs are big and your traffic is real. For a portfolio, a zine, or a product catalog, it is not.",
+  "whyPeopleStillPay": "Because PDFs are heavier and worse behaved than people expect, and a hosted viewer means never debugging why page 63 renders blank on iOS Safari. Teams also pay for the analytics and lead capture, which is the only part of the product that is genuinely hard to replicate honestly, and for the fact that marketing can upload a file without talking to engineering. If a publication is a core revenue channel, outsourcing the viewer is cheap. If it is one brochure, it is rent.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The flipbook is the product, and the flipbook is a library call.",
+  "prompt": "Build a self-hosted PDF flipbook publisher. No accounts, no cloud services, no telemetry.\n\nStack, non negotiable:\n- Next.js 14 App Router with TypeScript\n- pdfjs-dist for rendering pages to canvas in the browser\n- Tailwind for styling\n- No database: publications are read from the filesystem\n\nLayout:\n- /publications/SLUG/document.pdf plus optional /publications/SLUG/meta.json with { title, description, coverPage }\n- On boot, scan /publications and build an in-memory index\n\nPages:\n- / : grid of publications with cover thumbnails rendered from page 1, title, page count\n- /p/[slug] : the reader\n- /embed/[slug] : the same reader, chrome stripped, safe to iframe (no X-Frame-Options blocking on this route only)\n\nReader requirements:\n- Two page spread on wide screens, single page on narrow screens\n- Page turn animation via CSS 3D transform, no jQuery plugins\n- Keyboard arrows, click on left/right half, swipe on touch\n- Lazy render: only render current spread plus one ahead, cache rendered canvases\n- Render at devicePixelRatio, cap canvas at 2048px on the long edge\n- Page number input to jump, plus a thumbnail strip toggle\n- Fullscreen button, download button (toggleable per publication via meta.json allowDownload)\n- Text layer overlay so copy/paste and ctrl+F in the browser work\n\nAlso:\n- On /p/[slug], show a copyable iframe embed snippet with width, height, and a configurable base URL from NEXT_PUBLIC_BASE_URL in .env\n- Serve the raw PDF with long cache headers\n- A scripts/thumbs.ts that pre-renders cover JPEGs into /public/thumbs so the homepage is not rendering PDFs\n\nExplicitly out of scope: analytics, lead capture forms, social clip generation, search across publications, multi user admin, upload UI. Adding PDFs means dropping files in a folder.\n\nFinish with a README: how to add a publication, how to run thumbs.ts, how to deploy behind a reverse proxy, and a warning that PDFs over 30MB should be compressed first.",
+  "promptCurated": false
+}
