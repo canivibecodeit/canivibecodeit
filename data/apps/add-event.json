@@ -1,0 +1,51 @@
+{
+  "slug": "add-event",
+  "name": "AddEvent",
+  "domain": "addevent.com",
+  "category": "tasks-calendar",
+  "subcategory": "add-to-calendar links and embeddable calendars",
+  "tagline": "Hosted add-to-calendar buttons, subscribable calendar feeds, and event embeds for websites and email.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.addevent.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The hard part of AddEvent is not hard: an .ics file is a plain text format, and the Google, Outlook, Yahoo and Office 365 add-to-calendar URLs are documented query strings. An agent can produce a working button, a generated .ics, and a subscribable webcal feed in one sitting. Where it gets annoying is the long tail: Outlook desktop quirks, timezone and DST correctness, recurring event rules, feed caching so subscribers actually see updates, and the click analytics that justify the paid tier. If you need one static event on one landing page, build it. If you are publishing a living calendar that thousands of people subscribe to and you need to know who clicked what, the hosted version is doing real work you would otherwise babysit.",
+  "coreLoopDIY": "Generates a dropdown add-to-calendar button plus a downloadable .ics file and a subscribable webcal feed from a list of events you define in a config file.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A place to host static files or a tiny server for the feed endpoint",
+    "A stable public URL (subscribable feeds break if the URL moves)",
+    "Correct IANA timezone handling, which is where most hand-rolled .ics files go wrong"
+  ],
+  "whatYouLose": [
+    "Click and subscription analytics per button and per event",
+    "Battle-tested .ics output that survives Outlook desktop, Apple Calendar and Gmail oddities",
+    "Hosted feed uptime and cache behavior so subscribers get updates reliably",
+    "The no-code editor and embeddable calendar widgets for non-developers",
+    "Recurring event, reminder and timezone edge cases already solved"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is compatibility trivia across calendar clients, not technology. Nothing stops you, it just nibbles you.",
+  "whyPeopleStillPay": "Because calendar clients are a swamp. The spec is open, but every client interprets it slightly differently, and the failure mode is silent: an event that imports with the wrong hour or does not import at all, discovered by an annoyed customer. People also pay for the analytics, since a team running webinars wants to know how many people actually added the thing to their calendar, and for the fact that marketers can edit events without opening a repo. If you are a developer with one event, none of that applies to you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The format is open, the compatibility is the product. Build it for your own site, pay for it if a marketing team needs to touch it.",
+  "prompt": "Build a self-hosted add-to-calendar toolkit as a single small web project. No accounts, no cloud services, no telemetry.\n\nStack, non-negotiable:\n- Node 20 with TypeScript\n- Fastify for the server\n- No database. Events live in events.json at the project root.\n- Plain HTML, CSS and vanilla JS for the embeddable widget, no framework\n- Vitest for tests\n\nWhat to build:\n1. An event model: id, title, description, location, start, end, allDay flag, IANA timezone, optional RRULE string, optional url.\n2. An .ics generator written by hand against RFC 5545. Correct VTIMEZONE or UTC output, CRLF line endings, 75-octet line folding, escaped commas, semicolons and newlines in text fields, stable UID and DTSTAMP.\n3. Routes:\n   - GET /events/:id.ics returns a single VEVENT with Content-Disposition attachment\n   - GET /feed.ics returns all events as one VCALENDAR with X-WR-CALNAME and a sensible Cache-Control\n   - GET /widget.js serves the embeddable button script\n   - GET / serves a demo page using the widget\n4. A dropdown button widget that renders links for: download .ics (Apple and Outlook desktop), Google Calendar, Outlook Web, Office 365, Yahoo. Build each provider URL from the event data with correct encoding and each provider's date format. Also expose a webcal:// subscribe link for the feed.\n5. Click logging: append a JSON line to clicks.log with timestamp, event id and provider. Local file only, no external calls.\n\nTests: assert line folding, text escaping, all-day event DATE values, timezone-aware DTSTART, and that each provider URL contains the expected encoded title and times.\n\nExplicitly out of scope: hosted dashboard, user auth, RSVP, email sending, recurring event UI, multi-tenant anything.\n\nSecrets, if any are ever added, go in .env and .env is gitignored. Write a README with how to run it, how to add an event, and a blunt note that Outlook desktop is the most likely client to misbehave.",
+  "promptCurated": false
+}
