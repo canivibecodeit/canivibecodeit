@@ -1,0 +1,52 @@
+{
+  "slug": "rask-ai",
+  "name": "Rask AI",
+  "domain": "rask.ai",
+  "category": "localization",
+  "subcategory": "AI video dubbing and subtitles",
+  "tagline": "Translates and dubs video into dozens of languages with cloned voices and auto subtitles.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://it.rask.ai/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Rask bills against minutes of processed video, so effective monthly cost depends entirely on volume.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Every stage of this pipeline exists as a callable piece: Whisper for transcription, an LLM for translation, a TTS engine for the dub, ffmpeg to stitch it back. An agent can wire that into a working CLI in a weekend and the result genuinely dubs a video. The gaps are where the money is: speaker diarization that does not smear two voices together, timing compression so the Italian track fits the English mouth movements, voice cloning that does not sound like a kiosk, and a review editor for fixing the twelve lines the model got wrong. You will also lean on a hosted voice API for anything approaching Rask's output quality, which means the hard dependency does not actually go away. Fine for your own back catalogue, not fine for client deliverables.",
+  "coreLoopDIY": "A local CLI that transcribes a video, translates the transcript, synthesizes a dubbed audio track per language, and muxes it back with burned or sidecar subtitles.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "Python 3.11 plus faster-whisper, a GPU helps a lot",
+    "An LLM API key for translation",
+    "A TTS provider key for decent voices, or local XTTS if you accept worse output"
+  ],
+  "whatYouLose": [
+    "Lip sync and duration fitting, so your dubbed audio drifts out of sync on long clips",
+    "Clean multi-speaker diarization and per-speaker voice cloning",
+    "A browser editor for correcting transcripts, timings and pronunciation before export",
+    "Breadth and quality of voices across 100 plus languages",
+    "Batch processing, team review and the API other tools call"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The models underneath are mostly licensable. What is not licensable is the tuning that keeps a 40 minute talking-head video in sync and on-pitch without a human in the loop.",
+  "whyPeopleStillPay": "Because dubbing is a quality job, not a feature job. A DIY pipeline gets you to roughly recognizable output quickly, then eats days on the last 15 percent: a speaker label flipping mid-sentence, a translated line that runs two seconds long, a name pronounced phonetically wrong in every segment. Rask sells the absence of that cleanup, plus an editor for the cases it still gets wrong. If you publish localized video on a schedule or hand it to clients, paying per minute is cheaper than owning the pipeline.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for your own archive, pay for anything someone else signs off on.",
+  "prompt": "Build a local command line video dubbing tool in an empty folder. Stack: Python 3.11, no web UI, no accounts, no telemetry.\n\nCore command: `dub input.mp4 --to it,es,de --out ./dist`\n\nPipeline, implemented as separate modules so each step is resumable from cached artifacts in ./work:\n1. Extract audio with ffmpeg to 16kHz mono wav.\n2. Transcribe with faster-whisper, word level timestamps on, output a segment list with start, end, text.\n3. Run pyannote-style speaker diarization if a HUGGINGFACE_TOKEN is present in .env; otherwise label every segment as SPEAKER_00 and log that clearly.\n4. Translate segments with the OpenAI API using OPENAI_API_KEY from .env. Translate in batches of 20 segments with the surrounding segments as context, and instruct the model to keep each line within roughly the same syllable count as the source so the timing survives.\n5. Synthesize each translated segment with ElevenLabs if ELEVENLABS_API_KEY is set, else fall back to local Coqui XTTS v2 using a 10 second reference clip cut from the source audio per speaker.\n6. Fit each synthesized clip to its original slot: if it runs long, time stretch with ffmpeg atempo up to 1.15x, and if it still does not fit, log the overflow instead of silently clipping.\n7. Assemble the dubbed track on a silent timeline, duck or mute the original vocal track, mux with the video, and write both a burned-in and a sidecar .srt per language.\n\nAlso ship `dub review input.mp4 --lang it` which dumps an editable JSON of segments with translations so I can fix lines by hand, then re-run synthesis from that file only.\n\nIn scope: deterministic caching in ./work, a final report listing every segment that overflowed its slot, keys read from .env only, a README with the ffmpeg and model install steps.\n\nOut of scope: lip sync, a GUI, cloud storage, user accounts, any queue or server. Do not invent progress bars that lie about state.",
+  "promptCurated": false
+}
