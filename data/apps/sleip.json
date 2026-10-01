@@ -1,0 +1,53 @@
+{
+  "slug": "sleip",
+  "name": "Sleip",
+  "domain": "sleip.com",
+  "category": "wellness",
+  "subcategory": "equine lameness detection",
+  "tagline": "Smartphone video analysis that quantifies horse gait asymmetry for veterinary lameness workups.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sleip.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible surface is a video upload and some numbers, which looks trivially clonable until you ask where the numbers come from. The hard part is a pose model that tracks equine anatomy reliably across handlers, surfaces, lighting and camera angles, plus thresholds calibrated against vet-labeled cases so a reading means something clinically. An agent can absolutely wire up an off the shelf animal keypoint model and compute head and pelvis vertical asymmetry per stride, and that is a genuinely fun afternoon. What it cannot produce is the labeled corpus, the agreement studies, or the professional credibility that makes a vet willing to put the output in a record. You would be building a plot, not a diagnostic.",
+  "coreLoopDIY": "Runs an off the shelf animal pose model over a trot-up video and plots per-stride vertical asymmetry of head and pelvis keypoints.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python with a pretrained animal keypoint model (DeepLabCut model zoo or MMPose animal config)",
+    "ffmpeg",
+    "A machine with a GPU, or patience",
+    "Steady, side-on and head-on trot-up footage at 60fps or better",
+    "No clinical interpretation, ever"
+  ],
+  "whatYouLose": [
+    "Thresholds validated against veterinary ground truth, so your numbers are decoration",
+    "Repeatability across surfaces, handlers, footwear and camera operators",
+    "A capture app that coaches the user into usable footage instead of a shaky 30fps clip",
+    "Case history, horse records and reports you can hand to an owner or insurer",
+    "Any standing at all in a professional or regulatory context"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "proprietary-models",
+    "brand-trust"
+  ],
+  "moatNotes": "Vet-labeled equine gait video is slow, expensive and seasonal to collect, and it is the whole product.",
+  "whyPeopleStillPay": "Vets pay because the output is defensible. A subjective lameness grade is contested all the time, especially around sales and insurance, and a consistent quantified reading taken the same way every visit is worth real money in that argument. That value depends entirely on the measurement being trusted by someone other than the person who took it, which is exactly the part you cannot self-host. A personal build is useful for tracking your own horse's trend over months and nothing more.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The keypoint pipeline is a weekend; the calibration is years. The moat is vet-labeled equine gait footage and the clinical credibility built on top of it.",
+  "prompt": "Build a local, offline equine gait asymmetry viewer. Python only, no web service, no accounts, no telemetry.\n\nStack: Python 3.11, uv for deps, OpenCV for video IO, MMPose with a pretrained animal keypoint model (AP-10K config) for inference, NumPy and SciPy for signal work, Matplotlib for output, Streamlit for a single-page local UI. Pick these, do not offer alternatives.\n\nFlow:\n1. User drops in a side-on or head-on trot-up video file from local disk.\n2. ffmpeg-normalize the clip to a fixed fps and resolution, cache frames in a temp dir.\n3. Run the animal pose model frame by frame, keep keypoints for head, withers and pelvis/croup with confidence scores. Drop frames below a confidence floor and interpolate short gaps.\n4. Build vertical displacement time series for head and pelvis. Detrend, lowpass filter, then detect stride cycles via peak finding on the pelvis signal.\n5. Per stride, compute min and max height difference between left and right halves of the cycle, then report mean and standard deviation across strides as a unitless asymmetry index. Also report stride count and how many frames were discarded.\n6. Render: overlaid skeleton preview video, the two filtered signals with stride boundaries marked, and a table of per-stride values. Save everything to ./out/RUN_ID/.\n7. Store each run as a JSON file plus the plots in a local ./runs directory so the same horse can be compared over time by filename tag.\n\nExplicitly out of scope: any diagnosis, any lameness grade, any left/right limb attribution, any pass/fail threshold, cloud upload, multi-user anything.\n\nPrint a blunt disclaimer in the UI and in every exported report: this is an uncalibrated displacement measurement, not a clinical assessment, and the numbers are only comparable between clips shot the same way.\n\nSecrets: none needed. If you add a model download URL, put it in .env.example.\nShip a README with setup commands, a sample invocation, and the exact filming constraints the pipeline assumes (fixed camera, hard level surface, 60fps minimum, horse filling at least half the frame height).",
+  "promptCurated": false
+}
