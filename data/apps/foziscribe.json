@@ -1,0 +1,52 @@
+{
+  "slug": "foziscribe",
+  "name": "Foziscribe",
+  "domain": "foziscribe.ai",
+  "category": "voice-dictation",
+  "subcategory": "AI transcription and note drafting",
+  "tagline": "An AI scribe that turns spoken audio into cleaned up transcripts and structured notes.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://foziscribe.ai/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of any AI scribe is now commodity: an audio file goes into a speech model, the text goes into a language model with a formatting prompt, and structured notes come out. A coding agent can wire that up locally in an afternoon with faster-whisper and a template prompt, and for solo use on recorded audio it will hold up fine. The gaps are the unglamorous parts: live streaming transcription with low latency, speaker labels that are actually correct, a phone app that survives a pocket, and pushing finished notes into whatever system of record you actually live in. Public detail on this particular product is thin, so treat the verdict as a judgment on the category rather than on a feature list. If the paid version is doing domain-specific templating or operating in a regulated setting, the DIY build is a hobby version of a serious tool.",
+  "coreLoopDIY": "Drop in an audio file or record from the browser, get a timestamped transcript and an LLM-formatted note you can edit and export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine that can run a Whisper-class model, or an API key for a hosted speech model",
+    "An LLM API key for the note formatting step",
+    "ffmpeg installed",
+    "Patience for diarization, which is the part that will disappoint you"
+  ],
+  "whatYouLose": [
+    "Real-time transcription during a live conversation instead of after the fact",
+    "Speaker separation that is accurate enough to trust without reading the whole thing",
+    "A mobile app and reliable background recording",
+    "Handoff into other tools: shared docs, CRMs, EHRs, ticketing",
+    "Anyone to blame or call when a recording is silently lost"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Scribe products mostly compete on latency, vocabulary accuracy in a specific domain, and where the finished note lands. None of those are model access.",
+  "whyPeopleStillPay": "Because the demo is easy and the last mile is not. Getting a transcript is free; getting a note that is correct on jargon, attributes the right line to the right person, arrives seconds after the conversation ends, and lands in the right place without copy paste is a product, not a script. Add any setting with a confidentiality obligation and the calculus changes again: people pay for a vendor agreement and an audit trail as much as the transcription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Post-hoc transcription is a solved weekend project; live and in-domain is still the paid part.",
+  "prompt": "Build a local AI scribe web app in an empty folder. Stack: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), server-rendered Jinja2 templates, vanilla JS, no build step, no frontend framework.\n\nFeatures, in scope:\n1. A single-page UI at / with two ways to add audio: a file upload (mp3, m4a, wav, mp4) and a browser recorder using MediaRecorder that posts the blob to the same endpoint.\n2. On upload, normalize audio to 16kHz mono wav with ffmpeg via subprocess, then transcribe with faster-whisper (model size from WHISPER_MODEL in .env, default \"small\", CPU int8 by default).\n3. Store recordings and transcripts in SQLite: id, created_at, title, source_filename, duration_seconds, transcript_json (segments with start, end, text), transcript_text, note_markdown, template_name, status.\n4. Transcription runs in a FastAPI BackgroundTasks job. The UI polls /api/jobs/{id} every 2 seconds and shows status: queued, transcribing, drafting, done, failed. Failures store the error string and show it.\n5. After transcription, send the transcript plus a chosen template prompt to an LLM via the OpenAI-compatible endpoint configured in .env (OPENAI_API_KEY, OPENAI_BASE_URL, MODEL). Ship three templates as editable markdown files in templates_notes/: meeting.md, interview.md, generic-summary.md. Each template is a system prompt plus an output skeleton.\n6. A detail page per recording: left column is the transcript with clickable timestamps that seek an audio player, right column is the generated note in a textarea that saves on blur. Buttons: regenerate note with a different template, copy note, download note as .md, download transcript as .txt and .srt.\n7. A list page of all recordings with title, date, duration, template used, and delete.\n\nOut of scope, do not build: user accounts, login, multi-tenancy, teams, telemetry, analytics, payment, cloud storage, real-time streaming transcription, and speaker diarization. If speakers matter, just let the user type names into the note.\n\nRules: all secrets and model config in .env, read with python-dotenv, and ship a .env.example. Audio files live in ./data/audio, the database in ./data/scribe.db, both gitignored. Everything runs offline except the note-drafting call; if OPENAI_API_KEY is missing, skip drafting and still show the transcript.\n\nDeliver: requirements.txt, app.py (or a small app/ package if it exceeds 400 lines), templates, static assets, and a README with exact setup steps including the ffmpeg install line for macOS and Debian. Then run the server and self-check by transcribing a short generated test wav.",
+  "promptCurated": false
+}
