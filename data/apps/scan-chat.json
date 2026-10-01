@@ -1,0 +1,51 @@
+{
+  "slug": "scan-chat",
+  "name": "Scan Chat",
+  "domain": "scan-chat.ai",
+  "category": "documents",
+  "subcategory": "document scanning plus chat over scans",
+  "tagline": "Scan or upload documents, run OCR on them, then ask questions in a chat interface instead of reading the whole thing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://scan-chat.ai/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The chat half of this is now a solved weekend problem: extract text, chunk it, embed it, retrieve, answer with citations. The scan half is where it gets annoying, because good mobile capture means edge detection, deskew, glare handling, and a camera UI that behaves on a phone held at an angle in bad light. A desktop build that eats PDFs and photos you already have will work fine and cost you API pennies. A build that replaces pointing your phone at a stack of receipts and getting clean text back is a different project. Verdict depends entirely on whether you need the camera or just the answers.",
+  "coreLoopDIY": "A local web app where you drop PDFs or photos, it OCRs and indexes them, and you chat with the contents and get answers with page citations.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key, or a local model if you want it fully offline",
+    "Tesseract installed for OCR of image-only pages",
+    "Python 3.11 and a browser",
+    "Patience with OCR quality on handwriting and crumpled receipts"
+  ],
+  "whatYouLose": [
+    "A real mobile app with a tuned camera pipeline: edge detection, deskew, shadow removal",
+    "Sync across phone and laptop without you building it",
+    "OCR tuned across many languages and messy real-world documents",
+    "Handwriting recognition that is actually usable",
+    "Someone else fixing it when a 400 page scanned PDF makes it fall over"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The capture UX is the product. Retrieval over text is commodity; getting clean text out of a photo taken one-handed over a kitchen table is not.",
+  "whyPeopleStillPay": "Because most people meet this app on a phone, in the ten seconds between holding a document and wanting an answer about it. Nobody carries a laptop, a Tesseract install, and a terminal to that moment. If your documents already live as PDFs on a disk, the paid version is doing very little for you that forty lines of retrieval code will not. If your documents live on paper, you are paying for the camera pipeline, and that is a fair trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat is trivial, the scanning is the whole job, and which one you need decides this for you.",
+  "prompt": "Build a local document chat app called \"paperchat\". No accounts, no cloud storage, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, FastAPI backend, Uvicorn.\n- SQLite for everything: documents, pages, chunks, embeddings stored as BLOBs of float32.\n- Server rendered HTML with Jinja2 plus a little vanilla JS. No React, no build step.\n- pypdf for text layer extraction, pdf2image plus pytesseract for pages with no text layer, Pillow for plain image uploads.\n- OpenAI API for embeddings and chat completion. Read OPENAI_API_KEEY from .env via python-dotenv, and name the variable OPENAI_API_KEY correctly in the actual code.\n\nFeatures that are in scope:\n1. Upload page: drag and drop PDFs, PNGs, JPEGs. Multiple files at once.\n2. Ingest pipeline: for each PDF page, try the text layer first; if it yields under 50 characters, rasterize at 200 DPI and OCR it. For images, OCR directly. Store per page text with page numbers.\n3. Chunk at roughly 800 tokens with 100 token overlap, keep document id and page number on every chunk, embed with text-embedding-3-small, store vectors in SQLite.\n4. Library page: list documents with filename, page count, how many pages needed OCR, and a delete button.\n5. Chat page: pick one document or search all of them. Retrieve top 8 chunks by cosine similarity computed in numpy, send them to gpt-4o-mini with a prompt that forbids answering from outside the provided context, and require inline citations like [filename p.4].\n6. Render citations as links that open the page text in a side panel.\n7. Full text search fallback with SQLite FTS5, used when the query looks like a keyword lookup rather than a question.\n\nExplicitly out of scope: mobile camera capture, edge detection, deskew, handwriting models, sharing, user accounts, background workers. Ingest runs synchronously with a simple progress log streamed to the browser.\n\nDeliver: requirements.txt, .env.example, a single `python -m paperchat` entry point that creates the SQLite file on first run, and a README with the Tesseract and Poppler install lines for macOS and Debian. Include a short honest note in the README about OCR quality on photos versus clean PDFs.",
+  "promptCurated": false
+}
