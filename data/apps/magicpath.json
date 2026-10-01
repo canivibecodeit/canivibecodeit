@@ -1,0 +1,51 @@
+{
+  "slug": "magicpath",
+  "name": "MagicPath",
+  "domain": "magicpath.ai",
+  "category": "design",
+  "subcategory": "AI UI generation on a canvas",
+  "tagline": "An AI design tool that generates and refines UI on an infinite canvas, then hands you the code.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.magicpath.ai/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engine here is a model you do not own, wrapped in a canvas you can approximate. A coding agent can absolutely build you a local tool that takes a prompt, calls an API, renders a React component in a sandboxed iframe, and lets you iterate on it with follow-up instructions. What takes real effort is everything around that: an infinite canvas with pan, zoom and multiple live artboards, variant forking, responsive previews, and a design system that keeps output from looking like default Tailwind. Expect a usable personal version in a weekend and a scrappier one in an afternoon, with the polish gap staying visible. You also pay per token instead of per month, which may or may not be cheaper depending on how much you iterate.",
+  "coreLoopDIY": "Type a prompt, get a React component rendered live in a sandboxed iframe, then refine it with follow-up instructions and copy the code out.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key with a decent coding model",
+    "Node and a browser, everything runs locally",
+    "Tolerance for sandboxed iframe quirks when rendering generated code"
+  ],
+  "whatYouLose": [
+    "The infinite canvas with many artboards side by side, and the spatial iteration that makes it feel like design rather than chat",
+    "Tuned prompting and design system constraints that keep generated UI from looking generic",
+    "Variant branching and version history across a whole exploration session",
+    "Export paths into real codebases and design handoff niceties",
+    "Someone else absorbing model churn when the next model changes output quality"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The canvas interaction and the prompt scaffolding are the product. The underlying model is rented, by them and by you.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Because the gap between a prompt box and a design tool is interaction design, and interaction design is exactly the part an agent one-shots badly. A local clone gives you generated components; MagicPath gives you a place to spread twelve of them out, compare, fork, and keep going without losing your thread. If you generate UI occasionally, the DIY version is fine. If this is how you actually design, the canvas is worth money.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat-to-component loop is a weekend; the canvas on top of it is the whole reason anyone pays.",
+  "prompt": "Build a local AI UI design tool. Single project, runs on my machine, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Vite + React + TypeScript + Tailwind for the app shell\n- A tiny Node/Express API on port 8787 that proxies LLM calls so the key never hits the browser\n- SQLite via better-sqlite3 for local persistence\n- Model key read from .env as ANTHROPIC_API_KEY, with a .env.example committed and .env gitignored\n\nCore loop:\n1. A canvas area with pan and zoom (use a simple transform based implementation, no heavy canvas library).\n2. A \"new artboard\" button creates a card on the canvas with a prompt input.\n3. Submitting a prompt calls POST /api/generate, which asks the model for a SINGLE self contained React function component using only React and Tailwind utility classes, no imports, no external packages. Return it as plain code, strip markdown fences server side.\n4. Render the component live inside a sandboxed iframe per artboard: inject React, ReactDOM and the Tailwind CDN script into the iframe document, then eval the component with Babel standalone. Catch errors and show them in the card instead of blanking out.\n5. Each artboard has a follow-up input for refinement. Send the previous code plus the new instruction and replace the rendered output.\n6. Each generation is saved as a version row in SQLite. Show a version list per artboard and allow reverting.\n7. \"Fork\" duplicates an artboard beside it so I can explore two directions.\n8. \"Copy code\" and \"download .tsx\" buttons per artboard.\n9. Artboard width is adjustable with preset buttons for 390, 768 and 1280 px so I can eyeball responsive behaviour.\n\nIn scope: canvas pan/zoom, artboards, generate, refine, version history, fork, export, local persistence across restarts.\nOut of scope: auth, multiplayer, deploys, hosted sharing, design tokens UI, Figma import, analytics.\n\nAlso do:\n- A system prompt file I can edit to enforce my own style rules, kept in prompts/system.md and loaded at request time.\n- README with setup steps and a clear note that generated code runs in a sandboxed iframe and should still be reviewed before use.\n- npm run dev starts both the API and the frontend concurrently.",
+  "promptCurated": false
+}
