@@ -1,0 +1,52 @@
+{
+  "slug": "otterly",
+  "name": "Otterly.AI",
+  "domain": "otterly.ai",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility monitoring",
+  "tagline": "Tracks how often your brand gets mentioned and cited in AI search answers from ChatGPT, Perplexity and Google AI Overviews.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://otterly.ai/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is not mysterious: keep a list of prompts, fire them at a few model APIs on a schedule, check whether your brand and your competitors show up, log the cited URLs, chart it over time. An agent can build that in a sitting and it will genuinely tell you something useful. Where it falls apart is coverage: Google AI Overviews has no API, so you either scrape SERPs or pay a SERP provider, and the ChatGPT or Perplexity consumer surface does not return the same answers as their APIs. You also start your history on day one, which matters for a product whose whole point is trend lines. Fine for watching ten prompts about your own thing, weak as a real measurement system.",
+  "coreLoopDIY": "Stores a list of tracked prompts, runs them against several model APIs on a cron, records brand mentions, competitor mentions and cited links, then charts share of voice over time in a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for at least two model providers (OpenAI, Anthropic, Perplexity or similar)",
+    "A budget for tokens, since every prompt runs repeatedly forever",
+    "A SERP API key if you want Google AI Overviews at all",
+    "Somewhere to run a daily cron job"
+  ],
+  "whatYouLose": [
+    "Google AI Overviews and other non-API surfaces without duct-taping a scraper or paying a SERP vendor",
+    "Historical baselines, your charts start empty on day one",
+    "Geo and language variants of the same prompt, which Otterly does as a product feature",
+    "Prompt suggestion and clustering, you have to decide what to track yourself",
+    "Sanity checks on whether a mention is positive, linked, or just a passing namedrop"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The accumulated time series is the asset, not the code. Also the unglamorous work of keeping non-API answer surfaces scrapeable as they change.",
+  "whyPeopleStillPay": "Because the measurement only matters if it is consistent, broad and already running. Marketers want a chart that goes back six months across five answer engines and three countries, and they want someone else eating the cost and breakage of scraping surfaces that actively resist being scraped. A personal build answers 'am I mentioned for these ten prompts' well enough, which is honestly the question most solo operators actually have, but it will not survive a client asking for last quarter's share of voice.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you want to know whether the models know you exist; buy it if you need to prove a trend to someone else.",
+  "prompt": "Build a local AI search visibility tracker. No accounts, no cloud, no telemetry.\n\nStack, no substitutions: TypeScript on Node 20, SQLite via better-sqlite3, Express for a small dashboard, plain HTML plus Chart.js from a CDN for charts. Run it with tsx. No ORM, no React, no build step for the frontend.\n\nData model in SQLite:\n- brands: id, name, is_self (boolean), aliases (JSON array of strings)\n- prompts: id, text, locale (default 'en-US'), active\n- runs: id, prompt_id, provider, model, created_at, raw_answer (text), cost_usd (nullable)\n- mentions: id, run_id, brand_id, mentioned (boolean), position (int or null, rank order of first appearance)\n- citations: id, run_id, url, domain\n\nBehaviour:\n1. `npm run track` loops over every active prompt and every configured provider, sends the prompt text as a plain user message, stores the full answer in runs.\n2. For each answer, detect each brand by name and aliases, case insensitive, word boundary matching. Record mentioned true/false and the character-order position of the first match so you can compute rank.\n3. Extract every URL from the answer, normalise to bare domain, store in citations.\n4. `npm run report` prints a table to stdout: per prompt, which brands were mentioned by which provider on the latest run.\n5. `npm run serve` starts Express on port 8787 with one page showing: share of voice over time per brand (percent of runs where mentioned, bucketed by day), a top cited domains table, and a per prompt detail view with the raw stored answers.\n\nProviders: implement OpenAI and Anthropic via their official SDKs, plus one generic OpenAI-compatible provider configured by base URL so Perplexity or a local model can be dropped in. Each provider is one file in src/providers/ exporting a single `ask(prompt: string)` function. Keys in .env, read with process.env, include a .env.example. Fail loudly with a clear message if a key is missing, skip that provider instead of crashing the whole run.\n\nSeed data: a seed script that inserts one self brand, two competitors, and five example prompts so the thing is runnable immediately.\n\nExplicitly out of scope, do not build: Google AI Overviews or any SERP scraping, sentiment analysis, prompt suggestions, multi user support, auth, email alerts, Docker.\n\nDeliverables: working code, a cron line in the README for running `npm run track` daily, and a short README section stating that history only starts from first run and that token cost scales with prompts times providers times frequency.",
+  "promptCurated": false
+}
