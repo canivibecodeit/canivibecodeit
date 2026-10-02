@@ -1,0 +1,52 @@
+{
+  "slug": "infor-ln",
+  "name": "Infor LN",
+  "domain": "infor.com",
+  "category": "finance-accounting",
+  "subcategory": "manufacturing ERP",
+  "tagline": "Enterprise ERP for discrete manufacturers, covering production, supply chain, finance and service in one system of record.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.infor.com/solutions/erp/ln",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Infor LN is sold through quoted enterprise contracts, typically annual, with implementation services priced separately.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Infor LN is not an app, it is the bookkeeping, inventory and production backbone of a manufacturing company, usually with twenty years of transactions inside it. The software you could one-shot is the easy third: tables for items, bills of material, work orders and purchase orders, plus some screens. The hard parts are multi-site multi-currency financial consolidation, statutory and tax localizations for dozens of countries, MRP that actually converges on real demand, audit trails that survive a financial audit, and EDI links to customers who will not change their format for you. Also, nobody runs a personal ERP: the whole point is that forty people in three plants agree on one number. Build the toy to learn the domain, do not build the replacement.",
+  "coreLoopDIY": "A local items, BOM, work order and stock ledger app that can explode a bill of material, reserve inventory and track a production order through to completion.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "SQLite",
+    "a browser",
+    "willingness to hand-enter your own item master"
+  ],
+  "whatYouLose": [
+    "Statutory localizations: tax, invoicing and reporting rules for every country you ship to",
+    "MRP and capacity planning that planners actually trust across multiple sites",
+    "EDI and supplier portal connections your customers already mandate",
+    "Auditability: immutable financial periods, approval chains, segregation of duties",
+    "Everyone else: an ERP is only useful if the whole company types into the same one"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The migration cost is the product. Companies stay on LN because exporting twenty years of posted transactions, custom extensions and plant-floor integrations is a multi-year project with a real chance of stopping shipments.",
+  "whyPeopleStillPay": "Because the alternative is not a weekend build, it is a two-year program with consultants, and the thing you are replacing is already load-bearing. Manufacturers pay for someone to own the statutory updates when a country changes its e-invoicing rules, for a planning engine that has been debugged against ugly real demand, and for an audit story their accountants will sign off on. The ERP's value is organizational, not technical: it is the fact that finance, purchasing and the shop floor are arguing over the same row in the same table. No personal build gets that, because there is no personal version of an organization.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the data model in a weekend and learn a lot doing it. The moat is not the schema, it is twenty years of posted transactions, country-by-country tax compliance, and the fact that ripping it out risks halting production.",
+  "prompt": "Build a local, single-user manufacturing tracker that teaches the core ERP data model. Not an ERP replacement, a learning toy.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, SQLite via plain SQL (no ORM), Jinja2 templates, HTMX for interactivity, no build step, no npm.\n- Everything in one repo. Run with: uvicorn app.main:app --reload. Data in ./data/shop.db.\n\nData model (create these tables with a migrations/001_init.sql file):\n- items: code, description, uom, type (purchased|manufactured), standard_cost, on_hand\n- bom_lines: parent_item, child_item, qty_per, scrap_pct\n- work_orders: number, item, qty, status (planned|released|closed), due_date\n- wo_materials: work_order, item, qty_required, qty_issued\n- purchase_orders and po_lines: supplier, item, qty, price, qty_received\n- stock_ledger: append-only rows of item, qty_delta, reason, ref, created_at. Never mutate on_hand directly; recompute it from the ledger.\n\nFeatures, in scope:\n- CRUD screens for items, BOM lines, suppliers.\n- BOM explosion: given an item and a qty, show the full multi-level component requirement tree with scrap applied, and flag shortages against on_hand.\n- Create a work order from an item, auto-generate wo_materials from the exploded BOM, then issue materials (ledger-out) and receive finished goods (ledger-in) on close.\n- Purchase orders with partial receipts, each receipt writing a ledger row.\n- A stock ledger view, filterable by item, that always reconciles to current on_hand.\n- Seed script with about 15 items and a 3-level BOM so the app is useful on first run.\n\nExplicitly out of scope, do not build: general ledger, tax, currencies, multi-site, MRP time-phasing, users, auth, permissions, cloud, telemetry, email.\n\nQuality bar: pytest tests covering BOM explosion math (including scrap and multi-level), ledger reconciliation, and partial receipts. Any config in .env read via os.environ, with a .env.example checked in. README that says what this is not.",
+  "promptCurated": false
+}
