@@ -38,6 +38,9 @@
       const m = $('[data-cd-mins]', cd);
       const sec = $('[data-cd-secs]', cd);
       const secCell = $('[data-cd-sec-cell]', cd);
+      // Reload only when zero is crossed while the tab is open. A page that
+      // loads with the target already past would otherwise reload forever.
+      const armed = target > Date.now();
       const tick = () => {
         const s = Math.max(0, Math.floor((target - Date.now()) / 1000));
         if (d) d.textContent = fmt(Math.floor(s / 86400));
@@ -45,7 +48,7 @@
         if (m) m.textContent = fmt(Math.floor((s % 3600) / 60));
         if (sec) sec.textContent = fmt(s % 60);
         if (secCell) secCell.hidden = s >= 86400;
-        if (s === 0 && !cd.dataset.done) {
+        if (s === 0 && armed && !cd.dataset.done) {
           cd.dataset.done = '1';
           setTimeout(() => location.reload(), 1500);
         }

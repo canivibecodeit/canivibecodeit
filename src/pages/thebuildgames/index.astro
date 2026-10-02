@@ -86,6 +86,8 @@ const cableOn = (Astro.url.searchParams.get('cable') ?? 'on') !== 'off';
 const startAt = gamesStartAt();
 const endAt = gamesEndAt();
 const cdTarget = started ? endAt : startAt;
+// Past the window close the clock is over: no countdown, no reload-at-zero.
+const ended = started && Date.now() >= endAt;
 const cd = countdownParts(cdTarget);
 
 /* The game-ends clock: zero-padded two-digit segments in fixed-width cells
@@ -259,21 +261,31 @@ const hostOf = (u) => {
         data attrs (client tick + reload-at-zero work unchanged) and the pot
         poll updates [data-pot-amount] here. Pre-game keeps the countdown. */}
     {started ? (
-      <section class="bg-statgrid" data-countdown data-cd-pad data-target={String(cdTarget)} aria-label="Sponsorship pool, time remaining and entries">
+      <section class="bg-statgrid" data-countdown={!ended || undefined} data-cd-pad data-target={String(cdTarget)} aria-label="Sponsorship pool, time remaining and entries">
         <div class="bg-sg-cell">
           <span class="bg-sg-label">sponsorship pool</span>
           <span class="bg-sg-num bg-sg-money" data-pot-amount data-pot-cents={potCents}>{usd(potCents)}</span>
           <span class="bg-sg-sub">funded by sponsor bids</span>
         </div>
         <div class="bg-sg-cell">
-          <span class="bg-sg-label">the game ends in</span>
-          <span class="bg-sg-num bg-sg-cd">
-            <b data-cd-days>{pad2(cd.days)}</b><i>d</i>
-            <b data-cd-hours>{pad2(cd.hours)}</b><i>h</i>
-            <b data-cd-mins>{pad2(cd.minutes)}</b><i>m</i>
-            <span class="bg-sg-sec" data-cd-sec-cell hidden={!showSeconds}><b data-cd-secs>{pad2(cd.seconds)}</b><i>s</i></span>
-          </span>
-          <span class="bg-sg-sub">september 30 · midnight new york</span>
+          {ended ? (
+            <>
+              <span class="bg-sg-label">the game has ended</span>
+              <span class="bg-sg-num">judging</span>
+              <span class="bg-sg-sub">winners by {ANNOUNCE_BY}</span>
+            </>
+          ) : (
+            <>
+              <span class="bg-sg-label">the game ends in</span>
+              <span class="bg-sg-num bg-sg-cd">
+                <b data-cd-days>{pad2(cd.days)}</b><i>d</i>
+                <b data-cd-hours>{pad2(cd.hours)}</b><i>h</i>
+                <b data-cd-mins>{pad2(cd.minutes)}</b><i>m</i>
+                <span class="bg-sg-sec" data-cd-sec-cell hidden={!showSeconds}><b data-cd-secs>{pad2(cd.seconds)}</b><i>s</i></span>
+              </span>
+              <span class="bg-sg-sub">september 30 · midnight new york</span>
+            </>
+          )}
         </div>
         <div class="bg-sg-cell">
           <span class="bg-sg-label">entries</span>
