@@ -1,0 +1,53 @@
+{
+  "slug": "candyai",
+  "name": "Candy.ai",
+  "domain": "candy.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI companion chat",
+  "tagline": "Subscription AI companions: persistent roleplay chat plus on-demand images and voice notes of a consistent character.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://candy.ai/",
+    "checkedOn": "2026-08-29",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop is not exotic: a system prompt describing a persona, a memory table, and a chat UI. An agent can wire that up against a local model in an afternoon, and image generation is a ComfyUI workflow away. The gaps are the whole product, though: hosted APIs from the big labs will refuse most of what people actually pay Candy.ai for, so you are stuck sourcing and running uncensored local weights, and keeping one face consistent across hundreds of images means LoRAs, IP-Adapter, and seed discipline rather than a single prompt. Add voice cloning, fast generation, and a phone app and you are past a weekend. Buildable, genuinely private, noticeably worse looking.",
+  "coreLoopDIY": "Runs a local persona chatbot with long-term memory in SQLite that can generate images of the same character on request through a local diffusion pipeline.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine with a decent GPU, ideally 12GB VRAM or more",
+    "Ollama with an instruction-tuned local model you have chosen yourself",
+    "ComfyUI installed with an SDXL or similar checkpoint plus a character LoRA or IP-Adapter reference image",
+    "Python 3.11",
+    "Patience for prompt tuning; the first fifty images will not look like the same person"
+  ],
+  "whatYouLose": [
+    "Image and voice quality that a tuned commercial pipeline gets for free; local output looks local",
+    "Character consistency across sessions without you hand-building LoRAs and reference embeddings",
+    "Sub-ten-second generation times unless your GPU is serious",
+    "A polished mobile app, push notifications, and a companion that messages you first",
+    "The refusal-free hosted models; you now own the whole moderation and legal question yourself"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models",
+    "switching-costs"
+  ],
+  "moatNotes": "The differentiation is a tuned inference stack and a lot of taste in character art, not any algorithm you cannot reimplement.",
+  "whyPeopleStillPay": "Because nobody wants to debug a diffusion pipeline in the mood they are in. The product's real job is instant, plausible, consistent output on a phone with zero setup, and a local build trades all three of those for privacy and a one-time cost. Privacy is a legitimately strong reason to build this one yourself, since your logs never leave the machine. But the version you build in a weekend will feel like a research demo next to a paid tier, and that gap is exactly the pricing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the DIY version has a real advantage over the paid one: nothing you type goes to a server that can be subpoenaed or breached.",
+  "prompt": "Build a local, fully offline AI companion app. No cloud APIs, no accounts, no telemetry, no analytics. Everything runs on this machine.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI backend, server-rendered Jinja2 templates with htmx for the chat updates. No React.\n- SQLite via sqlite3 for all storage, single file at ./data/app.db.\n- Chat inference through a local Ollama HTTP endpoint at http://localhost:11434, model name read from .env as CHAT_MODEL.\n- Image generation through a local ComfyUI HTTP API at http://localhost:8188, workflow JSON loaded from ./workflows/portrait.json with the positive prompt and seed injected at runtime.\n\nFeatures in scope:\n1. Character editor: name, appearance description, personality, speaking style, a fixed image-prompt prefix, and a fixed seed. Stored in a characters table.\n2. Chat view: message list, input box, streaming assistant replies via Ollama's streaming response. Messages stored with role, content, timestamp, character_id.\n3. Memory: after every 10 messages, ask the model to summarize new durable facts and append them to a memories table for that character. Inject the character sheet plus the last 20 messages plus all memories into the system prompt on every turn.\n4. Image requests: a camera button, or the model emitting a line beginning with IMAGE:, triggers a ComfyUI job. Combine the character's image-prompt prefix, the scene text, and the fixed seed so faces stay roughly consistent. Save PNGs to ./data/images and render them inline in the chat.\n5. A simple job status poller so the UI shows generating, then the image.\n\nExplicitly out of scope: voice, video, mobile app, multi-user auth, payments, moderation filters, any hosted model.\n\nConfig: .env holds CHAT_MODEL, COMFY_URL, OLLAMA_URL. Ship a .env.example, never commit .env. Include a Makefile with run and reset targets, and a README that states the required Ollama model and ComfyUI checkpoint must be installed by the user, and that all data stays local.",
+  "promptCurated": false
+}
