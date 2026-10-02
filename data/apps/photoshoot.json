@@ -1,0 +1,51 @@
+{
+  "slug": "photoshoot",
+  "name": "Photoshoot",
+  "domain": "photoshoot.app",
+  "category": "ai-image",
+  "subcategory": "product and fashion photography",
+  "tagline": "Turns product and model reference photos into polished commercial-looking shots using image models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://photoshoot.app/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part here is not the software, it is the image model, and anyone can rent the same one by the call. A coding agent can put together an upload form, a scene prompt library, a reference-conditioned generate call and a gallery in an afternoon, and the output will be in the same neighborhood as the paid tool for simple packshots. Where it falls apart is consistency: holding a product's label, stitching, logo and proportions identical across twenty scenes is a pipeline problem, with masking, compositing, relighting and retouch passes that nobody one-shots well. Fashion is worse, because garment fidelity on a generated human body is the exact thing these studios spend their engineering time on. Build it if you sell ten SKUs and tolerate re-rolls; pay if your catalog is large enough that a bad label edit becomes a return.",
+  "coreLoopDIY": "Upload a product or reference photo, pick a scene preset, and get reference-conditioned variants back from a hosted image model into a local gallery you can download from.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a reference-conditioned image model (Replicate, Fal, or Google AI Studio)",
+    "A small credit balance, generations cost real money per image",
+    "Node 20 and local disk for outputs",
+    "Patience for re-rolls, roughly one in three images will mangle a label or a hand"
+  ],
+  "whatYouLose": [
+    "Product fidelity guardrails: your DIY version will happily rewrite the text on the packaging",
+    "Reliable multi-shot consistency, same product across a full scene set",
+    "The curated scene and lighting prompt library someone already tuned for ecommerce",
+    "Cleanup steps: upscaling, background matting, shadow grounding, color correction",
+    "Anything resembling a usable mobile or non-technical workflow for a team"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat is the unglamorous middle of the pipeline: masking, identity preservation and retouch passes between the upload and the model call.",
+  "whyPeopleStillPay": "Because an ecommerce seller is not trying to generate images, they are trying to ship a product page today without hiring a photographer. A paid studio absorbs the prompt tuning, the failure rate, the upscaling and the nine presets that actually look like catalog photography, and gives back files you can upload without squinting at them. A local script gives you the same model and none of that triage, which is fine for a hobby store and expensive for a real one when a wrong label ends up in an ad.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A thin wrapper over a rented model is cheap to clone, which is also why this category has forty competitors and prices keep sliding.",
+  "prompt": "Build a local-only AI product photo studio called Shotbench. Empty folder, no accounts, no cloud database, no telemetry.\n\nStack, non-negotiable: Next.js 15 App Router with TypeScript, Tailwind, SQLite via better-sqlite3, server actions. Images stored on local disk under ./storage. No auth, no Docker, single `npm run dev` to start.\n\nImage generation: call a hosted reference-conditioned image model through the Replicate HTTP API. Read REPLICATE_API_TOKEN and MODEL_SLUG from .env.local, never hardcode them, and ship a .env.example. Put all model calls behind a single lib/generate.ts function with the signature generate({ referencePaths, prompt, aspectRatio, n }) so the model can be swapped by editing one file.\n\nCore flow:\n1. Upload page: drag in one to three reference images of a single product, store them on disk, write a row to a `subjects` table with a name the user types.\n2. Scene picker: a hardcoded library of twelve presets, each with a name, a thumbnail-free text description and a prompt template, for example white seamless packshot, marble bathroom counter, outdoor picnic table in golden hour, dark moody studio with rim light. Store them in lib/scenes.ts as plain data.\n3. Generate: user picks a subject, one or more scenes, aspect ratio and a variant count of one to four. Queue jobs in a `jobs` table with status pending, running, done, failed. A simple in-process worker drains the queue serially and polls Replicate until each prediction finishes.\n4. Gallery: grid of results grouped by subject and scene, with the exact prompt used, cost-free local favoriting, a delete button and a download-all-as-zip action.\n\nAlso required: show an honest per-generation cost estimate taken from a COST_PER_IMAGE_USD value in .env.local, and a running total for the session. Retry button on failed jobs. Log the full request and response payload for each job into the database so failures are debuggable.\n\nExplicitly out of scope, do not build: user accounts, billing, teams, background removal, upscaling, face or garment identity locking, batch CSV import, Shopify integration, mobile layout beyond basic responsive Tailwind.\n\nWrite a README that states plainly that product labels and fine text will often be hallucinated by the model, that this is a re-roll workflow and not a fidelity-guaranteed one, and that the user pays the model provider directly.",
+  "promptCurated": false
+}
