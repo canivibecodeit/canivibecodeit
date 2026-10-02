@@ -1,0 +1,52 @@
+{
+  "slug": "ohai",
+  "name": "Ohai",
+  "domain": "ohai.ai",
+  "category": "ai-assistant",
+  "subcategory": "family logistics assistant",
+  "tagline": "A text-message AI assistant that reads your family's email and calendar and turns school notices, activity schedules and reminders into actual calendar events.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://ohai.ai/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part here is not the AI, it is the plumbing: Gmail scopes, Google Calendar writes, a chat surface you will actually read, and a loop that runs unattended for months. An agent can absolutely wire a local assistant that watches your inbox, extracts dates from school PDFs and emails, and files events on your calendar after you confirm them. What it cannot hand you in one session is the ambient reliability: the thing that quietly works on a Tuesday when the swim schedule changes and you never had to open an app. Expect a weekend of OAuth misery and a long tail of extraction mistakes that Ohai has already eaten on your behalf. Worth building if you enjoy owning your own household automation, not if you want it to just be handled.",
+  "coreLoopDIY": "A local worker polls your Gmail, uses an LLM to pull out dates, deadlines and logistics from messages and attachments, and proposes calendar events you approve or reject from a chat thread.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with Gmail and Calendar APIs enabled, OAuth consent screen, refresh token",
+    "An LLM API key",
+    "Somewhere to run a long-lived process: a home server, a VPS, or a laptop that never sleeps",
+    "A chat surface you actually check: a Telegram bot is the cheap option, SMS costs money"
+  ],
+  "whatYouLose": [
+    "SMS as the interface, which is the whole reason a non-technical partner would ever use it",
+    "Tuned extraction for the messy stuff: school PDFs, sports league portals, camp confirmation emails, forwarded group threads",
+    "Shared household context, so your spouse is not in the loop unless you build that too",
+    "Proactive nudges that are useful instead of annoying, which is mostly prompt and timing work you will do by trial and error",
+    "Someone else being responsible when it silently stops syncing"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Deep read and write access to a family's email and calendar is a trust purchase as much as a software one, and nobody grants it twice.",
+  "whyPeopleStillPay": "The target customer is a parent with no appetite for maintaining a cron job. The product's value is that it is already connected, already texting you, and already right most of the time about which of four forwarded emails contains the actual pickup time. A personal build gets you 80 percent of the extraction and 0 percent of the ambient reliability, and the last 20 percent is exactly where the time goes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The extraction is a demo; the unattended reliability is the product.",
+  "prompt": "Build a local, single-user household assistant called \"minder\". No web UI, no accounts, no telemetry.\n\nStack, non-negotiable:\n- TypeScript on Node 20, run with tsx\n- SQLite via better-sqlite3 for all state\n- googleapis for Gmail read and Calendar read/write\n- A Telegram bot via grammY as the only chat surface\n- One LLM call path through the OpenAI SDK, model name read from .env\n\nWhat it does:\n1. A poller runs every 10 minutes. It fetches Gmail messages newer than the last processed timestamp, limited to labels or senders listed in config.json (school domains, sports leagues, camps).\n2. For each message it extracts plain text body plus the text of PDF attachments (use pdf-parse). Truncate to a sane token budget.\n3. It sends that text to the LLM with a strict JSON schema: a list of proposed events with title, start, end, location, allDay, sourceMessageId, confidence, and a one-line reason. Reject anything the model is not confident about.\n4. Each proposal is stored in SQLite as status=pending and pushed to Telegram as a single message with inline buttons: Add, Skip, Edit time.\n5. Add writes the event to a named Google Calendar and marks the proposal accepted. Skip marks it rejected and remembers the sourceMessageId so it is never re-proposed. Edit time prompts for a new start time as a reply.\n6. A /today command replies with today and tomorrow from that calendar. A /pending command lists unresolved proposals.\n\nRules:\n- All secrets in .env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, OPENAI_API_KEY, LLM_MODEL, CALENDAR_ID.\n- Include a one-off script scripts/google-auth.ts that walks through the OAuth consent flow on localhost and prints the refresh token.\n- Idempotent by Gmail message id. Never write a calendar event without explicit approval.\n- Structured logs to stdout, errors to a log table in SQLite, and a retry with backoff on API failures.\n- Ship a README with the exact Google Cloud setup steps, the required scopes, and how to run the poller under systemd or launchd.\n\nOut of scope: SMS, multi-user support, email sending, any hosted deployment, any UI beyond Telegram.",
+  "promptCurated": false
+}
