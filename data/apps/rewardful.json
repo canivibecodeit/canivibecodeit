@@ -1,0 +1,52 @@
+{
+  "slug": "rewardful",
+  "name": "Rewardful",
+  "domain": "rewardful.com",
+  "category": "seo-marketing",
+  "subcategory": "affiliate & referral tracking",
+  "tagline": "Affiliate and referral program management wired directly into Stripe subscriptions.",
+  "priceMonthly": 49,
+  "pricing": {
+    "plan": "Starter",
+    "basis": "monthly, with tracked-revenue limits",
+    "unit": "flat",
+    "source": "https://rewardful.com/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible surface is small: a redirect endpoint that sets a cookie, a Stripe webhook listener, and a commissions table. An agent can get referral links, first-touch attribution, and MRR-based commission accrual working in a weekend, and for a program with a dozen friendly affiliates that is genuinely enough. What breaks is everything downstream of the happy path: refunds, chargebacks, plan upgrades and proration, currency conversion, coupon-code attribution for people who never click a link, and clawbacks on churned customers inside the commission window. Then there is paying people, which Rewardful does not fully automate either but does organize, and which you will be doing by hand in a spreadsheet. The moat is not data or network, it is integration depth plus the fact that affiliates need to trust the numbers they are being shown.",
+  "coreLoopDIY": "Referral links that set an attribution cookie, a Stripe webhook that ties new subscriptions to an affiliate, and a ledger that accrues commissions plus a read-only portal where each affiliate sees their clicks, conversions, and balance.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Stripe account with API key and webhook signing secret",
+    "A deployed HTTPS endpoint so Stripe webhooks and link redirects actually resolve",
+    "Checkout flow you control, so the referral ID can be passed into Stripe metadata",
+    "Somewhere to run a small always-on Node app with a database"
+  ],
+  "whatYouLose": [
+    "Self-serve affiliate signup, branded portals, and link generation that non-technical partners can use without emailing you",
+    "Payout plumbing: PayPal mass pay, Wise, batch CSVs, and the record keeping that goes with sharing revenue",
+    "Correct handling of refunds, chargebacks, proration, upgrades, multi-currency, and coupon-based attribution without click data",
+    "Fraud and self-referral detection, which matters the moment you pay real money per signup",
+    "A neutral third party your affiliates will believe when they dispute a missing conversion"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Stripe is one API, but the hard part is modeling subscription revenue correctly over time and surviving every billing edge case without under or overpaying partners.",
+  "whyPeopleStillPay": "Because affiliate tracking is a money-movement feature dressed as a marketing feature. A bug in your analytics dashboard is embarrassing; a bug here means you shorted a partner who is actively promoting you, and they will notice before you do. Rewardful has already absorbed years of Stripe billing weirdness, gives affiliates a portal that looks like a real product rather than a side project, and acts as the arbiter when someone claims a conversion went missing. People pay to not be the arbiter of their own commission disputes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Copyable API docs get you the tracking; they do not get you the accounting.",
+  "prompt": "Build a self-hosted affiliate and referral tracking app for a Stripe-based subscription business. Single project, no menus, use these choices.\n\nStack: Next.js (App Router, TypeScript), Prisma with SQLite, Tailwind for the UI, official stripe Node SDK. Run locally with `npm run dev`. Secrets in .env only: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ADMIN_PASSWORD, APP_URL. Commit a .env.example, never real keys.\n\nData model: Affiliate (id, name, email, code, commissionPercent, portalToken), Click (affiliateId, timestamp, referrer, userAgentHash), Referral (affiliateId, stripeCustomerId, stripeSubscriptionId, status), Commission (referralId, stripeInvoiceId, amountCents, currency, status: pending|approved|reversed|paid, createdAt).\n\nIn scope:\n1. GET /r/[code] : records a Click, sets a first-touch cookie `aff_ref` with 60 day expiry (do not overwrite an existing cookie), then 302s to APP_URL with the code also appended as a query param.\n2. A documented helper that reads the cookie and returns `{ client_reference_id }` to attach to Stripe Checkout, so attribution survives into Stripe metadata.\n3. POST /api/stripe/webhook : verify the signature, handle checkout.session.completed (create Referral from client_reference_id), invoice.paid (create a pending Commission at the affiliate percent), charge.refunded and invoice.payment_failed (reverse matching Commissions), customer.subscription.deleted (mark Referral churned). Idempotent on Stripe event id.\n4. Admin UI behind a single password cookie: create and edit affiliates, list clicks, referrals, and commissions, approve or reverse pending commissions, and export approved commissions per affiliate as CSV.\n5. Affiliate portal at /a/[portalToken] : read-only clicks, conversions, and balances by status. No login, unguessable token, noindex header.\n6. A seed script and a test script that fires sample Stripe events at the webhook using the Stripe CLI, including a refund case.\n\nOut of scope, state this in the README: automated payouts, PayPal or Wise integration, fraud detection, multi-touch attribution, coupon-code-only attribution, multi-currency normalization, tax forms, email notifications, any analytics or telemetry.\n\nREADME must include the .env setup, the Stripe CLI commands to replay events, and a short honest list of the billing edge cases this build does not handle correctly.",
+  "promptCurated": false
+}
