@@ -1,0 +1,51 @@
+{
+  "slug": "poppy-ai",
+  "name": "poppy.ai",
+  "domain": "getpoppy.ai",
+  "category": "whiteboard",
+  "subcategory": "AI canvas for videos, PDFs and notes",
+  "tagline": "An infinite canvas where you drop videos, PDFs and notes, then chat with all of them at once.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://getpoppy.ai/",
+    "checkedOn": "2026-09-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The engine here is unglamorous: transcribe media, chunk it, embed it, retrieve across the chunks, answer with citations. An agent can wire that up on top of an existing canvas library in a weekend and you will have something genuinely useful for your own research pile. What does not come for free is the part people actually pay for: a canvas that feels good, real-time multiplayer, mobile, and media ingestion that survives a 3 hour webinar recording and a scanned PDF without falling over. Transcription of long video is also where your API bill stops being a rounding error. Build it if you are the only user and you like your own keyboard shortcuts.",
+  "coreLoopDIY": "Drop YouTube links, video files, PDFs and text notes onto a local canvas, auto-transcribe and embed them, then chat with any selected subset and get answers with timestamped citations.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "OpenAI API key (chat + embeddings) or a local model via Ollama",
+    "Whisper for transcription, local or hosted",
+    "ffmpeg and yt-dlp on the machine",
+    "Node 20 and a few GB of disk for media and transcripts"
+  ],
+  "whatYouLose": [
+    "Real-time multiplayer on the canvas, which is most of the team pitch",
+    "A mobile and tablet experience, so no couch review of your own board",
+    "Robust ingestion: long recordings, weird PDFs, OCR on scans, chunky file uploads",
+    "Sharing a board with a client or student as a link that just works",
+    "Hosted transcription at their unit cost instead of yours"
+  ],
+  "moatTags": [
+    "collaboration",
+    "execution-polish"
+  ],
+  "moatNotes": "The retrieval is commodity. The canvas feel and the fact two people can sit on it at once is not.",
+  "whyPeopleStillPay": "Because their actual job is making a course, a brief or a video script, not maintaining a RAG pipeline with a yt-dlp dependency that breaks when YouTube changes something. The paid version ingests a four hour recording without a shrug, works on an iPad, and lets a collaborator or a client poke at the same board. A personal build covers the research loop well and the collaboration loop not at all.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat-with-my-sources part is a weekend; the canvas that does not feel like a prototype is the rest of the year.",
+  "prompt": "Build a local-first \"AI research canvas\" web app. Single user, runs on my machine, no accounts, no telemetry, no cloud database.\n\nStack, non negotiable:\n- Next.js (App Router) + TypeScript + Tailwind\n- tldraw for the infinite canvas\n- SQLite via Prisma for metadata, transcripts and chunks\n- sqlite-vec (or a plain cosine similarity scan over stored embedding blobs, whichever you can wire cleanly) for vector search\n- OpenAI API for chat and embeddings, keys from .env only\n- Local ffmpeg, yt-dlp and whisper.cpp (or the hosted Whisper API if a WHISPER_API flag is set in .env) for transcription\n\nCore loop to implement:\n1. A single canvas persisted to SQLite. Nodes can be: YouTube URL, uploaded video/audio file, uploaded PDF, or a free text note.\n2. On adding a media node, queue a background job: download or copy the media into ./storage, extract audio with ffmpeg, transcribe with segment timestamps, store the transcript.\n3. For PDFs, extract text per page. For notes, use the text as is.\n4. Chunk all source text (roughly 800 tokens, 100 overlap), embed each chunk, store the embedding with source id and a locator (timestamp seconds for media, page number for PDFs).\n5. A chat panel. If canvas nodes are selected, retrieval is limited to those sources; otherwise it searches everything. Stream the answer and render citations as clickable chips that jump the video to the timestamp or the PDF to the page.\n6. Every media node shows an inline player and its transcript, searchable, with click-to-seek.\n\nAlso include: a jobs page showing transcription progress and failures with retry, and a \"summarize this node\" button that writes the summary into a new sticky note next to it on the canvas.\n\nExplicitly out of scope: multiplayer, auth, sharing links, mobile layout, OCR of scanned PDFs, billing, any analytics.\n\nDeliver a README with setup steps, an .env.example listing OPENAI_API_KEY and optional WHISPER_API, a seed script that ingests one sample YouTube URL and one sample PDF end to end, and honest notes on where long files will be slow or expensive.",
+  "promptCurated": false
+}
