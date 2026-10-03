@@ -1,0 +1,52 @@
+{
+  "slug": "arvow",
+  "name": "Arvow",
+  "domain": "arvow.com",
+  "category": "seo-marketing",
+  "subcategory": "AI SEO article generation and auto-publishing",
+  "tagline": "Generates SEO blog articles from keywords and pushes them straight into your CMS on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://arvow.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product is a prompt chain: keyword goes in, outline, sections, internal links, a hero image, then a CMS API call. An agent can reproduce that loop in one sitting and it will produce articles that read about as well, because both of you are calling the same models. The gaps are everything around it: real keyword volume and difficulty data costs money from DataForSEO or similar, SERP analysis needs a scraping budget, and multi-CMS publishing means WordPress plus Webflow plus Shopify plus Ghost auth quirks instead of the one you actually use. If you only publish to one CMS and already know your keywords, the DIY version is close to parity. If you were buying it for the keyword research, you are buying resold third-party data, which is the part you cannot cheaply clone.",
+  "coreLoopDIY": "Takes a keyword list, generates structured long-form articles with headings, internal links and images, and publishes or drafts them to your WordPress site on a cron.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic)",
+    "A WordPress site with REST API and an application password",
+    "Optional: an image API key for hero images",
+    "Optional: a paid keyword data API if you want volume and difficulty numbers"
+  ],
+  "whatYouLose": [
+    "Keyword research with real volume, difficulty and SERP data, unless you rent it separately",
+    "Prebuilt connectors for CMSes you do not use, plus the auth maintenance for them",
+    "Prompt tuning done by people who read the output of thousands of runs, not just yours",
+    "Bulk queueing, retries and a dashboard that tells you what failed at 3am",
+    "Someone else's problem when an API contract changes"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The keyword data is licensed, not owned, so the moat is mostly plumbing and prompt tuning rather than anything structural.",
+  "whyPeopleStillPay": "Because the annoying part of AI content is not writing the article, it is the pipeline: queueing fifty keywords, not publishing duplicates, getting images that are not lawsuits, and having something that keeps running when a CMS token rotates. Paying a small monthly fee to not own that plumbing is rational if content is a side channel rather than your job. It stops being rational the moment you want to control the prompts, the internal linking rules or the tone, at which point you are fighting a UI instead of editing a file.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The output quality ceiling here is set by the model, not the wrapper, and you can call the same model.",
+  "prompt": "Build a local CLI tool that generates SEO blog articles from a keyword list and publishes them to WordPress.\n\nStack, no substitutions: Node 20 with TypeScript, tsx for running, SQLite via better-sqlite3, Anthropic SDK for generation, Zod for config validation. No web UI, no accounts, no telemetry, no hosted anything.\n\nSecrets in .env, loaded with dotenv: ANTHROPIC_API_KEY, WP_BASE_URL, WP_USER, WP_APP_PASSWORD. Commit a .env.example, never a .env.\n\nConfig lives in arvow.config.json: site description, target audience, tone, banned phrases, internal link targets (array of url plus topic), default word count, publish status (draft or publish).\n\nInput: keywords.csv with columns keyword, intent (informational or commercial), notes.\n\nPipeline per keyword, each stage a separate model call so failures are resumable:\n1. Outline: H2 and H3 structure, target word count per section, one-sentence angle.\n2. Draft: write section by section, passing prior sections as context so it does not repeat itself.\n3. Link pass: insert internal links from config where the anchor text is genuinely relevant, max one per 300 words, never in the intro.\n4. Meta pass: title under 60 chars, meta description under 155 chars, slug, and a 3-sentence excerpt.\n\nStore every article and every stage output in SQLite with status (pending, drafted, published, failed) and the error text on failure. A rerun must skip completed stages.\n\nCommands: init (creates db and config), run --limit N, retry --failed, publish --id X, list.\n\nPublishing: POST to the WordPress REST API at /wp-json/wp/v2/posts with the app password as basic auth. Respect the publish status from config. Store the returned post id. Do not publish if a post with the same slug already exists in the db.\n\nOut of scope, do not build: keyword volume or difficulty lookups, SERP scraping, image generation, other CMSes, scheduling. Note in the README where a keyword data API or an image API would plug in.\n\nAdd a --dry-run flag that writes markdown files to ./out instead of calling WordPress, and use it in the README quickstart.",
+  "promptCurated": false
+}
