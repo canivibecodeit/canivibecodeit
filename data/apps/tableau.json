@@ -1,0 +1,51 @@
+{
+  "slug": "tableau",
+  "name": "Tableau",
+  "domain": "tableau.com",
+  "category": "analytics",
+  "subcategory": "BI and data visualization",
+  "tagline": "Drag-and-drop business intelligence: connect data sources, build interactive charts, publish dashboards to a governed server.",
+  "priceMonthly": 75,
+  "pricing": {
+    "plan": "Creator",
+    "basis": "monthly per user, billed annually",
+    "unit": "per-seat",
+    "source": "https://tableau.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If you are one person poking at your own data, an agent can build you something genuinely useful in a weekend: DuckDB over your CSVs and Parquet files, a chart builder, saved views, a dashboard page. What it cannot one-shot is VizQL, the thing where you drop a field on a shelf and get the statistically sensible chart with the right aggregation, the right marks and a working legend, every time, over billions of rows. Tableau also sells sixty-plus data connectors, extract refresh scheduling, row-level security and a publish-and-share server, which is the part enterprises actually pay for. Your local build will cover maybe 70 percent of the analysis you personally do and zero percent of the governance. That is a fine trade for a solo analyst and a non-starter for a company.",
+  "coreLoopDIY": "Points DuckDB at a folder of CSV, Parquet and SQLite files, lets you pick fields and chart types in a browser UI, and saves the resulting charts into named dashboards you can reload.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 or newer",
+    "Local data files, or database credentials in .env",
+    "Willingness to write SQL when the chart builder runs out of road"
+  ],
+  "whatYouLose": [
+    "VizQL: the drag-a-field-onto-a-shelf inference that picks aggregation, mark type and axes for you",
+    "Managed connectors to Snowflake, Salesforce, Google Analytics and dozens more, plus scheduled extract refreshes",
+    "Publishing, permissions, row-level security and subscriptions for other humans",
+    "Performance engineering on large extracts; DuckDB is fast but you are tuning it yourself",
+    "Calculated field language, LOD expressions, table calcs and the fifteen years of StackOverflow answers about them"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The real lock-in is thousands of existing workbooks and the analysts who only know Tableau. Nobody rebuilds those because a local chart tool exists.",
+  "whyPeopleStillPay": "Companies do not buy Tableau to make charts, they buy it so that a hundred non-technical people can look at the same numbers without anyone writing SQL, with permissions that survive an audit and a refresh schedule that runs at 6am without a human. That bundle is governance, connectors and a server, not visualization. Individuals pay because the authoring experience is still faster than code for exploratory work, and because the skill is on their resume.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Solo analysis is replaceable, shared governed dashboards are not. Build the local version and keep a seat if you ever need to hand a workbook to someone else.",
+  "prompt": "Build a local, single-user business intelligence tool. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI backend, DuckDB as the query engine.\n- Frontend: a single HTML page served by FastAPI, vanilla JS plus Vega-Lite from a CDN pin. No React, no build step.\n- SQLite file for app state (saved charts and dashboards). Nothing else persists.\n\nData layer:\n- On startup, scan ./data for .csv, .parquet and .sqlite files and register each as a DuckDB view named after the file.\n- Optional: if POSTGRES_URL is set in .env, attach it via the DuckDB postgres extension and expose its tables too. Read .env with python-dotenv. Never hardcode credentials.\n- Expose GET /tables and GET /schema/{table} returning column names and inferred types (dimension for text and dates, measure for numeric).\n\nChart builder UI:\n- Pick a table, then assign columns to X, Y, Color and an optional Filter.\n- Pick an aggregation for Y: sum, avg, count, min, max, none.\n- Pick a mark: bar, line, point, area.\n- Build the SQL server side with parameterized identifiers quoted properly. Reject anything that is not a known table or column. No string concatenation of user SQL.\n- Render with Vega-Lite. Show the generated SQL under the chart in a collapsible block, always.\n- An \"SQL mode\" tab where I can write raw read-only SQL and chart the result.\n\nDashboards:\n- Save a chart config with a name. Create dashboards that hold an ordered list of saved charts, rendered in a 2-column CSS grid.\n- A dashboard-level date range filter that applies to any chart whose table has a date column.\n\nOut of scope, do not build: user management, permissions, sharing links, scheduled refreshes, calculated-field DSL, maps, geospatial, PDF export.\n\nDeliver: requirements.txt, a one-command run script, a README with a sample CSV in ./data so the first launch shows a working chart, and pytest tests for SQL generation and identifier validation.",
+  "promptCurated": false
+}
