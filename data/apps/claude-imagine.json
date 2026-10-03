@@ -1,0 +1,51 @@
+{
+  "slug": "claude-imagine",
+  "name": "Claude Imagine",
+  "domain": "claudeimagine.com",
+  "category": "generative-media",
+  "subcategory": "text-to-image and text-to-video front end",
+  "tagline": "A web app that turns text prompts into images and short video clips, with MCP hooks so coding agents can trigger generations.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://claudeimagine.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit or usage based pricing is typical for this product shape, but no tier was confirmed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Everything you can see here is a front end: a prompt box, a model picker, a job queue, a gallery, and an MCP server that exposes generate-image and generate-video as tools. That part is genuinely a one-sitting build for a competent agent, and the MCP layer is the easiest piece of all, since the protocol is small and well documented. What you cannot build is the thing doing the actual work, so your clone becomes a thin client pointed at Replicate, fal, or whichever provider is winning this month, and you pay per generation instead of per month. That is fine, often cheaper, and gives you the raw knobs the hosted UI hides, but it is a rental, not an escape. Note also that the name resembles a feature Anthropic ships inside Claude itself, so part of what you would be replicating is a branding coincidence rather than technology.",
+  "coreLoopDIY": "A local web app that takes a prompt, fans it out to a hosted image or video model API, polls the job, and files the result in a searchable local gallery, with the same two actions exposed over MCP.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a model host such as Replicate or fal, billed per generation",
+    "Node 20 and a few gigabytes of local disk for generated media",
+    "Patience with video jobs, which take minutes and fail in ways images do not",
+    "A GPU and a lot more time if you want to run image models locally instead of renting"
+  ],
+  "whatYouLose": [
+    "A curated model lineup, so you inherit the job of deciding which checkpoint is good this week",
+    "Prompt rewriting and preset styles that quietly make mediocre prompts look competent",
+    "Someone else eating the cost of failed, rejected, or garbled generations",
+    "Hosted storage and a shareable gallery link, replaced by files on your laptop",
+    "Mobile usability, because a self-hosted queue UI on a phone is a sad experience"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The defensible part is taste: which models are wired up, what the default settings are, and how gracefully a four minute video job fails. None of that is hard, all of it is tedious.",
+  "whyPeopleStillPay": "Because generation is a workflow with sharp edges, and paying a flat-ish fee means never thinking about provider outages, model deprecations, aspect ratio quirks, or a video job that silently burned credits. A wrapper that is already tuned saves you the week of fiddling that stands between a working API call and output you would actually show someone. The MCP integration also lands at the right moment: people want their agent to make pictures without being handed a provider SDK and a billing dashboard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The client is an afternoon, the models are rented either way, so the real question is whose credit card the GPUs bill.",
+  "prompt": "Build a local text-to-image and text-to-video studio with an MCP server. Stack: Next.js 15 with the App Router, TypeScript, Tailwind, and SQLite via better-sqlite3. No auth, no cloud, no telemetry, single user on localhost.\n\nIn scope:\n1. A prompt page: textarea, a mode toggle for image or video, a model dropdown, and numeric fields for width, height, steps, seed, and duration for video.\n2. A generations table in SQLite: id, mode, model, prompt, params JSON, provider job id, status, local file path, error text, created and finished timestamps.\n3. A provider module with one adapter: Replicate. Read REPLICATE_API_TOKEN from .env.local. Create a prediction, store the job id, then poll from a server-side background loop every three seconds until it succeeds or fails. Never poll from the browser.\n4. On success, download the output file into ./media and record the relative path. Do not hotlink provider URLs, they expire.\n5. A gallery page: newest first, status badges, inline image previews, an HTML5 video player for clips, full-text search over prompts, and a Reuse button that reloads the prompt and params into the form.\n6. A detail page per generation showing exact params plus a copyable JSON blob, so results are reproducible.\n7. An MCP server in the same repo at mcp/server.ts using the official TypeScript SDK over stdio. Expose two tools: generate_image and generate_video, each taking a prompt and optional params, each returning the generation id and the local file path. Tools must write to the same SQLite file the web app reads.\n8. A cost ledger: a hardcoded per-model estimate in a config file, summed per day on the gallery page, clearly labeled an estimate.\n\nOut of scope: running models locally, user accounts, sharing links, multi-provider fallback, prompt rewriting, upscaling, inpainting, anything resembling a payment flow.\n\nHandle failure honestly: show the provider error text verbatim in the UI, mark stuck jobs as timed out after fifteen minutes, and never delete a failed row.\n\nDeliver a README with setup steps, a .env.example listing REPLICATE_API_TOKEN, a seeded config of three image models and one video model, and a one-command dev script. Add a blunt warning in the README that every generation costs real money.",
+  "promptCurated": false
+}
