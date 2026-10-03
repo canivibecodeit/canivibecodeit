@@ -1,0 +1,52 @@
+{
+  "slug": "navexa",
+  "name": "Navexa",
+  "domain": "navexa.io",
+  "category": "personal-finance",
+  "subcategory": "portfolio and dividend tracking",
+  "tagline": "Portfolio tracker that reports performance, dividend income and capital gains tax positions across shares, ETFs and crypto.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://navexa.io/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The maths here is not the hard part: holdings, cost basis, time weighted and money weighted returns, dividend income by year, all of it is arithmetic over a trade ledger and a price series. An agent will get you a working local tracker with CSV import and daily price pulls in a weekend. What it will not get you is clean corporate action data, split and merger adjustments, per security dividend histories including franking credits, and broker import parsers that survive format changes. The tax reporting is the other wall: parcel matching, FIFO versus minimised gain, the Australian CGT discount, these are rules you have to encode correctly and then trust at tax time. Build it if you want to understand your own returns, not if you want a number your accountant will accept without checking.",
+  "coreLoopDIY": "Imports your trade and dividend history from CSV, pulls daily prices, and shows holdings, cost basis, realised and unrealised gains, income by financial year and annualised return.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your full trade history as CSV, including every buy, sell, split and dividend",
+    "A price data source, free tiers are rate limited and patchy on non US tickers",
+    "Python and a place to run a daily cron, local machine is fine",
+    "Willingness to hand reconcile corporate actions"
+  ],
+  "whatYouLose": [
+    "Maintained corporate action data: splits, demergers, name changes, DRP adjustments",
+    "Franking credit and dividend history per security, which free price APIs do not give you",
+    "Broker import connectors that get fixed when a broker changes its export format",
+    "Tax reports structured the way an accountant expects, with parcel level audit trails",
+    "Mobile access and someone else carrying the backup and uptime burden"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The hard asset is a clean securities and corporate actions database for specific exchanges, plus tax logic that has been checked against real returns.",
+  "whyPeopleStillPay": "Because the failure mode of a homemade portfolio tracker is quiet and expensive. A missed share split or an unrecorded DRP silently wrecks your cost basis, and you only notice when a CGT number looks wrong years later. Paying for a tracker means someone else maintains the corporate actions, the dividend histories and the tax rules, and the report you hand to your accountant has a shape they recognise. For a portfolio of any real size, that is cheap insurance against your own data entry.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project for understanding your returns, risky as a tax source of truth.",
+  "prompt": "Build a local-first portfolio tracker as a single Python app. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.11, FastAPI, SQLite via SQLAlchemy, Jinja2 templates, plain CSS, Chart.js from a CDN for one line chart. yfinance for price data. No React, no build step.\n\nData model:\n- securities: ticker, exchange suffix, name, currency, asset_type (equity, etf, crypto)\n- transactions: date, security, type (buy, sell, dividend, split, fee, cash_in, cash_out), quantity, price, fees, currency, notes\n- prices: security, date, close\n- portfolios: name, base_currency, so multiple portfolios are supported\n\nFeatures that must work:\n1. CSV import at /import with a documented column format, plus a dry run preview that shows parsed rows and rejects before committing.\n2. Manual add and edit of any transaction through a simple form.\n3. A daily price refresh command, python -m app.refresh, that fetches closes for every held security since the last stored date and upserts them. Make it idempotent and safe to run twice.\n4. Holdings page: quantity, average cost, market value, unrealised gain in base currency and percent.\n5. Realised gains page using FIFO parcel matching. Show each disposal with matched parcels, holding period in days, and a flag for parcels held over 365 days.\n6. Income page: dividends grouped by financial year, with a configurable financial year end month in .env, default June.\n7. Performance page: money weighted return (IRR via scipy or a bisection solver) and simple annualised return, plus a portfolio value over time chart.\n8. Split handling: a split transaction adjusts quantity and average cost of prior parcels. Write tests for this.\n\nExplicitly out of scope: broker API connections, franking credits, multi currency FX conversion beyond a static rate table in .env, user auth, hosted deployment.\n\nSecrets and config in .env, loaded with python-dotenv: BASE_CURRENCY, FY_END_MONTH, STATIC_FX_RATES.\n\nInclude: pytest tests covering FIFO matching, split adjustment and IRR against hand calculated fixtures; a seed script with a fake 20 transaction history; a README with the CSV format, the refresh cron line, and a blunt warning that the tax figures are unverified and not advice.",
+  "promptCurated": false
+}
