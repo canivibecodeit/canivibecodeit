@@ -1,0 +1,52 @@
+{
+  "slug": "clipsly",
+  "name": "Clipsly",
+  "domain": "clipsly.org",
+  "category": "audio-video",
+  "subcategory": "short-form clip generation",
+  "tagline": "Turns long videos into short vertical clips with captions, picked and cropped automatically.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.clipsly.org/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is no longer exotic: transcribe, score the transcript for self-contained moments, cut, reframe to 9:16, burn captions. An agent can wire that together with faster-whisper, ffmpeg and a model call, and the output will be recognisably the same product for your own footage. The gap is everything after the first render: speaker tracking that does not jitter, caption styling that looks designed rather than defaulted, b-roll and zoom beats, and render times that do not tie up your laptop for an hour. Paid tools also guess which clip will actually perform, and that guess is trained on engagement data you do not have. Build it if you clip your own podcast weekly, pay if clips are your job.",
+  "coreLoopDIY": "Ingest a long video, transcribe it locally, have a model pick self-contained 30 to 60 second moments, then cut each one to vertical with burned-in word-level captions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed",
+    "a machine that can run faster-whisper at a reasonable speed, GPU helps a lot",
+    "an LLM API key in .env for highlight selection, or a local model",
+    "source video files you already have on disk"
+  ],
+  "whatYouLose": [
+    "Smooth speaker tracking and reframing; naive center-crop or raw face-box cropping jitters and looks cheap",
+    "Caption templates that look like a designer made them, including karaoke timing and emoji placement",
+    "Any notion of which clip will perform, since that ranking comes from engagement data you do not have",
+    "Fast cloud renders, batch queues, and uploading straight to TikTok or Shorts",
+    "Multi-speaker split screens, auto b-roll, filler-word removal and the other polish features that pile up over time"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part was never the cut, it was making the cut look intentional at scale without a human in the loop.",
+  "whyPeopleStillPay": "Because clipping is volume work. One podcast episode is fine to run through a local script; forty a month across three shows is a job, and that is where hosted rendering, queues, presets and direct publishing stop being conveniences. The virality scoring is also sticky even when it is mediocre, since it replaces a decision people hate making. If you are a solo creator doing one video a week, the DIY version is genuinely enough.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Drafted against the general short-form clipping category, so treat the feature-level details as unverified until someone checks the live product.",
+  "prompt": "Build a local command line tool called clipper that turns a long video into short vertical clips.\n\nStack, no substitutions:\n- Python 3.11, dependencies managed with uv\n- typer for the CLI\n- faster-whisper for transcription, word level timestamps on\n- ffmpeg called via subprocess for all cutting, cropping and rendering\n- one LLM call for highlight selection, OpenAI compatible, base URL and key read from .env\n\nCLI:\n- clipper transcribe INPUT.mp4 writes transcript.json next to the source and caches it\n- clipper suggest INPUT.mp4 prints numbered candidate clips with start, end, a one line hook and the first sentence\n- clipper render INPUT.mp4 --clip 3 renders one clip, --all renders every candidate\n- all output goes to ./out/CLIPNAME.mp4\n\nHighlight selection:\n- chunk the transcript into overlapping windows of roughly 90 seconds\n- send the text with timestamps to the model, ask for self contained moments between 25 and 60 seconds with clean sentence boundaries\n- require strict JSON back, validate with pydantic, retry once on parse failure\n- snap every start and end to the nearest word boundary from the transcript\n\nRendering:\n- crop to 1080x1920, default to a centered crop with a --crop-x offset flag\n- detect faces once per second with mediapipe, average the x positions over the clip, use a single static crop per clip, no per frame tracking\n- burn captions by generating an ASS file from word timestamps, max two lines, big bold sans, white text with a black outline, active word highlighted\n- normalize audio with loudnorm, re-encode h264 yuv420p aac, nothing fancier\n\nOut of scope, do not build: web UI, accounts, uploading to any platform, b-roll, zoom effects, split screen, virality scores, telemetry.\n\nShip a README with install steps, a .env.example, and a Makefile target that runs the whole pipeline on a sample file. Fail loudly with readable errors if ffmpeg is missing.",
+  "promptCurated": false
+}
