@@ -1,0 +1,52 @@
+{
+  "slug": "aisongsgenerator",
+  "name": "AISongsGenerator",
+  "domain": "aisongsgenerator.com",
+  "category": "ai-audio",
+  "subcategory": "text-to-song generation",
+  "tagline": "Browser workspace that turns prompts or your own lyrics into finished songs, plus lyric writing, covers, vocal removal and stem splitting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://aisongsgenerator.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "Half of this app is genuinely a one-shot build: stem separation and vocal removal are a wrapper around Demucs, and lyric writing is a prompt. The other half, the part people actually pay for, is a model that sings. Nothing open touches a modern commercial text-to-song system for vocal quality, mix coherence or prompt adherence, and the open options that exist want a GPU and still sound like a demo from three years ago. So you can rebuild the utility belt in an afternoon and you will still be renting someone else's singer. Note also that most tools in this space are themselves thin front ends over a hosted music model, so you are comparing your wrapper to their wrapper, and theirs has the good backend.",
+  "coreLoopDIY": "A local web app that splits any uploaded track into stems or an instrumental, drafts structured lyrics from a prompt, and generates short instrumental beds with an open music model.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and ffmpeg locally",
+    "A GPU if you want MusicGen generation to finish before you lose interest, CPU works for Demucs but slowly",
+    "An LLM API key in .env for the lyric drafting, or swap in a local model",
+    "Several GB of disk for model weights"
+  ],
+  "whatYouLose": [
+    "Actual singing: no open stack gives you a convincing lead vocal from lyrics",
+    "Full song structure, verse into chorus into bridge, with a coherent mix and a real ending",
+    "Covers and voice transformation, which carry both a model gap and a rights minefield",
+    "Speed: cloud inference returns a song in under a minute, your laptop will not",
+    "Shareable outputs, a library, and the small mercies of a UI someone tuned"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "content-rights"
+  ],
+  "moatNotes": "The genuinely cloneable features, stems and vocal removal, are the ones given away free as lead generation. That is not an accident.",
+  "whyPeopleStillPay": "Because the song comes out singing. Everything around the generation step is commodity glue and the vendors know it, which is why the free tier is stem splitting and the credits are for the thing you cannot replicate. Paying also buys you throughput on someone else's GPUs, usable commercial-use terms in writing, and the freedom to not think about model weights, licensing of training data, or whether your output is legally yours. For anyone making music as a hobby or for background tracks, the credit packs are cheaper than the electricity and attention a local rig costs.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The stem splitter and the lyric writer are a one-sitting build; the voice that sings them is not. The moat is a proprietary music model trained on a corpus nobody else can legally assemble, served on GPU capacity nobody wants to rent personally.",
+  "prompt": "Build a local single-user web app called \"songbench\": an audio utility workspace for music experiments. No accounts, no cloud storage, no telemetry, no analytics.\n\nStack, pick these and do not offer alternatives:\n- Python 3.11, FastAPI, uvicorn\n- demucs (htdemucs model) for source separation\n- audiocraft MusicGen (small model) for instrumental generation\n- One server-rendered HTML page with vanilla JS and plain CSS, no framework, no build step\n- SQLite via sqlite3 for a job table and local file paths\n- ffmpeg via subprocess for format conversion and trimming\n\nFeatures, exactly these three:\n1. Stems: upload mp3/wav, run htdemucs, return downloadable vocals/drums/bass/other plus a vocals-removed instrumental mixdown. Show progress by polling a job status endpoint.\n2. Lyrics: a prompt box plus controls for genre, mood and structure. Call an OpenAI-compatible chat API using OPENAI_API_KEY and OPENAI_BASE_URL from .env. Return lyrics with explicit [Verse] [Chorus] [Bridge] section tags. Save drafts to SQLite, allow editing and re-rolling a single section.\n3. Instrumental: a text prompt to MusicGen small, 10 to 30 seconds, returns a wav. Cache generations on disk keyed by prompt hash.\n\nExplicitly out of scope, do not attempt and do not stub a fake version: singing voice synthesis, voice cloning, covers, full structured songs with vocals, user auth, payments, sharing links.\n\nRequirements:\n- Long jobs run in a background thread pool with a status endpoint, never block the request\n- Models load lazily on first use and stay resident\n- All generated files under ./data, gitignored, with a \"delete job\" button that actually deletes them\n- .env.example listing every variable, secrets never committed or logged\n- Detect missing ffmpeg or missing model weights at startup and print a clear fix, do not crash halfway through a job\n- README with install steps, expected model download sizes, and honest CPU versus GPU timings\n- A /health endpoint reporting model load state and free disk space\n\nAt the end of the README, state plainly that this does not generate sung vocals and that MusicGen output is roughly background-music quality.",
+  "promptCurated": false
+}
