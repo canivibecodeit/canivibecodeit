@@ -1,0 +1,51 @@
+{
+  "slug": "iheart-radio",
+  "name": "iHeartRadio",
+  "domain": "iheart.com",
+  "category": "audio",
+  "subcategory": "radio and podcast streaming",
+  "tagline": "Streaming app for live broadcast radio stations, curated music playlists, and a large podcast catalog.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.iheart.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a radio and podcast player in an afternoon: audio element, stream URL, play button, done. What you cannot build is the right to stream hundreds of licensed terrestrial stations, the on-demand music catalog that the paid tiers exist for, or the exclusive podcast slate. iHeart is a broadcast company with an app attached, not an app with content attached. The closest honest DIY is a player on top of the open internet radio directories plus podcast RSS, which covers live-radio-and-podcasts listening surprisingly well but drops the on-demand songs, the local personalities you actually wanted, and anything exclusive. Build that if you mostly listen to live streams and shows, pay if you want a specific station's licensed feed or a music library.",
+  "coreLoopDIY": "A local web player that browses the open Radio Browser station directory, streams stations, subscribes to podcast RSS feeds, and remembers your favorites and playback positions in SQLite.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+",
+    "Internet connection for public station directories and podcast feeds",
+    "A browser that can play MP3/AAC/HLS streams"
+  ],
+  "whatYouLose": [
+    "Licensed streams for stations that are not publicly redistributable, which is a lot of the ones people want",
+    "On-demand music and playlist features from the paid tiers",
+    "Exclusive and first-party podcasts",
+    "Polished mobile apps, CarPlay, Android Auto, smart speaker and TV integrations",
+    "Offline downloads and cross-device sync of where you left off"
+  ],
+  "moatTags": [
+    "content-rights",
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": "Broadcast licensing plus music licensing. Two separate legal regimes, neither available to a hobby project.",
+  "whyPeopleStillPay": "Mostly because they want one specific station, show, or host, and the only legal place that feed lives is the app that owns it. The paid tiers add on-demand playback and unlimited skips, which is really a music licensing product bolted onto a radio brand. Nobody is paying for the UI, and the free tier covers most listening anyway, so the real competitor is Spotify rather than your weekend build.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player is a one-sitting build; the broadcast rights are not. The moat is content licensing: terrestrial station feeds and a music catalog, neither of which you can self-host.",
+  "prompt": "Build a local-first internet radio and podcast player called \"Tuner\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Node 20 + Express + TypeScript for the server\n- better-sqlite3 for storage, single file data/tuner.db\n- Plain server-rendered HTML with htmx for interactions, one CSS file, no React, no build step beyond tsc\n- Runs with `npm run dev` on http://localhost:5173\n\nServer responsibilities:\n- Proxy and cache calls to the Radio Browser API (https://all.api.radio-browser.info) for station search by name, country, tag, and codec. Cache responses in SQLite for 24 hours, send a descriptive User-Agent.\n- Proxy podcast RSS fetches to avoid browser CORS issues, parse feeds with a small XML parser, extract title, description, artwork, and episodes with enclosure URL, duration, and pubDate.\n- Proxy audio streams only if the direct URL fails CORS; otherwise let the browser hit the stream directly.\n\nSchema: stations(id, uuid, name, stream_url, favicon, country, tags, favorite, last_played_at), podcasts(id, feed_url, title, artwork, last_checked_at), episodes(id, podcast_id, guid, title, audio_url, duration, pub_date, position_seconds, finished).\n\nUI, three pages:\n1. Radio: search box, results grid with station name, country, bitrate, favorite toggle. Click plays.\n2. Podcasts: paste a feed URL to subscribe, list of subscriptions, episode list per show with resume-from-position.\n3. Favorites: starred stations and in-progress episodes.\n\nA persistent bottom player bar on every page: HTML5 audio element, play/pause, volume, current title, and for podcasts a seek bar plus 15s skip buttons. Write playback position back to SQLite every 10 seconds via a small POST.\n\nAlso: import/export favorites and subscriptions as OPML/JSON, a dark theme by default, and graceful handling of dead streams (mark station as failed after two errors, show it dimmed).\n\nOut of scope, do not attempt: on-demand music catalogs, anything requiring licensed or paid station feeds, mobile apps, user accounts, recommendations.\n\nSecrets: none required. If you add an optional Podcast Index API lookup, read keys from .env and degrade silently when absent. Finish with a README covering setup, the legal note that only publicly listed streams are used, and known limitations.",
+  "promptCurated": false
+}
