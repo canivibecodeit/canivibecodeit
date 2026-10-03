@@ -1,0 +1,54 @@
+{
+  "slug": "kareo-desktop-pm",
+  "name": "Kareo Practice Management (Tebra)",
+  "domain": "tebra.com",
+  "category": "hr",
+  "subcategory": "medical practice management and billing",
+  "tagline": "Practice management, scheduling, and medical billing software for small clinics, now sold as part of Tebra.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.tebra.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Tebra quotes per provider and bundles billing, EHR, and patient engagement modules.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is not a scheduling app with a medical skin on it. The product's actual job is pushing claims to payers in X12 837 format through a clearinghouse, reading back 835 remittances and 277 rejections, and keeping every byte of it HIPAA compliant with audit logs and a signed BAA. An agent can absolutely build you a calendar, a patient list, and an invoice table in an afternoon, and that part would be fine. What it cannot build is a payer connection, an eligibility check, or the legal posture that lets you store someone else's protected health information. If you are a solo provider cash-pay with no insurance billing, the DIY version is genuinely viable; the moment you touch a payer, it is not.",
+  "coreLoopDIY": "A local patient roster plus appointment calendar plus cash-pay invoice tracker, with no insurance claims, no eligibility checks, and no clearinghouse.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Local machine or a single private server you control",
+    "Node and SQLite, or Postgres if you want to be fancy",
+    "Full-disk encryption and a real backup plan, since this is health data",
+    "A lawyer's read if you ever let a second person use it",
+    "A real billing service or clearinghouse if you submit insurance claims, which the DIY build does not do"
+  ],
+  "whatYouLose": [
+    "Clearinghouse connectivity: no 837 claim submission, no 835 remittance posting, no rejection workflow",
+    "Real-time insurance eligibility and benefits checks",
+    "HIPAA compliance posture: BAA, audit trails, access controls, breach notification processes that hold up to scrutiny",
+    "Patient-facing pieces: portal, online booking, intake forms, appointment reminders by SMS",
+    "E-prescribing, lab interfaces, and anything else that needs certified integrations",
+    "Coding and fee schedule updates, CPT and ICD maintenance, payer rule changes"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The clearinghouse and payer plumbing is the product. Compliance is the reason you cannot just rebuild it on a laptop and invite patients.",
+  "whyPeopleStillPay": "Because getting paid by insurers is a protocol problem, not a UI problem. Claims go out in formats payers dictate, come back rejected for reasons that change quarterly, and the only way to survive that is a vendor whose whole business is tracking it. Add a signed BAA, audit logging that satisfies an auditor, and the fact that a clinic's entire revenue cycle lives inside the system, and switching costs get brutal fast. Nobody pays for the calendar. They pay so the money arrives.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The calendar is a weekend; the claims pipeline is somebody's entire company. The moat is payer connectivity plus the compliance paperwork that makes storing other people's health records legal.",
+  "prompt": "Build a local-only practice management tool for a solo cash-pay practitioner. Explicitly NOT a medical billing system: no insurance claims, no clearinghouse, no e-prescribing, no patient portal.\n\nStack, no substitutions:\n- Node 20 with TypeScript\n- SQLite via better-sqlite3, single file at ./data/practice.db\n- Fastify for the server, server-rendered HTML with Eta templates, plain CSS, no frontend framework\n- Runs on 127.0.0.1 only, binds to localhost, no external network calls at all\n\nData model:\n- patients: id, name, dob, phone, email, address, notes, created_at, archived_at\n- appointments: id, patient_id, starts_at, duration_minutes, type, status (scheduled, completed, no_show, cancelled), notes\n- encounters: id, appointment_id, patient_id, date, subjective, objective, assessment, plan, locked_at\n- invoices: id, patient_id, encounter_id nullable, issued_on, line items as JSON (description, qty, unit_cents), total_cents, status (draft, sent, paid, void), paid_on\n- audit_log: id, at, action, entity, entity_id, detail. Append-only. Write a row on every create, update, and view of a patient or encounter.\n\nScreens:\n- Week calendar view with drag-free click-to-create appointments, and a day list\n- Patient list with search, patient detail showing appointments, encounters, invoices\n- Encounter form with SOAP fields and a Lock button that sets locked_at and makes it read-only\n- Invoice create from an encounter, print-friendly HTML view, mark paid\n- Simple dashboard: today's schedule, unpaid invoice total, no-show count this month\n\nRequirements:\n- Single operator, single passphrase gate read from PRACTICE_PASSPHRASE in .env, session cookie, no user accounts system\n- Commit a .env.example, never a real .env\n- npm run backup writes a timestamped copy of the db file to ./backups\n- Seed script with 12 fake patients and 30 appointments\n- README that states plainly: this stores health information, encrypt your disk, this is not HIPAA compliant on its own, do not use it for anyone else's patients without legal advice\n\nOut of scope, do not build: insurance eligibility, claim generation, ERA posting, SMS reminders, multi-user roles, cloud sync, any analytics or telemetry.",
+  "promptCurated": false
+}
