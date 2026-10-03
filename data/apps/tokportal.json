@@ -1,0 +1,51 @@
+{
+  "slug": "tokportal",
+  "name": "Tokportal",
+  "domain": "tokportal.com",
+  "category": "social-media",
+  "subcategory": "TikTok analytics and content tracking",
+  "tagline": "A web portal for tracking TikTok accounts, videos and trend data in one dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.tokportal.com/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "If all you want is a dashboard that watches a fixed list of TikTok accounts you care about and charts their view and follower deltas over time, that is a weekend build with yt-dlp, SQLite and a cron job. Where the DIY version falls apart is anything that requires seeing the whole platform instead of your watchlist: trend discovery, category rankings, or 'what is blowing up right now' all depend on continuously harvesting far more data than one machine can politely collect. The other problem is that TikTok actively fights scraping, so your personal build is a maintenance relationship, not a finished project, and it will break on a Tuesday for no reason. So: yes for a private tracker, no for a research tool. Build the tracker if you have a short watchlist and a tolerance for breakage.",
+  "coreLoopDIY": "Snapshots public metrics for a list of TikTok accounts on a schedule into SQLite and serves a local dashboard of growth deltas and top posts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and yt-dlp installed locally",
+    "A machine or cheap VPS that can run a scheduled job",
+    "Optional TikTok session cookies for anything rate limited",
+    "Willingness to fix the scraper when TikTok changes something"
+  ],
+  "whatYouLose": [
+    "Platform-wide trend discovery: you only see accounts you already thought to add",
+    "Historical data from before you started collecting, which is the whole point of a research tool",
+    "Someone else absorbing the scraping arms race, proxy rotation and rate limit pain",
+    "Exports, shareable reports and anything a client or teammate can open",
+    "Mobile-friendly polish and alerts that actually fire reliably"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The dataset is the product. Collecting it at platform scale is an infrastructure and anti-blocking problem, not a coding problem.",
+  "whyPeopleStillPay": "Because the hard part was never the dashboard, it was the years of continuous harvesting behind it plus the proxies and patches that keep it flowing. A personal build starts with an empty database and no view of anything you did not manually subscribe to, which makes it fine for monitoring and useless for discovery. People paying for this are usually buying answers about accounts and niches they have not seen yet, and that is exactly the part you cannot self-host.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if your watchlist is under fifty accounts and you enjoy fixing scrapers.",
+  "prompt": "Build a local TikTok account tracker. No accounts, no cloud, no telemetry, single user, runs on my machine.\n\nStack, non negotiable: Node 20 with TypeScript, SQLite via better-sqlite3, Express with server rendered EJS templates, Chart.js from a CDN for graphs, node-cron for scheduling. No React, no ORM, no Docker.\n\nData collection: shell out to yt-dlp to fetch public metadata for tracked TikTok accounts. Use the JSON output mode, never download video files. Parse out per video: id, url, caption, upload date, view count, like count, comment count, share count. Also record the account follower count and total likes when available.\n\nSchema: accounts(handle, added_at, notes), videos(id, handle, url, caption, uploaded_at, first_seen_at), snapshots(video_id, captured_at, views, likes, comments, shares), account_snapshots(handle, captured_at, followers, total_likes). Snapshots are append only so I can compute deltas later.\n\nScheduler: a cron job every 6 hours that walks the account list, refreshes the most recent 30 videos per account, and writes new snapshot rows. Add jittered delays between accounts, a configurable concurrency of 1 by default, and exponential backoff on failure. Log every run to a runs table with status and error text so I can see what broke.\n\nWeb UI on localhost:3000:\n- Accounts page: add or remove a handle, last refresh time, follower count and 7 day follower delta.\n- Account detail: sortable table of videos with current views and views gained in the last 24h and 7d, plus a line chart of the account follower history.\n- Video detail: chart of the full snapshot history for that video.\n- Runs page: last 50 collection runs with errors visible, no silent failures.\n\nConfig in .env: PORT, DB_PATH, CRON_SCHEDULE, YTDLP_PATH, optional COOKIES_FILE path for yt-dlp. Never commit .env, ship a .env.example.\n\nExplicitly out of scope: platform wide trend discovery, hashtag or sound search, competitor suggestions, comment scraping, posting or scheduling content, any paid API.\n\nInclude a seed script that adds three handles, a README with setup steps, and a one line note that TikTok markup and yt-dlp extractors change often so the collector will need occasional patching.",
+  "promptCurated": false
+}
