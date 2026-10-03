@@ -1,0 +1,52 @@
+{
+  "slug": "telegram",
+  "name": "Telegram",
+  "domain": "telegram.org",
+  "category": "community",
+  "subcategory": "messaging",
+  "tagline": "Cloud-synced messaging app with groups, channels, bots, and a paid Premium tier.",
+  "priceMonthly": 4.99,
+  "pricing": {
+    "plan": "Telegram Premium",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://telegram.org/",
+    "checkedOn": "2026-08-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "A chat app is one of the classic teaching projects, so an agent will absolutely hand you a working WebSocket messenger in an afternoon. The problem is that a messenger with one user is a diary. Telegram's value is that a few hundred million people are already reachable there, plus channels you subscribe to, bots you use, and the free tier that already does everything the paid tier does minus stickers and bigger uploads. Even the technical floor is nasty: mobile clients on two app stores, push notification delivery through APNs and FCM, media hosting, and multi-device sync of history. You can build the pipes, not the people on the other end.",
+  "coreLoopDIY": "A self-hosted realtime chat server with rooms, message history, and file uploads, usable by you and people you personally convince to sign up.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A VPS or home server with a public hostname and TLS",
+    "Every single person you want to talk to agreeing to use it",
+    "Object storage or plain disk for media, plus a backup plan",
+    "Separate work if you want anything resembling mobile push notifications"
+  ],
+  "whatYouLose": [
+    "The network: nobody you know is on your server, and the pitch to get them there is bad",
+    "Native iOS and Android apps that survive backgrounding and deliver push reliably",
+    "Channels, bots, and the whole third-party ecosystem built on the Bot API",
+    "Free unlimited cloud storage for years of chat history and media across every device",
+    "Reliability engineering you never think about: delivery ordering, offline queueing, global latency"
+  ],
+  "moatTags": [
+    "network-effects",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "Group chats are switching-cost bombs: leaving is only possible if everyone leaves together, which never happens.",
+  "whyPeopleStillPay": "Almost nobody pays for Telegram, which is part of the point: the free tier is complete enough that Premium is a tip jar with cosmetics and larger uploads attached. People stay because their family group, their neighborhood group, and the three channels they actually read are all there, and moving is a coordination problem rather than a software problem. Self-hosting a messenger means becoming your friends' unpaid on-call SRE, and the first missed notification costs you all your credibility.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The transport is a weekend; the contact list is not. The moat is that everyone you want to reach is already there, and group chats only migrate all at once, which is to say never.",
+  "prompt": "Build a small self-hosted realtime chat server plus web client. This is a private messenger for a handful of known people, not a Telegram clone.\n\nStack, no substitutions:\n- Node 20 with TypeScript, Fastify for HTTP, the ws library for WebSockets\n- SQLite via better-sqlite3, single file at ./data/chat.db, migrations in plain SQL on boot\n- Client: one static page, vanilla TS bundled with esbuild, no React, no CSS framework\n- Run with a single `npm start`, config from .env, no cloud services\n\nIn scope:\n- Invite-only accounts: an admin CLI script creates a user and prints a one-time invite link; signup exchanges it for a username and password (argon2 hashed)\n- Session cookies, httpOnly, sameSite lax, signed with SECRET from .env\n- Rooms: create, join by name, list my rooms. Direct messages are just a two-person room\n- Send and receive text messages over WebSocket, persisted before broadcast, delivered to all connected members of the room\n- On connect, backfill the last 100 messages per open room; cursor-based scroll for older history\n- Optimistic send with a client-generated message id, server echoes it so duplicates collapse on reconnect\n- File and image upload: multipart to disk under ./data/uploads, 25 MB cap, served with a random opaque filename, images get an inline thumbnail\n- Read state: per user per room last-read message id, unread badge in the sidebar\n- Typing indicator and presence, in memory only, no persistence\n- Reconnect with exponential backoff and a resume-from-message-id handshake\n\nOut of scope, do not build: end-to-end encryption, voice or video calls, mobile apps, push notifications, federation, bots, stickers, message editing history, moderation tooling, analytics or telemetry of any kind.\n\nDeliver a README that states plainly how to run it behind a TLS terminating reverse proxy, how to back up data/, and the exact limitation that browser tabs must be open to receive messages since there are no push notifications.",
+  "promptCurated": false
+}
