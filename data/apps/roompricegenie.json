@@ -1,0 +1,52 @@
+{
+  "slug": "roompricegenie",
+  "name": "RoomPriceGenie",
+  "domain": "roompricegenie.com",
+  "category": "travel",
+  "subcategory": "hotel revenue management",
+  "tagline": "Automated dynamic room pricing for small and independent hotels, pushed straight into the PMS or channel manager.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per property",
+    "unit": "custom",
+    "source": "https://roompricegenie.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Priced per property and typically quoted on a call, which is its own kind of answer.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pricing math here is not the hard part: occupancy pace, day-of-week curves, lead-time pickup and a few seasonality multipliers are a weekend of arithmetic. The hard parts are the two things you cannot write yourself: live market demand and competitor rate data for your specific comp set, and certified two-way integrations with the PMS and channel manager so a new price actually reaches Booking.com instead of a spreadsheet. Every one of those integrations is a partnership, a certification process and a support contract, not an API key. You can absolutely build a local rate advisor that reads your own booking history and tells you when to raise prices, and for a single small property that may be most of the value. But if you want prices that react to what the hotel down the road is charging tonight, and you want them live on the OTAs without manual entry, you are buying the data and the plumbing, not the algorithm.",
+  "coreLoopDIY": "Imports a CSV of your bookings, computes occupancy and pickup pace by date, and suggests a nightly rate from your own rules, seasonality and manually entered competitor prices.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A CSV or report export of past and on-the-books reservations from your PMS",
+    "Your own base rates, floors and ceilings per room type",
+    "Patience to type in competitor rates by hand, or skip that signal entirely",
+    "Python 3.11 locally"
+  ],
+  "whatYouLose": [
+    "Market demand and competitor rate feeds, so your model only knows what you already know",
+    "Automatic rate push to the PMS and channel manager, so every price change is manual",
+    "OTA-side sanity checks: parity, derived rates, restrictions, length-of-stay rules",
+    "Someone to blame and call when the rates go out wrong on a sold-out weekend",
+    "Benchmarking against comparable properties, which is half of why operators trust a number"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Certified PMS and channel manager connections are gatekept partnerships, and the market demand data comes from aggregate observation across many properties. One hotel cannot reconstruct either.",
+  "whyPeopleStillPay": "A small hotel owner is not paying for a pricing formula, they are paying to stop thinking about rates. The product looks at the calendar, decides tonight is worth more than it was yesterday, and changes the number everywhere it is listed without anybody logging into an extranet. A local script that prints a suggestion still leaves the worst part of the job, the typing and the second-guessing, on a person who is also doing breakfast. Add that the competitive signal genuinely requires data you do not have, and the subscription is defensible on the merits.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pricing curve is a weekend; the inputs and the outputs are not. The moat is certified PMS and channel manager integrations plus aggregate market demand data from a lot of other hotels.",
+  "prompt": "Build a local, single-property hotel rate advisor. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, FastAPI, SQLite via SQLModel, Jinja2 templates, plain CSS, Chart.js from a CDN. Run with `uvicorn app:app --reload`. Everything lives in one folder and one SQLite file, rates.db.\n\nData in:\n1. A CSV importer for reservations with columns: booking_id, booked_on, arrival, departure, room_type, rooms, rate_total, status. Expand each booking into one row per night so occupancy is computed per stay date.\n2. A CSV importer for an events calendar: date, label, impact (low|medium|high).\n3. A manual form to enter competitor rates: date, competitor_name, rate. Optional, and the UI must clearly say the model degrades without it.\n4. A settings page for inventory per room type, base rate, floor, ceiling, day-of-week multipliers, and monthly seasonality multipliers.\n\nWhat it computes, per future date for the next 365 days:\n- Rooms sold, occupancy percent, ADR, revenue on the books.\n- Pickup pace: rooms on the books at the same lead time last year, same weekday aligned, and the delta.\n- A suggested rate: base rate times day-of-week multiplier times seasonality multiplier, then adjusted by occupancy versus a configurable target curve by lead time, then nudged by event impact, then clamped to floor and ceiling. Show every multiplier that contributed so the number is auditable.\n- An explanation string per date, for example \"up 18 percent: 71 percent occupancy at 14 days out versus 52 percent target, high impact event\".\n\nUI: a 365-day calendar grid colored by occupancy with suggested rate in each cell, a date detail page with the full calculation breakdown, a chart of occupancy and suggested rate over time, and a CSV export of date, room_type, suggested_rate for manual entry elsewhere.\n\nExplicitly out of scope: any PMS or channel manager integration, any scraping of OTA or competitor sites, authentication, multi-property support, and automatic rate pushing. This tool advises, a human types.\n\nShip a seed script that generates two years of plausible fake bookings so the app is usable on first run. Put nothing in .env because there are no secrets, and say so in the README. README must include a short honest section titled \"What this does not do\" listing the out-of-scope items above.",
+  "promptCurated": false
+}
