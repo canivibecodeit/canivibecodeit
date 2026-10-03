@@ -1,0 +1,52 @@
+{
+  "slug": "phreesia",
+  "name": "Phreesia",
+  "domain": "phreesia.com",
+  "category": "forms",
+  "subcategory": "patient intake and registration",
+  "tagline": "Patient intake, registration, insurance verification and payments for healthcare providers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.phreesia.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise contracts, quoted per practice, not published.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of Phreesia is a form wizard on a tablet, and yes, an agent can draft that before lunch. The part you cannot draft is everything behind the form: real-time eligibility and benefits checks against payer clearinghouses, card-present and card-on-file payments under PCI scope, bidirectional writeback into Epic, Cerner or athenahealth so the front desk never retypes anything, plus a BAA and the HIPAA posture that lets a compliance officer sign off. Those are contracts and certifications, not code. A personal replacement also makes no sense here: nobody intakes their own patients, this is bought by practices and health systems with audit requirements. Build the kiosk if you want to learn, but a clinic cannot run on it.",
+  "coreLoopDIY": "A local tablet-friendly intake flow that collects demographics, consent signatures and insurance card photos, then prints or exports a PDF packet for manual entry.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A tablet or laptop at the front desk",
+    "A local machine to run it on, no cloud storage of health data",
+    "Somebody willing to retype everything into the actual EHR",
+    "A real BAA and HIPAA review if a single live patient ever touches it"
+  ],
+  "whatYouLose": [
+    "Real-time insurance eligibility and benefits verification through payer clearinghouses",
+    "Bidirectional EHR writeback, so your intake data stays trapped in a PDF",
+    "Integrated payments, copay collection, card on file and payment plans under PCI scope",
+    "HIPAA program, BAA, SOC 2, pen tests and the breach liability someone else is carrying",
+    "Appointment reminders, self-scheduling, waitlist and the whole pre-visit outreach layer"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Eligibility checks mean payer connectivity, which means clearinghouse relationships. You cannot write your way into those.",
+  "whyPeopleStillPay": "Practices do not buy Phreesia for the form UI, they buy it because the data lands in the EHR without the front desk touching a keyboard, because the copay gets collected before the visit, and because the insurance is verified before the patient sits down. Each of those is a revenue number, not a convenience. Add that a compliance officer needs a signed BAA and an audit trail, and the build-versus-buy conversation ends quickly. Even a small clinic is weighing a few hundred dollars a month against staff hours and denied claims.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The questionnaire is a weekend; the plumbing is a procurement cycle. The moat is payer connectivity, EHR writeback and a signed BAA, none of which an agent can generate.",
+  "prompt": "Build a local, offline patient intake kiosk for a single small practice. This is a learning exercise and a paper-replacement tool, not a HIPAA-compliant system, and it must say so.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/intake.db\n- pdf-lib for PDF generation\n- Runs with `npm run dev` on localhost only, no auth provider, no cloud, no telemetry, no analytics\n\nFeatures in scope:\n1. A JSON-defined form schema at ./forms/intake.json supporting field types: text, date, select, multiselect, yesno, signature, photo. Loading a different JSON file changes the whole questionnaire with no code edits.\n2. A tablet-first, one-question-per-screen flow with large tap targets, a progress bar, and a back button. Works at 768px portrait.\n3. Conditional logic: any field can declare `showIf: { field, equals }`.\n4. Signature capture on a canvas, stored as a PNG blob in SQLite.\n5. Insurance card capture via the device camera input, front and back, stored as blobs. No OCR, no parsing, no eligibility check: print a visible note that insurance must be verified manually.\n6. On submit, generate a flat PDF packet of all answers plus signature and card images, and write a row to the `submissions` table.\n7. A /staff page listing submissions with date, patient name, and buttons to download the PDF or delete the record. Protect it with a single passphrase from .env (STAFF_PASSPHRASE), checked server side.\n8. A /kiosk route that auto-resets to a blank form 60 seconds after submit.\n\nExplicitly out of scope, do not fake these:\n- Any EHR, FHIR or HL7 integration\n- Payer eligibility or benefits checks\n- Card payments of any kind\n- Patient accounts, logins or portals\n- Any outbound network request whatsoever\n\nDeliverables: the app, a .env.example with STAFF_PASSPHRASE, a README with setup steps, and a clear warning block in the README stating this stores health information unencrypted on a local disk and is not suitable for live patients without a security and compliance review.",
+  "promptCurated": false
+}
