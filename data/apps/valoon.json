@@ -1,0 +1,53 @@
+{
+  "slug": "valoon",
+  "name": "Valoon",
+  "domain": "valoon.chat",
+  "category": "project-management",
+  "subcategory": "field team communication over messaging apps",
+  "tagline": "Office-to-field team communication that runs over WhatsApp, so crews and subcontractors never install another app.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://valoon.chat/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software part of this is unremarkable: a message inbox, project threads, photo and voice attachments filed against a job, a digest for whoever is in the office. An agent can build that in a weekend. What it cannot build is the channel, because the entire pitch is that the guy on the roof uses the messaging app already on his phone and installs nothing. Getting messages into and out of WhatsApp means a WhatsApp Business API number through Meta or a provider, business verification, template messages, and the 24 hour customer service window, which is paperwork and ongoing cost rather than code. Build the same thing on Telegram and it works fine, right up until you ask a subcontractor to install Telegram.",
+  "coreLoopDIY": "A self-hosted Telegram bot that files incoming crew photos, voice notes and texts into per-project threads with a searchable web dashboard and a daily digest.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS with a public HTTPS endpoint for webhooks",
+    "A Telegram bot token, free, no approval process",
+    "Disk or object storage for photos and voice files",
+    "Optional transcription API key if you want voice notes turned into text",
+    "Every field worker willing to use the messaging app you picked, which is the part that fails"
+  ],
+  "whatYouLose": [
+    "WhatsApp itself: zero onboarding for crews, subcontractors and suppliers who will not install anything new",
+    "Business API plumbing: verified sender number, template messages, the 24 hour reply window, delivery reliability at volume",
+    "Automatic translation for multilingual crews, which matters more on real sites than anyone expects",
+    "Connectors into whatever project or ERP system the office already lives in",
+    "Retention and GDPR-shaped archiving of work chat that someone may later have to produce"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "network-effects"
+  ],
+  "moatNotes": "The moat is not the product surface, it is being a licensed, verified intermediary to a messaging network everyone already uses.",
+  "whyPeopleStillPay": "Because the alternative is a foreman with 40 unsorted WhatsApp threads and photos that live only on his phone, and the fix has to work for people who will never log into a portal. Paying per seat for someone else to hold the WhatsApp Business relationship, handle the templating rules, and file the mess into projects is cheaper than doing the Meta verification dance yourself and far cheaper than mandating a new app across subcontractors who do not work for you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The inbox, the filing and the digest are a weekend build; the channel is not. The moat is WhatsApp Business API access plus the plain fact that your subcontractors will never install your app.",
+  "prompt": "Build a self-hosted field communication hub called SiteInbox in this empty folder.\n\nStack, no substitutions: Node 20, TypeScript, Express, SQLite via better-sqlite3, server-rendered HTML with Pug and a little vanilla JS. No React, no cloud services, no accounts beyond one admin password.\n\nChannel: Telegram Bot API, polling mode by default so it runs behind any NAT, optional webhook mode if PUBLIC_URL is set. Do not attempt WhatsApp; it needs business verification and a paid provider, and faking it with an unofficial library will get the number banned. Put a short README note saying exactly that.\n\nData model: projects (name, code, active flag), people (telegram user id, display name, role), messages (project id, person id, text, timestamp, kind), attachments (message id, local file path, mime type, original filename), transcripts (message id, text).\n\nBot behavior:\n- /start links a Telegram user to a person record and lists active projects.\n- /project ABC sets the sender's current project; all later messages file there until changed.\n- Plain text, photos, documents and voice notes all become messages under the current project. Download photo and voice files to ./data/files, never just store the Telegram file id.\n- If OPENAI_API_KEY is in .env, transcribe voice notes with Whisper and save the text; if not, store the audio and skip quietly.\n- Reply with a one line confirmation naming the project so the sender knows it landed.\n\nWeb dashboard on localhost, single admin password from .env via HTTP basic auth:\n- Project list with unread counts.\n- Project view: chronological thread, inline photo thumbnails, audio players, transcript text under each voice note.\n- Full text search across messages and transcripts.\n- Per project export to a zip of a Markdown log plus the original files.\n- A daily digest page listing yesterday's activity per project, plus an optional cron-friendly script that emails it through SMTP creds in .env.\n\nAll secrets in .env with a committed .env.example. Everything else local: SQLite file and files directory under ./data. No telemetry, no analytics.\n\nDeliver: npm install, npm run dev, a seed script creating two sample projects, and a README covering Telegram bot setup, the WhatsApp limitation, and a backup note saying to copy ./data.",
+  "promptCurated": false
+}
