@@ -1,0 +1,52 @@
+{
+  "slug": "cognee",
+  "name": "Cognee",
+  "domain": "cognee.ai",
+  "category": "dev-tools",
+  "subcategory": "AI memory layer / knowledge graph retrieval",
+  "tagline": "A memory layer for AI agents that turns your documents and conversations into a queryable knowledge graph plus vector index.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://cognee.ai/",
+    "checkedOn": "2026-09-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea is not exotic: chunk your data, embed it, ask an LLM to pull out entities and relations, store both in a vector index and a graph, then retrieve over both at query time. An agent will get you a working version of that loop in a weekend, and for a single person with a few thousand documents it will be good enough. What you will not get in one shot is the boring part that actually determines retrieval quality: stable entity resolution across ingests, ontology control, dedup, incremental updates when a document changes, and any way to tell whether your changes made retrieval better or worse. Cognee is also open source, so the honest comparison is not DIY versus SaaS, it is your weekend graph versus their repo plus a hosted control plane. Build it to learn how the pipeline works, then decide whether you want to maintain it.",
+  "coreLoopDIY": "Ingests files, chunks and embeds them, extracts entities and relations with an LLM into a local graph, and answers queries with combined vector plus graph retrieval.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for extraction and an embeddings model (or a local model via Ollama)",
+    "Python 3.12 and a machine willing to sit through a few hours of ingest",
+    "Your own corpus in files or a folder",
+    "Patience for prompt tuning on the entity extraction step"
+  ],
+  "whatYouLose": [
+    "Entity resolution that holds up across many ingests instead of creating five slightly different nodes for the same person",
+    "Ontology and schema control, so your graph stays a coherent shape rather than whatever the LLM felt like that day",
+    "Prebuilt loaders and connectors for the sources you actually store things in",
+    "Any evaluation harness, so retrieval quality is vibes only",
+    "Incremental updates, deletion, and memory decay instead of full reingest every time"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The defensible part is pipeline tuning and eval discipline, not the architecture, which is public and well documented.",
+  "whyPeopleStillPay": "People pay for a memory layer when the alternative is owning a data pipeline they did not want to own. Graph plus vector retrieval degrades quietly: nothing crashes, answers just get slightly worse as your entity nodes fragment and stale chunks pile up. Paying for the hosted version buys someone else's opinions about chunking, extraction prompts, and dedup, plus the ability to point at a dashboard when an agent gives a wrong answer. If you are one person with one corpus, that is worth less than it sounds. If you are shipping a product on top of it, it is worth a lot.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Building this once is the fastest way to understand why graph RAG demos look great and graph RAG in production looks fine at best.",
+  "prompt": "Build a local AI memory service: a knowledge graph plus vector retrieval layer over my own files.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, uv for deps\n- SQLite with the sqlite-vec extension for chunk embeddings\n- Kuzu (embedded graph database) for entities and relations\n- OpenAI API for embeddings and extraction, key from .env as OPENAI_API_KEY, model names also from .env with sane defaults\n- No Docker, no cloud, no accounts, no telemetry. Everything lives in ./data\n\nIngest pipeline (CLI: `memory ingest ./path`):\n1. Walk the path, accept .md, .txt, .pdf, .html. Skip unchanged files using a content hash stored in SQLite.\n2. Chunk to roughly 800 tokens with 100 token overlap, keep source path and char offsets.\n3. Embed each chunk, store vector plus text plus metadata in SQLite.\n4. For each chunk, one LLM call that returns strict JSON: entities (name, type, short description) and relations (source, relation, target). Validate with Pydantic, retry once on parse failure, log and skip on second failure.\n5. Upsert entities into Kuzu. Resolve duplicates by normalized name plus type, and merge if cosine similarity of entity name embeddings is above a configurable threshold. Link every entity back to the chunk ids it came from.\n\nQuery API and CLI (`memory ask \"...\"`):\n- POST /search returns hybrid results: top-k chunks by vector similarity, plus chunks reached by 1 and 2 hop graph expansion from entities mentioned in the query.\n- POST /ask does the same retrieval then answers with citations to source file plus offsets. Never answer without citations.\n- GET /graph/{entity} returns the local neighborhood as JSON.\n\nAlso build:\n- A single static HTML page at / that lets me type a query, see the answer, the cited chunks, and a simple force-directed view of the returned subgraph. Vanilla JS, no build step.\n- `memory stats` printing document, chunk, entity, and relation counts.\n- `memory reset` that wipes ./data after a confirmation prompt.\n\nExplicitly out of scope: auth, multi-user, streaming, connectors to third party SaaS, background workers.\n\nWrite a README with exact setup commands, document the extraction prompt in its own file so I can tune it, and include a tiny sample corpus plus a pytest suite that covers chunking, entity dedup, and hybrid retrieval ordering.",
+  "promptCurated": false
+}
