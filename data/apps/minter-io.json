@@ -1,0 +1,52 @@
+{
+  "slug": "minter-io",
+  "name": "Minter.io",
+  "domain": "minter.io",
+  "category": "analytics",
+  "subcategory": "social media analytics",
+  "tagline": "Analytics and branded PDF reports for Instagram, TikTok, Facebook and other social accounts, including competitor tracking.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "http://minter.io/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math here is not hard: follower deltas, engagement rates, best posting hours, hashtag counts, a chart grid and a PDF. An agent can build the whole dashboard in a session. What it cannot build is access: Meta's Graph API wants a business account, a reviewed app and a token dance, TikTok and X charge or gatekeep, and competitor data beyond the thin public endpoints is effectively off limits. You also start with an empty database, so the historical trend lines that make these reports useful only exist after you have been polling for months. Fine if you run two accounts and are patient, painful if you report to clients next week.",
+  "coreLoopDIY": "Polls the social APIs for your own accounts on a daily cron, snapshots metrics into SQLite, and renders a dashboard plus a branded PDF report from the accumulated history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Instagram or Facebook business account connected to a Meta app with the needed permissions",
+    "Meta app review for anything beyond your own test accounts",
+    "API keys or paid tiers for TikTok, X or LinkedIn if you want them",
+    "Somewhere that can run a daily cron reliably"
+  ],
+  "whatYouLose": [
+    "Historical data from before your first poll, which is the whole point of a trend chart",
+    "Competitor and hashtag benchmarking built on aggregated cross-account data you do not have",
+    "Someone else absorbing API deprecations and permission changes every few months",
+    "Client-ready report templates that look designed rather than assembled",
+    "Multi-account team access and scheduled report delivery"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The platform APIs are the real product gate, and the stored history is a moat that grows while you sit still.",
+  "whyPeopleStillPay": "Because agencies and social managers are not paying for charts, they are paying for someone to keep a permission-gated pipeline alive across five platforms that each break their API on their own schedule, and for a PDF they can email a client without embarrassment. The retroactive history matters too: a tool that already has eighteen months of your competitors' posting cadence is worth more than a tool that starts counting today. If you only watch your own accounts and can wait for the data to accumulate, that calculus flips.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the access and the backfill are the parts you cannot shortcut.",
+  "prompt": "Build a self-hosted social media analytics dashboard for accounts I own.\n\nStack, no substitutions: Next.js with TypeScript and the App Router, SQLite via better-sqlite3, Tailwind for styling, Recharts for charts, Playwright for PDF rendering. Single repo, runs with npm run dev.\n\nScope, in:\n1. A config file listing the accounts to track. Start with Instagram Business accounts via the Meta Graph API. Keep the fetch layer behind a Provider interface so a TikTok or Mastodon provider can be added later without touching the UI.\n2. A daily collector script, run by node-cron inside the app and also callable as a one-off CLI command. It fetches account level metrics (followers, follows, media count, profile views, reach, impressions where available) and per-media metrics (likes, comments, saves, reach, timestamp, caption, media type, permalink).\n3. Snapshot storage: an append-only daily_snapshots table keyed by account and date, plus a media table upserted by media id with a media_metrics history table so engagement growth over time is preserved. Never overwrite history.\n4. Dashboard pages: account overview with follower growth, engagement rate per post over time, posting cadence heatmap by weekday and hour, top and bottom posts by engagement rate, and a hashtag frequency table derived from captions.\n5. Date range picker with 7 / 30 / 90 day presets and a compare-to-previous-period delta on every headline number.\n6. A report route that renders a clean printable page for any account and date range, and a CLI command that uses Playwright to save it as a PDF into ./reports. Support a logo path and accent color from .env for light branding.\n\nScope, out: no user accounts, no login, no hosted multi-tenancy, no telemetry, no competitor or hashtag benchmarking across accounts I do not own, no paid scraping.\n\nSecrets: META_APP_ID, META_APP_SECRET, META_ACCESS_TOKEN, IG_USER_IDS in .env, with a .env.example committed. Never commit real tokens.\n\nHandle the realities honestly: Graph API insights have limited lookback windows, so the collector must be idempotent per day, log and skip metrics the API refuses, and store raw JSON responses in a raw_responses table for debugging. If the token is missing or expired, fail loudly with the exact re-auth steps in the error message.\n\nInclude a seed script that generates 180 days of plausible fake snapshots so the dashboard is reviewable before any real token exists. README must cover token setup, the long-lived token refresh step, and a one-line warning that charts only show data from the first collector run forward.",
+  "promptCurated": false
+}
