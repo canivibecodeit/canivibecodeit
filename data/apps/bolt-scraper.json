@@ -1,0 +1,52 @@
+{
+  "slug": "bolt-scraper",
+  "name": "Bolt Scraper",
+  "domain": "boltscraper.com",
+  "category": "dev-tools",
+  "subcategory": "web scraping",
+  "tagline": "A hosted web scraper that pulls structured data off pages you point it at, without you writing the crawler.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://boltscraper.com/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The scraping part is genuinely easy now: an agent can hand you a Playwright script with selectors, pagination, retries, dedupe and a CSV export in one sitting. What you do not get in one sitting is the boring half that scraping services actually sell, which is residential proxy rotation, CAPTCHA handling, browser fingerprint churn and a machine that keeps running when your laptop sleeps. For a handful of sites that do not fight back, the DIY build wins outright and costs nothing. For anything behind Cloudflare, or anything you need polled hourly for months, you will end up renting someone's IP pool anyway, which is most of the bill. Call it a weekend if you include scheduling and a place to run it.",
+  "coreLoopDIY": "Give it a URL plus a field map, and it crawls pages with a headless browser, extracts structured rows, dedupes them in SQLite and writes CSV or JSON.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and Playwright installed locally",
+    "Somewhere to run it on a schedule if you want recurring pulls: a cheap VPS, a Raspberry Pi, or a GitHub Actions cron",
+    "A proxy provider if the target sites block datacenter IPs, which is the one cost you cannot code away",
+    "Patience for selectors breaking when the target redesigns"
+  ],
+  "whatYouLose": [
+    "Proxy pools and IP rotation, so blocked targets stay blocked",
+    "Anti-bot evasion that someone else maintains as Cloudflare and friends ship updates",
+    "A hosted scheduler with retries, alerting and run history",
+    "Prebuilt extractors for common site shapes, so your selectors are yours to fix forever",
+    "Any pretense of legal cover or rate-limit etiquette being handled for you"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The actual product in commercial scraping is the IP estate and the ongoing arms race against bot detection. The parsing code is the cheap part and always was.",
+  "whyPeopleStillPay": "Because a scraper that works on your machine today is not the same thing as a scraper that returns clean rows every morning for a year. People pay to outsource the maintenance treadmill: blocked IPs, new bot checks, changed markup, failed runs nobody noticed. If the data feeds something you actually depend on, paying someone to absorb that breakage is rational. If you need one dataset once, paying is silly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a local tool, dicey as an unattended service unless you are willing to rent IPs.",
+  "prompt": "Build a local command line web scraper in Node 20 with TypeScript and Playwright. No web UI, no accounts, no cloud services, no telemetry.\n\nProject layout:\n- src/cli.ts: entry point, parses args with node:util parseArgs\n- src/scrape.ts: crawl and extract logic\n- src/store.ts: SQLite persistence via better-sqlite3\n- jobs/: one JSON job file per target site\n- out/: generated CSV and JSON\n\nA job file defines: startUrls, an optional listSelector for repeated rows, a fields map of name to { selector, attr } where attr defaults to textContent, an optional nextPageSelector for pagination, maxPages, and a requestDelayMs.\n\nBehaviour:\n- Launch Chromium headless, one context per job, set a plain desktop user agent\n- For each page: wait for listSelector, extract every row into an object using the fields map, trim whitespace, resolve relative hrefs to absolute\n- Follow nextPageSelector until maxPages or no next link\n- Respect requestDelayMs between navigations, default 1500ms\n- Retry a failed navigation twice with exponential backoff, then log and continue\n- Dedupe rows by a sha256 of the configured key fields, stored in SQLite so repeat runs only append new rows\n- Write out/JOBNAME.csv and out/JOBNAME.json at the end, plus a run summary: pages visited, rows found, rows new, errors\n\nAlso include:\n- Optional HTTP proxy support read from PROXY_URL in .env via node --env-file, ignored if unset\n- A --dry-run flag that scrapes page one only and prints the first three extracted rows so selectors can be checked fast\n- A sample job file for a generic paginated listing page, with comments explaining each key\n- A README with install steps, one example command, and a short note that the user is responsible for checking robots.txt and terms of the sites they point this at\n\nExplicitly out of scope: CAPTCHA solving, fingerprint spoofing, proxy pool management, distributed crawling, any hosted dashboard. Keep dependencies to playwright, better-sqlite3 and a CSV writer.",
+  "promptCurated": false
+}
