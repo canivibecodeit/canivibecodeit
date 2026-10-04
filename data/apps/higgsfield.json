@@ -1,0 +1,52 @@
+{
+  "slug": "higgsfield",
+  "name": "Higgsfield",
+  "domain": "higgsfield.ai",
+  "category": "ai-video",
+  "subcategory": "AI video and image generation",
+  "tagline": "AI video generator known for cinematic camera-motion presets and character-consistent image models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://higgsfield.ai/",
+    "checkedOn": "2026-08-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is a set of trained generative models plus the GPU fleet that serves them, and neither of those things is a coding problem. An agent can absolutely build you the app around it: preset library, prompt templating, a queue, a gallery, side-by-side takes. But the moment you hit generate you are renting somebody else's weights, either Higgsfield's or an open model on a rented GPU, and open video models still lag on motion coherence and camera control. The honest consolation build is a local studio that wraps a hosted video API and keeps your camera-move presets and outputs on your own disk. That is genuinely useful and it is not a replacement.",
+  "coreLoopDIY": "A local web app that stores your camera-motion and style presets, fires image-to-video jobs at a hosted model API, and keeps every take in a browsable local gallery with the exact prompt used.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted video model provider (fal.ai, Replicate, or similar)",
+    "Pay-per-generation credits, which is the actual recurring cost",
+    "Node 20+ and local disk for rendered clips",
+    "Optional: a big GPU if you insist on running open video models locally"
+  ],
+  "whatYouLose": [
+    "The models themselves, which are the entire product",
+    "Curated camera-motion presets that were tuned against those specific weights",
+    "Character and style consistency across shots, which is model-side, not app-side",
+    "Fast queue times on a fleet sized for thousands of concurrent renders",
+    "The template and community feed that tells you what prompts actually work this week"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "Camera-control presets look like UI but they are really prompt conditioning tuned against weights you do not have.",
+  "whyPeopleStillPay": "Because the alternative is assembling ComfyUI graphs, chasing open checkpoints, and renting GPUs by the minute to get output that still looks less controlled. People paying for this are buying motion quality and a shot that lands on the first or second try, and the difference between two takes and twelve takes is the whole subscription. The wrapper is free labor; the weights are not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the studio in a weekend and the presets in an afternoon. The moat is the trained video weights and the GPU fleet that serves them at speed.",
+  "prompt": "Build a local single-user AI video studio called ShotDeck. Stack: Next.js 15 App Router with TypeScript, Tailwind, and better-sqlite3. No auth, no accounts, no telemetry, no cloud database. It runs on localhost only.\n\nGeneration goes through a hosted video model API. Write one adapter module with a single interface: submit(job) returns a provider job id, poll(id) returns status plus an output URL. Implement it for fal.ai image-to-video and video model endpoints, reading FAL_KEY from .env.local. Do not hardcode secrets. Keep the adapter thin enough that swapping in Replicate is one new file.\n\nData model in SQLite: presets (name, camera_move, style_text, negative_text, duration, aspect_ratio, model_id), jobs (preset_id, input_image_path, resolved_prompt, provider_job_id, status, error, created_at), and outputs (job_id, local_file_path, provider_url, duration_ms).\n\nSeed the presets table with about fifteen camera moves written as plain prompt fragments: dolly in, dolly out, crash zoom, orbit left, crane up, handheld follow, whip pan, static tripod, FPV drone dive, dutch tilt, rack focus, snorricam, bullet time, slow push, car chase side track.\n\nUI, three routes. /new: drop or pick a local image, choose a preset, edit the resolved prompt inline, set takes count 1 to 4, submit. /queue: live table of jobs polling every five seconds, with retry and cancel. /gallery: grid of finished clips, hover to play, click for a detail panel showing the exact prompt, model, seed, and a Duplicate As New Take button.\n\nA background poller in a route handler downloads finished clips to ./storage/outputs and writes the local path to the outputs table. Never delete originals. Uploaded input images go to ./storage/inputs.\n\nExplicitly out of scope: user accounts, sharing links, payment, a public feed, training or fine-tuning anything, and running diffusion locally.\n\nInclude a README that states plainly that this app generates nothing on its own, that every render costs provider credits, and that output quality is entirely a property of the model chosen and not of this code.",
+  "promptCurated": false
+}
