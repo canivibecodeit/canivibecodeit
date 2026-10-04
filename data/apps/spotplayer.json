@@ -1,0 +1,52 @@
+{
+  "slug": "spotplayer",
+  "name": "SpotPlayer",
+  "domain": "spotplayer.ir",
+  "category": "audio-video",
+  "subcategory": "DRM video delivery for course sellers",
+  "tagline": "A licensed, device-locked video player that course sellers use to ship recorded lessons without the files leaking.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://spotplayer.ir/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The thing being sold here is not a video player, it is the belief that a student cannot copy the video. That belief rests on native clients for Windows, macOS, Android and iOS, per-device license binding, key handling that is not sitting in plaintext next to the media, and a seller dashboard that can revoke a license when a file shows up on a Telegram channel. An agent can absolutely build you a local encrypted player in one sitting, and it will be perfectly pleasant for watching your own files. It will not survive a motivated buyer with a screen recorder and a search engine, which is the only test that matters to the people paying for this. If you are the student and you just want a nicer offline library, build something; if you are the seller, you are buying enforcement, not playback.",
+  "coreLoopDIY": "Encrypts a folder of course videos with ffmpeg plus AES keys and plays them back in a desktop app that reads keys from a license file bound to the machine.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "Node and a desktop shell like Electron or Tauri",
+    "your own video files",
+    "a machine fingerprint source, OS level device id or disk serial"
+  ],
+  "whatYouLose": [
+    "Real client coverage: native players on Windows, macOS, Android, iOS and the hours spent on codec and playback edge cases",
+    "Any credible anti-capture story, screen recording and memory key extraction both walk through a hobby build",
+    "Per-customer license issuance, expiry, device limits and remote revocation as a service",
+    "Support surface when a paying student's player will not open, which becomes your inbox",
+    "Watermarking, playback analytics and offline-but-expiring access"
+  ],
+  "moatTags": [
+    "content-rights",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "DRM is a trust product. Sellers pay for someone else to be accountable when the course leaks, and instructors recommend what other instructors already use.",
+  "whyPeopleStillPay": "Course sellers are not buying software, they are buying a reduction in piracy anxiety plus a player their least technical customer can install without a support ticket. That means signed native builds on four platforms, license servers that stay up during a launch, and a revocation button. A self-hosted equivalent shifts every one of those failures onto the seller, who would rather be recording lesson twelve. The encryption is the easy part; the distribution, the clients and the accountability are the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An encrypted local player is a weekend; making buyers believe the file cannot escape is not. The moat is cross platform native clients plus license revocation that sellers can point a customer at when things break.",
+  "prompt": "Build a local encrypted course video library and player. Desktop only, no cloud, no accounts, no telemetry.\n\nStack, no alternatives: Electron with TypeScript, Vite for the renderer, plain HTML and CSS, no UI framework. ffmpeg invoked as a child process. SQLite via better-sqlite3 for the catalog. Node crypto for AES-256-GCM.\n\nTwo entry points in one repo:\n1. A CLI called `pack` that takes an input folder of mp4 files and an output folder. For each video it generates a random 256 bit content key, encrypts the file with AES-256-GCM in chunks, and writes a .enc file plus a manifest.json with title, duration from ffprobe, chunk size and nonce. Content keys go into a separate keys.json, never into the output folder.\n2. The Electron player that opens a packed folder plus a license file.\n\nLicense format: a JSON blob containing the content keys, an expiry timestamp and a device fingerprint, encrypted with a key derived from the device fingerprint via scrypt. Fingerprint comes from os.hostname plus the primary MAC plus the machine id, hashed. If the fingerprint does not match or the expiry has passed, refuse to decrypt and show a plain error.\n\nPlayback: decrypt chunks on demand in the main process, stream them to the renderer through a custom protocol handler, feed an HTML5 video element. Never write decrypted bytes to disk. Support seeking by mapping byte ranges to chunk indexes.\n\nUI: left sidebar list of videos from the catalog, main pane with the player, resume position per video stored in SQLite, keyboard shortcuts for play, pause, 10 second seek and playback speed.\n\nSecrets: a MASTER_PASSPHRASE in .env used only by the pack CLI, with .env in .gitignore and a .env.example committed.\n\nOut of scope, do not build: mobile clients, a license server, screen capture blocking, watermarking, DRM claims of any kind. Put a README section stating plainly that this deters casual file copying and nothing more, because the decryption key reaches the local machine by design.\n\nDeliver: README with pack and run instructions, npm scripts for dev and build, and a sample run using three short test clips generated by ffmpeg.",
+  "promptCurated": false
+}
