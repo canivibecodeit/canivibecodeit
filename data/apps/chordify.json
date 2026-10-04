@@ -1,0 +1,52 @@
+{
+  "slug": "chordify",
+  "name": "Chordify",
+  "domain": "chordify.net",
+  "category": "audio",
+  "subcategory": "chord recognition and practice",
+  "tagline": "Upload or search a song and get a beat-synced chord chart you can play along to, with transpose and capo options.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://chordify.net/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Chord recognition from audio is a solved-enough signal processing problem: chroma features plus a Viterbi pass over 24 major/minor templates gets you recognizable charts for most pop and folk recordings. An agent can build that plus a beat-synced player, transpose, and capo in a weekend, and for your own practice files that is genuinely useful. What you will not match is accuracy on dense mixes, jazz voicings, sevenths and inversions, or anything with a modulation, where Chordify's trained models and human-corrected charts are clearly better. You also lose the thing people actually use it for: typing a song name and instantly getting a chart, because that is a library of millions of pre-analyzed tracks, not an algorithm. The DIY version is a local tool for files you already have, not a replacement for the catalog.",
+  "coreLoopDIY": "Drop in a local audio file, get a beat-aligned grid of chord symbols you can play back, loop, slow down, transpose, and view with capo positions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg locally",
+    "Audio files you own on disk",
+    "A machine that can take 20 to 60 seconds of analysis per song",
+    "Tolerance for wrong chords on anything harmonically busy"
+  ],
+  "whatYouLose": [
+    "Instant results for any song by name: the pre-analyzed catalog is the product",
+    "YouTube and streaming playback integration",
+    "Accuracy on sevenths, suspensions, slash chords, and key changes",
+    "Mobile apps, offline practice mode, and setlists that sync across devices",
+    "Human-corrected charts where the algorithm got it wrong"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The models are good, but the real asset is millions of songs already analyzed and partially corrected, plus the rights plumbing to play them back.",
+  "whyPeopleStillPay": "Because the loop people want is \"song stuck in my head, chords on screen in five seconds,\" and that requires a catalog, not a chord detector. Chordify also hides the ugly part: when detection is mediocre, the chart has usually already been nudged into shape, and playback is tied to a stream you do not have to source yourself. A local tool only helps for files you already possess, which is a much smaller slice of how people learn songs. Add the mobile app and the practice features and the subscription is cheap relative to the time it saves.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The detector is a weekend; the catalog is not.",
+  "prompt": "Build a local-only web app called \"chordgrid\" that extracts chord charts from audio files on my disk.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, uvicorn\n- librosa + numpy + scipy for audio analysis\n- SQLite via plain sqlite3 for storing analyzed songs\n- Frontend: one static index.html with vanilla JS and the Web Audio API, no build step, no framework\n\nAnalysis pipeline (implement this, do not call an external API):\n1. Load audio with librosa at 22050 Hz mono, ffmpeg handles mp3/m4a/flac/wav.\n2. Beat tracking with librosa.beat.beat_track to get tempo and beat times.\n3. Compute a CQT chromagram, apply harmonic-percussive source separation first, then median-aggregate chroma per beat.\n4. Build 24 chord templates (12 major triads, 12 minor triads) plus an N (no chord) template.\n5. Score each beat against the templates with cosine similarity, then smooth the sequence with a Viterbi pass that penalizes chord changes, so you get stable bars instead of flicker.\n6. Estimate the global key with the Krumhansl profile and report it.\n7. Collapse consecutive identical chords into timed segments.\n\nAPI:\n- POST /songs with a local file path, runs analysis in a background task, returns a job id\n- GET /songs and GET /songs/{id} returning tempo, key, beat times, and chord segments\n\nUI, single page:\n- File picker that posts a path, progress indicator while analyzing\n- Chord grid, four chords per row, each cell showing the chord symbol and highlighting in time with playback\n- Play, pause, loop-a-section by clicking two cells, playback speed 0.5x to 1.0x via the Web Audio playbackRate\n- Transpose by semitones and a capo selector that rewrites symbols to the shapes you would actually finger\n- Export a song as plain text chords over bar lines\n\nExplicitly out of scope: user accounts, any cloud upload, telemetry, YouTube or streaming downloads, sevenths and extended chords, song search by name.\n\nBe honest in the README about accuracy: state that triad-only detection on dense mixes is roughly ballpark and that the chart is a starting point. Ship a .env.example even though the only setting is the audio library path. Include a seed script that analyzes a folder of files in one pass.",
+  "promptCurated": false
+}
