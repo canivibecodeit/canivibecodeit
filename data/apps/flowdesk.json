@@ -1,0 +1,52 @@
+{
+  "slug": "flowdesk",
+  "name": "Flowdesk",
+  "domain": "flowdesk.com",
+  "category": "finance-accounting",
+  "subcategory": "crypto trading and market making infrastructure",
+  "tagline": "Market making, OTC execution and trading infrastructure for digital asset issuers and institutions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://flowdesk.com/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Deals here are negotiated contracts, not a pricing page.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is not an app with a subscribe button, it is a trading firm that rents out its balance sheet, its venue connections and its licenses. You can absolutely write a quoting engine in an afternoon: compute a mid price, post a bid and an ask, manage inventory, log PnL. What you cannot write is the capital behind the quotes, the exchange accounts that let the quotes reach a real book, or the regulatory permissions that make it legal to do this with someone else's tokens. The code is the cheapest part of the stack by a wide margin. The honest DIY version is a paper trading simulator you run against public market data, which is useful for learning and useless for business.",
+  "coreLoopDIY": "Streams public order book data from one exchange, posts simulated two-sided quotes around the mid with a configurable spread, fills them against real trade prints, and tracks inventory and paper PnL on a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a machine that can stay online long enough for a websocket feed to be meaningful",
+    "Python 3.12 plus uv",
+    "public market data only, no exchange API keys and no real orders",
+    "acceptance that simulated fills are optimistic fiction"
+  ],
+  "whatYouLose": [
+    "Actual capital, which is the entire product",
+    "Exchange and OTC venue relationships, accounts and credit lines",
+    "Licenses and registrations in the jurisdictions where this activity is regulated",
+    "24/7 human risk and ops coverage when a feed dies at 3am",
+    "Client reporting, settlement and the trust needed for anyone to route size through you"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "marketplace-liquidity",
+    "scale-infra"
+  ],
+  "moatNotes": "The software is table stakes in this industry. The scarce inputs are capital, venue access and permission to operate.",
+  "whyPeopleStillPay": "Token issuers and institutions are not buying software, they are buying someone willing to stand on both sides of a thin market with real money and to be accountable when it goes wrong. That requires a balance sheet, exchange memberships, legal cover and a desk that answers the phone during a liquidation cascade. A self-hosted quoting bot gives you none of that, and the moment you try to run it with real size you discover that your infrastructure, your risk limits and your counterparty paperwork are the actual job. Paying someone else to carry that is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A paper trading bot is a weekend project; a balance sheet is not. The moat is capital, venue access and the licenses that let you quote markets with other people's assets.",
+  "prompt": "Build a local crypto market making SIMULATOR. Paper trading only. No real orders, ever.\n\nStack, non negotiable:\n- Python 3.12, managed with uv\n- FastAPI for the local server, uvicorn to run it\n- websockets library for market data\n- SQLite via plain sqlite3 for state, file at ./data/sim.db\n- One single page dashboard: server rendered HTML plus htmx polling every second, no React, no build step\n\nData:\n- Connect to one public exchange websocket feed for a single symbol, default BTC-USD or BTCUSDT, configured in .env as EXCHANGE and SYMBOL\n- Use the public trades stream and the public top of book stream only. No API keys. If the code ever needs a key, you have taken a wrong turn\n- Reconnect with exponential backoff and log every disconnect to the db\n\nStrategy engine:\n- Maintain a mid price from top of book\n- Post simulated quotes at mid minus half spread and mid plus half spread, SPREAD_BPS and QUOTE_SIZE from .env\n- Fill a simulated quote when a real trade print crosses it, fill at your quote price, partial fills allowed up to quote size\n- Skew quotes against inventory: as inventory grows long, shift both quotes down by a configurable INVENTORY_SKEW_BPS per unit\n- Hard stop quoting when absolute inventory exceeds MAX_INVENTORY\n- Persist every simulated fill with timestamp, side, price, size\n\nDashboard shows:\n- Current mid, your live bid and ask, inventory, realized PnL, unrealized PnL marked to mid, fill count, uptime, last disconnect\n- A table of the last 50 simulated fills\n- A clearly visible banner reading SIMULATION, NO REAL ORDERS\n\nOut of scope, do not build:\n- Any exchange authentication, order placement or withdrawal code\n- Multiple venues, cross venue arbitrage, hedging legs\n- Accounts, auth, cloud deploy, telemetry\n\nDeliver: README with uv commands to run, .env.example with every variable, and one script that replays stored trades from SQLite so the strategy can be backtested offline.\nWrite a short HONEST section in the README explaining that simulated fills assume you always get the trade and that real market making PnL is dominated by adverse selection, latency, fees and capital cost, none of which this models.",
+  "promptCurated": false
+}
