@@ -1,0 +1,52 @@
+{
+  "slug": "fabi",
+  "name": "Fabi",
+  "domain": "fabi.ai",
+  "category": "analytics",
+  "subcategory": "AI data notebook",
+  "tagline": "AI-assisted Python and SQL notebook for building data analyses, dashboards and scheduled reports.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.fabi.ai/",
+    "checkedOn": "2026-09-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interesting part of Fabi, an LLM that writes SQL and Python against your data and renders a chart, is genuinely a one-session build with a modern model and a local notebook runtime. What takes longer is everything around it: warehouse connectors that authenticate properly, a published dashboard that non-technical people can open without running Python, scheduled refreshes, and delivery into Slack or email. A weekend gets you a personal analytics scratchpad that answers questions about your own data and pins the good answers to a page. It does not get you something you hand to a marketing team. If you are the only consumer of your own analysis, the DIY version is fine and arguably faster to iterate on.",
+  "coreLoopDIY": "A local notebook app where you connect a Postgres or DuckDB source, ask a question in plain language, get generated SQL plus a chart you can edit, and pin results to a simple dashboard page that refreshes on a schedule.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine you leave on for scheduled refreshes",
+    "An LLM API key in .env",
+    "Read credentials for whatever database or CSVs you want to query",
+    "Comfort debugging generated SQL when it is confidently wrong"
+  ],
+  "whatYouLose": [
+    "Managed connectors to warehouses, SaaS APIs and Google Sheets, plus someone else maintaining them when the auth changes",
+    "Shareable, permissioned dashboards that colleagues can open without a Python environment",
+    "Reliable scheduling and delivery into Slack and email, with alerting when a job fails",
+    "Collaboration: comments, shared workspaces, someone else picking up your half-finished analysis",
+    "Guardrails around cost and query safety, so a bad generated query cannot table-scan your production replica"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is less the AI and more the boring plumbing: connectors, permissions, scheduling and a viewer experience for people who do not write code.",
+  "whyPeopleStillPay": "Because data tools are bought by teams, not individuals. A single analyst can absolutely replicate the query-and-chart loop locally, but the reason a company pays is that the output needs to land in front of ten people who will never open a notebook, on a schedule, without the analyst babysitting it. Add managed connectors, access control, and the fact that nobody wants to be the person whose homemade dashboard silently stopped refreshing in Q3, and the subscription looks cheap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great personal build if you are the only audience; the moment a second human needs the output, the plumbing bill arrives.",
+  "prompt": "Build a local AI data notebook called \"askdata\". Single user, runs on my machine, no accounts, no telemetry, no cloud.\n\nStack, non-negotiable:\n- Python 3.11, Streamlit for the UI, DuckDB as the local engine, SQLAlchemy for external Postgres, Plotly for charts, APScheduler for refreshes, SQLite for app state.\n- One repo, uv or plain venv, a Makefile with `make run`.\n- Secrets in .env: OPENAI_API_KEY, optional PG_URL. Load with python-dotenv. Never hardcode.\n\nFeatures in scope:\n1. Sources page: register CSV or Parquet files from a local ./data folder as DuckDB views, and optionally one Postgres connection string from PG_URL. Introspect and cache the schema, table names, column names and types.\n2. Ask page: a text box. Send the cached schema plus the question to the LLM and get back a single read-only SQL statement plus a suggested chart spec as JSON. Show the SQL before running it, always editable.\n3. Run the SQL, show the result table, render the chart with Plotly. If the query errors, feed the error and the SQL back to the model once for a repair attempt, then stop and show the error.\n4. Safety: reject any generated statement that is not a single SELECT or WITH. Wrap every run in a statement timeout and a row limit of 50000. No DDL, no DML, ever.\n5. Pin: save a question, its final SQL and chart spec as a \"card\" in SQLite. A Dashboard page lists cards in a grid and re-runs them on load.\n6. Schedule: APScheduler job that re-runs all pinned cards every N minutes, stores the latest result as Parquet in ./cache, and writes a run log. Dashboard reads cache first with a \"last refreshed\" timestamp and a manual refresh button.\n7. Export: per card, download CSV and PNG.\n\nOut of scope, do not build: multi-user auth, sharing links, Slack or email delivery, warehouse connectors beyond Postgres, notebook cell chaining, version control of analyses.\n\nDeliver a README with setup in under ten lines, a sample CSV in ./data, and one pytest that asserts the SQL guard blocks DROP, DELETE and multi-statement input.",
+  "promptCurated": false
+}
