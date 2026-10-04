@@ -1,0 +1,51 @@
+{
+  "slug": "xometry",
+  "name": "Xometry",
+  "domain": "xometry.com",
+  "category": "commerce",
+  "subcategory": "on-demand manufacturing marketplace",
+  "tagline": "Upload a CAD file, get an instant price for CNC machining, 3D printing, sheet metal, and injection molding, then have a vetted shop actually make it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://xometry.com/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The web app is the thin part. What you are actually buying is a network of thousands of qualified machine shops, a pricing model trained on years of real quotes and real outcomes, and someone who owns the problem when a part comes back out of tolerance. An agent can absolutely build you a geometry-aware cost estimator that reads an STL and spits out a number, and that number will be plausible and occasionally useful for sanity-checking a vendor. It will not cut metal, it will not know that a 0.4mm internal fillet is unmachinable, and it will not ship you anything. Build the estimator if you quote parts often enough to want a gut check, but keep the account.",
+  "coreLoopDIY": "Loads a local STL or OBJ, measures bounding box, volume, surface area, and stock removal, then applies your own configurable material and machine rates to produce a rough per-part and per-batch cost estimate.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "Your own material and shop rate assumptions, which you have to source yourself",
+    "CAD exports in STL or OBJ; STEP parsing is a much bigger job"
+  ],
+  "whatYouLose": [
+    "The supplier network: your estimate has nobody to send the file to",
+    "Manufacturability feedback, thin walls, undercuts, tool access, draft angles, all the things that turn a cheap quote into a rejection",
+    "Real pricing calibrated on actual accepted jobs, not your guessed rates",
+    "Quality assurance, inspection reports, certifications, and a counterparty if the part is wrong",
+    "Logistics, lead time commitments, and ITAR or ISO-scoped handling"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The instant quote is a pricing model on top of a supply network. Either half alone is worth much less than the pair.",
+  "whyPeopleStillPay": "Because the alternative is emailing six machine shops, waiting four days, and getting three replies with wildly different numbers and no way to compare them. Xometry collapses that into a price in a browser and a part on a dock, and it absorbs the risk of a shop missing spec. Engineers pay for the absence of procurement work, not for the quoting UI. A local estimator helps you argue about a quote; it does not help you get a part.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The quote calculator is a weekend build; the thing on the other end of the quote is not. The moat is marketplace liquidity plus years of accepted-bid pricing data, and no amount of geometry math substitutes for a shop that will actually run the job.",
+  "prompt": "Build a local-only manufacturing cost estimator called \"Quotebench\". Single-user desktop web app, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Vite + React + TypeScript\n- three.js with STLLoader and OBJLoader for mesh parsing and preview\n- Tailwind for styling\n- Everything client-side; persist state in localStorage. No backend at all.\n\nCore flow:\n1. Drag an .stl or .obj file onto the page. Parse it in the browser.\n2. Render the mesh in a three.js viewport with orbit controls and a 1cm reference grid.\n3. Compute and display geometry: bounding box in mm, mesh volume via signed tetrahedron sum, surface area, triangle count, and a convex-hull-free estimate of required rectangular stock (bbox plus a configurable per-face allowance).\n4. Let the user pick a process: CNC 3-axis, FDM, SLA, or SLS. Each process has its own editable rate card.\n5. Let the user pick a material from an editable table with columns: name, density g/cm3, cost per kg, machinability factor.\n\nCost model, keep it explicit and visible:\n- Material cost = stock volume (CNC) or part volume x infill factor (printing) x density x cost per kg, with a configurable scrap percentage.\n- Machine time for CNC = (stock volume minus part volume) / configurable removal rate in cm3/min, divided by machinability factor.\n- Machine time for printing = part volume / configurable deposition rate, plus layer-count overhead from Z height / layer height.\n- Labor and setup = flat per-job fee plus per-part handling time.\n- Total = material + machine time x machine rate + labor, then apply a quantity curve: configurable setup amortization across batch size.\n- Show the full arithmetic as a line-item breakdown, not just a final number. Every coefficient is editable in a settings panel and persisted.\n\nAlso build:\n- A saved parts list: name, file hash, geometry, chosen process, last estimate. Stored in localStorage.\n- Quantity breaks table for 1, 10, 50, 100, 500 showing per-unit cost.\n- Export a single quote as a printable HTML page via window.print, and the parts list as CSV.\n\nExplicitly out of scope, do not attempt and do not stub with fake data:\n- STEP or IGES parsing\n- Manufacturability or DFM checks, tool access analysis, undercut detection\n- Any supplier lookup, ordering, shipping, or network calls\n- Real-world material prices; ship the rate card empty with a clear note that the user must enter their own numbers\n\nInclude a README that says in plain language: this estimates, it does not quote, and the numbers are only as good as the rate card you type in.\nNo .env needed since there are no secrets and no services.",
+  "promptCurated": false
+}
