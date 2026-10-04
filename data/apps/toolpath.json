@@ -1,0 +1,52 @@
+{
+  "slug": "toolpath",
+  "name": "Toolpath",
+  "domain": "toolpath.com",
+  "category": "dev-tools",
+  "subcategory": "CAM / CNC toolpath generation",
+  "tagline": "Cloud CAM software that generates CNC machining toolpaths and G-code from CAD models, with automated feeds, speeds and strategy selection.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://toolpath.com/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "An agent can absolutely write you a 2.5D pocketing and contouring generator that turns flat geometry into G-code, and for engraving signs or cutting plywood brackets that is genuinely enough. What it cannot do in one session is the part CAM actually sells: a solid modeling kernel that eats STEP files, gouge-free 3D surfacing, holder and fixture collision checking, rest machining, and post processors that emit the exact dialect your controller expects. Feeds and speeds are not a formula, they are tool libraries, material data, and machine rigidity assumptions that someone tested on real spindles. The failure mode here is not an ugly UI, it is a broken tool, a scrapped billet, or a machine crash, which is a very different cost curve from a bad web app. Build the toy for flat parts, buy the real thing the moment Z varies.",
+  "coreLoopDIY": "Turns a 2D SVG outline into a depth-stepped contour and pocket toolpath and writes plain G-code you can preview before cutting.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with shapely and pyclipper",
+    "2D vector input only, SVG or DXF, no solids",
+    "A machine and controller you are willing to test on scrap",
+    "Knowledge of your own feeds, speeds and post dialect"
+  ],
+  "whatYouLose": [
+    "Any 3D surfacing: adaptive clearing, parallel or scallop finishing, rest machining",
+    "Collision checking against holders, fixtures and the machine envelope",
+    "STEP and native CAD import via a real geometry kernel",
+    "Tested tool and material libraries driving feeds and speeds",
+    "Post processors tuned per controller, plus simulation before you hit cycle start"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The geometry kernel and the collision-aware strategy engine are the product. Everything visible in the UI is downstream of them.",
+  "whyPeopleStillPay": "Because the alternative to good CAM is expensive in physical objects. A toolpath that is 2mm wrong does not throw a stack trace, it snaps a 12mm endmill, ruins a fixture, or parks a spindle into a vise, and shops bill machine time by the hour. Paying for software that has been validated across thousands of real cuts is cheap compared to one afternoon of recovery, and that confidence is not something a weekend script can offer you no matter how clean the code is.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "G-code generation for flat parts is a weekend; not gouging a $400 cutter is not. The moat is a geometry kernel plus collision-aware strategies validated on real machines, which is physics debt you cannot shortcut.",
+  "prompt": "Build a local 2.5D CAM tool called flatpath. Python 3.11, CLI only, no web UI, no cloud, no accounts, no telemetry.\n\nStack: typer for the CLI, svgpathtools to parse SVG, shapely and pyclipper for offsetting, matplotlib for a static preview PNG. Nothing else.\n\nScope, in:\n- Input: a single SVG file containing closed paths in millimetres, plus a YAML job file.\n- Job file fields: tool_diameter, step_down, step_over, feed_xy, feed_z, plunge_feed, spindle_rpm, safe_z, stock_top, final_depth, operation (contour_outside, contour_inside, pocket).\n- Flatten SVG curves to polylines with a configurable chord tolerance.\n- Contour: offset each closed loop by tool_radius outward or inward, emit depth passes down to final_depth in step_down increments.\n- Pocket: concentric inward offsets by step_over until the region is empty, cut outermost to innermost, same depth stepping.\n- Lead-in: vertical plunge only, at the point on each loop furthest from other geometry.\n- Emit flat G-code: G21 G90, G0 moves at safe_z, G1 cuts with F values, M3 with S at start, M5 and G0 to safe_z at end. Linear moves only, no arc fitting.\n- Write a preview PNG showing stock bounds, input geometry, and toolpaths coloured by depth pass.\n- Print total cut length and a naive runtime estimate from feed rates.\n\nScope, out, and say so in the README:\n- No 3D surfacing, no STEP or solid import, no rest machining.\n- No collision checking against holders, fixtures or the machine envelope.\n- No feeds and speeds recommendations. The user supplies them.\n- No machine-specific post processors. Output is generic LinuxCNC-flavoured G-code.\n- No tabs, no bridges, no ramping, no trochoidal motion.\n\nValidate the job file and fail loudly on a tool larger than the narrowest pocket feature. Include three example SVGs and jobs, and pytest coverage for the offsetting and depth-stepping maths.\n\nPut a blunt warning at the top of the README: dry-run every program and cut air first. This tool does not know where your fixtures are.",
+  "promptCurated": false
+}
