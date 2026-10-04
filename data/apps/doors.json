@@ -1,0 +1,50 @@
+{
+  "slug": "doors",
+  "name": "IBM Engineering Requirements Management DOORS",
+  "domain": "ibm.com",
+  "category": "project-management",
+  "subcategory": "requirements management and traceability",
+  "tagline": "Enterprise requirements management with versioned baselines, link traceability and audit trails, used heavily in regulated engineering.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.ibm.com/cn-zh/products/requirements-management",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The database part of DOORS is genuinely unremarkable: requirements with attributes, parent/child structure, links between them, and a matrix view. An agent can build that in an afternoon and it will feel faster and nicer than DOORS, which is not a high bar. What you cannot build is the reason anyone buys it: DOORS output is accepted as evidence in DO-178C, ISO 26262 and IEC 62304 audits, suppliers and primes exchange modules with each other, and twenty year old baselines plus piles of DXL scripts are sitting in it. If you are one engineer tracking your own requirements, build the tool. If you are in a certification pipeline, your DIY tool is a nice scratchpad that the auditor will ignore.",
+  "coreLoopDIY": "A local requirements database with hierarchical modules, typed attributes, traceability links, immutable baselines, suspect-link flagging on change, and a coverage matrix you can export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ and a local SQLite file",
+    "Nothing external: no accounts, no cloud, no network calls"
+  ],
+  "whatYouLose": [
+    "Audit-acceptable evidence: your SQLite file is not a certification artifact, and nobody signs off on it",
+    "ReqIF round-tripping that actually works with primes, suppliers and other ELM tools",
+    "Decades of existing baselines, change proposals and DXL automation already living in DOORS",
+    "Multi-user concurrency, access control per module and per attribute, electronic signatures",
+    "Integration with the rest of the toolchain: test management, Simulink, change management, OSLC links"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The product is mediocre software wrapped in regulatory acceptance. That wrapper is the whole price.",
+  "whyPeopleStillPay": "Because the alternative is explaining to a certification authority why your safety requirements live in a tool you wrote yourself. Requirements management in regulated engineering is less about managing requirements and more about producing a defensible chain of evidence: who changed what, when, against which baseline, traced to which test. DOORS has been the default for that long enough that auditors, suppliers and contract language all assume it. Add the fact that migrating a live program off it mid-certification is a career risk nobody volunteers for, and the renewal signs itself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The requirements table is a weekend build; the acceptance is not. The moat is regulatory evidence plus twenty years of baselines and supplier exchange formats already locked inside it.",
+  "prompt": "Build a local, single-user requirements management tool called \"reqs\". No cloud, no accounts, no telemetry, no network calls at all.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, Jinja2 templates, HTMX for interactivity, plain CSS, no build step\n- SQLite via raw SQL (sqlite3 module), schema in schema.sql, applied on first run\n- Data file at ./data/reqs.db, created automatically\n- Run with: uvicorn app:app --reload\n\nData model:\n- Project, Module (ordered tree of requirements inside a project)\n- Requirement: id (human readable like SYS-0012), module_id, parent_id, position, title, text (markdown), type (functional, safety, interface, derived), status (draft, reviewed, approved, obsolete), verification_method (test, analysis, inspection, demonstration), rationale, custom attributes as a JSON column\n- Link: source_req, target_req, link_type (satisfies, derives_from, verifies, refines), created_at\n- Baseline: snapshot of a module, immutable, stores the full JSON of every requirement at that moment plus a label and timestamp\n- ChangeLog: append only row for every create, edit, delete, with before/after JSON\n\nBehaviour that matters:\n- Editing a requirement marks every incoming and outgoing link as \"suspect\" and shows it in red until a human clears it\n- Baselines are read only; a diff view compares current module state to any baseline, showing added, removed, changed requirements field by field\n- Traceability matrix page: pick two modules and a link type, render a grid with coverage gaps highlighted, plus a \"requirements with no verifies link\" list\n- Import from CSV and from a simple Markdown outline (heading depth becomes hierarchy); export to CSV, Markdown and a self contained HTML report with the matrix included\n\nExplicitly out of scope: multi user auth, ReqIF, OSLC, DXL compatibility, real time collaboration, electronic signatures.\n\nShip a README with setup in five lines, a seed script with about 30 fake requirements across two modules and some links so the matrix is not empty, and pytest tests covering suspect link propagation and baseline diffing. Keep any config in .env, but it should run with no .env present.",
+  "promptCurated": false
+}
