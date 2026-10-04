@@ -1,0 +1,53 @@
+{
+  "slug": "teleport",
+  "name": "Teleport",
+  "domain": "goteleport.com",
+  "category": "security",
+  "subcategory": "infrastructure access proxy",
+  "tagline": "Identity-aware access to SSH servers, Kubernetes clusters, databases and internal web apps using short-lived certificates, with session recording and audit logs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://goteleport.com/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Teleport is not a feature, it is a certificate authority, a multi-protocol proxy, an agent fleet and an audit system that auditors have already seen before. A coding agent can absolutely give you short-lived SSH certs and a session log in an afternoon, and for one person with four servers that is genuinely enough. What it cannot give you is SAML and OIDC single sign-on with device trust, replayable recordings across SSH, Kubernetes, Postgres, RDP and internal web apps, access request workflows, and an evidence trail that survives a SOC 2 or FedRAMP review. There is also an awkward fact about this one: the core is open source and self-hostable, so rebuilding it from scratch is the strictly worse option even if you refuse to pay. Pay for the enterprise tier when compliance asks, run the community edition when it does not, and write your own only if you want to learn how SSH CAs work.",
+  "coreLoopDIY": "A local CLI that acts as an SSH certificate authority, issues short-lived user certificates after a local check, and records every session to a replayable log with an SQLite audit index.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Linux or macOS host you control to hold the CA key",
+    "Root access on each target machine to install the CA public key and sshd config",
+    "OpenSSH 8.0 or newer on clients and servers",
+    "A VPN or firewall rule so the bastion is not open to the internet",
+    "Python 3.11 and an offline-ish place to keep the CA private key"
+  ],
+  "whatYouLose": [
+    "SSO against Okta, Entra or Google Workspace, plus MFA and device trust on every connection",
+    "Recording and replay for Kubernetes exec, database queries, RDP and internal web apps, not just SSH",
+    "RBAC with just-in-time access requests, approvals and expiry",
+    "An audit trail in a shape SOC 2, HIPAA and FedRAMP reviewers already accept",
+    "Agent fleet management, resource auto-discovery, and someone else patching the CVEs in your access path"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The product is sold to the auditor as much as to the engineer, and your weekend CLI has no audit story.",
+  "whyPeopleStillPay": "Nobody buys Teleport because issuing an SSH certificate is hard, they buy it because the next person who asks about their access controls will be an auditor, a customer security questionnaire, or an incident reviewer asking who ran what at 2am. The answer has to be a recording, a role, and an identity tied to the company directory, and it has to be the same answer for servers, clusters, databases and that one internal Grafana. Building that for yourself is fine. Building it so that someone else trusts it is the part you are actually paying for, along with the fact that a bug in your homemade access path is a breach, not a backlog item.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An SSH CA with session logs is a weekend build and it will work fine for your own boxes. The moat is compliance evidence and SSO plumbing across five protocols, which is exactly the part no auditor will accept from a script you wrote.",
+  "prompt": "Build a single-user SSH certificate authority and session recorder called \"portkey\". Local only, no accounts, no cloud, no telemetry.\n\nStack: Python 3.11, Typer for the CLI, SQLite via stdlib sqlite3, OpenSSH binaries for all crypto. No web server, no Docker, no third-party services.\n\nWhat it does:\n1. `portkey init` creates ~/.portkey, generates an ed25519 CA keypair with ssh-keygen, chmods the private key 600, and prints the sshd config lines plus the CA public key to install on target hosts (TrustedUserCAKeys).\n2. `portkey host add NAME --addr user@host --port 22` stores targets in SQLite.\n3. `portkey login` prompts for a passphrase that unlocks the CA key, then issues a user certificate valid for 8 hours with `ssh-keygen -s`, signing the user's existing ~/.ssh/id_ed25519.pub, with principals and a key id containing the local username and a UUID. Write the cert to ~/.portkey/certs and add it to the running ssh-agent with the matching lifetime.\n4. `portkey ssh NAME` refuses if no valid cert exists, otherwise opens an interactive SSH session wrapped in `script` so the full terminal stream is written to ~/.portkey/sessions/UUID.cast style typescript plus a timing file.\n5. `portkey replay UUID` plays the recording back at original speed using the timing file.\n6. `portkey audit` prints a table from SQLite: session id, host, cert key id, start, end, exit code, recording path. `portkey audit --json` dumps the same.\n7. `portkey revoke KEYID` appends to a KRL file with ssh-keygen -k and prints the one line needed in sshd_config.\n\nRules:\n- CA passphrase is read interactively or from PORTKEY_CA_PASSPHRASE in .env, never hardcoded. Ship .env.example and a .gitignore that excludes .env, keys, certs and sessions.\n- Every subprocess call checks its exit code and surfaces stderr. No silent failures in anything touching keys.\n- Certificates are short lived by design; there is no renewal daemon.\n\nExplicitly out of scope: web UI, SSO or OIDC, Kubernetes, database or RDP proxying, multi-user RBAC, approval workflows, agent fleet management, compliance reports.\n\nDeliver: pyproject.toml, the package, pytest tests covering cert issuance and expiry handling with a throwaway CA in tmp_path, and a README with the exact sshd_config changes and a warning that this is a personal tool, not an audited access control system.",
+  "promptCurated": false
+}
