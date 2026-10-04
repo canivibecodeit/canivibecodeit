@@ -1,0 +1,53 @@
+{
+  "slug": "polycam",
+  "name": "Polycam",
+  "domain": "poly.cam",
+  "category": "design",
+  "subcategory": "3D scanning and photogrammetry",
+  "tagline": "Phone-based 3D scanning that turns photos, video or LiDAR sweeps into textured meshes, point clouds and splats.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://poly.cam/",
+    "checkedOn": "2026-09-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Every algorithm here is public: COLMAP, OpenMVS, nerfstudio and Apple's own Object Capture will all take a pile of photos and hand back a mesh. What you cannot one-shot is the part people actually pay for, which is a native phone app that reads the LiDAR sensor, coaches you around the object in real time, and then hands the heavy reconstruction to someone else's GPUs while you put your phone back in your pocket. An agent can absolutely wire up a local pipeline that eats a video and spits out a GLB, and if you own a CUDA box that is genuinely useful. It will also take minutes to hours per scan, fail on shiny or textureless objects, and give you no capture feedback until it is too late. The consolation build is real work and worth doing; it is not a replacement for the app on your phone.",
+  "coreLoopDIY": "A local CLI that extracts sharp frames from a phone video, runs COLMAP plus OpenMVS to produce a textured mesh, and serves it in a browser viewer you can export as GLB.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "A machine with a CUDA-capable GPU for the dense reconstruction steps",
+    "COLMAP and OpenMVS installed and on PATH",
+    "ffmpeg and Python 3.11",
+    "Tolerance for multi-minute to multi-hour jobs per scan",
+    "A phone camera and the discipline to shoot 60 to 200 overlapping frames yourself"
+  ],
+  "whatYouLose": [
+    "On-device LiDAR capture with live AR guidance telling you which angles you missed",
+    "Cloud reconstruction, so a bad scan now costs your laptop an hour instead of nothing",
+    "Gaussian splats, auto mesh cleanup, scale-correct measurements and one-tap web share links",
+    "A polished iOS and Android app, so capture becomes a manual video-shooting ritual",
+    "Reliable results on hard subjects: glass, chrome, white walls and thin structures will just fail"
+  ],
+  "moatTags": [
+    "hardware",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The sensor access and the capture coaching are the product. The reconstruction math is a commodity you can apt-install.",
+  "whyPeopleStillPay": "Because 3D capture is a physical act, not a software one. The value of Polycam is the thirty seconds where the app tells you to move left and slow down, using a depth sensor you cannot reach from a web page, and then the fact that nothing else on your machine has to spin up a GPU. A self-hosted pipeline inverts that deal: cheap to run, expensive in attention, and you only learn the scan was bad after the job finishes. For anyone scanning objects occasionally for prints, listings or references, the subscription is cheaper than the failed attempts.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The math is open source; the fifteen seconds of waving a phone around a chair is not. The moat is native ARKit and LiDAR capture with live guidance, plus reconstruction GPUs someone else pays for.",
+  "prompt": "Build a local photogrammetry tool called \"scanbench\" in this empty folder. No accounts, no cloud, no telemetry.\nStack, no substitutions: Python 3.11, Typer for the CLI, OpenCV and ffmpeg for frame prep, COLMAP and OpenMVS invoked as external binaries, trimesh for export, FastAPI plus a single static page using three.js from a CDN for the viewer.\nOn startup, check that ffmpeg, colmap and the OpenMVS binaries are on PATH. If any are missing, print the exact install hint for macOS and Ubuntu and exit non-zero. Do not silently degrade.\nCommand one: `scanbench ingest PATH --fps 3`. PATH is either a folder of JPEGs or a phone video. For video, extract frames at the given fps with ffmpeg. For both, score each frame by Laplacian variance and drop the blurriest 20 percent, then cap the set at 250 frames spread evenly. Write everything to ./scans/{scan_id}/frames/ and a manifest.json with counts and drop reasons.\nCommand two: `scanbench reconstruct SCAN_ID`. Run COLMAP feature extraction, exhaustive matching for under 100 images and vocab-tree otherwise, mapper, then image undistortion. Hand the undistorted output to OpenMVS: InterfaceCOLMAP, DensifyPointCloud, ReconstructMesh, RefineMesh, TextureMesh. Stream subprocess output to a per-step log file and to stdout. Make every step resumable: if a step's output already exists, skip it unless --force.\nCommand three: `scanbench export SCAN_ID --format glb` using trimesh, plus `--scale N` and `--up z|y` flags for a crude transform. Write to ./scans/{scan_id}/out/.\nCommand four: `scanbench serve`. FastAPI on localhost:8000 listing all scans with status, frame count, wall-clock time per step, and a three.js viewer page with OrbitControls, a GLB loader, a wireframe toggle and a download link.\nExplicitly out of scope, do not build: any mobile or AR capture app, LiDAR or depth sensor input, Gaussian splats, NeRF training, automatic mesh cleanup or decimation, measurement tools, sharing links, multi-user anything, Docker orchestration beyond a single optional Dockerfile.\nNo secrets are needed. If you add an optional config value later, read it from .env via python-dotenv and commit a .env.example only.\nStore all state on disk under ./scans/. No database.\nWrite a README that is honest: dense reconstruction wants a CUDA GPU, expect 10 minutes to several hours per scan, shoot 60 to 200 overlapping photos with consistent lighting, and glass, chrome, plain white and thin structures will fail outright.\nInclude a pytest file covering the frame-selection math and the manifest writer with synthetic images. Do not test the external binaries.\nFinish by running the tests and printing the exact commands for a first end-to-end scan.",
+  "promptCurated": false
+}
