@@ -1,0 +1,52 @@
+{
+  "slug": "allownow",
+  "name": "AllowNow",
+  "domain": "allownow.eu",
+  "category": "security",
+  "subcategory": "privacy & consent management",
+  "tagline": "EU-focused consent management: a cookie banner, script gating, and the consent records that are supposed to back it up.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://allownow.eu/",
+    "checkedOn": "2026-10-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product is a banner, a few toggles, and a rule that stops tracking scripts from firing before someone clicks accept. That part is genuinely a one-sitting build, and a hand-rolled version is often more honest than a vendor widget because you control exactly which scripts are gated. What does not come along is the compliance scaffolding: maintained vendor and cookie databases, consent receipts you would actually want to hand a regulator, TCF-style ad tech plumbing if you touch programmatic advertising, and the vendor's own paper trail when someone complains. For a personal site or a small project with three known scripts, build it. For anything where a data protection authority might ask questions, the thing you are paying for is not the UI.",
+  "coreLoopDIY": "A self-hosted consent script that blocks non-essential scripts until the visitor chooses, stores the choice, and logs a timestamped consent receipt locally.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Your own site where you can edit the HTML head",
+    "Node 20 for the build and the optional receipt endpoint",
+    "A list of the scripts and cookies you actually use",
+    "Somewhere to host a tiny endpoint if you want consent logs"
+  ],
+  "whatYouLose": [
+    "Maintained cookie and vendor databases, so your category list is only as current as your last manual audit",
+    "Automated site scanning that finds the tracker you forgot you installed",
+    "Audit-grade consent records with retention and export, rather than rows in your own SQLite file",
+    "IAB TCF / Google consent mode certification plumbing if you run programmatic ads",
+    "Someone else's responsibility when the rules shift and the banner needs to change"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "Consent tools sell defensibility more than code: a vendor name on the banner and a maintained cookie taxonomy are the product.",
+  "whyPeopleStillPay": "Because a cookie banner is cheap and being wrong about one is not. Paid consent platforms keep up with regulator guidance, maintain lists of what every third party script actually drops, produce consent logs in a shape auditors recognise, and give a company something to point at when a complaint arrives. A DIY banner handles the mechanics fine and will quietly rot the moment you add a new analytics tag or a court decision changes what counts as valid consent.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The banner is an afternoon; the liability transfer is the product.",
+  "prompt": "Build a self-hosted cookie consent and script gating kit. No SaaS, no accounts, no telemetry.\n\nStack: TypeScript, Vite in library mode, output a single self-contained IIFE file under 15KB gzipped plus one CSS file inlined into it. Optional receipt logger: Node 20, Fastify, better-sqlite3. No React, no UI framework, no CDN dependencies.\n\nIn scope:\n- A config object in src/config.ts: site name, privacy policy URL, categories (necessary, preferences, analytics, marketing), and for each category a human description and the list of cookie names it covers.\n- Script gating: scripts on the page written as script type=\"text/plain\" data-consent-category=\"analytics\" are activated only after consent for that category. Implement by cloning the node with the real type and replacing it. Also expose window.allowConsent.on(category, callback).\n- A first-visit banner with three actions: accept all, reject non-essential, manage choices. Reject must be equally prominent, no dark patterns, no pre-checked non-essential toggles.\n- A preferences modal with per-category toggles, descriptions, and the cookie table from config. A re-open function window.allowConsent.open() for a footer link.\n- Consent state stored in a first-party cookie, versioned against a config hash so changing categories re-prompts. Include a consent timestamp and the policy version.\n- Accessibility: focus trap in the modal, escape to close, aria labels, keyboard reachable, respects prefers-reduced-motion and prefers-color-scheme.\n- Optional receipt logging: if config.receiptEndpoint is set, POST a JSON receipt with a random id, timestamp, categories granted, config hash, and user agent. The Fastify endpoint writes to SQLite, exposes GET /receipts.csv behind a bearer token from .env, and stores no IP address unless ALLOW_LOG_IP=true.\n- A demo/index.html wiring a fake analytics script and a fake marketing pixel so gating is visibly testable.\n- Vitest tests for: gating does not run blocked scripts, reject stores a rejection, config hash change re-prompts, state survives reload.\n\nOut of scope: geolocation-based banner variants, IAB TCF, Google consent mode v2 certification, automatic cookie scanning, a dashboard, multi-site management.\n\nSecrets in .env only, with .env.example committed. README must state plainly that this is a mechanism, not legal advice, and that the cookie list has to be audited by a human whenever a third party script is added.",
+  "promptCurated": false
+}
