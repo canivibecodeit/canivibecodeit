@@ -1,0 +1,53 @@
+{
+  "slug": "fonio",
+  "name": "Fonio",
+  "domain": "fonio.ai",
+  "category": "voice-ai",
+  "subcategory": "AI phone receptionist",
+  "tagline": "An AI phone agent that answers inbound business calls, takes messages, and books appointments.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.fonio.ai/it/?utm_source=Google&utm_medium=searchAds&utm_campaign=Search_Brand_IT&utm_term=fonio&utm_campaign=290724_Search_Brand_AT/DE&utm_source=adwords&utm_medium=ppc&hsa_acc=1013699301&hsa_cam=23222724226&hsa_grp=196249395751&hsa_ad=805572227446&hsa_src=g&hsa_tgt=kwd-301339729145&hsa_",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "Pricing not verified; phone agents are usually sold as a monthly plan plus per-minute call volume.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The technical core is no longer exotic: a Twilio number, a media-stream websocket, and a realtime speech model gets you an agent that answers the phone and talks back in a weekend. What you cannot one-shot is everything around the call: a carrier relationship, numbers provisioned in Italy or Germany, barge-in and latency tuning that survives a bad mobile connection, and calendar plus CRM write-backs that actually land. There is also the uncomfortable part, which is that this thing answers your business phone, so a crash at 10am is a lost customer, not a failed build. Fine for a side project, a personal line, or a hobby business where you can tolerate dropped calls. Not fine as the only thing between a paying client and your company.",
+  "coreLoopDIY": "Answers an inbound call on your own Twilio number, holds a realtime voice conversation using a system prompt you wrote, then stores a transcript and texts you a structured summary.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Twilio account and a provisioned phone number in the country you need",
+    "OpenAI API key with Realtime access",
+    "A publicly reachable HTTPS/WSS endpoint, so a small always-on VPS, not your laptop",
+    "Willingness to personally answer the phone when the agent breaks"
+  ],
+  "whatYouLose": [
+    "Carrier redundancy and number provisioning across countries, including the paperwork for Italian and German numbers",
+    "Latency and interruption handling tuned against thousands of real calls, including accents and dialects",
+    "Working integrations into calendars, CRMs, and ticketing instead of a JSON blob you still have to read",
+    "A dashboard a receptionist or office manager can operate without touching code",
+    "GDPR posture: call recording consent, data processing agreements, EU data residency",
+    "Someone to call when calls stop connecting"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Voice agents live or die on the first 800 milliseconds and on what happens when the caller interrupts. That is tuning, not architecture.",
+  "whyPeopleStillPay": "Because the demo is easy and production is not. A business paying for a phone agent is buying the boring half: a number that works, a call that connects, an appointment that lands in the right calendar, and a vendor who is accountable when it does not. Self-hosting means you own uptime for your own front desk, which is a worse trade than it looks when the thing answering is the only contact a new customer has with you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The conversation is a weekend; the phone line being reliably answered is not.",
+  "prompt": "Build a self-hosted AI phone receptionist I can run on a single small VPS.\n\nStack, no alternatives: Node 20 with TypeScript, Fastify, @fastify/websocket, better-sqlite3, Twilio Voice, and the OpenAI Realtime API over websocket. No frontend framework; a single server-rendered HTML page is enough.\n\nIn scope:\n1. POST /voice returns TwiML that opens a bidirectional Media Stream to /media on this server.\n2. /media is a websocket handler that bridges Twilio's 8kHz mulaw audio frames to an OpenAI Realtime session and back, with correct resampling and base64 framing. Handle Twilio start/media/stop events and the clear event so the agent stops talking when the caller interrupts.\n3. The agent persona, greeting, business name, and business hours come from config/agent.yaml, not from code. Outside business hours it says so and takes a message.\n4. Give the model two tools: take_message(caller_name, reason, callback_number) and request_appointment(caller_name, preferred_time_text, reason). Both just write rows to SQLite. Do not pretend to book anything.\n5. On call end, store duration, caller number, full transcript, and any tool results. Then send me one SMS via Twilio with a three line summary.\n6. GET / lists calls newest first with transcript expanders. Protect it with HTTP basic auth from .env.\n7. Load TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_NUMBER, MY_NUMBER, OPENAI_API_KEY, ADMIN_USER, ADMIN_PASS from .env. Ship .env.example. Verify Twilio request signatures on /voice.\n\nOut of scope, do not build: outbound calling, calendar or CRM integrations, multi-tenant accounts, analytics, telemetry, call recording audio storage, any Docker orchestration beyond a single Dockerfile.\n\nDeliverables: README with ngrok instructions for local testing, the exact Twilio console webhook settings, a latency note on what to check if the agent feels slow, and a plain warning in the README that this should not be the only line a paying customer can reach.",
+  "promptCurated": false
+}
