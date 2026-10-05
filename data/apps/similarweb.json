@@ -1,0 +1,51 @@
+{
+  "slug": "similarweb",
+  "name": "Similarweb",
+  "domain": "similarweb.com",
+  "category": "analytics",
+  "subcategory": "competitive traffic intelligence",
+  "tagline": "Estimated traffic, audience and keyword data for websites you do not own.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.similarweb.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Public tiers exist but serious use is annual enterprise contracts quoted on request.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is not the dashboard, it is the estimate behind every number in it. Similarweb models traffic for sites it has no access to by blending clickstream panels, ISP and app data, crawls and a lot of modeling, then calibrating against sites whose real analytics it can see. You cannot build a panel in a weekend, and without a panel every chart you draw is a guess with no anchor. A coding agent can absolutely build the surrounding workflow: a competitor watchlist, change detection, public signal tracking, tidy charts. It just cannot fill in the column labeled 'monthly visits'.",
+  "coreLoopDIY": "Tracks a list of competitor domains and records the public signals you can legally collect yourself: sitemap size, pricing page changes, new blog posts, job listings, tech stack hints, over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "A machine or cheap VPS that can run a daily cron",
+    "Willingness to respect robots.txt and rate limits"
+  ],
+  "whatYouLose": [
+    "Traffic estimates for any site you do not control, which is the entire point",
+    "Referral, channel and audience overlap breakdowns that need clickstream data",
+    "Keyword and paid search estimates for competitors",
+    "App download and mobile engagement numbers",
+    "A number your boss or an investor will accept as a citation"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The panel is the product. The interesting second-order moat is that the market has agreed to treat Similarweb's estimates as the shared fiction, which is worth more than accuracy.",
+  "whyPeopleStillPay": "Because the alternative to a shared, roughly consistent estimate is arguing about vibes in a deal room. Buyers, agencies, investors and sales teams need a single number for 'how big is this site' that both sides will accept, and they will pay a lot for the illusion of neutrality even knowing the error bars are wide. The paid tiers also bundle keyword, app and audience data that would each require its own data pipeline to approximate. Nobody buys this because the UI is nice.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the dashboard in a weekend and the numbers never arrive. The moat is a global clickstream panel plus a decade of everyone agreeing to quote its estimates as if they were measurements.",
+  "prompt": "Build a local competitor watch tool called \"watchtower\". It does NOT estimate traffic; it tracks public, observable signals about competitor websites over time.\n\nStack, no substitutions:\n- TypeScript, Node 20, run with tsx\n- SQLite via better-sqlite3, file at ./data/watchtower.db\n- Fetching with undici, HTML parsing with cheerio\n- CLI with commander\n- A single-page local dashboard served by Hono on http://localhost:8787, charts with Chart.js from a CDN, no build step, no framework\n\nData model: domains, snapshots (domain_id, taken_at, json payload), diffs (domain_id, field, old, new, seen_at).\n\nEach daily run, per domain, collects:\n- robots.txt and every sitemap it points to, counting total URLs and URLs per top-level path\n- homepage title, meta description, and a normalized text hash\n- the pricing page if one is linked, stored as extracted text plus a hash so changes are diffable\n- the blog or news feed via RSS or Atom if discoverable, recording new item titles and dates\n- naive tech hints from HTML: script hostnames, meta generator, known analytics and CDN domains\n- optional careers page URL count as a rough hiring signal\n\nRules:\n- Honor robots.txt, one request at a time per domain, 2 second delay, descriptive User-Agent, hard timeout, cache by ETag or Last-Modified\n- Never claim or invent visit counts, rankings, or keyword volumes; if a signal is unavailable, store null and show \"unknown\" in the UI\n\nCLI: `add <domain>`, `remove <domain>`, `run [--domain d]`, `diff <domain> [--since date]`, `serve`.\n\nDashboard: table of tracked domains with last-run status, sparkline of sitemap URL count over time per domain, and a reverse-chronological change feed of diffs with old and new values side by side.\n\nAlso include: sample .env.example with only OPTIONAL_PROXY_URL, a seed script that adds three example domains, a README stating plainly that this tool measures public surface area and change velocity, not audience or traffic. No accounts, no telemetry, no cloud services.",
+  "promptCurated": false
+}
