@@ -1,0 +1,52 @@
+{
+  "slug": "grammerly",
+  "name": "Grammarly",
+  "domain": "grammarly.com",
+  "category": "writing-assistant",
+  "subcategory": "grammar and style checking",
+  "tagline": "Grammar, spelling and tone suggestions that follow you into every text box you type in.",
+  "priceMonthly": 12,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per user, billed annually",
+    "unit": "per-seat",
+    "source": "https://app.grammarly.com/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The actual proofreading is no longer special: any decent LLM will fix your grammar, tighten your sentences and flag your passive voice on the first try, and a coding agent can wrap that in a browser extension in an afternoon. What you cannot one-shot is the part Grammarly actually sells, which is being everywhere: a contenteditable overlay that behaves correctly in Gmail, Google Docs, Slack, Word and a mobile keyboard, without eating your cursor or mangling rich text. Doing that across the real web is years of defensive patching against other people's editors, not a weekend of clever code. A personal build works fine if you accept a dedicated editor pane or a hotkey that rewrites the selected text. Treat it as a tool you open, not a layer that watches you type.",
+  "coreLoopDIY": "A Chrome extension that sends the text in the focused field (or your selection) to an LLM and shows numbered suggestions you can apply individually or all at once.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) in .env",
+    "Node 20 for the local proxy that holds the key",
+    "Chrome or any Chromium browser with developer mode for unpacked extensions",
+    "Willingness to run the proxy whenever you want suggestions"
+  ],
+  "whatYouLose": [
+    "Inline underlines in arbitrary rich text editors, especially Google Docs and Word, which fight back",
+    "A mobile keyboard, so your phone typing is unchanged",
+    "Sub-100ms feedback as you type; API round trips make this a request-response tool, not a live one",
+    "Consistent style and tone profiles, team style guides, and the shared dictionary that stops it flagging your product names",
+    "Plagiarism checks and the citation tooling the paid tiers lean on"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard engineering is not the language model, it is the overlay surviving thousands of hostile third-party text editors and never losing your cursor.",
+  "whyPeopleStillPay": "Because the value is ambient. Grammarly earns its money in the two seconds before you hit send on an email you were not thinking carefully about, and that only works if it is already there, in that box, with no hotkey and no pasting. A personal build asks you to remember it exists, which is exactly the moment the product was supposed to cover for you. People also pay for the absence of decisions: no proxy to start, no key to rotate, and the same behaviour on a phone, a work laptop and a borrowed browser.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The proofreading is commodity, the ubiquity is not. Build the hotkey version and skip the dream of inline underlines in Google Docs.",
+  "prompt": "Build a personal writing assistant as a Chrome MV3 extension plus a tiny local proxy. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Extension: plain TypeScript compiled with esbuild, no framework, no bundler config beyond one build script.\n- Proxy: Node 20 with the built in http module, single file, reads ANTHROPIC_API_KEY from .env via node --env-file.\n- Everything lives in one repo: /extension and /proxy.\n\nProxy:\n- Listens on 127.0.0.1:8787, CORS allowed only for the extension origin.\n- POST /check takes { text, mode } where mode is one of correct, tighten, formal, casual.\n- Calls the Claude API with a system prompt per mode and asks for strict JSON: an array of { original, replacement, reason, severity } where severity is grammar, clarity or style.\n- Validates the JSON, retries once on parse failure, returns 502 with a readable message after that.\n- Caches responses in memory keyed by a hash of text plus mode so repeated checks are free.\n\nExtension:\n- Keyboard shortcut Alt+G. On press, grab the current selection, or the full value of the focused textarea or input if nothing is selected.\n- Show a shadow DOM panel anchored bottom right with the suggestion list: each row shows the original snippet struck through, the replacement, the reason, and Apply and Ignore buttons. Add Apply all.\n- Apply must work for textarea and input via value splicing plus an input event, and for simple contenteditable via document.execCommand insertText so native undo still works.\n- If the focused element is inside Google Docs or a canvas based editor, do not try to patch it: show the suggestions as copyable text and say so plainly in the panel.\n- Options page: proxy URL, default mode, and a personal dictionary of terms that must never be flagged, passed to the proxy and injected into the system prompt.\n\nExplicitly out of scope: live underlines as you type, mobile support, plagiarism detection, any analytics, any sign in.\n\nDeliver a README with the build command, how to load the unpacked extension, and a .env.example. Include three unit tests for the JSON validation and the textarea splice logic.",
+  "promptCurated": false
+}
