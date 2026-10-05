@@ -1,0 +1,53 @@
+{
+  "slug": "outpero",
+  "name": "Outpero",
+  "domain": "outpero.com",
+  "category": "sales-outreach",
+  "subcategory": "outbound email sequencing",
+  "tagline": "Outbound sales tooling for running cold email sequences and tracking replies.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://outpero.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical part of outbound email is genuinely simple: a contacts table, a template with merge fields, a scheduler, and a rule that stops the sequence when someone replies. An agent will hand you that in an evening, running off your own mailbox, and for a solo founder doing twenty sends a day it works fine. What does not come out of the box is everything that decides whether those emails land: domain reputation, warmup, address verification, bounce handling, and the unglamorous work of not getting your main domain flagged. Public details on this product are thin, so treat the specifics here as directional rather than a spec comparison. If your volume is low and your list is hand-built, self-host it; if you need to send thousands a week from rotating inboxes, you are buying infrastructure, not software.",
+  "coreLoopDIY": "A local CLI plus tiny dashboard that imports a contacts CSV, sends a multi-step templated sequence through your own SMTP on a schedule, and stops each thread the moment a reply shows up in IMAP.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A mailbox you control with SMTP and IMAP app password access",
+    "A sending domain with SPF, DKIM and DMARC configured correctly",
+    "Your own contact list; no enrichment or scraping included",
+    "Node 20 and SQLite locally",
+    "A machine or small VPS that stays awake during send windows"
+  ],
+  "whatYouLose": [
+    "Deliverability engineering: warmup, inbox rotation, reputation monitoring",
+    "Email verification, so your bounce rate is your own problem",
+    "CRM and calendar integrations, and the pipeline view that comes with them",
+    "Built-in unsubscribe suppression across campaigns unless you wire it carefully",
+    "Shared-team visibility into who already contacted a given lead"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The hard asset in outbound is sending reputation plus clean contact data. Code is the cheap half.",
+  "whyPeopleStillPay": "Because a cold email tool that does not land in the inbox is worth nothing, and landing in the inbox is an operational discipline rather than a feature. Vendors sit on warmed pools, bounce feedback loops, provider relationships, and suppression data gathered across every customer they have. They also absorb the legal surface: CAN-SPAM and GDPR footers, opt-out handling, record keeping. A self-built sequencer is fine when you are sending to fifty people you actually researched, and a slow way to burn your company domain when you are not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for low volume and hand-picked lists; buy it the moment your domain reputation becomes a business risk.",
+  "prompt": "Build a local cold outreach sequencer called \"outbox\" in an empty folder.\n\nStack, no substitutions: Node 20 with TypeScript, SQLite via better-sqlite3, nodemailer for sending, imapflow for reply detection, Hono plus server-rendered HTMX for a dashboard on localhost:8787. No React, no cloud services, no accounts, no telemetry.\n\nIn scope:\n- CLI commands: init, import, campaign:new, dry-run, send, status, unsub:list\n- Import contacts from CSV with columns email, first_name, company, plus arbitrary extra columns available as merge fields\n- Campaigns are folders of markdown templates with front matter for subject and delay_days; steps run in order\n- Merge fields rendered as {{first_name}} style, and a hard failure if any field is missing rather than sending a blank\n- Send window config: allowed weekdays, allowed local hours, daily cap, random jitter between sends\n- Reply detection: poll IMAP for messages whose In-Reply-To or subject matches a sent thread, mark the contact replied, halt remaining steps\n- Bounce detection from common failure headers, mark contact bounced and suppress\n- Unsubscribe link per recipient using an HMAC token, served on a local route that writes to a suppression table checked before every send\n- Everything logged to SQLite: sends, opens off by default, replies, bounces, suppressions\n- Dashboard shows per-campaign counts and a contact timeline, read only\n- dry-run prints fully rendered emails to stdout and sends nothing\n\nOut of scope, do not build: lead scraping, email verification, inbox warmup or rotation, LinkedIn steps, multi-user auth, hosted deployment, open and click tracking pixels.\n\nSecrets in .env only: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, IMAP_HOST, IMAP_USER, IMAP_PASS, UNSUB_SECRET, FROM_NAME, FROM_EMAIL. Commit a .env.example.\n\nShip seed data, one example two-step campaign, a README with a setup path and a blunt SPF, DKIM, DMARC checklist, and a warning that sending volume from an unwarmed domain will hurt deliverability.",
+  "promptCurated": false
+}
