@@ -1,0 +1,52 @@
+{
+  "slug": "churney",
+  "name": "Churney",
+  "domain": "churney.io",
+  "category": "analytics",
+  "subcategory": "churn prediction and retention ML",
+  "tagline": "Machine learning that predicts which subscribers are about to cancel and which interventions actually move them.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://churney.io/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Appears to be enterprise sales with custom pricing rather than a public tier.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Churn scoring is one of the most teachable machine learning problems on earth: take subscription events, build features, train a gradient boosted model, output a probability per account. An agent will do that in a sitting and your numbers will be your own, because the training data was always yours. What does not fall out of one prompt is the part Churney actually sells: continuous retraining, uplift modeling so you target the people a discount would save rather than the people who were leaving anyway, and pipes back into your CRM or messaging stack so the score triggers something. If you are a solo operator with a few thousand subscribers, a weekend notebook and a leaderboard of at-risk accounts gets you most of the useful signal. If you are a streaming service with millions of users and a retention team arguing about incremental lift, you are buying the modeling discipline, not the classifier.",
+  "coreLoopDIY": "Pull your subscription and usage history into a local database, engineer tenure and engagement features, train a gradient boosted churn classifier, and serve a ranked at-risk list with the per-account drivers.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own subscription event history, ideally 12+ months with real cancellations",
+    "A Stripe (or equivalent billing) API key or CSV export",
+    "Python 3.11 locally, no GPU needed",
+    "Enough churned accounts to train on, a few hundred minimum before the model means anything"
+  ],
+  "whatYouLose": [
+    "Uplift and incrementality modeling: a raw churn score tells you who is leaving, not who a save offer would actually change",
+    "Automated retraining and drift monitoring as your product and pricing shift under the model",
+    "Warehouse and CRM integrations that turn a score into a triggered campaign without you running a script",
+    "Cross-client benchmarking and the modeling experience that comes from having done this for other subscription businesses",
+    "Anyone to blame when the retention team disputes the numbers"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The classifier is commodity. The pipeline that keeps it honest for two years, and the experiment design that proves it earned money, is not.",
+  "whyPeopleStillPay": "Because churn prediction is less about the model and more about the plumbing and the proof. Companies big enough to care about a one percent retention swing need the score refreshed nightly on warehouse data, wired into the tools their lifecycle team already uses, and defended with holdout tests that show the intervention caused the save. Hiring a data scientist to build and babysit all of that costs more than the contract, and a notebook that nobody retrains quietly rots into confident nonsense within a quarter.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A churn score you never act on is an expensive mood ring, and that is true whether you built it or bought it.",
+  "prompt": "Build a local churn prediction workbench for a subscription business. Python only, no web service, no accounts, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, uv for dependency management\n- DuckDB as the local store, single file data/churn.duckdb\n- polars for feature engineering, lightgbm for the model, shap for explanations\n- Streamlit for the one dashboard page\n\nIngest:\n- ingest_stripe.py: pull customers, subscriptions, invoices, and subscription events from the Stripe API using STRIPE_API_KEY from .env, paginate fully, write raw tables to DuckDB\n- ingest_csv.py: alternate path that loads a CSV with columns account_id, signup_date, plan, mrr, last_active_date, canceled_date so the thing works without Stripe\n- Do not call any other external service\n\nFeatures and labels:\n- features.py builds one row per active account per month end: tenure months, plan, mrr, mrr changes in last 3 months, failed payment count, days since last activity, activity trend over 30 vs 90 days, discount flag\n- Label is churn in the following 30 days. Build the panel so no feature uses information from after the snapshot date. Say loudly in the README that leakage is the one bug that will make this useless.\n\nModel:\n- train.py: time based split, train on earlier snapshots, validate on the most recent three months, lightgbm binary classifier, report AUC, PR AUC, and a calibration curve, save model to models/churn.txt\n- score.py: score all currently active accounts, write table account_scores with probability and top 3 SHAP drivers per account\n\nDashboard:\n- app.py: Streamlit with three things only. A table of active accounts ranked by churn probability with drivers, a cohort retention chart, and a decile lift table so the user can see whether the model beats guessing.\n- Export the top N at risk accounts as CSV.\n\nOut of scope, do not build: uplift modeling, email sending, CRM sync, multi user auth, cloud deploy, scheduled retraining. Put a scripts/refresh.sh that runs ingest, features, train, score in order and tell the user to cron it themselves.\n\nInclude .env.example, a README with a 60 second quickstart, and a synthetic data generator so the dashboard renders before any real data exists.",
+  "promptCurated": false
+}
