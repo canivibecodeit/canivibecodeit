@@ -1,0 +1,52 @@
+{
+  "slug": "fig-security",
+  "name": "Fig Security",
+  "domain": "fig.security",
+  "category": "security",
+  "subcategory": "security posture / detection tooling",
+  "tagline": "A commercial security product sold to engineering and security teams, with pricing and scope that are not published in any detail.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.fig.security/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "We know this one thinly, so treat the confidence marker as load bearing. What is clear is the shape: security tooling sold business to business, which almost never reduces to a weekend script. The code in these products is the cheap part; the expensive parts are the detection content, the integration surface across identity providers and cloud accounts and code hosts, and the audit trail someone else's compliance team will accept. You can absolutely build a personal posture checker that tells you true things about your own GitHub org and cloud account, and you should, but it is a different product with a different buyer, namely you. If the real appeal here is a dashboard you look at once a month, build the dashboard; if it is evidence you hand to a customer or an auditor, do not build it.",
+  "coreLoopDIY": "A local CLI that reads your GitHub org, cloud account and DNS, checks them against a fixed list of hygiene rules, and writes a dated markdown report you can diff over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "GitHub personal access token with read scopes",
+    "Read-only AWS credentials, or whichever cloud you actually use",
+    "Node 20 locally",
+    "Willingness to maintain your own rule list as things drift"
+  ],
+  "whatYouLose": [
+    "Detection content written and updated by people whose job it is to track new attack patterns",
+    "Breadth of integrations: identity providers, SaaS admin APIs, code hosts, cloud accounts, all normalized",
+    "Anything that functions as evidence for a customer security review or an auditor",
+    "Alerting, on call routing and the expectation that someone else notices when it breaks",
+    "A vendor name on the line when the check that mattered silently stopped running"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Security products get bought twice: once by the engineer who wants the signal, once by the organization that needs a third party attesting to it. The second purchase is the one a script cannot make.",
+  "whyPeopleStillPay": "Because the output of a security product is mostly social. A self-written checker can genuinely find your public S3 bucket and your admin without 2FA, and for a one person setup that is close to the whole value. But teams pay so that the findings arrive with provenance, so that coverage grows without anyone writing new rules on a Saturday, and so that the answer to \"how do you know\" is a vendor report rather than a shell script nobody has read. Add the integration tax, every SaaS admin API is a different shape of pain, and the build-versus-buy math stops being close.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The hygiene checks are a weekend; the content pipeline and the signature on the report are not. The moat is integration breadth plus the fact that someone else's compliance team will accept the output.",
+  "prompt": "Build a local command line tool called \"posture\" that audits the security hygiene of accounts I personally control and writes a dated report.\n\nStack, no substitutions: TypeScript on Node 20, run via tsx, commander for args, zod for config parsing, no server, no database, no telemetry, no hosted anything.\n\nSecrets: read GITHUB_TOKEN and optional AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from .env via dotenv. Commit a .env.example. Never log token values. Fail loudly with a readable message if a required token is missing.\n\nConfig: a posture.config.yaml at repo root listing the github org or user to audit, the domains to check, and which rule groups are enabled.\n\nChecks to implement, each as its own module in src/rules/ exporting a single async function that returns { id, title, status: 'pass' | 'fail' | 'skip', detail }:\n- GitHub: org members without 2FA, repos with no branch protection on the default branch, repos that are public but were created private, outside collaborators, personal access tokens of org apps if visible, stale deploy keys.\n- DNS and TLS for each configured domain: SPF record present, DMARC present and not p=none, TLS certificate expiry within 30 days, HSTS header present.\n- AWS, only if credentials are present: root account has MFA, IAM users with console access and no MFA, access keys older than 365 days, S3 buckets with public read, security groups allowing 0.0.0.0/0 on ports other than 80 and 443.\n\nRunner: `posture scan` executes every enabled rule concurrently with a sane limit, tolerates individual rule failure without killing the run, and writes reports/YYYY-MM-DD.md plus reports/latest.json. `posture diff` compares the two most recent JSON reports and prints only what changed. Exit code 1 if any rule failed, so I can put this in a cron job.\n\nIn scope: read-only API calls, markdown and JSON output, clear per-rule remediation text.\nOut of scope: a web UI, auth, multi-tenant anything, writing to any cloud resource, Slack or email integrations, compliance framework mappings. Do not pretend the output is an audit artifact.\n\nInclude a README with setup in under ten lines, a list of the exact API scopes required and why, and one honest paragraph on what this tool does not cover.",
+  "promptCurated": false
+}
