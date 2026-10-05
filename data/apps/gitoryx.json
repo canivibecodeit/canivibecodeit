@@ -1,0 +1,51 @@
+{
+  "slug": "gitoryx",
+  "name": "Gitoryx",
+  "domain": "gitoryx.com",
+  "category": "dev-tools",
+  "subcategory": "git and GitHub workflow tooling",
+  "tagline": "A hosted layer on top of Git and GitHub repositories for developers who want more than the default views.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.gitoryx.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a small product in the Git and GitHub tooling orbit, which means the underlying data is already sitting in your repos and behind a public API you have credentials for. That is the good news: nothing here is gated by a network, a marketplace, or a corpus you cannot reach, so a local dashboard that reads git history and the GitHub REST API gets you most of the practical value in one sitting. The gaps are the usual ones for anything glued to GitHub: registering an OAuth or GitHub App, handling rate limits, and keeping up when the API shape shifts under you. If the paid version leans on webhooks, background sync, or anything team-shared, your single-user local build will feel thinner than the screenshots. We have low confidence on the exact feature surface, so treat this as a verdict on the category rather than a line-by-line teardown.",
+  "coreLoopDIY": "Pulls your repos from the GitHub API plus local git history into SQLite and renders a dashboard of commits, PR throughput, review latency, and stale branches.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A GitHub personal access token with repo and read:org scopes",
+    "Node 20 and a place to run it, local or a small VPS",
+    "Local clones of any repo you want deep history for",
+    "Patience with GitHub API rate limits on larger orgs"
+  ],
+  "whatYouLose": [
+    "Hosted setup: no token juggling, no cron you forgot to restart",
+    "Ongoing maintenance against GitHub API changes and pagination quirks",
+    "Team-shared views, permissions, and anything a coworker is meant to open",
+    "Whatever polish and opinionated analysis the paid product actually ships, which is the part you are really buying",
+    "Support when a sync silently stops and you do not notice for two weeks"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The integration surface is the work, not the insight. Anyone can compute review latency; keeping it correct across GitHub, rate limits, and monorepos is the annoying part.",
+  "whyPeopleStillPay": "Because the marginal value of a self-hosted repo dashboard drops the moment you stop looking at it, and a hosted one keeps running. Developers who pay for tools in this space are usually paying to skip the GitHub App registration dance, the webhook plumbing, and the slow realization that their homemade metrics script broke three sprints ago. There is also the social dimension: a link you can drop in Slack beats a localhost port nobody else can reach.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Category verdict, not a feature-by-feature one: the Git data is yours, the plumbing is the product.",
+  "prompt": "Build a single-user, self-hosted Git and GitHub insights dashboard. No accounts, no multi-tenancy, no telemetry.\n\nStack, non-negotiable:\n- Node 20, TypeScript, Next.js App Router, server components where possible\n- SQLite via better-sqlite3, file at ./data/gitoryx.db\n- Tailwind for styling, no component library\n- simple-git for local repo reading, plain fetch for the GitHub REST API\n\nSecrets in .env only: GITHUB_TOKEN (classic PAT, repo + read:org), GITHUB_LOGIN, optional LOCAL_REPO_PATHS as a comma separated list of absolute paths.\n\nWhat to build:\n1. A sync command (npm run sync) that fetches the authenticated user's repos, then for each repo the last 90 days of commits, pull requests, and reviews. Paginate properly, respect the rate limit headers, and back off on 403 with retry-after. Store raw rows in SQLite with an upsert so re-running is idempotent. Log a one line summary per repo.\n2. If LOCAL_REPO_PATHS is set, walk each local clone with simple-git and record full commit history, file churn per commit, and current branch list with last-commit dates.\n3. A dashboard at / listing repos with commit count, open PR count, median time to first review, and median time to merge over the selected window (30/90/365 day toggle).\n4. A repo detail page at /repo/[owner]/[name] with a commit frequency chart (plain SVG, no chart library), a table of open PRs sorted by age, a stale branch list (no commits in 60 days), and top churned files.\n5. A /health page showing last sync time per repo and any rate limit errors from the most recent run.\n\nExplicitly out of scope: webhooks, real time updates, GitHub App or OAuth flows, writing anything back to GitHub, sharing, email digests, GitLab or Bitbucket.\n\nDeliver a README with setup in under ten lines, a .env.example, and a note on how to run sync from cron. Seed nothing: the app should show an empty state that tells the user to run sync.",
+  "promptCurated": false
+}
