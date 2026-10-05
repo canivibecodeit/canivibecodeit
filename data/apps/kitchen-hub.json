@@ -1,0 +1,52 @@
+{
+  "slug": "kitchen-hub",
+  "name": "KitchenHub",
+  "domain": "kitchenhub.com",
+  "category": "commerce",
+  "subcategory": "restaurant delivery order aggregation",
+  "tagline": "Middleware that pulls orders from delivery marketplaces into one screen or POS for restaurants and ghost kitchens.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://kitchenhub.com/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The screen is trivial: a list of incoming orders, a ticket layout, a print button. The hard part is being an approved integration partner with the delivery marketplaces, which means contracts, certification, sandbox access, and keeping up with their API changes forever. You cannot grant yourself DoorDash or Uber Eats order ingestion from an empty folder, and scraping the courier apps is both fragile and against their terms. There is also the part nobody writes down: menu sync, item availability pushes, order acknowledgement windows, and store pause handling, all of which cost real money when they break mid dinner rush. Build the dashboard if you like, but the dashboard was never the product.",
+  "coreLoopDIY": "A local order board that accepts orders via webhook or parsed confirmation emails, normalises them into one schema, and prints or displays kitchen tickets.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine that stays on in the back of house",
+    "A publicly reachable webhook URL, or an email inbox that receives order confirmations",
+    "Optional: an ESC/POS thermal printer on the local network",
+    "Anything that actually feeds you orders, which is the part you do not get"
+  ],
+  "whatYouLose": [
+    "Certified marketplace integrations: real order feeds from the big delivery platforms",
+    "Two way menu and availability sync, so prices and sold out items stay correct everywhere",
+    "Order acknowledgement and status callbacks within the platforms' required time windows",
+    "POS integrations, so orders land in the till instead of only on a screen",
+    "Someone to call at 7pm on a Friday when one channel stops delivering orders"
+  ],
+  "moatTags": [
+    "integrations",
+    "brand-trust",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The asset is partner status with marketplaces that do not hand out order APIs to hobby projects.",
+  "whyPeopleStillPay": "Restaurants are not paying for a kitchen display, they are paying for someone else to own the relationship with four or five delivery platforms that each change their API on their own schedule. One missed order acknowledgement means a cancelled ticket, a refund, and a ratings hit, so the risk sits far above the subscription price. A self built board can genuinely help if you already have a legitimate order feed, for example direct web orders or a single channel you have access to, but it stops being useful the moment you want the aggregation that gives the product its name.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ticket screen is a weekend; the order feeds are not. The moat is approved partner access to the delivery marketplaces and the ongoing cost of keeping every one of those integrations alive.",
+  "prompt": "Build a local kitchen order board for a single restaurant. Stack: Node 20, TypeScript, Fastify, SQLite via better-sqlite3, server rendered HTML with htmx and plain CSS. No React, no cloud, no accounts, no telemetry.\n\nData model: orders table with id, source, external_id, placed_at, customer_name, order_type (delivery or pickup), prep_by, status (new, accepted, in_progress, ready, done, cancelled), raw_payload JSON, and total_cents. order_items table with order_id, name, quantity, modifiers (JSON array of strings), notes.\n\nIngestion, three adapters behind one normalise(payload) interface:\n1. POST /ingest/:source with a shared secret in the X-Ingest-Token header, body is arbitrary JSON, stored raw then normalised.\n2. An IMAP poller that reads an inbox every 30 seconds, matches configured sender addresses, and parses order confirmation emails with per sender regex rules defined in rules/*.ts.\n3. POST /ingest/manual from a simple form, for phone orders.\nIf a payload cannot be normalised, store it with status new and a parse_error field, and show it in a Needs attention lane. Never drop an order.\n\nUI: one full screen board at / with lanes for new, in progress, ready. Cards show source badge, elapsed time since placed_at, items with quantities and modifiers, and big tap targets to advance status. Auto refresh via htmx polling every 5 seconds. A /history page with date filter and CSV export.\n\nPrinting: on transition to accepted, render an 80mm kitchen ticket and send it to an ESC/POS printer over raw TCP port 9100 using a host from .env. If PRINTER_HOST is unset, write the ticket to ./tickets/ as plain text instead. Add a Reprint button on every card.\n\nSecrets in .env: INGEST_TOKEN, IMAP_HOST, IMAP_USER, IMAP_PASS, PRINTER_HOST. Ship .env.example.\n\nOut of scope, do not attempt and do not stub as if real: any direct integration with DoorDash, Uber Eats, Grubhub or similar, menu sync, availability pushes, order status callbacks to any marketplace, payments, driver tracking.\n\nDeliver: README with setup, a seed script that inserts 12 fake orders across three sources, one sample webhook payload per adapter, and a test that asserts each adapter normalises its sample into the orders schema. Run with npm run dev on port 3000.",
+  "promptCurated": false
+}
