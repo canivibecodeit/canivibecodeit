@@ -1,0 +1,52 @@
+{
+  "slug": "mentimeeter",
+  "name": "Mentimeter",
+  "domain": "mentimeter.com",
+  "category": "presentations",
+  "subcategory": "live audience polling",
+  "tagline": "Presentation tool where the audience votes, answers quizzes and fills word clouds live from their phones.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.mentimeter.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is not hard: a room code, a phone-friendly voting page, a websocket pushing counts to a projected bar chart or word cloud. An agent can get multiple-choice, scales, word clouds and open-text working in one session, and for a classroom or a team offsite that is genuinely enough. What breaks is everything around it: you need a public URL and TLS so phones can actually reach it, you need the join flow to be idiot-proof in front of 80 people, and you need the result chart to not look like a hackathon demo when it is on a 4 metre screen. Mentimeter's real product is twenty question types, template libraries, PowerPoint and Slides embedding, and the confidence that it will not fall over mid-keynote. Build it for your own talks, do not build it for the company all-hands.",
+  "coreLoopDIY": "Runs a self-hosted presenter deck with a room code, where audience phones submit votes over websockets and slides render live results as bars, scales or word clouds.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a small VPS or tunnel with a public HTTPS URL, phones will not join localhost",
+    "a short memorable domain, people type the join link by hand",
+    "Node 20+",
+    "a projector test run before you rely on it"
+  ],
+  "whatYouLose": [
+    "Twenty-plus question types: ranking, 2x2 grids, pin on image, Q and A moderation, quiz leaderboards with timing",
+    "PowerPoint and Google Slides integration, so your polls live inside the deck you already made",
+    "Template galleries and design presets that make the output look deliberate",
+    "Reliability and capacity at hundreds of concurrent voters, plus someone to blame when it breaks",
+    "Export, reporting and comparing results across sessions over time"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Not a network moat: the audience never signs up, they just type a code. The moat is that it works flawlessly in a high-stakes room, which is boring and expensive.",
+  "whyPeopleStillPay": "Because the moment of truth is live and public. A broken poll in front of a room of paying conference attendees costs more than a decade of subscription, so presenters buy insurance, not features. Mentimeter also wins on breadth: by the time you have hand-built ranking, quiz scoring, Q and A moderation and a slide embed for PowerPoint, you have spent a month on something that was never your job. The personal build makes sense for recurring low-stakes rooms you control, a class, a workshop, a weekly team session.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for a classroom, risky for a keynote. The gap is not code, it is the nerve to run it live.",
+  "prompt": "Build a self-hosted live audience polling tool, like a minimal Mentimeter, in an empty folder.\n\nStack, no substitutions: Node 20 with Express, the ws package for websockets, SQLite via better-sqlite3, server-rendered HTML with plain CSS and vanilla JS. No React, no build step, no bundler, no external CDN.\n\nData model: a session has an id, a 5-digit numeric join code, a title and an ordered list of slides. A slide has a type (one of: multiple_choice, scale_1_5, word_cloud, open_text), a question, and options for multiple_choice. Votes store session id, slide id, a voter token from a cookie, and a value.\n\nRoutes:\n- GET / : list sessions, form to create one.\n- GET /s/:id/edit : add, reorder and delete slides. Plain forms, full page reloads are fine.\n- GET /s/:id/present : presenter view. Huge type, dark background, shows the current slide, the join URL and the join code, a live result chart, a live voter count, and next/prev controls. Presenter sends slide changes over the websocket.\n- GET /join : code entry form. GET /j/:code : audience voting view, mobile first, large tap targets, follows whatever slide the presenter is on, confirms the vote and locks that slide for that voter token.\n- Results render in the page with CSS only: horizontal bars for choices and scales, scaled inline text for word clouds, a scrolling list for open text.\n\nWebsockets: one channel per session. Audience sends votes, server writes to SQLite then broadcasts aggregated counts to presenter and audience. Never broadcast raw voter tokens. Rejoin must resync state after a refresh or a dropped connection.\n\nAlso include: a reset-votes button per slide, CSV export of raw results, and a /seed script that creates a demo session with one slide of each type.\n\nOut of scope, do not build: user accounts, email, payments, quiz scoring and leaderboards, PowerPoint or Google Slides integration, image upload, telemetry, analytics.\n\nConfig in .env: PORT, PUBLIC_BASE_URL, ADMIN_PASSWORD. Protect / and all edit and present routes with HTTP basic auth using ADMIN_PASSWORD; audience routes stay public. Commit a .env.example, never a .env.\n\nWrite a README that states plainly: this needs a public HTTPS URL for phones to join, test the projector and the join flow before a real session, and it is sized for roughly 100 concurrent voters on one process.\n\nFinish with a load check script that simulates 100 voters hitting one slide, and report the result in the README.",
+  "promptCurated": false
+}
