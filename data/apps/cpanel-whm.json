@@ -1,0 +1,53 @@
+{
+  "slug": "cpanel-whm",
+  "name": "cPanel & WHM",
+  "domain": "cpanel.com",
+  "category": "hosting",
+  "subcategory": "server control panel",
+  "tagline": "Web control panel for Linux hosting servers: domains, DNS, email, databases, SSL, backups, plus WHM for multi-account server administration.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per server license, tiered by hosted account count",
+    "unit": "custom",
+    "source": "https://cpanel.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If you run one VPS for your own sites, most of cPanel is dead weight and a coding agent can absolutely build the 10 percent you use: a dashboard that writes nginx vhosts, pulls Let's Encrypt certs, creates MySQL databases and users, edits cron, and tails logs. That is a weekend, and it will feel faster than cPanel because it does five things instead of five hundred. The gaps are where cPanel earns its license: real multi-account isolation with quotas, a working mail stack you did not hand-roll, backup and restore that has actually been tested, and the security hardening layers that hosting companies bolt on top. Mail in particular is a trap, do not build an SMTP and IMAP server to save a license fee. And if you are reselling hosting, your customers expect cPanel by name and your billing system already speaks to it, which is a different problem than yours.",
+  "coreLoopDIY": "A single-server admin dashboard that provisions nginx vhosts with automatic HTTPS, creates MySQL databases and users, manages cron jobs, and shows logs and disk usage for one operator on one box.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Linux VPS you are willing to break, ideally a fresh one",
+    "Root access and a domain with DNS you control",
+    "Comfort with nginx, systemd and MySQL when the dashboard lies to you",
+    "Tailscale or an SSH tunnel, this panel should never face the public internet",
+    "Separate plan for email: use a hosted provider"
+  ],
+  "whatYouLose": [
+    "Email hosting entirely: mailboxes, webmail, spam filtering, deliverability",
+    "True multi-tenant isolation, per-account quotas and resource limits",
+    "Tested backup and restore, including account-level restores and remote destinations",
+    "The security ecosystem around it: ModSecurity rules, Imunify, brute force protection, patched-in-place updates",
+    "One-click app installers, DNS clustering, and the WHMCS style billing integrations resellers depend on"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The lock-in is not the UI, it is that an entire hosting industry, its support scripts, its migration tools and its customers' expectations are all shaped around cPanel accounts.",
+  "whyPeopleStillPay": "Hosting companies pay because cPanel is the interface their customers already know, their billing and provisioning stack already automates, and their support team can troubleshoot at 3am without reading your source code. Individuals pay because the license is cheaper than an evening spent debugging Dovecot, and because when a client asks for webmail and a database backup you can point at a button instead of a shell script. The panel itself is replaceable; the twenty years of accumulated operational assumptions around it are not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The honest version of this build is a deploy dashboard, not a hosting panel. If the word mailbox appears in your requirements, buy the license or rent the mailboxes.",
+  "prompt": "Build a minimal single-server web control panel for one operator managing their own sites on one Debian 12 VPS.\n\nStack, no alternatives: Node 20 with TypeScript, Fastify, server-rendered HTML with Eta templates, plain CSS, SQLite via better-sqlite3 for panel state. Run as a systemd unit as root. No React, no Docker, no cloud services, no telemetry, no user accounts system.\n\nAuth: single operator, HTTP basic auth with a bcrypt hash in .env, and bind only to 127.0.0.1 and the Tailscale interface. Print a loud warning at boot if it is bound to 0.0.0.0.\n\nFeatures, in scope:\n1. Sites: create a site from a domain name plus a document root or a localhost port to reverse proxy. Render an nginx vhost from a template into /etc/nginx/sites-available, symlink it, run nginx -t, reload only if the test passes, and roll back the file if it fails.\n2. TLS: issue and renew certificates by shelling out to certbot with the nginx authenticator. Show expiry dates. Never implement ACME yourself.\n3. Databases: create and drop MySQL/MariaDB databases and users with generated passwords, show the credentials exactly once, store only the database and user names in SQLite.\n4. Cron: list, add, edit and delete entries in root's crontab by rewriting the whole file from a stored canonical copy, with a backup of the previous version.\n5. Status: disk usage per site directory, free space, load average, systemd status for nginx and mysql, and a log viewer that tails the last 200 lines of chosen nginx and journalctl logs.\n\nOut of scope, do not build or stub: email, SMTP, IMAP, webmail, spam filtering, DNS serving, multi-tenant users, quotas, file manager uploads, one-click installers, billing.\n\nSafety requirements: every shell command runs through one helper that logs the exact argv and exit code to SQLite, uses argument arrays rather than string interpolation, and validates domain names and database names against a strict allowlist regex. Any destructive action needs a typed confirmation of the resource name.\n\nAlso produce: a backup script that dumps all databases and tars the site roots to a local directory with restic-ready layout, a README with the exact install steps on a fresh VPS, a .env.example, and a one-page section titled What This Does Not Do that names email first.",
+  "promptCurated": false
+}
