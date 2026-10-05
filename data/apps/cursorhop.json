@@ -1,0 +1,50 @@
+{
+  "slug": "cursorhop",
+  "name": "CursorHop",
+  "domain": "cursorhop.com",
+  "category": "productivity-utilities",
+  "subcategory": "cursor and window management",
+  "tagline": "A small desktop utility for moving the mouse cursor between monitors and windows with the keyboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://cursorhop.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a tiny-surface-area utility, which is exactly the kind of thing an agent can scaffold in an afternoon: read the monitor layout, bind a hotkey, warp the cursor. The catch is that cursor warping and global hotkeys are OS-level work, so you are writing platform-specific code against Windows APIs, macOS Accessibility and Quartz, or X11 and the Wayland mess, and only one of those will work on your machine. On macOS you also hit permissions prompts, code signing, and a login item that has to survive reboots, which is where most hobby builds quietly die. The actual feature set survives DIY fine; the polish, the menu bar niceties, and the fiddly edge cases around mixed-DPI displays and fullscreen apps do not. Build it if you want it on one OS and you are fine with a slightly janky daemon.",
+  "coreLoopDIY": "A background daemon that registers global hotkeys and instantly warps the mouse cursor to the center of the next display or the focused window.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A single target OS, picked up front",
+    "Accessibility or input permissions granted to the binary",
+    "A way to autostart the daemon at login",
+    "Tolerance for DPI and fullscreen edge cases"
+  ],
+  "whatYouLose": [
+    "Cross-platform support; your build works on exactly one OS",
+    "A signed, notarized installer that does not scare the OS",
+    "A configuration UI, so hotkeys live in a config file you edit by hand",
+    "Handling of odd setups: mixed DPI, rotated displays, virtual desktops, remote sessions",
+    "Someone else fixing it when the next OS update breaks cursor warping"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The moat here is not data or network, it is the thousand small OS quirks that a focused utility author has already eaten.",
+  "whyPeopleStillPay": "Because it is a utility you want to forget about. Paying once for a signed binary that starts at login, survives updates, and behaves on a mixed-DPI three-monitor setup is a better trade than maintaining your own input daemon, especially when the whole point of the tool is that it should never demand your attention. The code is small; the maintenance is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Small enough to clone, annoying enough that you will wish you had not after the next OS update.",
+  "prompt": "Build a keyboard-driven mouse cursor jumper as a local background daemon. No accounts, no cloud, no telemetry, no analytics.\n\nStack: Rust, single binary, no GUI framework. Target macOS only (Apple Silicon and Intel). Do not try to be cross-platform.\n\nCrates: core-graphics for display enumeration and cursor warping, global-hotkey for system-wide hotkeys, serde plus toml for config, directories for config path, anyhow for errors.\n\nFeatures that are in scope:\n1. On startup, read a config file at ~/.config/cursorhop/config.toml. If missing, write a default one and log the path.\n2. Enumerate all active displays with their frames in global coordinates.\n3. Register these default hotkeys: Ctrl+Alt+Right to move the cursor to the center of the next display, Ctrl+Alt+Left for the previous display, Ctrl+Alt+1 through Ctrl+Alt+4 to jump directly to display index 1 to 4.\n4. Add Ctrl+Alt+Down to warp the cursor to the center of the currently focused window, using the Accessibility API to read the focused window frame.\n5. Warping must preserve relative position within the display when configured with preserve_relative = true, otherwise center.\n6. Optional config flag click_after_warp, default false, which synthesizes a left click after warping.\n7. Re-enumerate displays when the display configuration changes, so unplugging a monitor does not break anything.\n8. Log to stderr only, one line per warp, with a --quiet flag to silence it.\n\nOut of scope: a settings UI, a menu bar icon, Windows and Linux support, code signing, auto-update, multi-user anything.\n\nAlso produce:\n- A README that explains, in plain terms, how to grant Accessibility permission in System Settings, and that the binary will not work until that is done.\n- A launchd plist template in contrib/ for autostart at login, with a one-line load command.\n- A short section listing known gaps: mixed-DPI coordinate weirdness, fullscreen Spaces, and Wayland-style compositors being irrelevant here.\n\nIf any secrets or paths are needed, read them from a .env file and ship a .env.example. Do not commit anything real.\n\nKeep the whole thing under about 600 lines. Make it build with cargo build --release on the first try.",
+  "promptCurated": false
+}
