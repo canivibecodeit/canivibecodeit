@@ -1,0 +1,51 @@
+{
+  "slug": "drew",
+  "name": "Drew",
+  "domain": "cadbooster.com",
+  "category": "design",
+  "subcategory": "SOLIDWORKS drawing automation",
+  "tagline": "A SOLIDWORKS add-in that generates production drawings from parts and assemblies, views, dimensions, annotations and all.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://cadbooster.com/solidworks-add-in/drew/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The SOLIDWORKS API is fully documented and scriptable, so an agent can absolutely write you a tool that opens a part, drops a three-view layout on a sheet with the right format, imports model dimensions and exports PDF and DXF. That covers the boring 60 percent of drawing work for simple prismatic parts, and if your parts are all similar it may cover 90 percent. What it will not cover on day one is the judgment: which views actually communicate the part, where dimensions go so they do not collide, section and detail views placed where a machinist needs them, configurations, sheet metal flat patterns, assembly BOMs and balloons. Drew's value is years of those heuristics tuned against real shop drawings, not API access, which you already have for free. Build the macro to kill your own repetitive case, then decide if the remaining 40 percent is worth a license.",
+  "coreLoopDIY": "A Windows tool that attaches to a running SOLIDWORKS session, creates a drawing from the active part or assembly using your sheet format, places standard views to scale, imports model dimensions and annotations, and exports PDF plus DXF.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Windows with a licensed SOLIDWORKS install (the API is in-process, there is no cloud substitute)",
+    "A .NET Framework 4.8 toolchain, csc is enough",
+    "Your own sheet format or drawing template files",
+    "Patience for COM error codes that mean nothing"
+  ],
+  "whatYouLose": [
+    "Smart view selection: your script places front, top, right whether or not that makes sense for the part",
+    "Dimension placement that does not overlap, which is most of the actual engineering of a drawing",
+    "Section, detail, broken-out and auxiliary views driven by geometry recognition",
+    "Assembly handling: BOM tables, balloons, exploded views, configuration-aware sheets",
+    "Someone else maintaining compatibility when the next SOLIDWORKS version changes API behaviour"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the API, it is a long tail of drawing conventions and crash cases that only show up on real parts.",
+  "whyPeopleStillPay": "Because a drawing that needs manual fixing afterwards saves nothing, and the gap between \"placed three views\" and \"a drawing a machinist can work from\" is where all the effort lives. Engineers billing real hours will not spend a weekend debugging COM interop and then another weekend per edge case, and when SOLIDWORKS updates and the add-in breaks they want someone to email. A homegrown macro is great if your parts are repetitive and you own the shop; it is a liability if six people depend on it and you wrote it alone.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Drawing automation is one of the few niches where the DIY version is genuinely useful on day one because your parts are probably all the same shape.",
+  "prompt": "Build a Windows command line tool that automates SOLIDWORKS drawing creation via the SOLIDWORKS API.\n\nStack, no alternatives:\n- C# targeting .NET Framework 4.8, single console project, buildable with csc.exe from the Framework directory. Include a build.bat.\n- Late-bound COM only. Get the running app with Type.GetTypeFromProgID(\"SldWorks.Application\") and Marshal.GetActiveObject, fall back to Activator.CreateInstance if nothing is running. Use dynamic for all SOLIDWORKS calls so no interop assemblies or SDK are required.\n- Config in drew.local.json next to the exe: sheet format path, drawing template path, default scale, output folder, units. No secrets needed, so no .env.\n\nWhat it must do:\n1. Attach to SOLIDWORKS, read the active document. If it is a part or assembly, continue; otherwise exit with a clear message.\n2. Create a new drawing from the configured template, add one sheet using the configured sheet format and paper size.\n3. Place a standard three view layout (front, top, right) plus an isometric, using Create3rdAngleViews2 or CreateDrawViewFromModelView3, then set a scale that fits the sheet by querying view outlines and shrinking to the next sane step (1:1, 1:2, 1:5, 1:10, 2:1, 5:1).\n4. Import model dimensions into the orthographic views with InsertModelAnnotations3, then run a naive declutter pass: nudge overlapping dimension text apart along its leader direction, log anything it could not fix.\n5. For assemblies only: insert a BOM table anchored top right. No ballooning.\n6. Save the drawing next to the model and export PDF and DXF into the output folder, named after the model plus revision if a custom property named Revision exists.\n7. Write a run log to stdout and to a .log file: every view placed, scale chosen, dimensions imported, collisions unresolved.\n\nExplicitly out of scope, do not attempt:\n- Section, detail, auxiliary or broken-out views.\n- Sheet metal flat patterns, weldment cut lists, multi-configuration sheets.\n- Any GUI, add-in registration, ribbon tab or installer. Console only.\n- Telemetry, accounts, network calls of any kind.\n\nRobustness rules:\n- Every COM call wrapped so a failure logs the step name and continues where it is safe to continue.\n- A --dry-run flag that prints the planned actions without touching the document.\n- A README with exact setup steps, the known SOLIDWORKS version it was tested against, and a short honest list of what it will get wrong.",
+  "promptCurated": false
+}
