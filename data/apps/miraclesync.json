@@ -1,0 +1,51 @@
+{
+  "slug": "miraclesync",
+  "name": "MiracleSync",
+  "domain": "miraclesync.de",
+  "category": "automation",
+  "subcategory": "data sync",
+  "tagline": "A sync utility for keeping data mirrored between two places without manual exporting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.miraclesync.de/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Sync tools look trivial and then eat your weekend, because the hard part is not copying records, it is deciding what happens when both sides changed. An agent will happily hand you a one-way mirror in an afternoon, and that covers a surprising number of real use cases. Two-way sync with deletion handling, stable IDs, rate limits and resumable state is a different animal, and every connector you add is its own pile of API quirks. If you only care about two specific endpoints you control, build it. If you need a fleet of connectors that keep working after vendors change their APIs, you are buying maintenance, not code.",
+  "coreLoopDIY": "A local Python daemon that pulls records from two configured endpoints, matches them on a stable key, writes changes both directions, and keeps a SQLite state file so it can tell edits from deletions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine or VPS that stays on",
+    "API credentials or file paths for both sides you want to sync",
+    "cron or systemd timer",
+    "Willingness to debug the first few conflict cases by hand"
+  ],
+  "whatYouLose": [
+    "Prebuilt connectors that already know each vendor's pagination, auth refresh and rate limits",
+    "Someone else fixing your sync the week an upstream API changes",
+    "A UI for inspecting, replaying and reverting failed syncs",
+    "Battle-tested conflict resolution instead of your first guess at it",
+    "Any support channel when a sync silently stops and you only notice a month later"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The value is not the sync engine, it is the long tail of connectors and the years of edge cases baked into them.",
+  "whyPeopleStillPay": "Because sync fails quietly. A DIY mirror works beautifully for three weeks, then a token expires or a vendor changes a field name, and you discover the damage later when the two sides have drifted. Paid sync tools are mostly an insurance product: you pay so that someone else owns the connector maintenance and the alerting when a run dies. If the data actually matters, that insurance is cheap relative to reconciling a few thousand records by hand.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One-way mirrors are a weekend; two-way sync is a career.",
+  "prompt": "Build a local, self-hosted two-way sync daemon called minisync. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, standard library plus httpx, pydantic, and apscheduler\n- SQLite for sync state, single file at ./state/minisync.db\n- Config in ./config.yaml, secrets in .env loaded via python-dotenv\n- CLI entrypoint via argparse: minisync run, minisync once, minisync status, minisync reset\n\nCore model:\n- A connector interface with four methods: list_records, get_record, upsert_record, delete_record\n- Each record normalised to a dict with: external_id, updated_at (UTC), payload (dict), deleted (bool)\n- Ship exactly two connectors: JsonFileConnector (a newline-delimited JSON file on disk) and RestConnector (generic REST: base_url, list path, item path, bearer token from .env, cursor or page param configurable in YAML)\n- Field mapping between the two sides is declared in config.yaml, simple dotted-path to dotted-path\n\nSync logic, be explicit:\n- Keep a link table: left_id, right_id, left_hash, right_hash, last_synced_at\n- On each pass, fetch changes since the last watermark per side, compute payload hashes, and classify each record as unchanged, changed-left, changed-right, new, or deleted\n- Conflict policy configurable: newest-wins (default), left-wins, right-wins, or manual (park the pair in a conflicts table and skip it)\n- Deletions are propagated only if propagate_deletes is true in config, otherwise logged and skipped\n- Everything is idempotent: re-running a pass must not duplicate records\n- Respect HTTP 429 and Retry-After with exponential backoff, cap retries, and never lose a partial pass: commit link rows as you go\n\nObservability:\n- Structured JSON logs to stdout plus a rotating file in ./logs\n- minisync status prints last run time, records synced, pending conflicts, and last error\n- Exit non-zero on a failed pass so cron or systemd can alert\n\nOut of scope, do not build: a web UI, OAuth flows, multi-tenant support, a plugin marketplace, more than the two connectors, real-time webhooks.\n\nDeliverables: working code, config.yaml.example, .env.example, a README with a five-minute setup, and pytest tests covering the conflict matrix with a fake connector pair.",
+  "promptCurated": false
+}
