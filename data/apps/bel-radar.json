@@ -1,0 +1,51 @@
+{
+  "slug": "bel-radar",
+  "name": "Bel Radar",
+  "domain": "bel.vc",
+  "category": "rss-research",
+  "subcategory": "deal sourcing signals",
+  "tagline": "A monitoring feed that surfaces early startup and funding signals for investors instead of making you refresh twenty sources a day.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://bel.vc/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics of a signal radar are boring: pull sources on a schedule, dedupe by company, score against your thesis, show a ranked feed. An agent can build that in a weekend and it will genuinely work against whatever sources you can reach for free, which is mostly RSS, press feeds, job boards, GitHub, and public registries. The part you cannot one-shot is coverage: the commercial version of this category lives or dies on licensed and scraped datasets, entity resolution across messy company names, and the judgement baked into its scoring. So you end up with a real tool that sees a thinner slice of the world. If your thesis is narrow and your sources are public, thin is often enough.",
+  "coreLoopDIY": "Polls a list of public feeds and APIs on a cron, resolves mentions to companies, scores each item against your thesis keywords, and serves a ranked local feed plus a daily digest.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine or small VPS that can run a scheduled job",
+    "API keys for whatever sources you want beyond plain RSS, in .env",
+    "A written thesis: keywords, sectors, stages, geographies",
+    "SMTP credentials if you want the daily digest emailed"
+  ],
+  "whatYouLose": [
+    "Licensed datasets you cannot legally or practically scrape yourself",
+    "Entity resolution that actually merges 'Acme Inc', 'Acme Labs' and 'acme.io' into one company",
+    "Coverage of private or pre-announcement signals that never hit a public feed",
+    "Anyone maintaining scrapers when a source changes its HTML next Tuesday",
+    "Whatever curation and scoring judgement the paid product has tuned over time"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "In this category the product is the corpus and the entity graph. The UI on top is a weekend.",
+  "whyPeopleStillPay": "Because a deal radar is only useful if it is comprehensive enough to trust, and comprehensiveness is bought, not coded. A self-built version gives you a feed you fully control and can aim precisely at one niche, which is real value, but it will quietly miss things and you will never know which. Investors pay to not have that doubt, and to not spend Sunday fixing a broken scraper.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal radar over public feeds is very buildable and genuinely useful if your thesis is narrow. Just be clear you are building a lens, not a database.",
+  "prompt": "Build a local startup signal radar as a single Node.js 20 + TypeScript project. No accounts, no cloud services, no telemetry.\n\nStack, non negotiable:\n- TypeScript, Node 20, pnpm\n- SQLite via better-sqlite3 for storage\n- Hono for the HTTP server, server-rendered HTML with plain templates and one small CSS file\n- node-cron for scheduling\n- rss-parser for feeds, undici for HTTP, cheerio only where a source needs HTML parsing\n\nWhat it does:\n1. Reads sources.yaml at the repo root. Each source has: id, type (rss | json | html), url, and optional selector fields. Ship it seeded with a handful of public startup and funding RSS feeds plus a GitHub trending JSON endpoint as examples.\n2. Every 30 minutes, fetches each source, normalizes items into { sourceId, externalId, title, url, publishedAt, rawText }, and inserts into an items table with a unique index on (sourceId, externalId) so re-fetching is idempotent.\n3. Extracts candidate company names from title and rawText with a simple heuristic: capitalized token runs, known suffix stripping (Inc, Ltd, Labs, AI, .io, .com), plus a manual aliases.yaml mapping. Store companies and a company_items join table. Do not pretend this is accurate; log ambiguous matches to a review queue.\n4. Scores each item against thesis.yaml: weighted include keywords, exclude keywords, and a recency decay. Store the score and the matched terms.\n5. Serves a local web UI on port 8787: ranked feed with score, matched terms, source and timestamp; filters by source, sector tag and minimum score; a company page listing every item tied to that company; a review queue page where you can accept or reject a name match and have it written back to aliases.yaml.\n6. Generates a daily digest of the top 20 items since the last digest. Write it to ./digests as markdown. If SMTP_URL and DIGEST_TO are present in .env, also email it via nodemailer. If they are absent, skip email silently and say so in the log.\n\nExplicitly out of scope: any paid data provider, any scraping of sites that forbid it in robots.txt (check and skip, log the skip), user auth, multi-tenancy, mobile app, ML ranking.\n\nAlso produce: a .env.example with SMTP_URL and DIGEST_TO only, a make seed command that does one immediate fetch cycle, and a README with a 5 line quickstart and an honest 'what this misses' section.\n\nKeep the whole thing under roughly 1500 lines. Favour readable code over abstraction.",
+  "promptCurated": false
+}
