@@ -1,0 +1,52 @@
+{
+  "slug": "scraping-bee",
+  "name": "ScrapingBee",
+  "domain": "scrapingbee.com",
+  "category": "dev-tools",
+  "subcategory": "scraping API / proxy rotation",
+  "tagline": "An API that fetches web pages for you, handling proxies, headless browsers, and CAPTCHAs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.scrapingbee.com/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely write the scraper. A Playwright script plus a fetch wrapper gets you HTML, JS rendering, and even a crude retry loop in an afternoon. What you cannot write is a pool of thousands of residential and datacenter IPs across dozens of countries, rotated per request, plus the ongoing cat-and-mouse work of looking like a real browser to Cloudflare and friends. The moment your target site cares about being scraped, your single home IP is the whole problem, and buying proxies separately plus maintaining the fingerprinting layer is most of what you were paying for anyway.",
+  "coreLoopDIY": "A local Playwright-based fetch service that renders a URL, waits for the page, and returns HTML or extracted fields via a small HTTP endpoint.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node and Playwright with Chromium installed",
+    "A machine or VPS to run it on",
+    "Optional: your own paid proxy list in .env if any target blocks you",
+    "Patience for sites that detect headless browsers"
+  ],
+  "whatYouLose": [
+    "Rotating residential and datacenter proxy pools across many countries",
+    "Ongoing anti-bot evasion maintenance as detection vendors update",
+    "CAPTCHA handling",
+    "Concurrency without your own IP getting rate limited or banned",
+    "Someone else's uptime and scale when you need 100k pages instead of 100"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The real asset is the IP inventory and the constantly updated fingerprint tricks, not the API surface, which is about four query parameters.",
+  "whyPeopleStillPay": "Because scraping at any real volume is an infrastructure problem wearing a code problem's clothes. The script is trivial; the blocked requests, banned IPs, CAPTCHA walls, and silent soft-blocks that return empty divs are where the time goes. Paying per thousand requests means someone else absorbs the arms race and you get to pretend the web is a well-behaved API. For a few hundred pages off a cooperative site, skip it. For anything commercial or ongoing, the bill is cheaper than the maintenance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The fetcher is one sitting; the IP pool is not. The moat is owned proxy infrastructure plus a full time job keeping headless Chromium from looking headless.",
+  "prompt": "Build a local web page fetching service called localbee. Stack: Node 20, TypeScript, Fastify, Playwright with Chromium. No Docker, no cloud, no accounts, no telemetry.\n\nWhat it does:\n1. Exposes POST /fetch on localhost. Body: { url, render (bool, default true), waitFor (CSS selector, optional), timeoutMs (default 30000), extract (optional map of name to CSS selector), screenshot (bool, default false) }.\n2. If render is false, do a plain HTTP GET with a realistic desktop Chrome User-Agent and Accept-Language header, and return the raw HTML.\n3. If render is true, launch a shared persistent Chromium browser, open a new context per request, navigate, wait for networkidle or the waitFor selector if given, then return the full rendered HTML.\n4. If extract is provided, also return a flat object of selector name to trimmed text content, with null for misses.\n5. If screenshot is true, return a base64 PNG of the full page.\n6. Response always includes status code, final URL after redirects, elapsed ms, and whether a proxy was used.\n\nHardening, keep it honest and simple:\n- Read an optional newline-separated proxy list from PROXY_LIST in .env. If present, pick one at random per request and pass it to the browser context or HTTP agent. If absent, go direct and say so in the response.\n- Retry up to 2 times on timeout, navigation error, or HTTP 403/429, with a different proxy and a 1 to 3 second jitter between attempts.\n- Set a random realistic viewport, timezone, and locale per context. Do not pretend this defeats serious bot detection.\n- Respect robots.txt by default: fetch and cache it per host, refuse disallowed paths unless IGNORE_ROBOTS=true in .env.\n- Per-host rate limit, default 1 request per 2 seconds, configurable in .env.\n- On-disk response cache keyed by url plus options hash, TTL from .env, default 1 hour. Stored as files under ./cache.\n\nAlso ship a CLI: npx tsx src/cli.ts URL --render --extract title=h1 that prints JSON to stdout.\n\nOut of scope, do not build: CAPTCHA solving, a proxy pool of your own, a web dashboard, user accounts, billing, a job queue, or JS-based anti-detect patching beyond headers and viewport. Write a README stating plainly that without paid proxies in PROXY_LIST this will get blocked by any site that cares.",
+  "promptCurated": false
+}
