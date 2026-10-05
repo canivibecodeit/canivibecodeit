@@ -1,0 +1,52 @@
+{
+  "slug": "companycam",
+  "name": "CompanyCam",
+  "domain": "companycam.com",
+  "category": "project-management",
+  "subcategory": "field photo documentation",
+  "tagline": "Photo documentation for contractors: every jobsite picture auto tagged with project, time, and location, then shareable with crews and clients.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://companycam.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop is not hard: a camera page that stamps each photo with GPS, timestamp, and a project ID, then a gallery grouped by project and a PDF export. An agent can get you a working PWA in a sitting, and if you are a solo operator documenting your own jobs, that genuinely covers it. What breaks is everything that makes it survive a real crew: offline capture queues that upload hours later from a basement with no signal, background uploads that do not die when the phone locks, and a subcontractor who will not install your side project. The photos are also a legal and insurance artifact, which means storage you do not babysit and a chain of custody you did not hand-roll. Build it for yourself, not for a fifteen person field team.",
+  "coreLoopDIY": "A mobile web app that captures jobsite photos with timestamp and GPS, files them under a project, lets you annotate and caption, and exports a dated PDF photo report.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "HTTPS hosting (camera and geolocation APIs require a secure origin)",
+    "Somewhere to put files: local disk plus a backup target, or S3-compatible storage",
+    "A phone you are willing to use as the primary client",
+    "Optional: a static map tile key if you want location thumbnails"
+  ],
+  "whatYouLose": [
+    "Native apps with reliable offline capture and background upload retry, the single hardest part of this category",
+    "Crew adoption: subs and techs already have CompanyCam installed and know the flow",
+    "Integrations with the estimating, CRM, and job management tools contractors actually run on",
+    "Unlimited durable photo storage you never think about, which matters when photos are your insurance defense",
+    "Checklists, before/after pairing, timelines, and the polish that makes a client-facing report look professional"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is mobile reliability in bad-signal environments plus the fact that everyone on the jobsite already has it. Neither is technically glamorous and both are miserable to replicate.",
+  "whyPeopleStillPay": "Because the product is not the photo gallery, it is the certainty that a guy on a roof with one bar of service can take forty pictures, drive away, and have all forty land in the right project without thinking about it. Contractors pay per seat because the alternative is a group text thread and a dispute they cannot win. A personal build is fine for your own jobs and your own phone; the moment a second person has to use it, you are now running IT support for people whose job is drywall.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend build for a solo trades operator, bad idea for a crew.",
+  "prompt": "Build a self-hosted jobsite photo documentation PWA called \"SiteShots\". Single user, no accounts, no telemetry.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3 for metadata\n- Photos written to ./data/photos on local disk, served through an API route\n- pdf-lib for report export\n- Install as a PWA: manifest, service worker, offline shell\n\nData model:\n- projects: id, name, address, client_name, created_at, archived\n- photos: id, project_id, filename, caption, taken_at, lat, lng, accuracy_m, tags (comma string), uploaded_at\n\nFeatures that must work:\n1. Capture screen: input type=file with capture=environment, multi select. On submit, read EXIF with exifr for taken_at when present, otherwise use now. Request geolocation once and attach lat/lng/accuracy to the batch.\n2. Offline queue: if the network request fails, store the File blobs in IndexedDB (use idb) with their metadata and retry on reconnect and on service worker sync. Show a visible \"3 pending\" badge. This is the most important feature, do not skip it.\n3. Resize on the client to max 2048px long edge, JPEG quality 0.85, before upload. Keep the original if under 1MB.\n4. Project list, then a per-project grid sorted newest first. Tap a photo for full view, editable caption, tag chips, and a delete.\n5. PDF report: pick a project and a date range, get a PDF with a cover page, then 2 photos per page with caption, timestamp, and coordinates printed under each.\n6. Backup: a /api/export route that streams a zip of ./data plus a photos.csv of all metadata.\n\nExplicitly out of scope: multi user, sharing links, annotation drawing, checklists, integrations, cloud storage.\n\nPut PORT and optional BASIC_AUTH_USER / BASIC_AUTH_PASS in .env.example. If basic auth vars are set, gate all routes with middleware. Include a README with local HTTPS setup via mkcert, because the camera and geolocation APIs will not run over plain HTTP on a phone. Seed one demo project. No analytics, no external calls at runtime.",
+  "promptCurated": false
+}
