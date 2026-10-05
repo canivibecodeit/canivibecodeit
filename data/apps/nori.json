@@ -1,0 +1,52 @@
+{
+  "slug": "nori",
+  "name": "Nori",
+  "domain": "heynori.com",
+  "category": "analytics",
+  "subcategory": "work and engineering productivity analytics",
+  "tagline": "Connects the tools a team already works in and turns the activity into productivity metrics and dashboards.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://heynori.com/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part here is not the charts, it is the pipes: pulling consistent history out of GitHub, Jira, Slack, calendars and whatever else a team lives in, then normalizing identities across all of them. For one person watching their own work, an agent can wire two or three APIs into SQLite and draw a decent dashboard in a weekend. For a team, you hit OAuth apps, admin consent, rate limits, backfill, and the awkward politics of measuring other humans. The metric definitions are also opinionated by design, and yours will be worse at first because you have nothing to compare against. So: a personal version is real, a team deployment is a product, not a project.",
+  "coreLoopDIY": "Pulls your own activity from a couple of work APIs on a schedule, stores it locally, and renders trend charts plus a weekly summary.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Personal access tokens for the tools you want to track",
+    "Node 20 and a machine or small VPS that can run a scheduled job",
+    "Patience with each API's pagination and rate limits",
+    "Optional LLM API key if you want the narrative weekly summary"
+  ],
+  "whatYouLose": [
+    "Multi-tool identity resolution, so the same person across GitHub, Jira and Slack stays one person",
+    "Cross-team benchmarks and anything resembling an industry baseline",
+    "Admin-level OAuth installs instead of hand-pasted personal tokens",
+    "Backfilled history and the data hygiene that makes trends trustworthy",
+    "Someone else's opinion on which metrics are not harmful nonsense"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "switching-costs"
+  ],
+  "moatNotes": "Every connector is cheap to start and expensive to keep alive. Twenty of them maintained across API changes is the product.",
+  "whyPeopleStillPay": "Teams buy this to stop arguing from anecdote, and the thing that makes it credible is breadth: it already speaks to the tools everyone uses, it stitches identities together, and it has backfilled months of history before anyone asks a question. A self-built version answers questions about you only, with whatever tokens you remembered to rotate. Also worth noting that nobody wants to be the engineer who built the dashboard their manager uses to evaluate them.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal activity dashboard is a weekend; a team measurement system is a vendor relationship with a support queue.",
+  "prompt": "Build a local personal work-activity dashboard. One folder, no cloud services, no accounts, no telemetry.\n\nStack, no alternatives: TypeScript, Node 20, SQLite via better-sqlite3, Fastify for the server, plain server-rendered HTML with Chart.js from a CDN. No React, no ORM, no Docker.\n\nData sources, read-only, tokens from .env:\n- GitHub: my commits, PRs opened, PRs reviewed, review comments. Use the REST search and pulls endpoints.\n- Jira Cloud: issues assigned to me, status transitions, created and resolved timestamps. Basic auth with email plus API token.\n- Google Calendar is OUT of scope for v1. Instead accept an optional ICS feed URL and parse events from it.\n\nIngestion:\n- One command, npm run sync, that pulls the last 180 days on first run and incrementally after that.\n- Store raw JSON payloads in a raw_events table plus a normalized events table with columns: source, kind, external_id, actor, occurred_at, repo_or_project, title, metadata_json.\n- Idempotent on (source, external_id). Handle pagination and respect rate limit headers with simple backoff.\n- Log a per-source summary line: fetched, inserted, skipped.\n\nDashboard at localhost:8787:\n- Weekly trend charts: commits, PRs opened, PRs reviewed, issues resolved, meeting hours.\n- A day-of-week and hour-of-day heatmap of activity.\n- A \"deep work\" estimate: weekday hours with no calendar event, shown as a weekly total.\n- A raw event table with source and date filters.\n- One route, /weekly, that renders a plain text summary of the last 7 days vs the prior 7 days. Pure arithmetic, no LLM.\n\nExplicitly out of scope: multiple users, auth, OAuth apps, identity resolution across sources, benchmarks, Slack, any write operations, any hosted deployment.\n\nDeliver: README with setup steps, .env.example listing every token, a seed script that inserts fake events so the dashboard renders with no credentials, and one test for the idempotent upsert.",
+  "promptCurated": false
+}
