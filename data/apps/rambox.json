@@ -1,0 +1,52 @@
+{
+  "slug": "rambox",
+  "name": "Rambox",
+  "domain": "rambox.app",
+  "category": "productivity-utilities",
+  "subcategory": "messaging aggregator / workspace browser",
+  "tagline": "A desktop shell that crams Slack, WhatsApp, Telegram, Gmail and a hundred other web apps into one tabbed window with separate sessions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://rambox.app/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Rambox is, at its core, Electron with a sidebar and one isolated session per service, and an agent can scaffold that in an afternoon. The hard part is not the shell, it is the hundred small accommodations: unread badge scraping per service, user agent spoofing so WhatsApp Web and others do not refuse to load, notification passthrough, tray behavior, spellcheck, sleeping idle views so you do not eat 6GB of RAM. Google actively blocks sign-in from embedded browser views, so anything Google-flavored is a coin flip on your own build. You will get a working five-service version the same day and then spend months in whack-a-mole with the sixth. Worth building if your set of apps is small and stable, not worth it if you want the full catalog.",
+  "coreLoopDIY": "An Electron app with a service sidebar where each entry is a persistent, isolated web view with its own cookies, plus tray, notifications and unread badges.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and npm locally",
+    "Electron plus electron-builder if you want a packaged app",
+    "Willingness to hand-write a user agent and unread-count selector per service",
+    "A desktop OS you actually use; this is not a web app"
+  ],
+  "whatYouLose": [
+    "Hundreds of pre-tuned service definitions with icons, user agents and unread selectors already debugged",
+    "Config and workspace sync across machines",
+    "Reliable sign-in for providers that block embedded browser views",
+    "Auto-updates, code signing and installers that do not trigger OS warnings",
+    "Memory and sleep management that has been tuned by people who got complaints about it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is a maintained list of service quirks, not any clever code. It erodes slowly because web apps keep changing their DOM and their login rules.",
+  "whyPeopleStillPay": "Because the value is maintenance, not architecture. Everyone can write the tabbed Electron wrapper; almost nobody wants to keep fixing it every time Slack changes a title string or a provider decides embedded views are a security risk. A few dollars a month to let someone else own that treadmill is a defensible trade, especially if your workday depends on a dozen services rather than three.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for your five apps and you will probably never miss the other ninety five.",
+  "prompt": "Build a desktop app called \"Shelf\": a single window that hosts multiple web apps side by side in a sidebar, each with its own isolated login session.\n\nStack, no alternatives:\n- Electron (latest stable), plain TypeScript, Vite for the renderer, electron-builder for packaging.\n- No React, no UI framework. Plain HTML and CSS for the sidebar chrome.\n- Local only. No accounts, no telemetry, no cloud sync, no analytics.\n\nCore behavior:\n- Services are defined in a user-editable JSON file at app.getPath('userData')/services.json. Each entry: id, name, url, iconUrl or emoji, userAgent (optional), unreadMode ('title-count' | 'none'), enabled.\n- Ship a seed file with five entries: Slack, Telegram Web, WhatsApp Web, Discord, Gmail. Make it obvious in the README that users add their own.\n- Each service renders in its own WebContentsView with partition 'persist:service-ID' so cookies and logins never leak between services.\n- Left sidebar, 64px wide: one button per enabled service showing the icon and an unread badge. Clicking switches the active view. Cmd/Ctrl+1..9 switches by index.\n- Unread counts: when unreadMode is 'title-count', parse the page title for a leading number in parentheses or brackets and show it as a badge. Aggregate total into the macOS dock badge / Windows overlay icon.\n- Desktop notifications from the embedded pages pass through to the OS. Clicking a notification focuses the window and switches to that service.\n- Per-service user agent override applied via webContents.setUserAgent before first load, because some services refuse embedded Chromium.\n- Sleep management: views not focused for 30 minutes get their WebContentsView destroyed and lazily recreated on next click. Keep the session partition so logins survive.\n- Tray icon with show/hide and quit. Closing the window hides to tray; quit is explicit.\n- Open external links (anything not matching the service origin) in the system browser.\n\nExplicitly out of scope: mobile, config sync, workspaces/profiles, a service catalog UI, auto-update, code signing.\n\nDeliverables: working `npm run dev`, `npm run build`, a README that documents the services.json schema and states plainly that some providers block sign-in from embedded browser views and there is no workaround.\nSecrets: none needed. If you add any later, read them from .env and gitignore it.",
+  "promptCurated": false
+}
