@@ -1,0 +1,52 @@
+{
+  "slug": "judge0",
+  "name": "Judge0",
+  "domain": "judge0.com",
+  "category": "dev-tools",
+  "subcategory": "sandboxed code execution API",
+  "tagline": "An API that compiles and runs submitted source code in sandboxes and returns stdout, stderr, time and memory usage.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://judge0.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Judge0 is open source with paid hosted and commercial self-host licensing, tiers not confirmed here.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop is genuinely small: accept source code, run it in a container with no network, a CPU timeout and a memory cap, return stdout, stderr, exit code and timings. An agent can give you that for four or five languages in a single sitting, and for a personal judge, a coding-practice toy or an internal grader that is honestly enough. What does not fit in one shot is the part Judge0 actually sells: dozens of pinned language and compiler versions, isolate-grade sandboxing that assumes the submitted code is hostile, and accurate wall versus CPU time accounting under load. Docker flags are not a security boundary against someone who wants out, so running your own version on a box you care about is a real decision, not a detail. Also worth saying out loud: Judge0 is open source, so self-hosting the real thing is a competing option to building a worse clone of it.",
+  "coreLoopDIY": "Takes a POST of source code plus stdin, runs it in a throwaway Docker container with network disabled and CPU, memory and process limits, and returns stdout, stderr, exit code, wall time and peak memory.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Docker on the host",
+    "Node 20 and pnpm or npm",
+    "a disposable machine or VM you are willing to let untrusted code run on",
+    "a few hundred MB of disk for language base images"
+  ],
+  "whatYouLose": [
+    "The language matrix: dozens of languages with pinned compiler and runtime versions, maintained for you",
+    "Real sandbox hardening via isolate, cgroups and seccomp instead of hopeful Docker flags",
+    "Accurate, reproducible CPU time and memory measurement that holds up when graded results matter",
+    "Horizontal workers, queueing and backpressure when a classroom submits at once",
+    "API compatibility with the many tools and tutorials already written against Judge0's endpoints"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the API shape, it is the operational nerve to run strangers' code safely and measure it precisely, plus years of keeping the language images current.",
+  "whyPeopleStillPay": "Because nobody wants to own a code execution sandbox as a side quest. The toy version works until the first person pipes in a fork bomb, a 2GB allocation or a crypto miner, and then you are reading cgroup docs instead of shipping the thing the runner was for. Paying for the hosted tier turns an ongoing security and maintenance liability into a line item, and the pinned language versions mean student submissions behave the same next semester.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the honest alternative to building a clone is self-hosting the original, since Judge0 is open source.",
+  "prompt": "Build a self-hosted sandboxed code execution API. Single project, no accounts, no cloud services, no telemetry.\n\nStack, non-negotiable: TypeScript, Node 20, Fastify, SQLite via better-sqlite3, Docker CLI invoked as a child process. No Kubernetes, no Redis, no ORM.\n\nAPI:\n- POST /submissions: body is { language_id, source_code, stdin, cpu_time_limit, memory_limit }. Creates a row, returns a token immediately.\n- GET /submissions/:token: returns status (queued, running, finished), stdout, stderr, compile_output, exit_code, wall_time_ms, cpu_time_ms, peak_memory_kb.\n- POST /submissions?wait=true: runs synchronously and returns the finished result.\n- GET /languages: list of supported languages with ids.\n\nExecution:\n- Maintain an in-process FIFO queue with a configurable concurrency (default 2). No external queue.\n- For each job, write source and stdin into a temp dir, then run one container per job: --network none, --read-only with a small writable tmpfs at /tmp and the work dir, --memory, --memory-swap equal to --memory, --pids-limit 64, --cpus, --cap-drop ALL, --security-opt no-new-privileges, non-root user, and a hard wall-clock kill in the parent process.\n- Support exactly five languages: Python 3, Node 20, C (gcc), C++ (g++), Go. One Dockerfile per language under images/, plus a make target to build them.\n- Compiled languages run in two steps and report compile errors separately in compile_output.\n- Truncate stdout and stderr at 64KB.\n\nConfig in .env: PORT, MAX_CONCURRENCY, DEFAULT_CPU_LIMIT_SECONDS, DEFAULT_MEMORY_MB, DOCKER_BIN. Ship .env.example.\n\nOut of scope: API keys, rate limiting beyond the queue, multi-host workers, callbacks and webhooks, a web UI, and any claim of safety against a determined attacker.\n\nDeliver: README stating plainly that Docker isolation is not a security boundary for hostile code and that this should run on a disposable VM, a docker-compose.yml for the API, and an integration test that runs one program per language plus a timeout case, a memory-limit case and an infinite-loop case.",
+  "promptCurated": false
+}
