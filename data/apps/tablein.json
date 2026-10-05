@@ -1,0 +1,51 @@
+{
+  "slug": "tablein",
+  "name": "TableIn",
+  "domain": "tablein.com",
+  "category": "scheduling",
+  "subcategory": "restaurant reservations",
+  "tagline": "Reservation and table management software for restaurants: online booking widget, floor plan, guest history, reminders.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.tablein.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The data model here is not scary: tables, shifts, time slots, bookings, guests, a drag-and-drop floor plan. An agent can produce a working single-restaurant booking system with a public widget and a host view in a weekend, and for a 30-seat place that takes twenty covers a night it will genuinely work. The gaps are all operational rather than conceptual: SMS and email reminders that actually arrive, a widget that never goes down during the dinner rush, Google Reserve and POS hookups, and a tablet UI that a stressed host can use one-handed. Nobody is shopping on TableIn the way they shop on OpenTable, so there is no diner network to replace, which is why this lands at kinda instead of no. You are replacing a tool, not a marketplace, and the cost of replacing it is that you are now the on-call engineer for the host stand.",
+  "coreLoopDIY": "A self-hosted booking system for one restaurant: a public reservation widget with real availability, a host-side floor plan and timeline for the current service, and guest records with notes and no-show history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS, because the booking widget going down means lost covers",
+    "SMTP credentials for confirmation emails, plus a paid SMS provider if you want reminders that people read",
+    "Someone willing to be paged when the host stand breaks at 7pm on a Friday"
+  ],
+  "whatYouLose": [
+    "Reliable SMS and email reminders out of the box, which is most of what actually reduces no-shows",
+    "Integrations: Google Reserve, Facebook and Instagram booking buttons, POS and PMS links",
+    "Battle-tested availability logic for table combining, turn times, overbooking buffers and waitlists",
+    "Support you can phone during service, plus backups and uptime you did not have to think about",
+    "Multi-location reporting and the audit trail that comes with someone else storing guest data under GDPR"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "switching-costs"
+  ],
+  "moatNotes": "The hard part is not the booking table, it is being up and sending messages every single evening while plugging into Google, social booking buttons and the POS.",
+  "whyPeopleStillPay": "Restaurants pay because the reservation system is load-bearing infrastructure during the two hours a day when nobody has time to debug anything. A subscription converts uptime, deliverable SMS, integration maintenance and guest-data liability into a line item that costs less than one lost table per month. A self-hosted clone is cheap right up until the first night it fails, at which point the saved fee stops looking like a saving.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine build for a single small room with a patient owner; the moment there are two locations and a POS, go back to paying.",
+  "prompt": "Build a self-hosted restaurant reservation system for a single restaurant. One codebase, runs locally with one command.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) with Tailwind.\n- SQLite via Drizzle ORM, file at ./data/app.db, migrations committed.\n- Nodemailer for confirmation emails, SMTP creds from .env. No SMS, no payment provider, no third-party booking APIs.\n- Single shared staff password from .env for the host views (HTTP-only cookie session). No user accounts, no OAuth, no telemetry.\n\nData model: restaurant settings (name, timezone, service windows per weekday, default turn time), tables (name, seats, x/y position, joinable-with list), bookings (guest name, phone, email, party size, datetime, duration, table id nullable, status: pending/confirmed/seated/done/no-show/cancelled, notes), guests (deduped on phone, visit count, no-show count, allergy/preference notes), blackout dates.\n\nBuild these surfaces:\n1. Public booking widget at /book: date, party size, then real available time slots computed from service windows, turn times, table capacity and existing bookings. Confirm with name, phone, email, notes. Sends a confirmation email with a cancel link containing a random token.\n2. Host timeline at /host: today by default, a vertical time axis by table showing bookings as blocks, click to seat, mark done, mark no-show, or move to another table. Includes a cover count and a party-size summary for the shift.\n3. Floor plan editor at /host/floor: drag tables onto a grid, set seats, save positions. The host timeline uses the same table list.\n4. Guest lookup at /host/guests: search by name or phone, show visit history, no-show count, notes.\n5. Settings at /host/settings: service windows, turn times, blackout dates, max covers per slot.\n\nExplicitly out of scope: SMS, deposits and card holds, waitlist automation, Google Reserve, POS integration, multi-location, loyalty, marketing campaigns.\n\nRules: seed the DB with one restaurant, twelve tables and a week of plausible bookings so every screen has data on first run. Availability logic lives in one pure module with unit tests for the awkward cases (back-to-back turns, party larger than any single table, blackout dates, timezone edges). Write a README with setup, .env.example, a backup command that copies the SQLite file, and a blunt note that this has no uptime guarantees.",
+  "promptCurated": false
+}
