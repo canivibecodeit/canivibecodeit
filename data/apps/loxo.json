@@ -1,0 +1,51 @@
+{
+  "slug": "loxo",
+  "name": "Loxo",
+  "domain": "loxo.co",
+  "category": "hr",
+  "subcategory": "recruiting ATS and CRM",
+  "tagline": "Recruiting platform that bundles an ATS, a candidate CRM, and a sourcing database of people and their contact details.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://loxo.co/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Loxo is sold by quote, so there is no reliable public monthly number.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software half of Loxo is unremarkable: pipelines, candidate records, job records, notes, email sequences, a search box. An agent can scaffold that in a weekend and you would not miss much. The part you cannot build is the sourcing layer: a large index of professional profiles with verified emails and phone numbers, plus the enrichment plumbing that keeps it from rotting. Strip that out and you have a personal contact folder, not a recruiting platform. If you are an agency billing on placements, the database is the product and the ATS is the wrapper.",
+  "coreLoopDIY": "A local recruiting CRM where you paste in candidates by hand, move them through a kanban pipeline per job, log notes and outreach, and send templated emails from your own mailbox.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and a local SQLite file",
+    "Your own SMTP credentials or an email API key for outreach",
+    "Candidate data you already have legal access to, since there is no enrichment"
+  ],
+  "whatYouLose": [
+    "The people database: millions of profiles with phone numbers and personal emails you did not have to find yourself",
+    "Contact enrichment and verification, which is the entire reason sourcing tools cost money",
+    "Job board posting, calendar, and inbox integrations that make the pipeline update itself",
+    "Multi-recruiter collaboration, shared ownership rules, and activity reporting a principal can actually read",
+    "Any defensible story for candidate data handling under GDPR and similar rules, which becomes your problem"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Every recruiting SaaS in this tier is really a data vendor with a UI attached. Compare pricing between them and you are comparing contact coverage, not features.",
+  "whyPeopleStillPay": "Agency recruiters pay for leverage per hour, and the leverage comes from typing a title and a city and getting back a hundred people with working mobile numbers. A self-hosted pipeline tracker does not shorten the time to first conversation at all, it just stores the conversations you already managed to start. Add that the buyer is usually a small firm with no engineer, the contract is cheap relative to one placement fee, and the data would need constant refreshing anyway, and building your own stops making sense the moment you need to source rather than just track.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ATS is a weekend; the index of humans and their phone numbers is not. The moat is a bought and maintained contact database plus the job board and inbox integrations that keep it current.",
+  "prompt": "Build a single-user, self-hosted recruiting CRM called \"Pipeline\". This is a tracker, not a sourcing tool: there is no data enrichment and no contact lookup, and that is intentional.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind\n- SQLite via Drizzle ORM, file at ./data/pipeline.db\n- Nodemailer for outbound email, SMTP creds from .env\n- Runs with `npm run dev`, no accounts, no login, no telemetry, no cloud services\n\nData model:\n- jobs: title, client, location, salary range, status (open, on hold, filled, closed), notes\n- candidates: name, current title, current company, location, emails (multiple), phones (multiple), links (LinkedIn, GitHub, portfolio), source note, free-text notes, tags\n- applications: joins a candidate to a job, with stage (sourced, contacted, replied, screening, submitted, interview, offer, placed, rejected) and a stage_changed_at timestamp\n- activities: timestamped log rows attached to a candidate and optionally an application, type (note, email_sent, call, meeting)\n- email_templates: name, subject, body with {{first_name}} and {{job_title}} placeholders\n\nScreens:\n1. Job list, and a job detail page with a kanban board of its applications by stage, drag to move stage, which writes an activity row\n2. Candidate detail: all fields editable inline, full activity timeline, every job they are attached to\n3. Quick add candidate: one textarea where I paste a messy blob of name, title, company, email, phone, and a parser makes a best guess into the form fields for me to correct. Regex and heuristics only, no AI calls\n4. Send email: pick a template, preview with placeholders filled, send via SMTP, log an email_sent activity. Plain text only\n5. Global search across candidate name, company, title, tags, notes using SQLite FTS5\n6. CSV import and CSV export for candidates\n\nExplicitly out of scope: contact enrichment or scraping, job board posting, calendar sync, inbox sync, multi-user permissions, resume parsing, reporting dashboards.\n\nSeed the database with about twelve fake candidates across two fake jobs so the board is not empty. Put SMTP_HOST, SMTP_USER, SMTP_PASS, FROM_EMAIL in .env.example and read them from process.env. Write a README that states plainly that this stores candidate personal data on my machine and that I am the data controller.",
+  "promptCurated": false
+}
