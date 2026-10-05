@@ -1,0 +1,52 @@
+{
+  "slug": "cobrando",
+  "name": "Cobrando",
+  "domain": "cobrando.app",
+  "category": "finance-accounting",
+  "subcategory": "invoicing and payment collection",
+  "tagline": "Invoicing and getting paid, aimed at freelancers and small shops who would rather not build a spreadsheet for it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://cobrando.app/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible part of an invoicing tool is a CRUD app: clients, line items, a PDF, a due date, a nagging email. An agent will give you that in an afternoon and it will work fine for a one-person business with ten clients. The gaps are the boring ones that cost money when they break: card and bank payment rails, matching incoming payments to open invoices, sequential invoice numbering that survives an audit, VAT or sales tax rules, and whatever e-invoicing mandate applies where you bill from. If Cobrando is doing certified electronic invoicing for a specific jurisdiction, the DIY version is not a replacement, it is a nice-looking PDF generator. If it is mostly invoices plus reminders plus a Stripe link, you can absolutely own that.",
+  "coreLoopDIY": "A local app where you store clients and rates, generate numbered invoice PDFs, attach a hosted payment link, and auto-send reminders until the invoice is marked paid.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine that stays on, or a small VPS",
+    "A Stripe (or similar) account if you want real payment links",
+    "SMTP credentials for sending invoices and reminders",
+    "Your own sanity check on local tax and invoicing rules"
+  ],
+  "whatYouLose": [
+    "Certified or government-mandated e-invoicing formats and submission, where those apply",
+    "Automatic reconciliation of bank and card payments against open invoices",
+    "Someone else's liability for a broken numbering sequence or a wrong tax rate",
+    "Mobile access and client portals without extra work",
+    "Multi-currency, dunning tuned by experience, and payment method coverage beyond what you wire up yourself"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "Invoicing software is easy until a tax authority has opinions about the file format. That is where the paid product earns its keep.",
+  "whyPeopleStillPay": "Because invoicing is the one internal tool where a bug costs you cash or an audit. Paying a small monthly fee to have someone else track jurisdiction rules, keep payment integrations alive, and store a durable record of every invoice you ever issued is a rational trade for most freelancers, who would also rather not debug their own dunning emails at 11pm. The DIY build is great for people who bill a handful of clients in one country and are comfortable owning the compliance question themselves.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine weekend build if your tax situation is simple; check your local e-invoicing mandate before you get attached to it.",
+  "prompt": "Build a local-first invoicing app for a single freelancer. No signup, no multi-tenant accounts, no telemetry.\n\nStack, no substitutions: Next.js (App Router, TypeScript), SQLite via better-sqlite3 with Drizzle, Tailwind, and Playwright's Chromium for PDF rendering. Everything runs with `npm run dev` on localhost.\n\nData model:\n- settings: my business name, address, tax id, default currency, default payment terms in days, invoice number prefix and next sequence number, logo path.\n- clients: name, email, billing address, tax id, default hourly or flat rate, notes.\n- invoices: client, issue date, due date, status (draft, sent, paid, overdue, void), currency, notes, external payment link.\n- line_items: invoice, description, quantity, unit price, tax rate percent.\n- events: append-only log of everything that happens to an invoice (created, sent, reminded, paid, voided) with timestamps.\n\nRules that must hold:\n- Invoice numbers are assigned once, at the moment a draft is finalized, strictly sequential, and never reused. Voiding an invoice does not free its number.\n- Finalized invoices are immutable. Corrections happen by voiding and issuing a new one.\n- Totals are computed as integers in minor units (cents). No floats anywhere in money math.\n\nScreens:\n1. Dashboard: outstanding total, overdue total, paid this month, list of open invoices sorted by due date.\n2. Clients: list, create, edit.\n3. Invoice editor: pick client, add line items, live totals with per-line tax, save as draft, then \"Finalize and send\".\n4. Invoice detail: rendered invoice, download PDF, mark paid with a date, void, and the event log.\n\nSending and reminders:\n- Email via SMTP using nodemailer, credentials in .env (SMTP_HOST, SMTP_USER, SMTP_PASS, FROM_EMAIL). Attach the PDF.\n- A reminder job exposed at /api/cron/reminders, protected by a CRON_SECRET from .env, that emails a polite nudge for invoices overdue by 1, 7, and 14 days and logs each send. Include a README line showing the crontab entry.\n- If STRIPE_PAYMENT_LINK_MODE=manual, I paste a payment URL per invoice by hand. That is the default. Do not build a Stripe integration.\n\nExplicitly out of scope: expenses, time tracking, multi-user roles, bank feeds, automatic reconciliation, recurring subscriptions, and any government e-invoicing format. Put a one-paragraph \"Compliance is on you\" section in the README saying the PDF may not satisfy local electronic invoicing mandates.\n\nSeed the database with one client and one paid invoice so the dashboard is not empty. Ship a README with setup, .env.example, and a note on backing up the SQLite file.",
+  "promptCurated": false
+}
