@@ -1,0 +1,52 @@
+{
+  "slug": "reloop",
+  "name": "Reloop",
+  "domain": "reloop.sh",
+  "category": "email",
+  "subcategory": "transactional email API",
+  "tagline": "Open-source, self-hostable email API with SMTP sending, inbound mail, webhooks, and campaigns.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://reloop.sh/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The API layer here is genuinely one-shot territory: an endpoint that accepts JSON, renders a template, queues a job, hands it to an SMTP relay, logs the result, and fires a signed webhook. An agent can do that in a sitting, and for your own side projects it will work fine. What it cannot do is deliverability, which is the part that actually costs money: IP warmup, DMARC alignment, bounce and complaint handling, feedback loops, suppression lists, and not being on Spamhaus by Thursday. Running your own MTA on a fresh VPS is a reliable way to discover that Gmail silently drops mail. Since Reloop is already open source and self-hostable, the honest move is to run theirs instead of rebuilding it, and treat the DIY version as a learning exercise or a thin wrapper you fully control.",
+  "coreLoopDIY": "A self-hosted HTTP API that takes templated transactional email, queues and sends it through an SMTP relay you supply, stores every message with status, and dispatches signed webhooks for delivery, bounce, and complaint events.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An SMTP relay account (SES, Postmark, Mailgun) or your own MTA if you enjoy pain",
+    "A domain with SPF, DKIM, and DMARC records you control",
+    "Postgres and a small always-on box or container",
+    "Somewhere public for the webhook receiver if you want bounce events back"
+  ],
+  "whatYouLose": [
+    "Deliverability as a managed concern: reputation, warm IP pools, and provider relationships are not code",
+    "Inbound mail parsing, MX routing, and attachment handling, which is a whole second product",
+    "Campaign tooling with list management, unsubscribe headers, and CAN-SPAM and GDPR hygiene baked in",
+    "A dashboard with searchable logs, per-message event timelines, and suppression views that you actually enjoy opening",
+    "Someone else getting paged when the queue backs up at 3am"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part of email has never been the send call. It is being a sender that large mailbox providers trust.",
+  "whyPeopleStillPay": "Because email sending is a reputation business wearing an API costume. You pay so that a team keeps IP pools warm, handles feedback loops, processes bounces and complaints, negotiates with mailbox providers, and keeps your password resets out of the spam folder. Self-hosting is cheap right up until your signup emails quietly stop arriving and you have no idea for a week. Paying for the hosted tier of an open-source project also buys you the option to leave, which is the whole point of picking one that self-hosts.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the API for fun, then point it at a relay that someone else babysits.",
+  "prompt": "Build a self-hosted transactional email API service in an empty folder.\n\nStack, no substitutions: TypeScript, Node 22, Hono for HTTP, Postgres via Drizzle ORM, Nodemailer for SMTP delivery, Zod for validation. No frontend framework: serve a single server-rendered HTML log page with plain templates and a little vanilla JS.\n\nIn scope:\n- POST /v1/emails: accepts { from, to[], subject, html?, text?, template?, vars?, tags? }, validates, persists a message row with status 'queued', returns an id immediately.\n- A queue backed by a Postgres table with SELECT ... FOR UPDATE SKIP LOCKED, plus a worker process that claims jobs, sends via Nodemailer, and records status 'sent' or 'failed' with the provider response and message-id.\n- Retries with exponential backoff, max 5 attempts, permanent failure on 5xx-class SMTP rejects.\n- Handlebars-style templates stored in a templates table, rendered with vars. Seed two examples: password reset and receipt.\n- Suppression list table. Any address on it is skipped with status 'suppressed' before sending.\n- POST /v1/inbound/provider-hook: accepts a generic bounce/complaint payload, normalizes it, adds hard bounces and complaints to the suppression list, writes an event row.\n- Outbound webhooks: subscriber endpoints table, dispatch events (delivered, bounced, complained, failed) with an HMAC-SHA256 signature header and its own retry table.\n- API key auth: hashed keys in Postgres, Bearer token, simple per-key rate limit in Postgres.\n- GET / : an HTML page listing recent messages with status, recipient, subject, and a detail view showing the event timeline.\n\nOut of scope, do not build: inbound MX receiving, your own MTA, campaign or list-blast UI, multi-tenant billing, open and click tracking pixels, telemetry of any kind.\n\nRequirements: everything runs from docker-compose (app, worker, postgres). All secrets in .env: DATABASE_URL, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, WEBHOOK_SIGNING_SECRET. Ship a .env.example, drizzle migrations, a seed script that prints one working API key, and a README that includes the exact SPF, DKIM, and DMARC DNS records the operator must add and a blunt warning that deliverability depends on the relay, not on this code.\n\nWrite integration tests against a local SMTP sink (MailHog in compose) covering: queued to sent, retry on transient failure, suppression skip, and webhook signature verification.",
+  "promptCurated": false
+}
