@@ -1,0 +1,52 @@
+{
+  "slug": "vidalytics",
+  "name": "Vidalytics",
+  "domain": "vidalytics.com",
+  "category": "audio-video",
+  "subcategory": "video hosting and conversion analytics",
+  "tagline": "Marketing video hosting with a conversion-focused player, engagement heatmaps, and A/B testing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.vidalytics.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The thing Vidalytics actually sells is a video player wrapped in funnel instrumentation: who watched, how far, where they dropped, and which thumbnail or variant converted. All of that is buildable: ffmpeg makes HLS renditions, hls.js plays them, and a few hundred timeupdate pings into SQLite give you a retention curve and a drop-off heatmap. The gap is everything around the edges: global delivery, bandwidth bills, mobile autoplay quirks, resumable uploads, and the fiddly sound-on autoplay behavior that is the whole point of a conversion player. A/B testing is easy to fake and hard to make statistically honest. If you have a handful of videos on your own landing pages, a weekend build is genuinely fine; if you ship video to real traffic volumes, you are now running a CDN hobby.",
+  "coreLoopDIY": "Transcode uploaded videos to HLS, embed them via a tracked iframe player, and record per-second watch events into a local database that renders retention curves and drop-off heatmaps.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally for transcoding",
+    "Somewhere to serve video files: local disk behind a reverse proxy, or an S3-compatible bucket",
+    "A public URL or tunnel if you want to embed the player on a real landing page",
+    "Bandwidth budget you are willing to pay for"
+  ],
+  "whatYouLose": [
+    "Global CDN delivery, so viewers far from your server get buffering",
+    "Battle-tested autoplay and sound-on behavior across iOS, Android, and every in-app browser",
+    "Built-in integrations and webhooks into email tools, CRMs, and ad platforms for watch-based segmentation",
+    "Honest A/B testing with traffic splitting and significance math instead of two numbers side by side",
+    "Someone else owning uptime for the player script on your highest-value sales page"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The analytics are not the hard part. Playing video reliably to strangers on bad networks and weird browsers is the hard part.",
+  "whyPeopleStillPay": "Video on a sales page is usually sitting directly in front of money, which makes self-hosting it a bad place to learn about autoplay policies and buffering. People pay so the player just works everywhere, so the bandwidth is somebody else's line item, and so watch data lands in their email tool without them writing a webhook. The analytics dashboard is the demo, but the reliability is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project for your own funnel, questionable idea for a funnel that matters.",
+  "prompt": "Build a self-hosted marketing video host with engagement analytics. Empty folder, no accounts, no telemetry, no cloud services required.\n\nStack, non-negotiable: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling, hls.js for playback, ffmpeg invoked as a child process for transcoding. Everything runs locally with `npm run dev`.\n\nIn scope:\n1. Upload page: accept an mp4 or mov file, store the original under ./storage/originals.\n2. On upload, run ffmpeg to produce HLS output in ./storage/hls/[videoId] with three renditions (360p, 720p, 1080p capped at source height) plus a master playlist, and extract a poster frame at 2 seconds. Run this in a background job queue backed by a SQLite table with states: queued, processing, ready, failed. Show status on the video list page.\n3. Serve HLS segments and posters from a route handler with correct content types and byte-range support.\n4. Embeddable player: a route /embed/[videoId] that renders a minimal, chromeless hls.js player with a custom play overlay, big poster, click-to-unmute, and a progress bar. Provide a copyable iframe snippet on the video detail page.\n5. Tracking: the player posts events to /api/track with videoId, an anonymous viewer id in localStorage, a session id, event type (load, play, pause, seek, progress, ended), and current playback second. Batch progress pings every 2 seconds of watch time.\n6. Analytics page per video: unique viewers, play rate, average watch time, completion rate, a per-second retention curve (percent of viewers still watching at second N), and a drop-off list showing the five seconds with the steepest fall. Render charts with plain SVG, no chart library.\n7. Simple variant support: a video can have two posters; the embed picks one by hash of viewer id and the analytics page reports play rate per poster. Label it as directional only, not significance tested.\n\nOut of scope, do not build: user accounts, multi-tenancy, live streaming, DRM, CDN config, email or CRM integrations, comments, captions auto-generation, payment.\n\nConstraints: no third-party video API; all config in .env (PORT, STORAGE_DIR, PUBLIC_BASE_URL); .env.example committed, .env gitignored; storage and the SQLite file gitignored. Write a README with ffmpeg install notes, a one-command start, and a blunt paragraph on why this will buffer for distant viewers and what putting a CDN in front of /api/hls would involve.",
+  "promptCurated": false
+}
