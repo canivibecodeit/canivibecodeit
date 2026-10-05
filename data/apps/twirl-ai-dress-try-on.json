@@ -1,0 +1,51 @@
+{
+  "slug": "twirl-ai-dress-try-on",
+  "name": "Twirl · AI Dress Try-On",
+  "domain": "twirldress.com",
+  "category": "ai-image",
+  "subcategory": "virtual try-on",
+  "tagline": "Upload a photo of yourself and a dress, get an image of you apparently wearing it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://twirldress.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Garment transfer is one of the few image tasks with genuinely good open weights: IDM-VTON, CatVTON and OOTDiffusion all do the core job, and an agent can wrap one in a local app in a weekend. What you cannot one-shot is the boring plumbing around the model: person segmentation, garment masking, pose handling, and the preset tuning that keeps a dress from melting into the background. Results will vary with lighting in your build exactly as they vary in the paid one, except you have nobody to blame and no tuned defaults. You also need a real GPU or a hosted inference bill, so the self-hosted-and-free story is only true if you already own the hardware. Fine build if you try on clothes often enough to care, silly build if you wanted one image.",
+  "coreLoopDIY": "A local web app where you upload a body photo plus a garment photo, runs an open virtual try-on diffusion model, and saves the results to a browsable wardrobe folder.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with roughly 16GB VRAM, or a hosted inference API key and a credit card",
+    "Hugging Face account to accept model licenses and pull weights",
+    "Python 3.11 and a tolerance for CUDA dependency archaeology",
+    "Clean, well-lit, front-facing photos of yourself to get anything usable"
+  ],
+  "whatYouLose": [
+    "Tuned defaults: masking, segmentation and pose presets that someone already debugged against thousands of bad selfies",
+    "A phone-native capture flow, your local app will be a laptop tab",
+    "Speed, cold-start plus inference on consumer hardware is not the few seconds a hosted pipeline gives you",
+    "Pulling a garment straight from a retailer product page instead of hunting for a clean flat-lay image",
+    "Any quality floor at all, bad outputs are now your engineering problem"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The model class is commoditized; the difference between a decent try-on and a horror show is pipeline tuning and input coaching, which is exactly the part nobody ships in a README.",
+  "whyPeopleStillPay": "Because the failure mode of DIY try-on is not a missing feature, it is a picture of you with three arms, and debugging that requires caring about human parsing maps. People paying for this want to decide whether to buy a dress, in under a minute, on their phone. A weekend build can match the output quality if you feed it good photos, but it cannot match the indifference to setup, and most users will run this maybe twenty times a year, which is far below the threshold where owning the stack pays for itself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The model is free, the GPU is not, and the lighting sensitivity is a property of the task rather than the vendor.",
+  "prompt": "Build a local virtual clothing try-on app. No accounts, no cloud storage, no telemetry, no analytics.\n\nStack, non negotiable:\n- Python 3.11, uv for dependency management\n- Gradio for the UI, single process, launched on 127.0.0.1:7860\n- Hugging Face diffusers plus the IDM-VTON weights for inference on CUDA\n- Plain filesystem for storage, no database\n\nCore loop:\n1. Two upload slots: a full body person photo and a garment image (flat lay or product shot).\n2. A dropdown for garment category: upper body, lower body, full dress. Default full dress.\n3. A Try On button that runs the pipeline and shows the result beside the inputs.\n4. Every result is written to ./wardrobe/YYYY-MM-DD/ with a sidecar .json holding input filenames, category, seed, and model version.\n5. A second Gradio tab that lists the wardrobe as a gallery, newest first, with a delete button per item.\n\nPipeline requirements:\n- Auto-generate the garment mask using human parsing plus pose estimation, do not ask the user to draw a mask.\n- Expose exactly three advanced controls behind a collapsed accordion: seed, inference steps, guidance scale. Sensible defaults, no other knobs.\n- Resize and center-crop person photos to the model's expected resolution, warn in the UI if the input is under 768px on the short side.\n\nFallback path:\n- If CUDA is unavailable, do not silently fall back to CPU. Print a clear error and, if REPLICATE_API_TOKEN is set in .env, route inference to a hosted try-on model instead. Load secrets from .env only, never hardcode.\n\nExplicitly out of scope: user auth, mobile app, scraping garment images from retailer URLs, batch jobs, payments, sharing links.\n\nDeliverables: app.py, pipeline.py, pyproject.toml, .env.example, and a README that states the VRAM requirement, the Hugging Face license gates you must accept, and the exact first-run commands.",
+  "promptCurated": false
+}
