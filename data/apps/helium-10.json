@@ -1,0 +1,54 @@
+{
+  "slug": "helium-10",
+  "name": "Helium 10",
+  "domain": "helium10.com",
+  "category": "seo-marketing",
+  "subcategory": "Amazon seller research",
+  "tagline": "A suite of keyword, product and listing research tools for Amazon sellers, built on estimated marketplace data.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription with tiered plans and a limited free tier",
+    "unit": "flat",
+    "source": "https://cc.helium10.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Helium 10 looks like a pile of small tools, and the UI around each one genuinely is small. The thing you are paying for is the numbers inside them: estimated monthly search volume per keyword, estimated unit sales per ASIN, reverse-ASIN keyword sets, and historical price and BSR curves across millions of listings. None of that exists on your laptop, and Amazon does not hand it out through any API you can sign up for. An agent can absolutely build you a tracker for your own listings, your own ranks, and your own ad spend, and that covers more of the daily loop than people expect. It cannot build Cerebro, because Cerebro is a decade of crawled marketplace data wearing a search box.",
+  "coreLoopDIY": "A local CLI plus static HTML dashboard that tracks your own ASINs' price, Buy Box, BSR and review count daily, and checks where your listings rank for a keyword list you maintain by hand.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and TypeScript",
+    "Amazon Selling Partner API credentials tied to your own seller account",
+    "Playwright for fetching public search and detail pages",
+    "A residential proxy if you want keyword rank checks to survive more than a week",
+    "Tolerance for CAPTCHAs and selector rot"
+  ],
+  "whatYouLose": [
+    "Estimated search volume for keywords, which is modelled from data you do not have",
+    "Sales and revenue estimates for competitor ASINs, same problem",
+    "Reverse ASIN lookup: pulling the keyword set a competitor ranks for",
+    "Black Box style filtering across the whole catalog, which needs the whole catalog",
+    "Hijacker, listing-change and suppressed-listing alerts that fire reliably without you babysitting a cron job",
+    "The Chrome extension overlay that puts all of this on the page while you browse"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The crawl is the product. Everything else is filters over the crawl.",
+  "whyPeopleStillPay": "Because the decisions sellers make with this tool are expensive and the data is directional, not exact. Nobody buys Helium 10 for the charts; they buy it to avoid ordering 2,000 units of something with no demand, and a rough search volume estimate from a large crawl is worth more than a precise number about your own listings. Add that most sellers are not going to maintain a Playwright scraper against a site that actively fights scrapers, and the subscription is cheap relative to one bad purchase order.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The dashboards are a weekend; the numbers in them are not. The moat is years of marketplace crawling at scale plus the sales-estimation models fitted on top of it.",
+  "prompt": "Build a local Amazon seller tracker called \"ownasin\". It covers the part of Helium 10 that does not require a marketplace-wide crawl: monitoring my own listings and my own keyword ranks.\n\nStack, no substitutions:\n- TypeScript on Node 20, run via tsx\n- SQLite through better-sqlite3, one file at ./data/ownasin.db\n- Amazon Selling Partner API for my own catalog, orders and fees, called with plain fetch, no SDK\n- Playwright Chromium for public search and detail pages\n- Output: a static HTML report written to ./out/index.html, rendered with a template string, Chart.js from a CDN, no framework, no dev server\n\nCommands:\n- ownasin init: create schema, write .env.example\n- ownasin pull: SP-API sync of my ASINs, inventory, last 30 days of orders and fee estimates into SQLite\n- ownasin snapshot: for each tracked ASIN fetch the public detail page and record price, Buy Box seller name, BSR, review count, rating, title, main image hash, timestamp\n- ownasin rank: read keywords.csv (asin,keyword,marketplace), load the search results page for each keyword, record the position of my ASIN in organic results or null if absent\n- ownasin diff: compare the latest snapshot to the previous one and print changes to title, main image, price, Buy Box owner\n- ownasin report: write out/index.html with per-ASIN price, BSR, rank and review history charts plus a change log table\n\nRules:\n- Secrets only in .env: LWA client id, client secret, refresh token, seller id, marketplace id, optional PROXY_URL\n- No accounts, no hosted backend, no telemetry, no analytics\n- Rate limit SP-API calls and respect 429 with exponential backoff\n- Random delay of 5 to 20 seconds between Playwright page loads; route through PROXY_URL when set; on CAPTCHA, log a loud warning, write nothing, and exit nonzero rather than saving garbage\n- Put every CSS selector for public pages in one file, selectors.ts, with a comment saying these will break and that is expected\n\nExplicitly out of scope, do not fake these: estimated search volume, competitor sales or revenue estimates, reverse ASIN keyword extraction, catalog-wide product discovery, PPC bid automation. If a number cannot be derived from my own account or a page I actually fetched, do not invent it, show \"unknown\".\n\nFinish with a README stating what this tracks, what it cannot know, and a sample keywords.csv.",
+  "promptCurated": false
+}
