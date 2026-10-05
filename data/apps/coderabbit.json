@@ -1,0 +1,52 @@
+{
+  "slug": "coderabbit",
+  "name": "CodeRabbit",
+  "domain": "coderabbit.ai",
+  "category": "dev-tools",
+  "subcategory": "AI code review",
+  "tagline": "AI reviewer that comments on your pull requests, line by line, and chats back in the thread.",
+  "priceMonthly": 24,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "per developer per month",
+    "unit": "per-seat",
+    "source": "https://coderabbit.ai/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is genuinely small: fetch a PR diff, send it to a frontier model with a decent prompt, post the output as review comments. A coding agent can wire that up as a GitHub Action in an afternoon, and for a solo repo the results are surprisingly close to what you are paying for. What you will not reproduce in one shot is the boring scaffolding around it: incremental reviews that only look at new commits, threaded follow-up conversation, sequence diagrams, path-based instructions, and the bundled static analysis and linter passes that catch things an LLM hallucinates past. Their stored learnings across your repos also make their reviews quieter over time, and yours will keep nagging about the same thing forever unless you build that memory yourself. Buildable, usable, and noticeably rougher.",
+  "coreLoopDIY": "A GitHub Action that grabs the PR diff on every push, asks an LLM for review findings, and posts them as inline review comments with a summary.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "GitHub repo with Actions enabled",
+    "An LLM API key stored as a repo secret",
+    "Tolerance for paying per token on every PR",
+    "Willingness to tune the prompt for weeks to cut false positives"
+  ],
+  "whatYouLose": [
+    "Incremental reviews: naive builds re-review the whole diff on every push and spam the thread",
+    "Threaded chat where you can argue with the reviewer and have it amend its own comment",
+    "Bundled static analyzers and linters running alongside the model, so your version is LLM guesses only",
+    "Cross-repo learnings that stop it repeating advice you already rejected",
+    "GitLab, Bitbucket, Azure DevOps support and the self-hosted enterprise story"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat is not the model call, it is the hundred small decisions about when to shut up.",
+  "whyPeopleStillPay": "Review noise is the whole game. A homemade reviewer that fires twelve nitpicks per PR gets muted in a week, and a muted reviewer is worth zero. Teams pay for the version that has already been tuned against millions of real pull requests, plugs into the host they actually use, remembers that you do not care about that particular pattern, and bills per seat instead of surprising you with a token invoice after a big refactor. For one person on one repo, the DIY build is fine. For a team of eight, the per-seat fee is cheaper than the arguments.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Easy to build, hard to make quiet enough that anyone keeps it turned on.",
+  "prompt": "Build a self-hosted AI pull request reviewer that runs as a GitHub Action. Empty folder, start from scratch.\n\nStack, no alternatives: TypeScript, Node 20, @octokit/rest, the Anthropic SDK, tsup for bundling, vitest for tests. No framework, no database, no hosted dashboard.\n\nWhat it does:\n1. Triggers on pull_request opened and synchronize events.\n2. Reads the PR diff via the GitHub API, in unified diff format, skipping lockfiles, generated files, vendored directories, and anything over 1500 changed lines.\n3. Tracks the last reviewed commit SHA in a hidden HTML comment inside the bot's own summary comment, so a synchronize event only reviews the diff between that SHA and HEAD. This incremental behavior is the most important feature, do not skip it.\n4. Chunks the diff by file, sends each chunk to claude with a review prompt that demands strict JSON output: an array of findings with file path, line number from the diff hunk, severity of blocking or suggestion or nit, and a short body.\n5. Posts findings as a single GitHub review with inline comments anchored to the right diff positions. Compute positions from the hunk headers, do not guess.\n6. Posts or updates one summary comment: what changed, risk areas, and a count of findings by severity.\n7. Drops any finding whose body matches an entry in .github/ai-review-ignore.txt, matched case-insensitively on substring. That file is the poor man's version of stored learnings.\n\nRules:\n- ANTHROPIC_API_KEY and GITHUB_TOKEN come from Action secrets, read from env, never hardcoded. Ship a .env.example for local runs.\n- Config lives in .github/ai-review.yml: model name, severity floor for posting, path globs to always ignore, optional per-path extra instructions.\n- Hard cap token spend per PR and fail soft with a plain comment if the cap is hit.\n- Default to severity floor of suggestion so nits do not spam the thread.\n- Support a local dry run: npm run review -- --repo owner/name --pr 123 prints findings to stdout and posts nothing.\n\nOut of scope, do not build: a web UI, a database, threaded chat replies, GitLab or Bitbucket support, sequence diagrams, telemetry of any kind, user accounts.\n\nDeliver: src/, a working .github/workflows/ai-review.yml, a README with setup in under ten steps, and tests for the diff position mapping, which is the part that will break.",
+  "promptCurated": false
+}
