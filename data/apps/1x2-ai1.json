@@ -1,0 +1,52 @@
+{
+  "slug": "1x2-ai1",
+  "name": "1x2.ai",
+  "domain": "1x2.ai",
+  "category": "analytics",
+  "subcategory": "football match prediction",
+  "tagline": "AI-generated football match outcome predictions and betting angles, packaged as a subscription.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://1x2.ai/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The statistical core of any 1X2 predictor is a solved problem: a time-weighted Dixon-Coles Poisson model on free historical results gets you calibrated home/draw/away probabilities in a weekend. What you cannot one-shot is the data plumbing around it: live odds across books, lineups, injuries, rest days, and the cleanup that keeps team names from drifting between sources. You also cannot one-shot an edge, and neither, most likely, can the paid version, since closing lines are brutally efficient. So the build is real and educational, the product's actual promise is mostly confidence and convenience. Treat it as a calibration toy, not a money printer.",
+  "coreLoopDIY": "Fits a time-decayed Dixon-Coles model on free historical league results and prints 1X2 probabilities next to de-vigged bookmaker odds so you can see where they disagree.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 and a local machine",
+    "free historical results CSVs (football-data.co.uk or similar)",
+    "a fixtures list and odds you paste in yourself",
+    "willingness to read a bad backtest honestly"
+  ],
+  "whatYouLose": [
+    "live odds feeds across multiple books, and the arbitrage math on top of them",
+    "lineups, injuries, suspensions and rest data that actually move short-term probabilities",
+    "team name normalisation across leagues and seasons, which is tedious and never finished",
+    "mobile notifications before kickoff",
+    "the psychological comfort of someone else's model being wrong for you"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "proprietary-models",
+    "brand-trust"
+  ],
+  "moatNotes": "The modelling is textbook; the defensible parts are odds and injury feeds under licence, plus the trust that makes people pay for a probability they could compute.",
+  "whyPeopleStillPay": "Because fitting a model is not the fun part, and most people who want a prediction want it at 2pm on a Saturday on their phone, already formatted, with a number attached. A subscription also outsources the blame: if your own model loses, that is on you, and if theirs loses, it is just variance. Add licensed odds and team-news feeds that are annoying to source individually and the convenience case is real, even when the edge case is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can absolutely build the model in a weekend; the humbling part is that your backtest will tell you the truth about it.",
+  "prompt": "Build a local football match outcome predictor called onextwo in this empty folder.\nStack: Python 3.12, uv for dependency management, pandas, numpy, scipy, sqlite3 from the stdlib, FastAPI plus Jinja2 templates for a single local page. No JS framework, no build step.\nData: download historical season CSVs from football-data.co.uk for the leagues in leagues.txt (default E0, D1, SP1, I1, F1), cache raw files in ./data, and load them into SQLite with a matches table: date, league, home, away, home_goals, away_goals, result, odds_home, odds_draw, odds_away.\nInclude a team alias map in aliases.csv and a normaliser that fails loudly on unmapped team names instead of silently guessing.\nModel: fit a Dixon-Coles bivariate Poisson with per-team attack and defence parameters, a home advantage term, the low-score correlation adjustment, and exponential time decay with a configurable half life (default 180 days). Optimise with scipy.optimize.minimize using L-BFGS-B and a fixed seed.\nOutput: build the full score matrix up to 10 goals per side and derive probabilities for home, draw, away, plus over/under 2.5 goals and both teams to score.\nOdds handling: convert bookmaker prices to implied probabilities, strip the overround proportionally, and compute the gap between model and market per outcome.\nBacktest: walk-forward by matchweek, never training on future matches. Report log loss, Brier score, a calibration table in ten buckets, and flat-stake ROI against the closing odds already in the CSVs. Print bad results plainly, no smoothing.\nCLI commands: onextwo fetch, onextwo fit, onextwo ratings LEAGUE, onextwo fixture HOME AWAY, onextwo backtest --from 2019.\nWeb: one page at localhost:8000 that reads fixtures.csv (date, league, home, away, optional odds) and shows model probabilities, de-vigged market probabilities, and the difference, sortable by difference.\nTests: the score matrix sums to 1 within tolerance, de-vigging returns probabilities summing to 1, time decay weights are monotonic, and the alias normaliser raises on unknown names.\nConfig in .env: HALF_LIFE_DAYS, LEAGUES, EDGE_MARGIN. No API keys are needed because there are no external APIs beyond static CSV downloads.\nOut of scope: live odds scraping, scraper proxies, bet placement, staking plans, accounts, auth, telemetry, cloud deployment, injury or lineup data, in-play modelling, Telegram or Discord bots.\nWrite a README that states the honest position: this is a calibration exercise, closing lines are efficient, negative ROI is the expected outcome, and the interesting output is calibration quality rather than profit.\nKeep the whole thing under roughly 900 lines of Python and make uv run onextwo backtest work on a clean checkout after fetch and fit.",
+  "promptCurated": false
+}
