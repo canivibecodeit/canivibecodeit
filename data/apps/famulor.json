@@ -1,0 +1,53 @@
+{
+  "slug": "famulor",
+  "name": "Famulor",
+  "domain": "famulor.io",
+  "category": "voice-ai",
+  "subcategory": "AI phone agents",
+  "tagline": "AI voice agents that answer and place phone calls, book appointments, and push the results into your CRM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://famulor.io/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pieces of a phone agent are all rentable now: Twilio gives you a number and a media stream, Deepgram does streaming speech to text, any decent LLM does the reasoning, ElevenLabs does the voice. An agent can wire that into a working single-line receptionist that answers, talks, and logs a transcript in a weekend, and it will feel uncannily close on your first test call. What does not come free is the boring 20 percent: barge-in that does not talk over the caller, latency under a second on a bad mobile connection, warm transfer to a human, retry logic on outbound campaigns, and a calendar booking flow that does not hallucinate a slot. Famulor is also selling a no-code agent builder plus CRM and calendar wiring plus EU telephony and recording-consent hygiene, none of which your build has. If you need one AI answering one line for yourself, build it; if you need a fleet of them talking to paying customers, do not.",
+  "coreLoopDIY": "A self-hosted phone number that answers inbound calls with a streaming speech-to-text, LLM, text-to-speech loop, follows a prompt-defined script, and writes a transcript plus structured outcome to a local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Twilio account and a purchased phone number",
+    "API keys for a streaming STT provider, an LLM, and a TTS provider",
+    "A publicly reachable HTTPS/WSS endpoint, so a small VPS or a tunnel",
+    "Per-minute telephony and model spend, which you pay either way",
+    "Tolerance for tuning turn detection until it stops interrupting people"
+  ],
+  "whatYouLose": [
+    "No-code agent builder and prompt versioning, so every script change is a code or config edit",
+    "Prebuilt CRM, calendar, and webhook integrations for booking and lead handoff",
+    "Outbound campaign machinery: lists, pacing, retries, voicemail detection, do-not-call handling",
+    "Someone else owning call quality, codec issues, and carrier weirdness at 3am",
+    "Recording consent flows, data residency, and the audit trail you want if these calls touch real customers"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The model layer is commodity. The defensible parts are the CRM/calendar connectors, the latency and interruption tuning, and being the party that signed the data processing agreement.",
+  "whyPeopleStillPay": "Because a demo call and a production phone line are different products. Businesses buying this are not buying speech recognition, they are buying the fact that when a customer calls at 7pm the agent answers in 700ms, does not talk over them, books the right slot in the real calendar, and leaves a record someone can audit. Getting from a working weekend prototype to that is weeks of unglamorous tuning plus ongoing carrier babysitting, and most buyers would rather expense a subscription than own a telephony stack.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project, mediocre business replacement: the fun part is one evening, the reliability is the whole rest of the year.",
+  "prompt": "Build a self-hosted AI phone agent that answers inbound calls on a single phone number. Empty folder, start from scratch.\n\nStack, no substitutions:\n- TypeScript on Node 20, Fastify for HTTP, the ws package for WebSockets\n- Twilio Voice with Media Streams for telephony (bidirectional audio over WSS)\n- Deepgram streaming STT for transcription\n- OpenAI chat completions with streaming for the agent brain\n- ElevenLabs streaming TTS for the voice, mu-law 8kHz output to match Twilio\n- SQLite via better-sqlite3 for call records\n- No React, no auth, no cloud dashboard, no telemetry\n\nWhat to build:\n1. POST /voice returns TwiML that opens a bidirectional Media Stream to /media.\n2. /media WebSocket handler: decode inbound mu-law frames, pipe to Deepgram streaming with interim results and endpointing, and on each finalized utterance call the LLM with the running conversation plus a system prompt loaded from agent.md.\n3. Stream the LLM response sentence by sentence into ElevenLabs, encode to mu-law 8kHz, and send back as Twilio media frames. Implement barge-in: if new caller speech is detected while the agent is speaking, clear the Twilio audio queue and stop the current TTS stream.\n4. Give the agent exactly two tools: get_availability and book_slot, backed by a local slots table in SQLite. No external calendar.\n5. Persist every call: caller number, start and end time, full transcript with speaker labels, tool calls made, and a one-line LLM-generated summary written after hangup.\n6. A single server-rendered page at / listing calls newest first, with a detail view showing the transcript. Plain HTML, no client framework.\n7. Log per-turn latency (speech end to first audio byte out) to stdout so tuning is possible.\n\nOut of scope, do not build: outbound calling, campaigns, multi-agent management, a visual flow builder, human transfer, CRM connectors, multi-tenancy, billing, call recording audio storage.\n\nAll credentials in .env: TWILIO_AUTH_TOKEN, DEEPGRAM_API_KEY, OPENAI_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID. Ship a .env.example and a README with the exact Twilio console steps to point a number at /voice, plus a note that a public HTTPS tunnel is required for local testing. Include one script that replays a recorded wav file through the pipeline so the loop can be tested without burning call minutes.",
+  "promptCurated": false
+}
