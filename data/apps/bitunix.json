@@ -1,0 +1,51 @@
+{
+  "slug": "bitunix",
+  "name": "Bitunix",
+  "domain": "bitunix.com",
+  "category": "finance-accounting",
+  "subcategory": "crypto exchange / derivatives trading",
+  "tagline": "Centralized crypto exchange for spot and perpetual futures trading with leverage, copy trading, and custodial wallets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://bitunix.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Exchanges monetize through trading fees and funding rates, not subscriptions, so a monthly figure does not apply.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You cannot one-shot an exchange, because an exchange is not software, it is a pile of other people's money plus enough counterparties to fill your order. The matching engine is the easy part: a competent agent can write a limit order book in an afternoon. What it cannot write is liquidity, a market maker program, custody of customer funds, fiat rails, KYC vendors, insurance funds, or the legal posture that lets any of it operate. A personal version of Bitunix with one user has zero depth, so every trade fills at your own price against nobody. What you can build instead is the part you actually touch: a local trading terminal and journal that talks to the exchange you already use.",
+  "coreLoopDIY": "Pulls live public market data and your own account positions through an exchange API key, then renders a local dashboard with charts, position sizing math, alerts, and a trade journal backed by SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An account at an exchange that offers a REST and WebSocket API",
+    "A read-only API key, stored in .env, ideally with withdrawals disabled",
+    "Python 3.11 and a machine you are willing to leave running for the alert loop"
+  ],
+  "whatYouLose": [
+    "Liquidity: your own order book has no counterparties, so nothing ever fills",
+    "Custody and settlement, which means somebody has to actually hold and move the coins",
+    "Fiat on and off ramps, card processors, and the banking relationships behind them",
+    "KYC, AML, licensing, and the compliance staff that keeps the doors open",
+    "Mobile apps, 24/7 support, and an insurance fund for when the engine misbehaves"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "Exchange competition is a liquidity race, not a feature race. Tighter spreads attract volume, volume tightens spreads, and a new venue with neither is just a website with candlesticks.",
+  "whyPeopleStillPay": "People pay trading fees for access to a book where their order actually fills, at a venue that will still be there tomorrow and will let them withdraw. That is a function of depth, uptime, and counterparty trust, none of which you can self-host. The UI, the charting, the position sizing calculator, the copy trading leaderboard: all of that is replicable, and none of it is why anyone is there. The fee is rent on other people's willingness to take the other side of your trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The order book is a weekend build; the people standing on both sides of it are not. The moat is marketplace liquidity plus custody, meaning regulators, banks, and market makers all have to say yes before your version means anything.",
+  "prompt": "Build a local crypto trading terminal and trade journal. Read-only market data plus my own account state. No order placement, no custody, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, Jinja2 templates, HTMX for partial updates, plain CSS. No React, no build step.\n- SQLite via sqlite3 with a tiny schema module. File at ./data/terminal.db.\n- httpx for REST, websockets for streams, APScheduler for background loops.\n- Run with: uvicorn app.main:app --reload. One command, no Docker.\n\nExchange access:\n- Put BITUNIX_API_KEY, BITUNIX_API_SECRET and EXCHANGE_BASE_URL in .env, loaded with python-dotenv. Ship a .env.example. Never log secrets.\n- Wrap all exchange calls in app/exchange.py behind an interface with two methods: get_markets, get_klines, get_positions, get_balances. Implement a public-data-only mode that works with no keys at all, so the app boots empty and usable.\n- Cache klines in SQLite so restarts do not hammer the API. Respect rate limits with a simple token bucket.\n\nScreens:\n1. Watchlist: user-added symbols, last price, 24h change, funding rate if available. Live via websocket, fallback to 5s polling.\n2. Symbol view: candlestick chart rendered with lightweight-charts from a CDN, selectable 1m/15m/1h/1d, plus a position size calculator (account risk percent, entry, stop, leverage cap) that outputs quantity and liquidation distance.\n3. Positions: current open positions and balances if keys are present, with unrealized PnL.\n4. Journal: log a trade with symbol, direction, entry, exit, size, thesis, screenshot URL, tags. Stats page showing win rate, average R, expectancy, and PnL by tag.\n5. Alerts: price-crosses-level rules stored in SQLite, checked by the scheduler, delivered as desktop notification via a webhook URL in .env.\n\nExplicitly out of scope: placing or cancelling orders, withdrawals, any key with trade permissions, multi-user auth, an order book matching engine, copy trading, backtesting.\n\nDeliverables: working app, schema migrations on startup, seeded watchlist of three symbols, README with setup steps, and a loud note in the README that this is a read-only viewer and the exchange still holds the funds.",
+  "promptCurated": false
+}
