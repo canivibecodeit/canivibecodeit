@@ -1,0 +1,51 @@
+{
+  "slug": "databricks",
+  "name": "Databricks",
+  "domain": "databricks.com",
+  "category": "databases",
+  "subcategory": "lakehouse / data platform",
+  "tagline": "Managed lakehouse platform for Spark, SQL warehousing, data governance and ML on top of cloud object storage.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage-based, billed in DBUs plus your own cloud compute and storage",
+    "unit": "usage",
+    "source": "https://www.databricks.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can absolutely build a personal analytics stack in an afternoon: DuckDB over Parquet files gets you further than most people expect, and for single-machine data it is often faster than a Spark cluster. What you cannot build is the thing anyone actually pays Databricks for: elastic compute that spins up a hundred nodes against petabytes in shared object storage, with a governance catalog, audit trails and SSO that a compliance team will sign off on. The notebook UI is replaceable. The job scheduler is replaceable. The distributed query engine, the table format at scale, and the organizational trust around who touched which column are not weekend projects. If your data fits on a laptop you were never the customer.",
+  "coreLoopDIY": "A local DuckDB lakehouse over Parquet files with SQL models, a notebook interface and a scheduled job runner.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "Local disk for Parquet files, or an S3 bucket if you want remote storage",
+    "Data that fits on one machine, realistically under a few hundred GB"
+  ],
+  "whatYouLose": [
+    "Distributed compute: anything that does not fit in RAM or on one disk is out",
+    "Unity Catalog style governance: lineage, column-level permissions, audit logs",
+    "Delta Lake ACID semantics with concurrent writers and time travel at scale",
+    "Managed MLflow, model serving, and the whole ML lifecycle layer",
+    "Hundreds of maintained connectors and the SSO / SOC 2 / HIPAA paperwork an employer needs"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Once a company's tables, permissions, notebooks and scheduled jobs live in one catalog, migration is a multi-quarter project nobody volunteers for.",
+  "whyPeopleStillPay": "Companies pay Databricks because the alternative is hiring people to run Spark, and those people are more expensive than the DBUs. The product sells the absence of cluster babysitting, plus a governance story that satisfies auditors, plus the fact that every data engineer on the market already knows the interface. Individuals almost never pay for it directly, and individuals with laptop-sized data genuinely do not need it. That is the honest split: the local build replaces the use case, not the customer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "A personal DuckDB lakehouse is a weekend and it will outrun Databricks on small data. The moat is elastic compute over petabytes plus a governance catalog that passes audit, neither of which exists on your laptop.",
+  "prompt": "Build a local single-machine lakehouse and analytics workbench in an empty folder. No cloud accounts, no telemetry, no login.\n\nStack, non-negotiable:\n- Python 3.11+, uv for dependency management\n- DuckDB as the engine, Parquet files on local disk as the storage layer\n- marimo for the notebook interface\n- Typer for the CLI\n- APScheduler for job scheduling\n\nLayout:\n- data/raw/ for ingested source files, data/lake/ for Parquet tables\n- models/ for .sql files, one file per table, each a SELECT statement\n- notebooks/ for marimo notebooks\n- jobs.yaml for schedules\n- .env for any credentials, with .env.example committed and .env gitignored\n\nBuild these commands:\n1. lake ingest PATH --table NAME: reads CSV, JSON, Parquet or a Postgres connection string from .env, writes a partitioned Parquet table into data/lake/NAME/, records row count and schema in a catalog table stored in meta.duckdb.\n2. lake run MODEL: executes models/MODEL.sql against the lake, materializes the result as Parquet, resolves dependencies by parsing ref('other_model') calls and topologically sorting. Fail loudly on cycles.\n3. lake run --all: runs every model in dependency order.\n4. lake catalog: prints every table with row count, column types, size on disk and last refresh time.\n5. lake query \"SQL\": runs ad hoc SQL, prints a formatted table, supports --csv and --parquet output.\n6. lake serve: starts marimo on localhost with a starter notebook that connects to the lake and charts one table.\n7. lake schedule: runs the APScheduler daemon reading jobs.yaml, where each entry is a model name plus a cron expression. Log every run to a runs table in meta.duckdb with status, duration and error text.\n\nExplicitly out of scope: distributed execution, multi-writer transactions, user permissions, lineage graphs, model serving. Document those as missing in the README.\n\nInclude a seed script that generates 2 million rows of fake event data, three example models stacked on each other, and a README showing the full path from seed to scheduled refresh in under ten commands.",
+  "promptCurated": false
+}
