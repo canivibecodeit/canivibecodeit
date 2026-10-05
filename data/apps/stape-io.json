@@ -1,0 +1,52 @@
+{
+  "slug": "stape-io",
+  "name": "Stape.io",
+  "domain": "stape.io",
+  "category": "analytics",
+  "subcategory": "server-side tagging (sGTM) hosting",
+  "tagline": "Managed hosting for server-side Google Tag Manager containers, with a custom tracking domain and a pile of prebuilt tags and clients.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://stape.io/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The thing Stape sells is mostly Google's own software running on someone else's machine: the server-side GTM container is a published Docker image, and Google documents self-hosting it. An agent can stand up a tagging server behind your own subdomain with automatic TLS in one sitting, and for a personal site's traffic a cheap VPS will not blink. Where it stops being equivalent is everything Stape layered on top: the custom clients and power-ups (cookie keeping, first-party request proxying, CAPI gateways, log inspection), multi-container management, and the fact that they keep the thing up while you sleep. You are also now the on-call engineer for the single path your analytics and ad conversions flow through, which is a worse trade than it sounds if that data feeds real ad spend. Build it if you are tracking a hobby project, pay if the numbers drive money.",
+  "coreLoopDIY": "Runs Google's official server-side GTM image on your own box behind a first-party subdomain with automatic HTTPS, so your GTM web container ships hits to a domain you control.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A small VPS or a Cloud Run account",
+    "A domain you control plus DNS access for a tracking subdomain",
+    "A server-side GTM container and its container config string from tagmanager.google.com",
+    "Docker and Docker Compose on the host"
+  ],
+  "whatYouLose": [
+    "The prebuilt power-ups: cookie keeper, data client, first-party proxying, CAPI gateways, custom tag templates you did not write",
+    "Managed uptime, autoscaling and someone else getting paged when the tagging server dies mid-campaign",
+    "A UI for running and monitoring several containers across several sites",
+    "Request logs, debugging views and support staff who have seen your exact misconfiguration before",
+    "Patching: you now track new versions of the image and redeploy yourself"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The container is Google's. What Stape actually owns is the operational layer and a library of clients and tags that solve specific tracking headaches nobody wants to reimplement.",
+  "whyPeopleStillPay": "Because server-side tagging is load-bearing for ad attribution, and a self-hosted tagging server that silently stops accepting hits costs more in bad conversion data than years of subscription. The paid version also ships solutions to problems that only exist at the edges of browser tracking, cookie lifetime, first-party request paths, conversion APIs, and those are fiddly custom clients rather than infrastructure you can recreate by spinning up a container. For anyone running client work across multiple domains, the multi-container dashboard alone is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A one-shot gets you the container; it does not get you the parts of Stape that are custom GTM clients rather than servers.",
+  "prompt": "Build a self-hosted server-side Google Tag Manager deployment in this empty folder.\n\nStack, no alternatives: Docker Compose, Google's official image gcr.io/cloud-tagging-10302018/gtm-cloud-image, and Caddy as the reverse proxy for automatic Let's Encrypt TLS.\n\nDeliverables:\n1. docker-compose.yml with three services:\n   - tagging-server: the GTM image, RUN_AS_PREVIEW_SERVER unset, env CONTAINER_CONFIG from .env, PORT 8080, restart unless-stopped.\n   - preview-server: same image, RUN_AS_PREVIEW_SERVER=true, same CONTAINER_CONFIG, restart unless-stopped.\n   - caddy: ports 80 and 443, mounts ./Caddyfile and named volumes for caddy_data and caddy_config.\n2. A Caddyfile that serves TAGGING_DOMAIN from .env, routes /gtm/* and the debug paths to preview-server, and everything else to tagging-server on port 8080. Enable gzip. Do not log request bodies.\n3. .env.example with CONTAINER_CONFIG= and TAGGING_DOMAIN= and nothing else. Real .env gitignored. Never hardcode the container config.\n4. A healthcheck script check.sh that curls https://TAGGING_DOMAIN/healthz and exits nonzero on failure, plus a commented crontab line that runs it every five minutes and writes to a local log.\n5. README.md with: where to copy CONTAINER_CONFIG from in the GTM server container setup screen, the exact A record to create, how to point the web container's GA4 or Facebook tags at the new server_container_url, and how to update the image (docker compose pull, up -d, verify /healthz).\n\nExplicitly out of scope: no custom GTM clients or tag templates, no cookie-extension tricks, no conversion API gateways, no multi-container admin UI, no accounts, no telemetry, no analytics dashboard of your own. This hosts the container and terminates TLS, nothing more.\n\nAssume a single small Linux VPS. Keep total files under ten. Print the DNS record and the server_container_url value at the end of setup.",
+  "promptCurated": false
+}
