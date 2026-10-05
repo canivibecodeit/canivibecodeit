@@ -1,0 +1,51 @@
+{
+  "slug": "jam",
+  "name": "Jam",
+  "domain": "jam.dev",
+  "category": "dev-tools",
+  "subcategory": "bug reporting",
+  "tagline": "Browser extension that captures a bug report with console logs, network requests and a replayable video in one click.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://jam.dev/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core trick is not magic: a browser extension can record the tab, hook console and fetch/XHR, grab the DOM and device info, and bundle it all into one artifact. A coding agent will get you a working extension that produces a zip or a local page with video plus logs in a single session. Where it falls apart is the long tail: source-mapped stack traces, reliable cross-browser capture, a hosted shareable link that a teammate can open without installing anything, and the Jira/Linear/GitHub handoff that makes bug reports actually get fixed. If you are a solo dev filing bugs to yourself, the DIY version is genuinely fine. If you are handing reports to other people, you are rebuilding a sharing and integrations product, not a recorder.",
+  "coreLoopDIY": "A Chrome extension that records the active tab plus console logs, network requests and environment info, then exports a single self-contained bug report you can open locally or drop in a chat.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Chrome or any Chromium browser for an unpacked extension",
+    "Node for the build step",
+    "Optional: any object storage bucket if you want shareable links instead of local files"
+  ],
+  "whatYouLose": [
+    "Hosted shareable links that open instantly for anyone, no install, no download",
+    "Source maps and symbolized stack traces that point at your actual code",
+    "One-click filing into Jira, Linear, GitHub, Slack with the report attached",
+    "Cross-browser and mobile capture, plus the edge cases of iframes, CSP and service workers",
+    "Team workspace: comments, assignment, search across past reports"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "collaboration"
+  ],
+  "moatNotes": "The recording is commodity. The value is that the person receiving the bug can open it in one click and that it lands in the tracker they already use.",
+  "whyPeopleStillPay": "Because bug reporting is a handoff problem, not a capture problem. The moment a second person is involved, you need a URL that works for them with no install, retention so the link still works next week, and a path into the tracker where work actually happens. Jam also quietly handles the ugly parts: redacting sensitive headers, keeping payload sizes sane, surviving single page app routing, decoding minified stacks. A personal build skips all of that because you are both the reporter and the fixer, which is exactly why it works for one person and stops working at three.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great solo tool, awkward team replacement: the recorder is a weekend, the handoff is the product.",
+  "prompt": "Build a Chrome extension (Manifest V3) called \"Jar\" that captures a one-click bug report from the active tab.\n\nStack: TypeScript, Vite with the crxjs plugin, plain CSS. No framework, no backend, no accounts, no telemetry.\n\nWhat it does:\n1. Popup with two buttons: Start capture and Stop capture.\n2. On start, a content script installs hooks that buffer, in a ring buffer capped at 500 entries each:\n   - console.log/warn/error/info calls with timestamps and serialized args\n   - window.onerror and unhandledrejection events with stack traces\n   - fetch and XMLHttpRequest calls: method, url, status, duration, request and response headers, truncated bodies capped at 32KB\n3. Simultaneously record the tab using chrome.tabCapture plus MediaRecorder into a webm blob, video only, cap at 90 seconds.\n4. On stop, collect environment info: user agent, viewport, device pixel ratio, page url, timezone, extension version, and the current document.documentElement.outerHTML truncated to 1MB.\n5. Bundle everything into a single self-contained HTML file: the webm embedded as a base64 data URL, a video player on the left, and tabs on the right for Console, Network, Errors, Environment, DOM. Network rows expand to show headers and bodies. Clicking a log entry seeks the video to that timestamp.\n6. Trigger a download of that HTML file plus a sibling report.json with the raw data.\n\nRedaction: before bundling, strip values of any header or body key matching /authorization|cookie|token|secret|password|api[-_]?key/i and replace with \"[redacted]\". Make the redaction pattern a constant at the top of one file.\n\nOut of scope, do not build: hosted uploads, share links, auth, source map resolution, issue tracker integrations, Firefox or Safari support, mobile.\n\nDeliver: working unpacked extension in dist/, a README with load-unpacked instructions, and a .env.example that is empty with a comment saying no secrets are needed. Keep it under roughly 800 lines of source. Verify it runs end to end against a test page you create in test/ that logs to console, throws an error, and makes a fetch.",
+  "promptCurated": false
+}
