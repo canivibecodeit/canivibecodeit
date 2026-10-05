@@ -1,0 +1,52 @@
+{
+  "slug": "stedi",
+  "name": "Stedi",
+  "domain": "stedi.com",
+  "category": "dev-tools",
+  "subcategory": "healthcare EDI / clearinghouse API",
+  "tagline": "API-first healthcare clearinghouse: eligibility checks, claims, and X12 EDI translated into JSON.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage-based per transaction",
+    "unit": "usage",
+    "source": "https://www.stedi.com/",
+    "checkedOn": "2026-09-30",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Stedi is two things bolted together: a nice JSON API over X12 EDI, and a clearinghouse that is actually connected to hundreds of insurance payers. The first half is a parser, and a coding agent can absolutely write you an X12 270/271/837/835 parser and builder in an afternoon. The second half is trading partner connections, payer enrollments, SFTP and AS2 plumbing, HIPAA obligations, and a business entity that payers will actually transact with, none of which you can generate. If you are a provider or a health tech company, the thing you are buying is reach into the payer network, not the SDK. Build the parser if you want to understand your own data; do not expect to route a real eligibility check through it.",
+  "coreLoopDIY": "A local X12 toolkit that parses 270/271/837/835 files into clean JSON, validates segment structure, and renders a readable eligibility or remittance view in a browser.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Sample X12 files you are legally allowed to hold",
+    "Node 20+ and a local machine",
+    "A copy of the relevant X12 implementation guide to check segment semantics",
+    "Real payer connectivity, which you will not have"
+  ],
+  "whatYouLose": [
+    "Connections to the payer network, which is the entire product",
+    "Payer enrollment handling and trading partner onboarding",
+    "Real-time eligibility responses instead of files you already had",
+    "HIPAA-aligned hosting, audit trails, and a BAA someone will sign",
+    "Per-payer quirk handling, where two payers technically follow the same spec and still disagree"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "network-effects"
+  ],
+  "moatNotes": "The hard part is not the format, it is being a party that hundreds of payers already exchange transactions with.",
+  "whyPeopleStillPay": "Because healthcare data exchange is a permissioned network, not a file format. Anyone can learn X12 in a week of misery, but nobody can self-serve their way into being a recognized clearinghouse with live payer links, enrollment workflows, and a BAA. Teams pay Stedi to skip a year of integration work and inherit connectivity that would otherwise require contracts, testing cycles, and patience with payer IT departments. The clean API is the pleasant part; the boring institutional plumbing is the part worth money.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The parser is a weekend, the clearinghouse is not. The moat is live connectivity to hundreds of payers plus the compliance posture that lets you touch the data at all.",
+  "prompt": "Build a local X12 EDI inspector for healthcare transactions. This is a parsing and viewing tool, not a clearinghouse: it never sends anything to a payer.\n\nStack, no substitutions:\n- TypeScript, Node 20, Fastify for the tiny local server\n- No database, files live on disk in ./data\n- Plain HTML plus a single vanilla JS file for the UI, no framework\n- Vitest for tests\n\nWhat to build:\n1. A parser module that reads raw X12 (ISA/GS/ST envelopes) and produces a structured tree: interchange, functional groups, transaction sets, segments, elements, composites. Respect the delimiters declared in the ISA segment instead of hardcoding * and ~.\n2. Transaction-specific mappers for these set types, each returning clean JSON: 270 and 271 (eligibility request and response), 837 (claim), 835 (remittance advice). Map only the common segments: subscriber, payer, provider, service dates, EB benefit lines for 271, CLP and SVC lines for 835. Mark unmapped segments as passthrough rather than dropping them.\n3. A structural validator that reports unbalanced envelopes, bad segment counts in SE/GE/IEA, unknown segment IDs, and elements that violate declared min/max length. Output a list of findings with segment index and a plain-English message.\n4. A CLI: `npm run parse -- ./data/sample.271 --json` prints mapped JSON, `--tree` prints the raw segment tree, `--validate` prints findings.\n5. A local web UI on http://localhost:3000 that lists files in ./data, shows a chosen file three ways: raw segments with hover tooltips naming each element, mapped JSON, and validation findings. Include a readable eligibility summary view for 271 files: active or inactive coverage, plan name, copay and deductible amounts from EB lines.\n6. An 835 remittance view: claim-level paid versus billed, adjustment reason codes with descriptions from a small local lookup table you ship as JSON.\n\nExplicitly out of scope: any network transmission, SFTP, AS2, payer enrollment, authentication, accounts, telemetry, cloud anything.\n\nInclude three small synthetic sample files in ./data (one 271, one 837, one 835) that you author yourself, clearly marked synthetic. Include tests for delimiter handling, envelope balance checks, and one 271 mapping. Write a README that states plainly: this tool reads EDI you already have, it cannot check eligibility with a real payer, and real-world use requires a HIPAA review you have not done.",
+  "promptCurated": false
+}
