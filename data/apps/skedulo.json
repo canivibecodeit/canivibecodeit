@@ -1,0 +1,52 @@
+{
+  "slug": "skedulo",
+  "name": "Skedulo",
+  "domain": "skedulo.com",
+  "category": "scheduling",
+  "subcategory": "deskless workforce scheduling",
+  "tagline": "Enterprise scheduling and dispatch for deskless and field workers, with a mobile app for the people doing the jobs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.skedulo.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Skedulo sells through sales motion with quoted pricing, so there is no public number worth printing.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Skedulo is not a calendar app, it is dispatch infrastructure for organisations sending dozens or hundreds of people to physical addresses all day. The hard parts are the offline-capable worker app, travel time and route feasibility, credential and licence checks before a job can be assigned, and the sync back into Salesforce or an HR system of record. A coding agent can absolutely build you a shift board with drag and drop assignment and an ICS feed, and if you coordinate a crew of five that may genuinely be enough. It is not a replacement for the product, because nobody buys Skedulo for the grid view. They buy it because the field tech's phone works in a basement with no signal and the audit trail holds up when a regulator asks who was qualified to be on site.",
+  "coreLoopDIY": "A local shift board where you define workers, availability and jobs, assign them on a week grid, check for double bookings and missing skills, and hand each worker a read-only day sheet plus an ICS feed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "A browser on each worker's phone, since there is no native app",
+    "Manually entered latitude and longitude if you want travel ordering",
+    "A LAN or a cheap VPS if anyone outside your machine needs to see it"
+  ],
+  "whatYouLose": [
+    "An offline-first native mobile app that queues job updates, photos and signatures with no signal and syncs later",
+    "Real route and travel time optimisation across many workers, with traffic and job duration estimates",
+    "Credential, licence and certification tracking that blocks an unqualified assignment before it happens",
+    "Two-way sync with Salesforce, payroll and HR systems of record",
+    "Audit trails, permissions and the compliance paperwork that regulated industries like healthcare actually need"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "A large chunk of Skedulo's install base lives inside Salesforce. Replacing the scheduler means also replacing the plumbing to the record system, which is the part nobody volunteers for.",
+  "whyPeopleStillPay": "Because the buyer is an operations lead with a workforce, not a person with a calendar. The cost of a blown schedule is a technician driving ninety minutes to a job they were not certified for, and that single incident outweighs a year of subscription fees. Skedulo also sits on top of the system of record, so the schedule, the timesheet and the payroll run agree with each other without someone re-keying anything. A self-built board can match the grid and will never match the consequences of being wrong at scale.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduling grid is a weekend build; the dispatch system around it is not. The moat is offline mobile reliability, credential compliance, and a two-way marriage to Salesforce that nobody wants to annul.",
+  "prompt": "Build a local-first shift scheduler for a small field crew. Call it CrewBoard.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3 with plain SQL migrations in /db/migrations. No ORM, no external services, no auth provider, no telemetry.\n\nData model:\n- worker: id, name, phone, skills (comma separated text), weekly availability as seven rows of start/end time or null for unavailable\n- site: id, label, address text, optional lat, optional lng\n- job: id, title, site_id, starts_at, ends_at, required_skills, status (unassigned, assigned, done, cancelled), notes\n- assignment: job_id, worker_id, created_at\n\nScreens:\n1. Week board at /. Columns are days, rows are workers. Unassigned jobs sit in a left rail. Drag a job onto a worker cell to assign it. Click an assignment to unassign.\n2. /jobs with a create and edit form, plus bulk create by pasting lines of \"title | site | YYYY-MM-DD HH:mm | duration minutes\".\n3. /workers and /sites, basic CRUD.\n4. /day/[workerId]/[date], a clean mobile-sized read-only day sheet: job list in time order, address, notes, and a tel link.\n\nRules the server must enforce on assignment, returning a clear reason when it refuses:\n- no overlapping assignments for the same worker\n- the job must fall inside that worker's availability for that weekday\n- required_skills must be a subset of the worker's skills\n- warn, do not block, if two consecutive jobs for a worker are at sites more than 40km apart using haversine on lat/lng when both are present\n\nAlso ship: GET /api/ics/[workerId] serving a valid ICS feed of that worker's assignments so they can subscribe from any phone calendar, and a seed script with three workers, four sites and a fortnight of jobs.\n\nExplicitly out of scope: accounts and passwords beyond a single shared token read from BOARD_TOKEN in .env, offline mobile support, push notifications, photo upload, timesheets, payroll, route optimisation beyond the distance warning, and any Salesforce or CRM integration.\n\nREADME must state in the first paragraph that this is a scheduling board for a handful of people, that it has no offline mobile client, and that it tracks no credentials or compliance records.",
+  "promptCurated": false
+}
