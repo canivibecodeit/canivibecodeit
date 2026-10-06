@@ -1,0 +1,52 @@
+{
+  "slug": "weworkremotely",
+  "name": "We Work Remotely",
+  "domain": "weworkremotely.com",
+  "category": "career",
+  "subcategory": "remote job board",
+  "tagline": "A remote job board where companies pay to post listings and candidates browse for free.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per job post",
+    "unit": "one-time",
+    "source": "https://weworkremotely.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Employers pay per listing, job seekers browse free.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is a list of rows with a search box, which an agent will produce before your coffee cools. What you cannot produce is employers willing to pay real money to post on your list, or the traffic that makes them willing. A job board is a two-sided market: without both sides it is an empty table with nice tablecloths. You can absolutely build a personal aggregator that scrapes and filters remote listings from multiple boards, and that is genuinely useful if you are job hunting, but it is a reader, not a replacement. The moment you want to be the place companies post, you are selling audience, not code.",
+  "coreLoopDIY": "Pulls remote job listings from public RSS and JSON feeds on a schedule, dedupes them, filters by your keywords and timezone rules, and serves a local searchable list with saved-job tracking.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node or Python runtime",
+    "A cron job or scheduled task to refresh feeds",
+    "Public RSS/JSON feeds from job boards that permit it",
+    "Local SQLite file"
+  ],
+  "whatYouLose": [
+    "Exclusive listings that only appear on the paid board",
+    "Employer demand: nobody posts jobs to your database",
+    "Feeds break, change shape, or get locked behind terms you should actually read",
+    "Spam and scam filtering that a human moderation team does for you",
+    "Any signal that a listing is still open rather than three weeks stale"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "Employers pay because candidates are already there, and candidates show up because the listings are. Classic chicken and egg that no amount of clean code resolves.",
+  "whyPeopleStillPay": "Employers pay because posting on an established remote board puts a listing in front of a large, self-selected pool of people who actively want remote work, and that is cheaper than running their own funnel. Candidates do not pay at all, which is the whole mechanic: the audience is the product. The site's value is accumulated attention plus a reputation for listings that are mostly real, built over years of moderation. None of that is in the codebase.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The board software is a weekend afternoon; the employers writing checks are not. The moat is marketplace liquidity: a decade of candidate traffic that makes a paid post worth buying.",
+  "prompt": "Build a local remote-job aggregator and tracker called \"remotefeed\". Stack: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, plain CSS. No React, no build step, no accounts, no telemetry, no cloud.\n\nStructure:\n- app.py: FastAPI app, routes and templates.\n- fetch.py: feed ingestion, runnable as `python fetch.py`.\n- feeds.yml: list of source feeds, each with name, url, type (rss or json).\n- filters.yml: include keywords, exclude keywords, allowed timezone/region strings, min/max salary hints.\n- db.sqlite3: created on first run.\n- .env for anything secret (none required by default); read with python-dotenv.\n\nIngestion:\n- Parse RSS with feedparser and JSON feeds with httpx plus a small per-source mapping function.\n- Normalize to: id (sha256 of source + canonical url), title, company, url, region, salary_text, tags, posted_at, source, raw_summary (plain text, strip HTML), first_seen, last_seen.\n- Upsert on id. Update last_seen on every run. Never delete; mark stale when last_seen is older than 10 days.\n- Respect robots.txt and per-source rate limits; set a clear User-Agent; retry twice with backoff. Only use feeds that publish them publicly.\n\nScoring and filtering:\n- Score each listing: +2 per include keyword hit in title, +1 in summary, hard-drop on any exclude keyword, bonus if region matches allowed strings.\n- Store score so it can be recomputed when filters.yml changes (`python fetch.py --rescore`).\n\nWeb UI:\n- GET / : listings sorted by score then posted_at, with source badge, stale badge, and full-text search over title/company/summary using SQLite FTS5.\n- Facet filters in the querystring: source, region, tag, min score, hide stale.\n- POST /jobs/{id}/state : set state to one of new, saved, applied, rejected, with an optional note and timestamp. Show state as a colored pill.\n- GET /saved : saved and applied listings with their notes, grouped by state.\n- GET /export.csv : everything, for when you abandon this.\n\nIn scope: ingestion, dedupe, scoring, search, application state tracking, CSV export.\nOut of scope: posting jobs, employer accounts, payments, email alerts, scraping HTML pages that have no feed, any attempt to be a public job board.\n\nShip a README with setup, a sample feeds.yml with three real public remote-job RSS feeds, a sample filters.yml, and one crontab line to run fetch.py hourly. Include pytest tests for normalization, dedupe, and scoring using fixture feed files. No network calls in tests.",
+  "promptCurated": false
+}
