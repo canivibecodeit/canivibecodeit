@@ -1,0 +1,52 @@
+{
+  "slug": "hey-clicky",
+  "name": "Hey Clicky",
+  "domain": "heyclicky.com",
+  "category": "ai-assistant",
+  "subcategory": "screen-aware desktop agent",
+  "tagline": "A desktop AI assistant that looks at what is on your screen and acts on it from a prompt.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://heyclicky.com/",
+    "checkedOn": "2026-09-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not exotic: grab a screenshot, attach it to a prompt, send it to a vision model, then optionally move the cursor and type. An agent can wire that up in one sitting, and the result genuinely works for the common case of asking questions about whatever is currently on screen. Where the weekend ends is everything around it: a global hotkey that never conflicts, an overlay that does not steal focus, macOS accessibility and screen recording permissions, retina coordinate scaling, multi monitor handling, and an action loop that fails gracefully instead of clicking the wrong button with confidence. You also inherit a hard dependency on somebody else's vision model, so this is a wrapper you own, not a capability you own. Build it if you want the loop; do not expect the polish.",
+  "coreLoopDIY": "Global hotkey captures the active screen, sends the image plus your typed prompt to a vision model, shows the answer in an overlay, and optionally executes click and type actions back onto the screen.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a vision capable model (Anthropic or OpenAI)",
+    "macOS with Screen Recording and Accessibility permissions granted, or equivalent on Linux/Windows",
+    "Python 3.11+ and willingness to debug OS permission dialogs",
+    "Per-token API spend that scales with how many screenshots you send"
+  ],
+  "whatYouLose": [
+    "A signed, notarized app that installs without permission archaeology",
+    "An overlay UI that feels instant and does not fight your window focus",
+    "Reliable action execution: computer use models misclick, and a shipped product has guardrails and retries you will not write",
+    "Multi monitor, scaling, and multi OS handling that someone else already suffered through",
+    "Model routing and prompt tuning done for you, instead of you paying raw API rates for every screenshot"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models",
+    "integrations"
+  ],
+  "moatNotes": "The screenshot-plus-prompt idea is free. The moat, such as it is, is latency, permissions plumbing, and an action loop that does not embarrass itself, plus whoever's model is behind it.",
+  "whyPeopleStillPay": "Because a desktop agent lives in the most unforgiving place software can live: on top of every other app, triggered by muscle memory, expected to respond in under a second. A DIY build that takes three seconds and occasionally clicks the wrong thing gets abandoned in a week, even if it technically does the same job. Paying gets you someone else owning the permission prompts, the focus bugs, the coordinate math, and the model bill.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The easiest part of a screen agent is the screenshot; the hardest part is everything that happens in the 800ms after you press the hotkey.",
+  "prompt": "Build a local screen-aware AI assistant as a Python desktop app in this empty folder.\n\nStack, non negotiable:\n- Python 3.11+, single project managed with a requirements.txt and a venv\n- mss for screen capture, Pillow for image resizing\n- pynput for a global hotkey\n- PySide6 for a small always-on-top overlay window (borderless, translucent, centered)\n- pyautogui for optional mouse and keyboard actions\n- anthropic SDK for the vision model, key read from ANTHROPIC_API_KEY in .env via python-dotenv\n\nBehavior:\n1. App runs as a background process with a tray icon and quits cleanly from the tray.\n2. Global hotkey (Cmd+Shift+Space on macOS, Ctrl+Shift+Space elsewhere) opens the overlay with a single text input.\n3. On submit: capture the primary monitor, downscale the longest edge to 1400px, JPEG encode at quality 80, send image plus the typed prompt to the model, stream the reply into the overlay as markdown-ish plain text.\n4. Escape closes the overlay. Reopening keeps the last five exchanges as context, then resets.\n5. Add an \"act\" mode toggle: when on, instruct the model to reply with a JSON list of steps using only {\"type\":\"click\",\"x\":int,\"y\":int}, {\"type\":\"type\",\"text\":str}, {\"type\":\"key\",\"keys\":[str]}. Parse it, show the plan in the overlay, and require one explicit confirmation keypress before executing. Scale model coordinates from the downscaled image back to real screen pixels correctly, including retina scale factors.\n6. Log every request and response to ./logs/YYYY-MM-DD.jsonl locally. No telemetry, no accounts, no cloud storage beyond the model API call.\n\nOut of scope, do not build: multi monitor selection, Windows-specific packaging, voice input, browser extensions, any login or subscription logic.\n\nDeliverables: README.md with the exact macOS Screen Recording and Accessibility permission steps, .env.example, and a run.sh that creates the venv, installs deps, and starts the app. Keep the whole thing under roughly 600 lines and comment the coordinate scaling math, because that is where this breaks.",
+  "promptCurated": false
+}
