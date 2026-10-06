@@ -1,0 +1,52 @@
+{
+  "slug": "splashthat",
+  "name": "SplashThat",
+  "domain": "splashthat.com",
+  "category": "seo-marketing",
+  "subcategory": "event marketing and registration",
+  "tagline": "Branded event pages, invites, RSVP tracking and check-in for marketing teams running lots of events.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://splashthat.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Splash has historically sold annual plans with sales-quoted pricing, so a monthly number would be made up.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible product is an event landing page, a registration form, a confirmation email, a guest list and a door scanner, and an agent can build all of that in a weekend. What you cannot one-shot is the part enterprise buyers actually pay for: Salesforce and Marketo sync that attributes pipeline to events, template libraries that keep fifty field marketers on brand, and the deliverability reputation that gets invite emails into corporate inboxes. If you run four events a year for a community or a startup, the DIY version is genuinely fine and probably nicer than the stock templates. If your events feed a demand-gen funnel that someone reports on, you are rebuilding a CRM integration, not an event page. Email sending is the one hard external dependency, and that is a real line item.",
+  "coreLoopDIY": "Spin up a branded event page with an RSVP form, store guests in SQLite, send confirmation emails with a QR code, and scan them at the door from a phone browser.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A transactional email provider API key, Resend or Postmark, in .env",
+    "A domain and a host that can run a small Node app",
+    "SQLite file or Postgres if you want hosted backups",
+    "A phone with a camera for the browser based check-in scanner"
+  ],
+  "whatYouLose": [
+    "Salesforce, Marketo and HubSpot sync, so event attendance never lands in your CRM automatically",
+    "Deliverability at invite-blast scale: your own domain will hit spam folders long before Splash's infrastructure does",
+    "Brand-locked templates and approval workflows that keep a large marketing team from shipping ugly pages",
+    "Native check-in apps, badge printing and on-site hardware integrations",
+    "Event-level reporting rollups across a whole program, plus SSO, roles and the compliance paperwork procurement asks for"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The CRM pipe is the product. Everything upstream of it is a form and a mail merge.",
+  "whyPeopleStillPay": "Nobody buys Splash because building an event page is hard. They buy it because the VP wants to know which of last quarter's 60 events produced opportunities, and that answer requires every registration, check-in and no-show to flow into Salesforce with consistent field mapping, run by people who did not write the code. Add brand governance across a distributed field marketing team, invite sends that actually arrive, and a security review that already passed, and the self-hosted version stops being a cost comparison. For a single person running a few events, none of that applies.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend build for your own events, bad swap for a field marketing program with a pipeline number attached.",
+  "prompt": "Build a self-hosted event registration app called \"Doorlist\" in an empty folder.\n\nStack, no substitutions: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind, Resend for transactional email. No auth provider, no analytics, no telemetry.\n\nData model (SQLite, migrations as plain SQL run on boot):\n- events: id, slug, title, tagline, description (markdown), starts_at, ends_at, venue, address, cover_image_url, accent_color, capacity, rsvp_closes_at, published\n- guests: id, event_id, name, email, company, notes, custom_answers (JSON), status (registered | waitlisted | checked_in | cancelled), ticket_code (random 10 chars), created_at, checked_in_at\n- questions: id, event_id, label, type (text | select | checkbox), options (JSON), required, sort\n\nPublic routes:\n- /e/[slug]: event landing page rendered from the event record, cover image, markdown description, map link, and an RSVP form built from the questions table. Mobile first. Respect capacity: past capacity, set status to waitlisted and say so on the confirmation screen.\n- /t/[ticket_code]: ticket page showing the guest name, event details and a QR code encoding the ticket code.\n\nAdmin routes behind a single ADMIN_PASSWORD from .env (signed httpOnly cookie, no user table):\n- /admin: list events, create and edit them, toggle published, edit the question list.\n- /admin/[slug]/guests: searchable guest table, status filters, manual add, manual check-in toggle, CSV export of everything including custom answers.\n- /admin/[slug]/scan: browser camera QR scanner using a lightweight library. On a valid code, mark checked_in, show a big green name card, and show a red card for already-checked-in or unknown codes. Must work on a phone over HTTPS.\n- /admin/[slug]/email: compose a plain HTML email to a status-filtered segment, send through Resend in batches with a dry-run preview that shows the first rendered message and the recipient count.\n\nOn registration, send a confirmation email via Resend with event details and a link to /t/[ticket_code]. If RESEND_API_KEY is missing, log the email to the console instead of failing, and say so in the admin UI.\n\nIn scope: one SQLite file, Docker-free local dev with npm run dev, seed script that creates one demo event with three questions and ten fake guests, README covering .env (ADMIN_PASSWORD, RESEND_API_KEY, FROM_EMAIL, BASE_URL) and the deliverability caveat that a cold sending domain needs SPF, DKIM and warmup.\n\nOut of scope, do not build: payments and ticketing fees, CRM integrations, multi-tenant accounts, team roles, drag-and-drop page builder, badge printing, recurring events, any paid API beyond Resend.\n\nShip it working end to end: I should be able to seed, open the public page, register, receive the console email, open the ticket, and scan it on the scan page.",
+  "promptCurated": false
+}
