@@ -1,0 +1,51 @@
+{
+  "slug": "trust-mrr",
+  "name": "Trust MRR",
+  "domain": "trustmrr.com",
+  "category": "testimonials",
+  "subcategory": "verified revenue proof",
+  "tagline": "Connects to your Stripe account and publishes a third-party verified MRR badge or public revenue page.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://trustmrr.com/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The code here is close to trivial: read Stripe subscriptions, sum them, cache the number, render a badge. An agent will do that in an hour and it will work perfectly. The problem is that the output is a number you published about yourself, which is exactly as persuasive as typing your revenue into a tweet. The entire product is the fact that a party other than you did the reading, and that buyers, investors and readers have agreed to treat that party's badge as evidence. You cannot self-host credibility.",
+  "coreLoopDIY": "Pulls your Stripe subscription data on a schedule and serves a cached MRR figure as JSON, an SVG badge and a small public stats page.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A Stripe account",
+    "A restricted read-only Stripe API key in .env",
+    "Somewhere to host a tiny always-on service so the badge does not 404"
+  ],
+  "whatYouLose": [
+    "Third-party attestation, which is the whole point: your own badge proves nothing",
+    "Tamper resistance, since you control both the data source and the renderer",
+    "Any listing or directory effect that puts your verified number in front of strangers",
+    "Someone else's opinion on what counts as MRR: annual plans, trials, refunds, churn mid-cycle, multi-currency",
+    "Uptime for an embed that sits on your landing page and gets hammered by crawlers"
+  ],
+  "moatTags": [
+    "brand-trust",
+    "network-effects",
+    "integrations"
+  ],
+  "moatNotes": "The badge is worth something only because the verifier is not you. That property is not implementable in your own repo.",
+  "whyPeopleStillPay": "Because founders selling a product, raising money, applying to a directory or just building in public need a revenue claim that a skeptical reader will accept without logging into their Stripe dashboard. A trusted intermediary holding the read-only connection does that in one line of visual real estate. The engineering is nothing, the reputation is everything, and reputation accrues to whoever everyone already recognises. A self-hosted version gives you an accurate private dashboard, which you could also get by opening Stripe.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The badge is an afternoon; the belief in the badge is not. The moat is brand trust: a number is only proof when a third party published it, and that third party has to be someone readers already recognise.",
+  "prompt": "Build a self-hosted Stripe revenue dashboard with a public badge endpoint. This is for my own use, not a verification service: be aware the badge is self-published and therefore not evidence to anyone else.\n\nStack, no alternatives:\n- Next.js with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3 for cached snapshots.\n- The official stripe npm package.\n- No auth provider, no database server, no telemetry, no analytics.\n\nBehaviour:\n1. Read STRIPE_SECRET_KEY and DASHBOARD_PASSWORD from .env. Ship a .env.example. Never log the key.\n2. A sync job lists active subscriptions from Stripe with pagination, normalises every item to a monthly amount (divide yearly by 12, weekly times 52 over 12, handle quantity and per-unit prices), converts nothing across currencies but reports each currency separately, and writes one snapshot row per run: timestamp, mrr per currency, active subscriber count, trialing count.\n3. Expose the sync at POST /api/sync protected by a shared secret header, so I can hit it from cron. Also allow a manual button in the UI.\n4. GET /api/mrr returns the latest snapshot as JSON with a cache header of 5 minutes. Never call Stripe on this route, read SQLite only.\n5. GET /api/badge.svg returns a small SVG badge reading \"MRR $X.XXXk\" with configurable label and colour via query params. Round to avoid leaking exact figures.\n6. GET / is a password-gated dashboard: current MRR, subscriber count, a sparkline of the last 90 snapshots from SQLite, and the sync button. Password check is a simple signed cookie, constant-time compare.\n7. GET /public is an unauthenticated page showing only rounded MRR and the chart, with a blunt footer line saying the figures are self-published and unverified.\n\nExplicitly out of scope: multi-tenant accounts, Stripe Connect or OAuth onboarding for other people, any claim of independent verification, invoicing, tax handling, forecasting.\n\nInclude a README with setup, a cron example, and a note on using a restricted read-only Stripe key.",
+  "promptCurated": false
+}
