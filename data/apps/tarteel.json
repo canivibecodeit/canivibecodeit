@@ -1,0 +1,52 @@
+{
+  "slug": "tarteel",
+  "name": "Tarteel",
+  "domain": "tarteel.ai",
+  "category": "education",
+  "subcategory": "Quran memorization and recitation feedback",
+  "tagline": "Listens to you recite the Quran, follows along, and flags where you slipped or skipped.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Premium",
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tarteel.ai/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pieces you need are mostly public: the Quran text is openly available with word-level data, reference recitations are freely hosted, and a modern open speech model handles recited Arabic better than you would expect because the internet is full of recitation audio. Wire that into a word-level fuzzy match against the expected ayah and you get a usable \"you skipped a word here\" trainer in a weekend. What you will not match is the live, low-latency following that keeps pace as you recite, the robustness across accents and child voices, and anything resembling tajweed-level correction. The mobile app, offline mode, and streak-keeping habit loop are also real products in their own right, and your local web page is not that. Buildable, genuinely useful for drilling memorization, clearly worse at the thing the paid app is actually good at.",
+  "coreLoopDIY": "Record yourself reciting a chosen passage, transcribe it locally, align it word by word against the canonical text, and highlight omissions, substitutions, and stalls, then queue weak ayat for review.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine that can run faster-whisper (GPU helps, CPU works slowly)",
+    "Local copy of the Quran text with word-level tokens, e.g. a Tanzil or quran.com export",
+    "A decent microphone and a browser that allows MediaRecorder",
+    "Patience for Arabic normalization edge cases: diacritics, hamza forms, alif variants"
+  ],
+  "whatYouLose": [
+    "Real-time follow-along: your version is record-then-grade, not a cursor moving with your voice",
+    "Accuracy on unusual accents, children, fast recitation, and noisy rooms",
+    "Any tajweed or makharij feedback, which is the part serious users want most",
+    "A polished mobile app with offline mode, streaks, and progress that survives a reinstall",
+    "Hifz class and teacher-facing features, shared progress, and the social accountability layer"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The fine-tuning corpus is the asset: years of consented recitation audio from a huge range of voices, with the ground-truth text already known. That is a very clean training setup and very hard to replicate from scratch.",
+  "whyPeopleStillPay": "Because the gap between \"my script noticed I dropped a word\" and \"an app follows me live, on my phone, on the bus, and keeps a year of memorization history\" is the whole product. Recitation is a daily habit, and habit apps win on friction: one tap, works offline, works for your kid, does not need you to SSH into anything. The underlying model quality on real-world voices is also not a weekend problem, and most people would rather pay a few dollars a month than debug Arabic text normalization during Ramadan.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The memorization drill is a weekend; the voice model trained on thousands of real reciters is not.",
+  "prompt": "Build a local-only Quran memorization trainer called \"Muraja\" that records my recitation and tells me where I deviated from the text.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, SQLite via sqlite3 (no ORM)\n- faster-whisper for speech to text, model size configurable via .env, default \"large-v3\" with a \"small\" fallback flag\n- Frontend: a single server-rendered HTML page with htmx and vanilla JS for MediaRecorder. No React, no build step.\n\nData setup:\n- On first run, a script fetches the Uthmani Quran text with word-level tokens from a public source (quran.com API or a Tanzil text file) and caches it into SQLite tables: surah, ayah, word. Never fetch at request time.\n- Also cache reference audio URLs per ayah from a public everyayah-style CDN for playback. Stream them, do not download the whole corpus.\n\nCore loop:\n1. I pick a surah and an ayah range, see the text, and can play the reference recitation.\n2. I hit record, recite, hit stop. Audio goes to the backend as webm.\n3. Backend transcribes with faster-whisper, language forced to \"ar\".\n4. Normalize both transcript and expected text: strip all diacritics and tatweel, unify alif/hamza forms (a, aa, hamza variants), unify ya/alif maqsura and ta marbuta/ha, collapse whitespace.\n5. Word-level diff (difflib SequenceMatcher plus a Levenshtein ratio threshold for near matches) to produce per-word status: match, near-match, substitution, omission, insertion.\n6. Render the expected text with each word colored by status, show the raw transcript underneath, and store the attempt.\n\nReview queue:\n- Any ayah with a non-match gets an SM-2-lite schedule (ease, interval, due date) in SQLite. Home page shows what is due today and a 30 day attempt history per surah.\n\nExplicitly out of scope, do not attempt: user accounts, cloud sync, telemetry, tajweed or makharij scoring, real-time streaming transcription, mobile apps, leaderboards.\n\nDeliverables: requirements.txt, .env.example with MODEL_SIZE and QURAN_API_BASE, a seed_data.py script, run instructions in README, and an honest ACCURACY.md noting that whisper mishears recited Arabic on long vowels and that near-matches are advisory, not corrections.",
+  "promptCurated": false
+}
