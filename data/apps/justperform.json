@@ -1,0 +1,51 @@
+{
+  "slug": "justperform",
+  "name": "JustPerform",
+  "domain": "insightsoftware.com",
+  "category": "finance-accounting",
+  "subcategory": "enterprise performance management",
+  "tagline": "Cloud EPM platform for budgeting, planning, forecasting and financial consolidation, now part of insightsoftware's LineOS lineup.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.insightsoftware.com/lineos/justperform/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise EPM pricing is quote-only and typically scoped by entities, users and modules.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is enterprise performance management: group budgeting, rolling forecasts, multi-entity consolidation, close orchestration, all of it feeding numbers that auditors and regulators read. You can absolutely build a personal planning model, people do it in spreadsheets every day, but that is not what is being sold here. What is being sold is ownership-percentage logic, FX translation rules, intercompany eliminations, approval workflow, a change log that survives an audit question three years later, and prebuilt pipes into SAP, Oracle, NetSuite and friends. An agent can scaffold the math; it cannot scaffold the accountability or the connectors. If you are one person with one entity, you never needed this and a spreadsheet was always the answer.",
+  "coreLoopDIY": "A local FP&A workbench that ingests trial balance CSVs, maps accounts to a reporting hierarchy, runs driver-based scenarios, and prints budget-vs-actual variance reports.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "Exported trial balance or GL CSVs from your accounting system",
+    "Someone who actually understands your chart of accounts"
+  ],
+  "whatYouLose": [
+    "Prebuilt ERP and GL connectors, so every refresh is a manual CSV export",
+    "Statutory consolidation mechanics: minority interest, ownership tiers, intercompany elimination, CTA",
+    "Audit trail and user-level change history that holds up under review",
+    "Approval workflow, so no one but you ever signs off on a number",
+    "A vendor to blame, and support when the close is late"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Consolidation software sells defensibility, not features. The buyer is a controller who needs to explain the number.",
+  "whyPeopleStillPay": "Nobody buys EPM because the arithmetic is hard. They buy it because the arithmetic has to be reproducible by a stranger, traceable to a source system, and signed off by named humans on a schedule. That means connectors to whatever ERP the company already married itself to, locked periods, audit logs, and a support contract. A finance team that moves planning into a homegrown tool is not saving money, it is moving audit risk onto one employee's laptop, and everyone involved knows it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The variance math is a weekend; the sign-off chain is not. The moat is compliance plus ERP connectors: auditable lineage from a consolidated figure back to a source-system journal entry.",
+  "prompt": "Build a local, single-user FP&A workbench called \"ledgerbench\". No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.11, DuckDB for storage and querying, Streamlit for the UI, pandas for transforms, uv for dependency management. Everything runs on localhost against a local file, data/ledgerbench.duckdb.\n\nIn scope:\n1. Ingest: drop CSVs into data/input/. Support two shapes, trial balance (entity, period, account_code, account_name, amount, currency) and actuals detail (same plus cost_center, memo). Validate on import and reject rows with a readable error report, do not silently coerce.\n2. Account mapping: a YAML file config/hierarchy.yaml defining a reporting tree (revenue, cogs, opex, headcount-linked lines) with account_code globs mapping into leaves. Rebuild the rollup on change.\n3. Budget and drivers: YAML scenarios in config/scenarios/*.yaml. Each scenario sets drivers (headcount by month, average salary, price, units, churn percent) and formulas referencing other lines. Evaluate in dependency order, fail loudly on cycles.\n4. Reports: budget vs actual by period and by hierarchy node, with variance absolute and percent, plus a 13 month rolling forecast view and a simple cash runway line. Export any view to XLSX and CSV.\n5. Scenario compare: pick two scenarios, show line by line delta.\n6. Period lock: mark periods closed in a locked_periods table; imports touching a locked period are refused unless the user passes an explicit override flag, and every override is appended to an audit_log table with timestamp and reason.\n7. Multi-entity rollup only at the simplest honest level: sum child entities into a parent, optional fixed FX rate per currency per period from config/fx.yaml, and a single intercompany elimination pass driven by a list of account pairs.\n\nOut of scope, do not build: ERP or API connectors, ownership percentage and minority interest math, full statutory consolidation, approval workflow, multi-user auth, anything resembling an audit opinion. Put these in README under \"What this is not\" and say plainly that this output is not audit grade.\n\nDeliverables: working app via `uv run streamlit run app.py`, a Makefile with seed/reset/test targets, pytest coverage for the formula evaluator and the FX plus elimination pass, seeded sample data for three fake entities across 24 periods, and a README showing the full loop in under ten commands. Secrets, if any ever appear, go in .env and .env.example only.",
+  "promptCurated": false
+}
