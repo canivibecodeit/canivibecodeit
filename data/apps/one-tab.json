@@ -1,0 +1,52 @@
+{
+  "slug": "one-tab",
+  "name": "OneTab",
+  "domain": "one-tab.com",
+  "category": "bookmarks",
+  "subcategory": "tab management and sync",
+  "tagline": "Browser extension that collapses a wall of open tabs into a single list you can restore later, with a paid tier for syncing those lists across devices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.one-tab.com/sync",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The free part of OneTab, take all my tabs, dump them into one list, let me restore them one by one, is close to a textbook one-shot: a MV3 extension, chrome.tabs.query, chrome.storage.local, and a list page. An agent will get that working in a single session and you will probably like your version better because you can add tags and search. The paid thing here is sync, and sync is where DIY gets honest: you need a server, a token, conflict handling when two machines both archive at once, and a plan for when your laptop has been offline for a week. None of that is hard, it is just not one sitting, and it is forever yours to babysit. Build it if you mostly want local archiving; pay if the entire point is that the list is identical on four machines.",
+  "coreLoopDIY": "Collapses every tab in the current window into a timestamped, named, searchable list stored locally, restores items or whole lists with one click, and optionally pushes the archive to a self-hosted endpoint you own.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Chrome or any Chromium browser with developer mode for unpacked extensions",
+    "Node 20 if you want the optional sync server",
+    "A small always-on box or cheap VPS to host the sync endpoint",
+    "A shared bearer token in .env on each device"
+  ],
+  "whatYouLose": [
+    "Sync that already works, including the boring cases: offline devices, two machines archiving at once, a list with 3,000 entries",
+    "Install and auto-update through the extension stores, plus Firefox and Safari builds you did not have to port yourself",
+    "The shareable public web page for a tab list, which people use more than they admit",
+    "Years of restore-reliability hardening; nothing stings like a one-click restore that loses half the list",
+    "Import of your existing OneTab archive, unless you write the parser too"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The archive is the lock-in. Thousands of saved tabs going back years are an awkward thing to migrate, and the sync tier exists precisely because that pile now lives in two places.",
+  "whyPeopleStillPay": "Because tab hoarders are not shopping for a tab manager, they are protecting an archive. Once a few thousand links are in there the question stops being which extension is nicer and becomes whether the thing will still be there, on every machine, after a browser update. A paid sync tier on a tool that has been around for over a decade answers that more cheaply than a self-hosted endpoint you maintain alone, and the price is low enough that nobody runs the build-versus-buy math seriously.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The tab collapser is an afternoon; the trust that your 4,000 saved links survive a sync is what the money buys.",
+  "prompt": "Build a Chrome MV3 extension called TabVault in this empty folder. Plain JavaScript, no build step, no framework, no bundler.\n\nCore behavior:\n- Toolbar button opens a popup with three actions: Archive this window, Archive all windows, Open vault.\n- Archiving grabs every normal tab (skip chrome:// and extension pages), saves title and URL, closes those tabs, and leaves one tab open on the vault page.\n- Each archive is a list: id, createdAt, optional name, array of items with title, url, and addedAt.\n- Storage is chrome.storage.local only. No accounts, no analytics, no remote calls unless sync is explicitly configured.\n\nVault page (vault.html, served from the extension):\n- Lists archives newest first, collapsible, with item count and relative date.\n- Per item: open in new tab and remove from list. Per list: restore all, restore all and delete, rename, delete, pin to top.\n- Full text search across titles and URLs with instant filtering.\n- Export and import the whole vault as JSON.\n- Dedupe toggle: when archiving, drop URLs already present in any pinned list.\n\nOptional self-hosted sync, built as a separate folder server/:\n- Node 20 plus Express, single file, stores the vault JSON on disk at a path from .env.\n- Two routes: GET /vault returns the JSON blob and its version number, PUT /vault accepts a blob and an expected version and rejects on mismatch with 409.\n- Auth is one bearer token read from .env. Ship .env.example, never a real token.\n- Extension side: a settings panel for server URL and token, a manual Sync now button, last-sync timestamp, and a merge strategy that unions lists by id and keeps the newer name on conflict. Last write wins per list, and say so in the UI.\n\nExplicitly out of scope: Firefox and Safari builds, store packaging, background auto-sync timers, multi-user auth, encryption at rest.\n\nFinish with a README covering loading the unpacked extension, running the sync server, and where the data physically lives.",
+  "promptCurated": false
+}
