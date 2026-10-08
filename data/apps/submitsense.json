@@ -1,0 +1,52 @@
+{
+  "slug": "submitsense",
+  "name": "SubmitSense",
+  "domain": "aiturnitinchecker.com",
+  "category": "education",
+  "subcategory": "pre-submission similarity and AI-detection checks",
+  "tagline": "Third-party service that runs your draft through Turnitin-style similarity and AI-writing checks before you hand it in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per document checked",
+    "unit": "usage",
+    "source": "https://aiturnitinchecker.com/",
+    "checkedOn": "2026-10-01",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product here is not the upload form, it is somebody's access to Turnitin. Turnitin sells to institutions, not to individual students, so independent checkers are built on accounts acquired through some other arrangement, and that arrangement is the whole business. An agent can clone the upload page, the queue, the wait timer, the payment step and a tidy scorecard in an afternoon, and none of it will produce the number you were actually paying for. The similarity engine depends on a repository of past student papers and licensed publisher content that nobody can rebuild locally, and the AI-writing score comes from a closed model with no public API. Worth knowing either way: a report generated through a stranger's account can differ from the one your institution produces, because repository settings and exclusion rules vary per account.",
+  "coreLoopDIY": "Scores your draft with local readability, repetition and sentence-variance heuristics plus embedding similarity against a folder of your own sources and earlier drafts, then flags the passages most worth rewriting.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 locally",
+    "a few hundred MB of disk for a local sentence-embedding model",
+    "your own source PDFs, notes and prior drafts in a folder",
+    "no internet dependency after model download"
+  ],
+  "whatYouLose": [
+    "The actual Turnitin similarity percentage and AI-writing percentage, which is the only number your marker sees",
+    "Matching against Turnitin's repository of previously submitted student papers, the part that catches recycled essays",
+    "Licensed journal and publisher content in the comparison index",
+    "Side-by-side source highlighting in a report your institution would recognise",
+    "The human turnaround service: upload, wait, get a PDF, with no setup on your end"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "proprietary-models",
+    "integrations"
+  ],
+  "moatNotes": "The moat is leased, not owned. It belongs to Turnitin; the reseller rents a keyhole view and charges per look.",
+  "whyPeopleStillPay": "Because anxiety has a price and it is low. A student two hours from a deadline does not want a heuristics dashboard, they want the same percentage their professor will see, and the only way to get that is through an account they cannot legitimately have. That gap is the entire market: not technology, just access. The honest caveat is that the access is fragile and unofficial, so the number you buy may not be the number that gets recorded, and the whole category can vanish the moment the upstream account does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build a pre-submission linter in an afternoon; you cannot build the number your school will see. The moat is Turnitin's archive of student papers and its closed detector, plus whatever account access makes reselling a peek at them possible.",
+  "prompt": "Build a local, offline \"pre-submission linter\" for essays. Python 3.11, FastAPI backend, server-rendered Jinja2 templates, SQLite for history, no accounts, no telemetry, no cloud calls at runtime.\n\nWhat it does:\n1. A single page where I paste text or upload .docx, .pdf or .md. Extract plain text with python-docx and pypdf.\n2. Build a local corpus: read every file in ./corpus (my own notes, sources, prior drafts). Chunk to roughly 400 characters with overlap, embed with sentence-transformers all-MiniLM-L6-v2, store vectors in SQLite with sqlite-vec.\n3. Self-similarity check: chunk the submitted draft the same way, cosine-match each chunk against the corpus, and list every chunk above 0.80 with the matching source file and chunk text side by side. Report the percentage of draft chunks that matched. Label this clearly as \"overlap with my own corpus\", not a plagiarism score.\n4. Style heuristics per paragraph: average sentence length, sentence-length variance, type-token ratio, top repeated trigrams, passive-voice count via a simple regex, and a list of hedging and filler phrases. Flag paragraphs in the flattest decile of sentence-length variance as \"worth rewriting by hand\".\n5. Quote and citation audit: find every quoted span and every (Author, Year) or [n] marker, and warn on quotes with no nearby citation marker.\n6. Save each run to SQLite and show a history page with a diff of heuristic scores between runs on the same document title.\n\nExplicitly out of scope, and say so in the UI footer: no Turnitin integration, no similarity percentage against any student-paper repository, no AI-detection score. Do not call any detector API or claim to predict one. If a .env is needed at all, use it only for the model cache path.\n\nShip: pyproject.toml, a seeded ./corpus with two sample files, one `make run` target, and a README that states plainly what this tool cannot tell me.",
+  "promptCurated": false
+}
