@@ -1,0 +1,52 @@
+{
+  "slug": "hirevoice",
+  "name": "Hirevoice",
+  "domain": "hirevoice.com",
+  "category": "hr",
+  "subcategory": "AI voice interview screening",
+  "tagline": "AI voice interviews that screen job candidates and hand back transcripts and scores.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://hirevoice.com/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A voice agent that asks five role-specific questions, transcribes the answers and scores them against a rubric is a genuinely tractable build now: a realtime speech API plus a scoring prompt plus a table of results gets you most of the perceived product. What you cannot one-shot is everything around it: a candidate-facing link that works on a bad phone connection, retries when audio drops, an audit trail you would be willing to show a lawyer, and the ATS plumbing that makes screening results land where recruiters actually live. Automated hiring assessment is also one of the few categories with real regulatory exposure, bias audit expectations in some jurisdictions and disclosure rules in others, and a weekend build ships with none of that. For screening a handful of candidates for your own small team, the DIY version is fine and arguably more honest because you will read the transcripts yourself. For anything that looks like a hiring funnel, the paid product is partly selling you someone else's liability.",
+  "coreLoopDIY": "Generates a shareable interview link that runs a voice conversation over a fixed question set, then stores the recording, transcript and an LLM rubric score per candidate.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An OpenAI API key with realtime audio access",
+    "A domain or tunnel so candidates can open the link from a phone",
+    "HTTPS, because browsers will not hand you a microphone without it",
+    "Somewhere to store audio files, local disk is fine at small volume"
+  ],
+  "whatYouLose": [
+    "Any defensible bias audit or compliance documentation, which matters the moment this touches real applicants",
+    "ATS integrations, so results live in your SQLite file and nowhere a hiring manager will look",
+    "Robustness on bad mobile connections: dropped audio, reconnects, partial interviews",
+    "Calibrated scoring across many candidates and roles, instead of a rubric prompt you wrote on a Saturday",
+    "Candidate-side polish and trust signals, which quietly affect whether people finish the interview at all"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part is not the voice agent, it is being the party that signs off on how the scores were produced.",
+  "whyPeopleStillPay": "Because hiring decisions get challenged and voice interview scores are evidence. Companies pay for a vendor who will produce the audit trail, the disclosure language, the retention policy and the bias testing, and who plugs results into the ATS the recruiting team already uses. A self-hosted screener is great for a founder screening ten people and a liability for an HR department screening a thousand, and the pricing reflects which of those two the product is aimed at.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this for your own hiring, not for anyone else's.",
+  "prompt": "Build a self-hosted AI voice interview screener. One developer, local first, no SaaS signup flow.\n\nStack, non negotiable: Next.js with the App Router and TypeScript, SQLite via better-sqlite3, Tailwind for styling, OpenAI Realtime API over WebRTC for the voice conversation. No auth provider, no analytics, no telemetry. Secrets in .env.local only: OPENAI_API_KEY and ADMIN_TOKEN.\n\nData model in SQLite: roles (id, title, rubric_text, questions_json), invites (id, role_id, candidate_name, token, status, created_at), sessions (id, invite_id, audio_path, transcript_json, started_at, ended_at), scores (id, session_id, criterion, score_1_to_5, evidence_quote, model).\n\nAdmin side, gated behind a single ADMIN_TOKEN cookie, no user accounts:\n- Create a role: title, 3 to 7 interview questions, and a free text rubric.\n- Mint an invite link per candidate at /i/[token], single use.\n- Review page per session: audio player, full transcript with speaker labels, rubric scores with the quote the model used as evidence, and a plain text export.\n\nCandidate side at /i/[token]: a single page that explains this is an AI voice interview and that it is recorded, requires an explicit consent click before the microphone is requested, then runs the conversation. The agent asks the configured questions in order, allows one short follow up per question, and ends the call after the last answer. Show a visible transcript as it goes and a clear \"interview complete\" state.\n\nServer route to mint ephemeral Realtime session tokens so the API key never reaches the browser. Save the recorded audio to ./data/audio and the transcript to SQLite when the session ends. If the connection drops, mark the session partial and let the candidate resume once from where they stopped.\n\nAfter the session, a scoring route sends the transcript plus the rubric to a text model and writes one row per rubric criterion, each with a score and a verbatim evidence quote. Never auto reject, never compute a single hire/no-hire number: the output is a decision aid, label it that way in the UI.\n\nInclude a seed script with one example role, a README covering .env setup and where audio lives, and a visible retention note in the admin UI with a one click delete of a candidate's audio and transcript.\n\nOut of scope: ATS integrations, email sending, multi tenant accounts, billing, bias auditing, resume parsing, scheduling.",
+  "promptCurated": false
+}
