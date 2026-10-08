@@ -1,0 +1,53 @@
+{
+  "slug": "mews",
+  "name": "Mews",
+  "domain": "mews.com",
+  "category": "travel",
+  "subcategory": "hotel property management system",
+  "tagline": "Cloud property management system for hotels and hostels: reservations, rates, front desk, folios, payments and OTA distribution.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "typically quoted per room per month, tiered",
+    "unit": "custom",
+    "source": "https://mews.com/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A booking table with a calendar grid is genuinely easy, and that is the part people look at when they imagine replacing a PMS. The part that matters is everything behind it: two-way channel connections to Booking.com and Expedia so you do not oversell the same room twice, a card vault and payment terminal flow that survives PCI and SCA, country-by-country fiscal receipt and invoice rules, night audit, and an accounting export your bookkeeper will accept. Then there is the fact that a hotel cannot have downtime at 2am on a Saturday, which means someone has to be on call forever, and that someone is you. You can absolutely build a reservation board for a four-room guesthouse you run yourself. You cannot build the connective tissue that makes a PMS worth paying for, and one oversell or one rejected tax invoice costs more than the subscription.",
+  "coreLoopDIY": "A local reservation board for a tiny property: rooms, nightly rates, bookings with availability checks, check-in and check-out, and a simple folio with manually recorded payments.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a machine that stays on if more than one person needs access",
+    "Manual rate and availability entry on every OTA extranet you list on, forever",
+    "Your own backups of the SQLite file",
+    "Someone to reconcile payments by hand, since there is no card vault or terminal"
+  ],
+  "whatYouLose": [
+    "Two-way channel manager sync, so every OTA listing becomes manual availability updates and an oversell risk",
+    "Card tokenization, terminals, SCA and PCI scope handled by someone else",
+    "Country-specific fiscal invoicing, tax rules and audit trails",
+    "Night audit, revenue reports and accounting exports your bookkeeper already knows",
+    "Door locks, POS, housekeeping apps, upsell and kiosk integrations",
+    "Support at 3am when the front desk cannot check a guest in"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Fiscalization and payments regulation differ per country, and every one of them is someone else's problem until it is yours.",
+  "whyPeopleStillPay": "Hotels pay because a PMS is the system of record for money, taxes and inventory at the same time, and all three have external parties who care. The OTAs need live availability, the card schemes need a compliant payment path, the tax authority needs invoices in a specific shape, and the owner needs numbers that reconcile. Mews sells the whole bundle plus an integration marketplace and a support line, which is cheaper than any one hotel assembling it. Even a tiny property usually discovers that the calendar was never the hard part.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The calendar grid is a weekend; the rest of a PMS is not. The moat is regulated payments and live OTA distribution, held together by integrations nobody wants to rebuild.",
+  "prompt": "Build a local-only reservation manager for a 6-room guesthouse. Stack, no substitutions: Next.js 15 App Router, TypeScript, Tailwind, SQLite via better-sqlite3, Zod for input validation. Single process, runs with `npm run dev` on localhost.\n\nData model in a migration file:\n- rooms: id, name, type, capacity, base_nightly_rate_cents, active\n- rate_overrides: id, room_id, date, nightly_rate_cents (optional per-date price)\n- bookings: id, guest_name, guest_email, guest_phone, room_id, check_in (date), check_out (date), adults, children, status (enum: tentative, confirmed, in_house, checked_out, cancelled), notes, created_at\n- folio_items: id, booking_id, kind (enum: room_night, extra, payment), description, date, amount_cents\n\nFeatures, all server-rendered with server actions:\n1. Availability grid: rooms as rows, next 60 nights as columns, each cell shows free, or the guest surname and booking status colour. Date range picker to scroll the window.\n2. New booking form. Reject on the server if any night in [check_in, check_out) is already taken by a non-cancelled booking for that room. Show the clash, do not silently fail.\n3. On confirm, generate one room_night folio item per night using rate_overrides if present, else base rate.\n4. Booking detail page: edit dates (re-run the clash check), change status, add extras, record a payment as a negative-amount folio item, show running balance.\n5. Rates page: set base rate per room, and bulk-set a per-date override across a date range for selected rooms.\n6. Arrivals and departures view for a chosen date, with one-click check-in and check-out.\n7. Print-friendly folio page at /bookings/[id]/print showing line items, totals and balance. Plain HTML, print stylesheet, no PDF library.\n8. Export bookings and folio items to CSV.\n\nExplicitly out of scope, do not build or stub: user accounts, OAuth, OTA or channel manager sync, iCal import or export, card payments or any payment processor, tax or fiscal invoice compliance, email sending, multi-property support, telemetry.\n\nSeed the DB with 6 rooms and 8 sample bookings so the grid is not empty. Put DB_PATH in .env with a .env.example. README: how to run, how to back up (copy the SQLite file), and a short honest section titled \"what this is not\" listing the out-of-scope items above.",
+  "promptCurated": false
+}
