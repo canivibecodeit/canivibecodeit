@@ -1,0 +1,52 @@
+{
+  "slug": "manageengine-servicedesk-plus",
+  "name": "ManageEngine ServiceDesk Plus",
+  "domain": "manageengine.com",
+  "category": "customer-support",
+  "subcategory": "ITSM help desk",
+  "tagline": "IT service desk software with ticketing, ITIL change and problem workflows, asset inventory and a CMDB, available on-prem or cloud.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per technician, billed annually",
+    "unit": "per-seat",
+    "source": "https://www.manageengine.com/products/service-desk/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part most small IT shops actually use is a queue: email comes in, a ticket gets created, someone owns it, an SLA clock runs, it closes. That is a weekend build with a database, an IMAP poller and a few HTML pages, and for a one-person internal IT function it is genuinely enough. What you cannot one-shot is the rest of the product: agent-based asset discovery across Windows, Mac and Linux, a CMDB with relationship mapping, ITIL-shaped change advisory workflows with approval chains, Active Directory sync, and the audit trail an auditor will actually accept. ServiceDesk Plus is also sold as a compliance artifact as much as a tool, which no local build replicates. Build the queue, do not pretend you built an ITSM suite.",
+  "coreLoopDIY": "Polls a support mailbox, turns each thread into a ticket with owner, priority, status and SLA due time, and gives you a web queue plus a simple asset list you maintain by hand.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "an IMAP mailbox for ticket intake and an SMTP sender for replies",
+    "somewhere to run a long-lived process (a small VM or a box in the closet)",
+    "a willingness to maintain the asset list manually instead of auto-discovering it"
+  ],
+  "whatYouLose": [
+    "Agent-based asset and software discovery; your CMDB becomes a spreadsheet you forget to update",
+    "ITIL change and problem management with approval chains, CAB workflows and release linkage",
+    "Active Directory / LDAP sync for technicians and requesters, plus SSO",
+    "The reporting and audit trails that get waved at auditors during SOC 2 or ISO reviews",
+    "Mobile apps, a requester self-service portal that looks finished, and a vendor to call at 2am"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The real lock-in is the ManageEngine ecosystem around it: endpoint management, AD tooling, monitoring, all feeding the same asset data. Once the CMDB is populated by agents, leaving means repopulating it by hand.",
+  "whyPeoplePayStillPay": null,
+  "whyPeopleStillPay": "Because the ticket queue is not the product. Organisations buy ServiceDesk Plus when someone needs a change record with named approvers, an asset inventory that updates itself, and reports that survive an audit. It also tends to arrive bundled with the rest of ManageEngine's stack, which is a procurement decision, not a tooling one. A self-hosted queue is fine for a solo admin tracking requests from twelve people; it is not fine when the request is \"prove who approved this production change in March\".",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this if you are the entire IT department; buy it if you have auditors.",
+  "prompt": "Build a single-tenant IT help desk I can self-host for a small internal IT function. No accounts system beyond a single admin login, no cloud services, no telemetry.\n\nStack, non-negotiable: Python 3.12, FastAPI, SQLite via SQLModel, Jinja2 templates with HTMX for interactions, plain CSS in one stylesheet. One process, one `app.py` entrypoint, `uv` for deps. No React, no build step.\n\nData model:\n- Ticket: id, subject, requester_email, body_html, status (new/open/pending/resolved/closed), priority (low/normal/high/urgent), assignee, category, created_at, first_response_at, resolved_at, sla_due_at\n- Message: ticket_id, direction (in/out), from_email, body_html, created_at\n- Asset: id, name, type, owner_email, serial, location, notes, updated_at (manually maintained, no discovery)\n- SlaPolicy: priority to response_minutes and resolve_minutes mapping, seeded with sane defaults\n\nFeatures in scope:\n- Background task that polls an IMAP mailbox every 60 seconds, creates a ticket per new thread and appends a Message to existing threads matched by a `[TKT-123]` token in the subject or by In-Reply-To headers\n- Queue view: filter by status, assignee and priority, sort by SLA due time, red badge when sla_due_at is past\n- Ticket detail: full thread, reply box that sends via SMTP with the ticket token in the subject, status/priority/assignee controls, internal notes that never get emailed\n- Asset list with CRUD and a link to tickets filed by the same owner_email\n- Dashboard: open count by priority, tickets breaching SLA, median resolve time over 30 days\n- CSV export of tickets\n\nExplicitly out of scope: asset discovery agents, LDAP/AD sync, SSO, change or release management, mobile apps, a public requester portal, multi-tenancy.\n\nSecrets in `.env`: IMAP_HOST, IMAP_USER, IMAP_PASS, SMTP_HOST, SMTP_USER, SMTP_PASS, ADMIN_PASSWORD. Ship a `.env.example`.\n\nSeed the database with five fake tickets and three assets so the UI is not empty on first run. Write a README with exact run commands and a short section titled \"what this is not\" listing the out-of-scope items above.",
+  "promptCurated": false
+}
