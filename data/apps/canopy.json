@@ -1,0 +1,52 @@
+{
+  "slug": "canopy",
+  "name": "Canopy",
+  "domain": "canopy.cloud",
+  "category": "finance-accounting",
+  "subcategory": "wealth aggregation and reporting",
+  "tagline": "Account aggregation, data normalization and consolidated reporting for family offices, wealth managers and private banking clients.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.canopy.cloud/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise wealth platforms like this are almost always quote-only.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Canopy exists because private banks hand clients PDF statements in forty incompatible formats and nobody wants to retype them. The product is a pipeline: ingest custodian statements and feeds, parse them, normalize instruments and corporate actions across currencies and asset classes, then produce consolidated performance and risk reporting a relationship manager will actually sign off on. An agent can build you a tidy local portfolio tracker in a session, and if your assets live in one or two brokers with clean CSV exports, that genuinely covers you. What it cannot build is the statement parsing library for hundreds of custodians, the instrument reference data, or the security posture that makes a family office willing to pipe its entire balance sheet into your box. Multi-custodian, multi-entity, multi-currency reporting with audit trails is a company, not a weekend.",
+  "coreLoopDIY": "Imports broker CSV exports into a local SQLite ledger and renders allocation, cost basis and time-weighted return for a single household.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "CSV or OFX exports you can download from your own brokers",
+    "a price source for valuations (manual entry, a free quotes API key, or a cached CSV)",
+    "willingness to maintain an import mapping per broker",
+    "FX rates if you hold more than one currency"
+  ],
+  "whatYouLose": [
+    "Automated custodian feeds and PDF statement parsing: you become the data entry layer",
+    "Instrument reference data, so corporate actions, splits and bond accruals are yours to handle wrong",
+    "Multi-entity and multi-generation structures, trusts, consolidated and look-through reporting",
+    "Private market and structured product handling, which is where this category earns its fees",
+    "Auditable, client-ready reporting packs and the institutional security review that lets someone else trust them"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The parsing layer is the asset. Every custodian format quirk they have already absorbed is a week you would spend discovering it.",
+  "whyPeopleStillPay": "Because the alternative is an analyst maintaining a spreadsheet by hand from eleven PDF statements, and that analyst costs more than the software and is more likely to get a number wrong before a family meeting. Paying also buys someone to blame: if the consolidated report is off, there is a vendor, a support contract and a data lineage trail. A self-built tracker is perfectly fine for your own three accounts and completely unusable the moment another human needs to rely on the output.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal net worth tracker is a weekend; a multi-custodian normalization engine is not. The moat is years of absorbed statement formats plus the instrument reference data that makes them comparable.",
+  "prompt": "Build a local-first personal portfolio consolidation tool. One user, no accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.12, FastAPI, SQLite via SQLAlchemy, Jinja2 templates, vanilla JS with Chart.js from a vendored file. No React, no Docker, no auth. Run with `uvicorn app:app --reload` after `pip install -r requirements.txt`.\n\nData model: Account (name, institution, base currency, type), Instrument (ticker or ISIN, name, asset class, currency), Transaction (account, instrument, date, type in buy/sell/dividend/fee/deposit/withdrawal, quantity, price, amount, currency), PriceSnapshot (instrument, date, close), FxRate (date, pair, rate).\n\nFeatures that are in scope:\n1. CSV import with a per institution mapping. Store mappings as named JSON profiles in a `mappings/` folder so adding a new broker means writing one small JSON file, not editing code. Ship two example mappings and document the schema in README.\n2. An import preview screen: show parsed rows, flag unknown tickers, let the user map them to an Instrument before committing. Imports must be idempotent, dedupe on a hash of the raw row.\n3. Manual price entry plus an optional price refresh that reads an API key from .env (never hardcoded, app must work fully without it using manual prices).\n4. Dashboard: total value in base currency, allocation by asset class, account and currency, holdings table with quantity, average cost, market value, unrealized gain.\n5. Performance: simple time weighted return by month and since inception, plus a cash flow adjusted total return. Show the formula used in a tooltip, do not pretend to institutional accuracy.\n6. Export everything to CSV and a one page printable HTML report.\n\nExplicitly out of scope, do not build: bank or custodian API connections, PDF statement parsing, OCR, corporate action handling, bond accrual, multi user roles, tax lot optimization, anything resembling advice.\n\nStore the database at ./data/portfolio.db. Seed with a small fake dataset so the dashboard is not empty on first run, behind a `--seed` flag. Write a README with install steps, the mapping JSON schema, and an honest Limitations section listing every number that is approximate.",
+  "promptCurated": false
+}
