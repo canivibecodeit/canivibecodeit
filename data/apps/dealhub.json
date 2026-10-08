@@ -1,0 +1,52 @@
+{
+  "slug": "dealhub",
+  "name": "DealHub",
+  "domain": "dealhub.io",
+  "category": "sales-outreach",
+  "subcategory": "CPQ, quoting, and deal rooms",
+  "tagline": "Sales-led CPQ platform that turns CRM opportunities into approved quotes, proposals, and signed contracts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://dealhub.io/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. DealHub does not publish list pricing, it quotes per deal.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of DealHub, a form that produces a nice-looking quote PDF, is genuinely a weekend build. The part people actually pay for is everything behind that: two-way CRM sync, a maintained price book with rules and tiered discounts, approval chains that route to the right manager, e-signature, subscription amendments and renewals, and an audit trail someone in finance will trust at close. None of that is clever code, it is integration surface and governance for a team of humans who do not all like each other. A solo seller can replace the quote generator and lose nothing they will miss. A revenue org cannot, because the value is that the quote, the CRM record, and the signed contract agree with each other without anyone retyping anything.",
+  "coreLoopDIY": "A local quote builder: pick a customer, assemble line items from a price book with discount rules, and render a branded quote PDF with a tracked status.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "Your own price book entered once as seed data",
+    "Headless Chromium for PDF rendering",
+    "Nothing else; no CRM, no e-sign vendor"
+  ],
+  "whatYouLose": [
+    "Two-way CRM sync, so your opportunity amounts and your quotes will drift apart",
+    "Approval routing and guardrails that stop a rep from discounting 40 percent on a Friday",
+    "Legally tracked e-signature with audit trail and countersigning",
+    "Subscription lifecycle: amendments, co-terming, renewals, proration",
+    "Buyer-facing deal rooms and the engagement analytics sales leaders use to forecast"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is the connector layer plus the fact that once your quote-to-cash runs through one system, ripping it out means re-approving every pricing rule with finance and legal.",
+  "whyPeopleStillPay": "Because CPQ is bought by a RevOps lead who is tired of three versions of a quote existing in email, not by someone who wanted a PDF generator. The purchase is really an agreement that one system owns pricing truth, and that whatever it emits is already approved. Paying for that means the discount matrix lives somewhere auditable, the CRM stays current without manual entry, and the signed contract maps to a billing schedule. A personal build gives you none of that and, worse, cannot give it to the four other people who need to agree with you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The quote PDF is a weekend; the agreement about what a valid quote is, is not. The moat is CRM integration plus approval governance that finance and legal already signed off on.",
+  "prompt": "Build a local, single-user quote generator. No accounts, no cloud, no telemetry.\n\nStack, no substitutions: Node 20 with TypeScript, Express, server-rendered EJS templates, plain CSS, SQLite via better-sqlite3, Playwright (chromium) for PDF rendering. One repo, npm scripts only, no Docker.\n\nData model in SQLite, created by a migration script:\n- customers: id, name, contact_name, contact_email, address\n- products: id, sku, name, unit_price_cents, currency, billing_period ('one-time' | 'monthly' | 'annual'), active\n- discount_rules: id, name, scope ('line' | 'quote'), type ('percent' | 'fixed'), value, max_percent, requires_note\n- quotes: id, number, customer_id, status ('draft' | 'sent' | 'accepted' | 'expired'), valid_until, notes, created_at, sent_at\n- quote_lines: id, quote_id, product_id, qty, unit_price_cents_override, discount_percent, note\n\nFeatures, in scope:\n- CRUD for customers and products, seeded from a seed.json at the repo root so I can paste my real price book once.\n- Quote builder page: pick a customer, add lines from the price book, edit qty, override unit price, apply a line discount. Live subtotal, discount total, and total, split by billing period.\n- Hard validation: if a line discount exceeds the matching rule's max_percent, block save and show which rule fired and require a note. Log every blocked attempt to a quote_events table.\n- Quote numbering: Q-YYYY-NNNN, sequential per year, allocated on first save.\n- PDF export: render an EJS quote template to A4 PDF with Playwright. Logo path, company name, and legal footer come from .env. Write PDFs to ./out/.\n- Status transitions with timestamps, and a quotes list filterable by status and customer.\n- A CSV export of all quotes and lines for handing to whoever does your invoicing.\n\nExplicitly out of scope, do not build or stub: CRM sync, e-signature, email sending, payments, approval routing to other users, multi-currency conversion, subscription amendments, auth.\n\nSecrets and config in .env (COMPANY_NAME, LOGO_PATH, LEGAL_FOOTER, DEFAULT_CURRENCY, PORT) with a committed .env.example. Everything else is SQLite.\n\nDeliver: README with setup in under five commands, migration plus seed scripts, a working sample quote generated by `npm run demo`, and Vitest tests covering discount-rule enforcement and total math including mixed billing periods.",
+  "promptCurated": false
+}
