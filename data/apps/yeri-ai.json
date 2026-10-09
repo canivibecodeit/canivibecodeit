@@ -1,0 +1,52 @@
+{
+  "slug": "yeri-ai",
+  "name": "Yeri AI",
+  "domain": "yeri.ai",
+  "category": "ai-image",
+  "subcategory": "prompt-based image editing and variant comparison",
+  "tagline": "Browser image editor where you upload a photo, describe a new background or style in text, and compare the variants it returns.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://yeri.ai/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free tier is credit-metered, paid tiers gate video and commercial use.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product here is thin: an upload box, a text field, a call to an image editing model, and a side-by-side grid of results. An agent can build that shell in an afternoon, including local history so you can revise a prompt without losing the earlier attempts. What it cannot build is the model doing the actual edit, so you are swapping a credit allowance for an API key and a per-image bill from Google, Black Forest Labs or whoever you point it at. Running weights locally is possible if you own a decent GPU, but edit fidelity on background swaps drops off a cliff compared to the hosted frontier models. Call it buildable with an honest asterisk: you own the workflow, you rent the intelligence.",
+  "coreLoopDIY": "Upload an image, type an edit instruction, fan it out to an image editing API for two variants, and keep every attempt in a local gallery you can diff and re-prompt from.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An image editing model API key, for example Google Gemini image or a Replicate/fal endpoint",
+    "Node 20 and a local disk for image history",
+    "Willingness to pay per generation instead of per month",
+    "A GPU plus ComfyUI if you want the fully local, lower-quality variant"
+  ],
+  "whatYouLose": [
+    "Commercial use rights and indemnity terms that come bundled with a paid plan",
+    "Video generation, which is a much bigger lift than the image path",
+    "Model routing and prompt rewriting done behind the scenes, so your raw instructions perform worse at first",
+    "Accounts, shared links and anything resembling a team workspace",
+    "Someone else's problem when the upstream model changes behaviour overnight"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "content-rights",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is borrowed: the editing quality belongs to whichever foundation model is underneath, and the durable part is the licensing and rights wrapper around the output.",
+  "whyPeopleStillPay": "Because a credit balance is simpler than an API account, and because the paid tiers sell something a DIY build cannot mint for itself: a written claim that you may use the output commercially. Plenty of creators also just do not want to think about which model handles background replacement best this month, or to debug a base64 response at 1am. If you are editing a handful of images a week, the hosted thing is cheaper than your attention.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The interface is a weekend of work, the pixels are a rental. Budget for tokens, not a subscription.",
+  "prompt": "Build a local single-user AI image editor called \"Shed\". Stack: Next.js 15 App Router, TypeScript, Tailwind, no database, no auth, no telemetry.\n\nStorage: a ./data folder on local disk. Each edit session is a directory with the original upload, every generated variant as PNG, and a meta.json holding the prompt text, model id, timestamp and parent variant id. No cloud buckets.\n\nModel calls: use the Google Gemini image editing endpoint (gemini-2.5-flash-image) via REST with the key read from process.env.GEMINI_API_KEY. Ship a .env.example with that one line. Put the call behind a single module src/lib/editor.ts that takes (imageBuffer, instruction, n) and returns n image buffers, so the model can be swapped later. Do not add a provider picker UI.\n\nUI, one page:\n1. Drop zone for a single JPEG or PNG, max 10MB, shown at the top with its dimensions.\n2. A textarea for the edit instruction plus a count selector of 1 or 2 variants, and a Generate button with a visible pending state.\n3. A results strip showing the original and each variant at equal size, click to open a full-size overlay, and a download button per variant.\n4. A \"refine\" button on any variant that makes it the new input image and prefills the instruction box with the previous prompt so it can be edited.\n5. A left sidebar listing past sessions from ./data, newest first, with a thumbnail and the first 40 characters of the prompt.\n\nIn scope: upload, edit, compare, refine, local history, download, delete a session.\nOut of scope: video, accounts, sharing links, masking or brush tools, billing, usage quotas, rate limiting, any kind of analytics.\n\nHandle failures loudly: if the API returns a safety block, a quota error or no image, show the raw provider message in the UI rather than a generic toast. Log the per-request token or image cost to the console if the response includes it.\n\nDeliver a README with setup in four commands and a one-paragraph warning that output rights depend on the upstream provider's terms, not on this app.",
+  "promptCurated": false
+}
