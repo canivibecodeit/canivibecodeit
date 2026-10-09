@@ -1,0 +1,51 @@
+{
+  "slug": "paperclip",
+  "name": "Paperclip",
+  "domain": "paperclip.ing",
+  "category": "bookmarks",
+  "subcategory": "save-anything clipper",
+  "tagline": "A personal clipper for links, notes and files you want to come back to later.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://paperclip.ing/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of a save-it-for-later tool is a database row, a URL fetcher and a search box, and an agent will hand you that before lunch. What takes the rest of the weekend is everything around the capture moment: a browser extension, an iOS share sheet target, readable extraction from hostile pages, and sync so the thing you saved on your phone is there on your laptop. A bookmarklet plus a local server gets you 70 percent of the value with 10 percent of the pain, and that trade is fine if you are the only user. The reason this is not a flat yes is that saving is a habit, and habits die the first time capture takes three taps instead of one. Build it only if you are willing to also build the annoying mobile path.",
+  "coreLoopDIY": "Paste or share a URL, the app fetches the page, extracts title, text and a thumbnail, tags it, and makes everything full-text searchable in one local library.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine you can leave running, or a cheap VPS",
+    "A Readability-style extraction library",
+    "Optional: a Tailscale or similar private network if you want phone access without exposing it publicly"
+  ],
+  "whatYouLose": [
+    "One-tap capture from iOS and Android share sheets",
+    "A maintained browser extension that handles logged-in and paywalled pages",
+    "Hosted sync and backup, so your library survives a dead laptop",
+    "Someone else fixing extraction when sites change their markup",
+    "Any kind of polish on the reading view"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "Capture friction is the whole product. Milliseconds and tap counts are the moat, not the storage.",
+  "whyPeopleStillPay": "Because the value of a clipper is proportional to how often you actually use it, and a hosted product with a real extension and a real mobile app removes the excuses. A self-hosted version works great for a week, then you are standing in a bookstore with your phone and no fast way to save the thing, and the habit quietly dies. Paying a few dollars a month to never think about extraction bugs, sync conflicts or backups is a reasonable trade for most people.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy; the habit is not. Budget your weekend for the mobile capture path, not the pretty library view.",
+  "prompt": "Build a single-user, self-hosted \"save it for later\" clipper. No accounts, no cloud services, no telemetry.\n\nStack, non negotiable:\n- Next.js 15 with the App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, file at ./data/library.db. No ORM.\n- SQLite FTS5 for full text search.\n- @mozilla/readability plus jsdom for article extraction.\n- Run with `npm run dev` on localhost. No Docker.\n\nData model:\n- items: id, url (nullable), title, excerpt, content_text, content_html, site_name, thumbnail_path, kind ('link' | 'note' | 'file'), created_at, archived_at, starred.\n- tags and item_tags join table.\n- items_fts virtual table mirroring title, excerpt, content_text, kept in sync with triggers.\n\nFeatures that are in scope:\n- POST /api/save accepting { url } or { title, body }. For a URL: fetch with a desktop user agent and a 10 second timeout, run Readability, store the cleaned text and HTML, pull og:image and cache it to ./data/thumbs as a webp via sharp. If extraction fails, still save the row with whatever title you got and set a extraction_failed flag.\n- A bookmarklet page at /bookmarklet that generates a one line javascript: link pointing at /api/save with the current tab URL and a token from .env. Show copy to clipboard instructions.\n- Library view: grid of cards with thumbnail, title, site, tags, relative date. Keyboard first: `/` focuses search, `j`/`k` move selection, `e` archives, `s` stars, `t` opens a tag input.\n- Search box that queries FTS5 with snippet() highlighting, plus filters for tag, starred, archived.\n- Reader view at /item/[id] rendering the stored content_html in a clean prose layout with a link back to the original.\n- Drag and drop file upload for PDFs and images, stored in ./data/files, kind='file'. No PDF text extraction.\n- GET /api/export returning the whole library as JSON, and a Backup button that downloads it.\n\nExplicitly out of scope, do not build:\n- Browser extension, mobile app, auth system, multi user, sharing, AI summaries, recommendations.\n\nSecrets: SAVE_TOKEN in .env, checked on /api/save and the upload route. Commit a .env.example, gitignore .env and ./data.\n\nSeed 8 sample items at setup so the UI is not empty. Write a README with the three commands needed to run it and a one paragraph note on exposing it over a private network if the user wants phone access.",
+  "promptCurated": false
+}
