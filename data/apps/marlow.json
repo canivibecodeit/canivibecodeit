@@ -1,0 +1,52 @@
+{
+  "slug": "marlow",
+  "name": "Marlow",
+  "domain": "marlow.app",
+  "category": "dev-tools",
+  "subcategory": "AI app building with hosting control",
+  "tagline": "An AI agent product that builds and ships apps and can manage the hosting it deploys to.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://marlow.app/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part of this category is not the AI, it is the plumbing: a loop that reads and writes files, runs commands, checks its own output, and then pushes the result to a server without wrecking it. A coding agent can absolutely build you a personal version of that loop in a sitting, because the loop is about two hundred lines around a model API plus a deploy script. What you will not get in one shot is the safety rails: sandboxed execution, rollback when a deploy breaks, credential handling that is not just a plaintext .env, and a UI you would hand to a colleague. Hosting management specifically is where this gets spicy, since a confused agent with SSH keys and DNS access can take a live site down faster than it built it. Buildable, genuinely useful for one person on their own boxes, not something you would point at a client's production stack.",
+  "coreLoopDIY": "A local CLI agent that plans a change, edits files, runs tests, commits, and then deploys the result to a server you own over SSH with a one-command rollback.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key, billed to you",
+    "A server or VPS you control, with SSH access",
+    "Git installed locally and on the target host",
+    "Comfort letting a program run shell commands in a directory you chose"
+  ],
+  "whatYouLose": [
+    "Sandboxing: your DIY agent runs commands with your permissions, which is exactly as bad as it sounds",
+    "A hosted UI, so no checking on a build from your phone",
+    "Provider integrations beyond whatever you wired up, no DNS, TLS, or dashboard niceties unless you write them",
+    "Guardrails tuned by someone who has watched thousands of these runs fail in interesting ways",
+    "Anyone to complain to when the agent force-pushes over your work"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The model is rented from the same labs you would rent from. The defensible part is the boring glue: provider APIs, deploy safety, and not deleting the customer's site.",
+  "whyPeopleStillPay": "Because the difference between an agent that edits files and an agent you trust near production is entirely made of unglamorous work. Retry logic, diff review, secret scoping, rollback, log capture, knowing which command is safe to run unattended. You can build the happy path in a weekend and you will enjoy it, and then you will spend three months discovering the failure modes that a paid product already papers over. If your infrastructure is your employer's, paying someone to own that liability is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is fun and the blast radius is real; point it at a staging box first.",
+  "prompt": "Build a local command line coding agent called \"shipper\" in an empty folder. No web UI, no accounts, no telemetry, no cloud services beyond one LLM API.\n\nStack: Node 20 with TypeScript, tsx for running, commander for the CLI, zod for tool schemas, simple-git for git, ssh2 for remote work. No database, state lives in .shipper/ as JSON.\n\nCore loop: given a task string, call the Anthropic Messages API with tool use and iterate until the model says it is done or hits 25 turns. Print every tool call and result to the terminal.\n\nTools to expose: read_file, write_file, list_dir, search (ripgrep-style over the project), run_command with a configurable allowlist of binaries, and git_commit.\n\nrun_command must refuse anything not on the allowlist, must run with cwd pinned to the project root, and must time out at 120 seconds. Log every invocation to .shipper/commands.log.\n\nDeploy: a separate \"shipper deploy\" command. It reads SSH host, user, key path, and remote path from .env, tags the current git commit, rsyncs or git-pushes to the remote, runs a configurable remote build command, and records the previous deployed tag in .shipper/deploys.json.\n\nRollback: \"shipper rollback\" checks out the previous recorded tag on the remote and reruns the build command. This must work even if the last deploy half-failed.\n\nSafety: before any write_file or run_command, print a unified diff or the exact command and require a y/n confirmation unless --yolo is passed. Never touch .env or .git internals.\n\nIn scope: the agent loop, the six tools, deploy, rollback, confirmations, logs.\nOut of scope: DNS, TLS certificates, provisioning servers, multi-user anything, a web dashboard, streaming token output.\n\nSecrets: ANTHROPIC_API_KEY, SSH_HOST, SSH_USER, SSH_KEY_PATH, REMOTE_PATH, REMOTE_BUILD_CMD in .env, loaded with dotenv. Ship .env.example and gitignore .env.\n\nWrite a README with a five line quickstart and a loud warning that this program executes shell commands and deploys to a live host.\n\nEnd by running the agent against a trivial task in a scratch subfolder to prove the loop works.",
+  "promptCurated": false
+}
