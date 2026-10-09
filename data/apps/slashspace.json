@@ -1,0 +1,50 @@
+{
+  "slug": "slashspace",
+  "name": "Slashspace",
+  "domain": "slashspace.ai",
+  "category": "ai-writing",
+  "subcategory": "slash-command text shortcuts",
+  "tagline": "An AI text shortcut layer you trigger with a slash command while you type, instead of pasting into a chat window.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.slashspace.ai/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The idea is thin on purpose: a global hotkey, a list of prompt templates, an LLM call, and the result dropped back where your cursor was. An agent can write that in a sitting, and the local version will do the thing you actually use ninety percent of the time, which is rewrite, shorten, fix tone. Where it falls apart is the plumbing: system-wide text insertion depends on accessibility permissions and behaves differently in Electron apps, browsers, and native editors, and you will spend more time on that than on the AI part. There is no data moat here, no network, nothing you cannot replace with a YAML file of prompts. You are paying for the thing feeling instant and never eating your selection.",
+  "coreLoopDIY": "A background daemon that grabs your selected text on a global hotkey, shows a filterable list of prompt commands, sends the text to an LLM, and pastes the result back over the selection.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and a machine you can grant accessibility permissions on",
+    "An LLM API key in .env",
+    "Tolerance for a daemon that must be running for the hotkey to work"
+  ],
+  "whatYouLose": [
+    "Reliable inline insertion across every app, including browsers and Electron editors, which is the entire product experience",
+    "Mobile and iPad keyboard support",
+    "Sync of your command library across machines",
+    "Streaming output that appears as it generates instead of landing all at once",
+    "Someone else maintaining it the next time the OS tightens accessibility APIs"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is latency and never breaking in the one app you live in. That is a grind, not a secret.",
+  "whyPeopleStillPay": "Because a text tool that fails once in twenty tries gets uninstalled. The hard part is not the prompt templating, it is making text capture and insertion work identically in Gmail, Notion, VS Code, Slack, and whatever Electron thing your employer mandates, then keeping it working through OS updates. A personal build nails your main editor and quietly fails elsewhere, and after a week you go back to copy-pasting into a chat tab. Paying a few dollars a month to not think about accessibility APIs is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The AI part is a twenty line function; the invisible part is making paste work everywhere.",
+  "prompt": "Build a local, single-user AI text shortcut daemon. No accounts, no cloud backend, no telemetry.\n\nStack, no substitutions:\n- Python 3.11\n- pynput for the global hotkey\n- pyperclip for clipboard access\n- tkinter for the command picker UI (stdlib, no extra deps)\n- requests calling the OpenAI-compatible chat completions endpoint\n- PyYAML for the command library\n\nBehavior:\n1. Runs as a foreground script: `python slashspace.py`. Prints a startup banner and the hotkey.\n2. Global hotkey is Ctrl+Alt+Space. On press: copy the current selection by simulating the platform copy shortcut, read the clipboard, and open a small always-on-top tkinter window near the center of the screen.\n3. That window shows a single text input and a filtered list of commands loaded from commands.yaml. Typing filters by name fuzzily. Enter runs the highlighted command, Escape cancels and restores the previous clipboard.\n4. Running a command: render the command's prompt template with the captured text, POST it to the API, show a spinner label, then replace the clipboard with the result and simulate paste so it overwrites the original selection.\n5. If the selection is empty, insert the result at the cursor instead.\n6. Log every run to runs.jsonl: timestamp, command name, input length, output length, latency. Local file only.\n\ncommands.yaml ships with at least: fix-grammar, shorten, make-formal, make-casual, bullet-points, explain-simply, write-reply. Each entry has name, description, model, temperature, and a prompt template containing {{text}}. Editing the file and restarting reloads them; no UI for editing commands.\n\nConfig: .env holds LLM_API_KEY, LLM_BASE_URL, LLM_MODEL. Ship .env.example and a .gitignore that excludes .env and runs.jsonl.\n\nExplicitly out of scope: menubar or tray icon, streaming output, sync, mobile, history browser, autoupdate, packaging into an app bundle.\n\nWrite a README with the one-time accessibility or input-monitoring permission steps for macOS, a Linux X11 note, and a short section listing apps where simulated copy/paste is known to be unreliable.",
+  "promptCurated": false
+}
