@@ -1,0 +1,52 @@
+{
+  "slug": "nailted",
+  "name": "Nailted",
+  "domain": "nailted.com",
+  "category": "hr",
+  "subcategory": "employee engagement surveys",
+  "tagline": "Employee engagement platform that runs recurring anonymous pulse surveys, eNPS and 1:1 prompts, mostly delivered through Slack or Teams.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per employee",
+    "unit": "per-seat",
+    "source": "https://nailted.com/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core here is a cron job, a question bank, a Slack message and a bar chart, and an agent will give you that in a weekend. What you cannot build in a weekend is the part that makes engagement surveys worth anything: cross-company benchmarks, a question set that has been tuned against real response data, and employees who actually believe the answers are anonymous. A self-hosted version is fine for a founder who wants a temperature check on twelve people and does not care about percentile scoring. It stops being fine the moment HR needs to defend a number to a board, or an employee asks who can read the database. Build it for a small team, buy it if the survey results are going into someone's performance conversation.",
+  "coreLoopDIY": "Schedules recurring pulse surveys to Slack on a rotating question set, collects responses behind one-time anonymous tokens, and renders score trends and eNPS on a simple dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Slack workspace and a bot token with chat:write and users:read",
+    "A small always-on host for the scheduler (a VPS or a free tier container)",
+    "Someone willing to be the person who technically has database access",
+    "A real question set, which is the part you will underestimate"
+  ],
+  "whatYouLose": [
+    "Cross-industry benchmarks, so your 7.4 engagement score means nothing in isolation",
+    "Credible anonymity: self-hosted means a colleague owns the box, and people will assume the worst",
+    "A validated question library and the survey cadence logic that keeps response rates up",
+    "Manager-level reporting, team slicing and permission boundaries between who sees what",
+    "HRIS sync, so org structure and leavers are maintained by hand"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "The benchmark corpus and the perception of anonymity are the product. The survey delivery is plumbing.",
+  "whyPeopleStillPay": "Engagement data is only useful if people answer honestly and if the resulting number can be compared to something. A third party solves both at once: employees trust an external platform more than an internal database, and the vendor can tell you whether your eNPS is bad or just normal for a 40 person startup in your sector. Add HR leaders who need a defensible process rather than a homegrown script, plus HRIS and SSO integrations that make the thing survive headcount changes, and the subscription keeps renewing even though the underlying app is simple.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Easy to clone, hard to be believed. The benchmarks and the anonymity are doing the real work.",
+  "prompt": "Build a self-hosted employee pulse survey tool. Stack: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling, Recharts for charts. No external services beyond Slack.\n\nData model:\n- employees: id, slack_user_id, display_name, team, active\n- questions: id, text, dimension (one of: workload, management, growth, belonging, enps), scale (1-10 or 0-10 for enps)\n- cycles: id, opened_at, closed_at, question_ids (json)\n- invites: id, cycle_id, employee_id, token (random 32 chars), used_at\n- responses: id, cycle_id, question_id, score, comment, created_at  -- deliberately NO employee_id, do not add one\n\nBehaviour:\n1. A scheduler (node-cron inside a small worker script) opens a new cycle every two weeks: pick 4 rotating questions plus the eNPS question every third cycle.\n2. For each active employee, create an invite with a single-use token and DM them a Slack link to /survey/[token] using chat.postMessage.\n3. /survey/[token] renders the questions with 1-10 buttons and one optional free-text comment. On submit, write rows to responses with no identity link and mark the invite used. Reject used or unknown tokens.\n4. /dashboard shows: response rate per cycle, average score per dimension over time as a line chart, eNPS computed as promoters minus detractors, and a list of comments in random order. Suppress all output for any cycle with fewer than 5 responses and show \"not enough responses\" instead.\n5. Seed 18 reasonable pulse questions across the dimensions in a seed script.\n\nExplicitly out of scope: SSO, HRIS sync, per-manager permissions, benchmarks against other companies, email delivery, mobile app, multi-tenant anything.\n\nSecrets: SLACK_BOT_TOKEN and APP_BASE_URL in .env, loaded with dotenv, .env in .gitignore. No telemetry, no analytics scripts.\n\nShip: a README with setup steps, npm run seed, npm run dev, npm run worker, and a one-paragraph honest note in the README explaining that anonymity here is a promise about the code and not a technical guarantee, since whoever runs the server can read the database.",
+  "promptCurated": false
+}
