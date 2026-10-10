@@ -1,0 +1,51 @@
+{
+  "slug": "lyric-video-maker",
+  "name": "Lyric Video Maker",
+  "domain": "lyricvideomaker.app",
+  "category": "audio-video",
+  "subcategory": "lyric videos",
+  "tagline": "Browser tool that transcribes a song, snaps the lyrics to the audio timeline, and renders a lyric video with generated backgrounds.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://lyricvideomaker.app/",
+    "checkedOn": "2026-10-03",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Every piece of this exists as open parts: Whisper gives you word-level timestamps, ffmpeg or Remotion burns animated text over a background, and nobody needs a server to do either. An agent can get you from MP3 to a rendered MP4 with karaoke-style highlighting in one session, and it will look fine for a single song. What takes the extra days is the boring half: a timeline editor where you nudge mistimed lines by hand, font and animation presets that do not look like a 2009 PowerPoint, and render speed that does not hold your laptop hostage for twenty minutes. Transcription accuracy on sung vocals is also genuinely worse than on speech, so expect to fix lyrics manually either way. Call it a weekend, and accept that your output will have three looks instead of thirty.",
+  "coreLoopDIY": "Drop in an audio file, get word-level timestamps from local Whisper, hand-correct the lyric lines in a JSON file, and render an MP4 with the active line highlighted over a background you supply.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and ffmpeg installed locally",
+    "faster-whisper or whisper.cpp with a medium or large model downloaded",
+    "A few GB of disk for models and render scratch space",
+    "Your own background images, video loops, or a gradient you can live with"
+  ],
+  "whatYouLose": [
+    "Generated visuals: you are bringing your own backgrounds instead of typing a vibe and getting one",
+    "A real timeline UI for dragging word timings, rather than editing a JSON file and re-previewing",
+    "The preset library: dozens of tested font, animation, and color combinations that already look deliberate",
+    "Fast cloud rendering; long songs at 1080p will pin your CPU for a while",
+    "Anything resembling mobile use, since this runs from your terminal"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part was never the sync math, it was making 400 bad font choices so the user only sees twelve good ones.",
+  "whyPeopleStillPay": "Because a lyric video is usually a one-off errand, not a hobby. Someone finishing a single release wants to upload an MP3, fix four misheard words, pick a look, and be done inside an hour, and paying for that beats installing a Whisper model and learning what a Remotion composition is. The DIY build wins for anyone shipping lyric videos regularly, where the per-song cost and the watermark start to matter and the presets start to feel repetitive.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Sync is solved by open models; taste is not, and taste is most of what you are buying here.",
+  "prompt": "Build a local lyric video renderer. Node 20 and TypeScript only, no accounts, no cloud services, no telemetry.\n\nStack, non-negotiable:\n- Remotion for composition, preview, and rendering (it gives you a live studio preview for free, use it instead of building a UI).\n- faster-whisper invoked as a child process for transcription. Assume the binary and model path come from .env (WHISPER_BIN, WHISPER_MODEL). Fail with a clear message if they are missing.\n- ffmpeg via child process for any audio probing or format conversion.\n\nPipeline:\n1. `npm run transcribe -- ./input/song.mp3` runs faster-whisper with word-level timestamps enabled, then writes ./data/lyrics.json as an array of lines, each with { text, startMs, endMs, words: [{ text, startMs, endMs }] }. Group words into lines on pauses longer than 700ms or at 42 characters, whichever comes first.\n2. lyrics.json is the editing surface. Document in README that the user hand-fixes misheard words and nudges timings there, then the Remotion studio preview hot-reloads.\n3. A Remotion composition reads lyrics.json plus the audio file, shows the current line centered and the next line dimmed below it, and highlights the active word with a color fill. Audio is attached so preview is in sync.\n4. Background: read BACKGROUND from .env, accepting either a path to an image, a path to a looping video, or the literal string \"gradient\" for an animated two-color gradient fallback. No image generation.\n5. `npm run render` outputs ./out/video.mp4 at 1080p 30fps with the audio muxed in. Print elapsed time.\n\nThree hardcoded looks in a presets.ts file (bold sans centered, serif lower-third, all-caps stacked), selected by PRESET in .env. Do not build a preset picker UI.\n\nOut of scope: AI background generation, watermarks, uploads, multi-song projects, a drag-and-drop timeline, any web server beyond what Remotion studio provides.\n\nShip a README with exact setup commands, a .env.example, and one sample run described end to end.",
+  "promptCurated": false
+}
