@@ -1,0 +1,52 @@
+{
+  "slug": "usphonegen",
+  "name": "USPhoneGen",
+  "domain": "usphonegen.com",
+  "category": "productivity-utilities",
+  "subcategory": "virtual numbers for SMS verification",
+  "tagline": "Rents US virtual numbers so you can receive OTP and SMS verification codes without a SIM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "pay-as-you-go credits",
+    "unit": "usage",
+    "source": "https://usphonegen.com/",
+    "checkedOn": "2026-10-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software here is the thin part: a number list, a credit balance, and an inbox view. The product is the phone numbers, which means wholesale DID inventory or SIM farms, carrier relationships, and a supply that gets burned and replaced constantly as services blacklist ranges. An agent can absolutely build you an SMS inbox in an afternoon, but it has to rent a number from someone, and the number it can rent (a Twilio or Telnyx VoIP DID tied to your verified identity) is exactly the kind most OTP senders already refuse. So you end up paying a provider anyway, with worse supply and your own name on the account. Also worth saying out loud: a lot of the demand for this category is for evading verification that a service deliberately built, which is its own risk and not something a DIY build makes safer.",
+  "coreLoopDIY": "Provisions a US number through a telephony API, catches inbound SMS on a webhook, stores messages in SQLite, and shows them in a local inbox with the OTP code auto-extracted.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A funded Twilio (or Telnyx) account with identity verification completed",
+    "At least one provisioned US long code, roughly a dollar or two per month plus per-message fees",
+    "A public HTTPS endpoint for the inbound webhook: a tunnel for local use, or a tiny VPS",
+    "Node 20 and a willingness to read carrier rejection errors"
+  ],
+  "whatYouLose": [
+    "A rotating pool of numbers across many area codes, instantly disposable, no KYC on your side",
+    "Numbers that actually pass sender-side VoIP filters; a single Twilio DID gets rejected by a lot of services",
+    "Someone else absorbing number churn when ranges get blacklisted",
+    "The dedicated number rental model where you only pay for the minute you need it",
+    "Any operational insulation: the account, the identity verification, and the paperwork are now yours"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard asset is number supply and the churn budget to keep replacing burned ranges. No amount of clean code substitutes for inventory.",
+  "whyPeopleStillPay": "Because you cannot code a phone number into existence. Paying per use gets a number from a pool someone else sourced, warmed, and will quietly replace when it stops working, with no account in your name and no monthly rental sitting idle. The DIY version collapses into renting a single VoIP line from a major carrier API, which is both more expensive at low volume and more likely to be blocked by exactly the services people are trying to receive codes from.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build an SMS inbox in an afternoon; you cannot build a phone number. The moat is wholesale number inventory, carrier relationships, and the endless churn of keeping those ranges unflagged.",
+  "prompt": "Build a local personal SMS inbox for a phone number I rent myself from Twilio. This is the consolation build for a virtual-number service: it does not source numbers, it just gives me a clean place to read the ones I pay for.\n\nStack, no alternatives:\n- Node 20, TypeScript, Express for the server\n- SQLite via better-sqlite3 for storage\n- Server-rendered HTML with plain CSS, no React, no build step for the frontend\n- Twilio Node SDK for provisioning and webhook signature validation\n\nSecrets in .env, loaded with dotenv, and a .env.example committed: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, PUBLIC_BASE_URL.\n\nFeatures, in scope:\n1. CLI script `npm run numbers:search -- --area 415` that lists available Twilio US local numbers with SMS capability.\n2. CLI script `npm run numbers:buy -- +14155550123` that purchases the number and sets its SMS webhook to PUBLIC_BASE_URL + /webhooks/sms.\n3. POST /webhooks/sms: validate the Twilio signature, reject anything that fails, store from, to, body, received_at, and the raw payload JSON.\n4. Regex-extract a likely OTP from the body (4 to 8 digits, prefer digits adjacent to words like code, OTP, verification) and store it in a separate column.\n5. GET /: inbox listing messages newest first, grouped by the receiving number, with a one-click copy button for the extracted code.\n6. Server-sent events so an open inbox tab shows a new message within a second of the webhook firing.\n7. CLI script `npm run numbers:release -- +14155550123` that releases the number back to Twilio.\n\nOut of scope, do not build: user accounts, multi-tenant anything, number pooling or rotation, outbound SMS, voice, telemetry, Docker, cloud deploy config.\n\nREADME must state plainly: Twilio requires identity verification, numbers cost money monthly whether used or not, Twilio VoIP long codes are rejected by many services for verification, and the user is responsible for complying with the terms of service of whatever is sending the messages.\n\nInclude a `npm run dev:tunnel` note explaining how to point PUBLIC_BASE_URL at a tunnel for local testing, plus a seed script that inserts two fake messages so the inbox UI can be checked without spending money.",
+  "promptCurated": false
+}
