@@ -1,0 +1,52 @@
+{
+  "slug": "kahoot",
+  "name": "Kahoot!",
+  "domain": "kahoot.com",
+  "category": "education",
+  "subcategory": "live quiz games",
+  "tagline": "Live multiplayer quiz game where a host projects questions and players answer on their phones for points.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://kahoot.com/",
+    "checkedOn": "2026-10-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Kahoot has a free tier plus separate personal, school and business plans.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanic is not hard: a host screen, a room code, websockets, a countdown, and points weighted by answer speed. An agent can get a working lobby, 20 players on their phones, and a leaderboard in a weekend, and for family trivia night or a team offsite that is genuinely enough. What you do not get is the part that makes Kahoot Kahoot: the enormous library of ready-made public quizzes, the music and animation timing that makes a classroom shout, and the reliability of 30 kids joining on bad school wifi at the same second. Reporting, rosters, LMS integrations and the mobile apps are all out of scope too. Build it for your own group, do not build it to replace a classroom tool.",
+  "coreLoopDIY": "Runs a self-hosted live quiz server where the host projects questions on one screen and players join with a room code to answer on their phones, scored by correctness and speed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Node host that allows websockets (a small VPS, or a laptop on the same wifi as the players)",
+    "Your own questions, written by hand or imported from CSV or JSON",
+    "A shared screen or projector for the host view",
+    "Players all on the same network or a public URL with HTTPS"
+  ],
+  "whatYouLose": [
+    "The library of millions of ready-made public quizzes, so every game starts with a blank question list",
+    "The sound design, timers and reveal animations that actually drive the energy in a room",
+    "Native iOS and Android apps, plus the reliability of a service built for hundreds of simultaneous joins on weak wifi",
+    "Reports, class rosters, SSO and LMS integrations that schools and trainers depend on",
+    "Game modes beyond basic multiple choice: team mode, puzzle ordering, assigned homework, polls with saved results"
+  ],
+  "moatTags": [
+    "content-rights",
+    "brand-trust",
+    "network-effects"
+  ],
+  "moatNotes": "The quiz corpus is user-generated but it lives on Kahoot, and the brand is so embedded in classrooms that teachers say the product name instead of the word quiz.",
+  "whyPeopleStillPay": "Mostly because the content and the ritual are already there. A teacher with six minutes before class does not want to author ten questions, they want to search a topic, pick a public kahoot made by someone else, and hit start. Institutions pay on top of that for rosters, reports, safe-for-school hosting and a vendor their IT department has already approved. A self-hosted clone solves the mechanic, not the cold start or the procurement.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The game loop is a weekend; the question bank is the actual product.",
+  "prompt": "Build a self-hosted live quiz game, in the spirit of Kahoot, for a single host and up to 40 players on the same network.\n\nStack, no substitutions: Node 20, Express, Socket.IO, SQLite via better-sqlite3, and plain server-rendered HTML with vanilla JS and CSS. No React, no build step, no bundler, no accounts, no telemetry, no third-party services.\n\nData model in SQLite: quizzes (id, title), questions (id, quiz_id, text, choices as JSON, correct_index, time_limit_seconds), and games (id, quiz_id, room_code, started_at, finished_at) plus a results table (game_id, player_name, score).\n\nQuiz import: a CLI script `npm run import -- quiz.csv` that reads a CSV with columns question,choice_a,choice_b,choice_c,choice_d,correct,seconds and creates a quiz. Also accept a JSON file with the same shape. Ship two example files in /examples.\n\nFlows:\n1. Host opens /host, picks a quiz, gets a 6-character room code and a lobby showing player names as they join.\n2. Players open / on their phones, enter the room code and a nickname, and land in a waiting screen.\n3. Host clicks Start. For each question the host screen shows the question text, the four choices with colors and shapes, and a countdown bar. Player screens show only four big colored buttons, no text.\n4. Score each correct answer 1000 points scaled down by how much of the time limit elapsed, 0 for wrong or no answer. Reveal the correct choice and a top-5 leaderboard between questions, advanced by the host.\n5. After the last question show final standings on the host screen and persist them to the results table.\n\nRules: all state transitions are server-authoritative over Socket.IO, clients never decide correctness. Handle reconnects by nickname within the same game. Reject duplicate nicknames in one room. Room codes expire when the game finishes.\n\nAlso build /results listing past games with their standings.\n\nOut of scope, do not build: user accounts, a public quiz library, team mode, images or video in questions, mobile apps, email, payments.\n\nPut PORT and nothing else in .env.example. README must cover install, import, and the exact command to start the server plus how players find the host on a LAN.\n\nWrite a quick test for the scoring function and for the CSV importer.",
+  "promptCurated": false
+}
