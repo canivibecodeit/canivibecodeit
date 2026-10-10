@@ -1,0 +1,51 @@
+{
+  "slug": "trm-labs",
+  "name": "TRM Labs",
+  "domain": "trmlabs.com",
+  "category": "security",
+  "subcategory": "blockchain intelligence and crypto compliance",
+  "tagline": "Blockchain analytics and risk scoring used by exchanges, banks, and law enforcement to trace crypto funds and screen wallets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.trmlabs.com/",
+    "checkedOn": "2026-10-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise sales, no public price list.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "TRM sells attribution, not software. The UI is a graph view and a risk score, both of which an agent can mock in an afternoon, but the score is only worth anything because TRM has spent years clustering addresses to real entities: exchanges, mixers, ransomware crews, sanctioned actors, darknet markets. You cannot derive that from public chain data in a weekend, and the customers buying it are buying it so a regulator or a court will accept the output. A personal replacement can screen against public sanctions lists and trace hops, which is genuinely useful and genuinely not the product.",
+  "coreLoopDIY": "A local tool that screens a crypto address against public sanctions and tag lists, then traces inbound and outbound hops from a block explorer API into a simple flow graph.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Etherscan or similar block explorer API key, free tier is fine",
+    "Network access to fetch the OFAC SDN list and public tag datasets",
+    "Python 3.11+"
+  ],
+  "whatYouLose": [
+    "Entity attribution: who actually owns the wallet on the other end of the hop",
+    "Coverage across dozens of chains and bridges, with cross chain tracing stitched together",
+    "A risk score anyone else will accept, including auditors, banking partners, and regulators",
+    "Continuously updated threat intel on new mixers, scam clusters, and sanctioned addresses",
+    "Case management, audit trails, and the SOC 2 shaped paperwork compliance teams need"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "The clustering heuristics are reproducible in principle. The labels attached to the clusters are not, and the labels are the product.",
+  "whyPeopleStillPay": "Compliance teams are not buying a graph explorer, they are buying a defensible answer. When an exchange freezes a withdrawal or a bank declines a counterparty, someone eventually asks why, and the acceptable answer is a named vendor report rather than a script someone wrote. On top of that, the attribution dataset is built from subpoenas, law enforcement partnerships, exchange cooperation, and years of analyst labor, which is exactly the kind of asset that does not fall out of a code generator. Add multichain coverage and the fact that regulators increasingly expect a real screening vendor, and the build-versus-buy math stops being close.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The graph view is a weekend; the labels on the nodes are a decade. The moat is proprietary entity attribution plus the fact that regulators want a vendor name on the report, not your Python script.",
+  "prompt": "Build a local crypto address screening and tracing tool. Python 3.11, FastAPI backend, SQLite via sqlite3 stdlib, single page frontend with vanilla JS and Cytoscape.js from a CDN. No accounts, no cloud, no telemetry.\n\nIngestion, run as a CLI command `python -m screener.refresh`:\n1. Download the OFAC SDN list XML and the consolidated list, parse out every digital currency address in the ID fields, store address, chain hint, entity name, program, and list date in a `sanctions` table.\n2. Download one or two public address tag datasets if reachable (for example community maintained exchange and mixer address lists in CSV or JSON) into a `tags` table with address, label, source, fetched_at. Skip gracefully with a warning if a source is unreachable. Do not fabricate labels.\n3. Record every refresh in a `refresh_log` table so the UI can show how stale the data is.\n\nScreening API: POST /screen takes an address and returns direct list hits, plus any tag matches, plus a plain English rationale string. Do not emit a numeric risk score. Emit one of three buckets: `sanctioned-match`, `tagged`, `no-public-match`, and state explicitly that `no-public-match` means nothing was found in public data, not that the address is clean.\n\nTracing API: POST /trace takes an address, a direction (in, out, both), and a depth of 1 or 2. Use the Etherscan v2 API with the key from ETHERSCAN_API_KEY in .env to pull normal and ERC20 transfers. Build a node and edge list, screen every counterparty address against the local tables, cache all API responses in a `tx_cache` table keyed by address and endpoint with a timestamp, and respect a 5 requests per second limit with retries.\n\nFrontend: one input box, a screening verdict card, and a Cytoscape graph where sanctioned nodes are red, tagged nodes are amber, unknown nodes are grey. Clicking a node re-screens it and offers to expand one more hop. Include an export to JSON button.\n\nExplicitly out of scope: multichain support beyond EVM chains Etherscan covers, UTXO chain clustering, bridge tracing, case management, PDF reports, any claim that output is compliance grade.\n\nShip a README that says in the first paragraph that this is a personal research tool, that public lists are incomplete, and that it must not be used as a regulatory screening control. Include .env.example, a Makefile with `make refresh` and `make serve`, and pytest tests for the SDN parser and the screening buckets using fixture files checked into the repo.",
+  "promptCurated": false
+}
