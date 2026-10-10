@@ -1,0 +1,51 @@
+{
+  "slug": "codex",
+  "name": "Codex",
+  "domain": "openai.com",
+  "subcategory": "AI coding agent",
+  "category": "dev-tools",
+  "tagline": "OpenAI's cloud and CLI coding agent that reads your repo, writes code, runs tests and opens pull requests.",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "ChatGPT Plus (Codex included)",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://openai.com/de-DE/codex/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The harness around a coding agent is genuinely a weekend project: a loop that sends context to a model, lets it call read/write/shell tools, and stops when tests pass. What you cannot build is the model doing the actual reasoning, and every DIY version just rents one by the token from OpenAI or Anthropic, which is a hard third-party dependency by definition. On top of that, Codex ships sandboxed cloud containers, repo-wide context handling, parallel task runs and GitHub integration that are infrastructure work, not prompt work. You can absolutely write your own agent CLI and many people have, but you have replaced the wrapper, not the product. Rebuilding it to save the subscription usually costs more in API credits than the subscription.",
+  "coreLoopDIY": "A local terminal agent that loops over a model's tool calls to read, patch and test files in your repo until the tests pass.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a frontier model, billed by usage",
+    "Node 20+ and a git repo to point it at",
+    "Willingness to run shell commands suggested by a model, ideally in a container"
+  ],
+  "whatYouLose": [
+    "The frontier model itself, which you can only rent, never self-host at comparable quality",
+    "Cloud sandboxes that run long tasks in parallel while you close your laptop",
+    "GitHub integration: branch creation, PR drafts, CI feedback loops",
+    "Repo-scale context management that has been tuned on real codebases",
+    "Guardrails around destructive shell commands and secret exposure"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The agent loop is commodity and open source three times over. The weights and the sandbox fleet are not.",
+  "whyPeopleStillPay": "Because the subscription bundles the model, the sandbox and the plumbing at a flat price, and a self-built agent bundles none of it. Usage-billed API calls on a chatty agent loop drain a card faster than a seat license, and you also inherit every failure mode: runaway shell commands, context blowups, half-applied patches. Building your own is a great way to learn how agents work and a bad way to save twenty euros.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The agent loop is a weekend build; the thing it calls is not. The moat is proprietary frontier models plus the sandbox fleet that runs them for hours at a flat monthly price.",
+  "promptCurated": false,
+  "prompt": "Build a local terminal coding agent called \"minicodex\" in an empty folder.\n\nStack, no substitutions: TypeScript on Node 20, plain fetch, no agent frameworks, no LangChain. Package manager pnpm. Single binary entrypoint via tsx.\n\nBehaviour:\n- CLI usage: pnpm start \"make the failing test in src/parser.test.ts pass\"\n- It operates on the current working directory, which must be a clean git repo. Refuse to run if git status is dirty.\n- It creates a branch minicodex/TIMESTAMP before touching anything.\n- It loops: send the task plus a file tree plus the transcript to the model, receive tool calls, execute them, feed results back. Stop on success, on 25 iterations, or on user Ctrl-C.\n\nTools exposed to the model, implemented as real functions:\n- list_files(glob)\n- read_file(path, optional line range)\n- write_file(path, full contents)\n- apply_patch(unified diff) implemented with git apply\n- run_command(cmd) restricted to an allowlist of prefixes: npm, pnpm, node, npx tsc, git diff, git status, pytest, cargo, go test. Anything else is refused and the refusal is returned to the model.\n\nSafety, not optional:\n- Every write_file and apply_patch is printed as a diff and requires a y/n from the user unless --yolo is passed.\n- Hard timeout of 120 seconds per command, output truncated to 8000 chars.\n- Never read or send files matching .env, *.pem, *.key, or anything in .gitignore.\n\nModel access: OPENAI_API_KEY from .env via node --env-file. One model name in a single CONFIG constant at the top of the file. Print token counts and a running cost estimate after every turn, because this is the whole point.\n\nOut of scope, do not build: web UI, cloud sandboxes, GitHub API integration, multi-agent orchestration, vector search over the repo, telemetry, accounts.\n\nDeliverables: src/index.ts, src/tools.ts, src/loop.ts, .env.example, README.md with a two-command quickstart, and one vitest test that stubs the model response and asserts the tool dispatcher runs the right tool."
+}
