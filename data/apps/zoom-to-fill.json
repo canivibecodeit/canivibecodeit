@@ -1,0 +1,49 @@
+{
+  "slug": "zoom-to-fill",
+  "name": "Zoom to Fill",
+  "domain": "zoomtofill.com",
+  "category": "productivity-utilities",
+  "subcategory": "macOS window management",
+  "tagline": "A tiny single purpose desktop utility for snapping the focused window to fill the screen instead of macOS's half baked green button zoom.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://zoomtofill.com/",
+    "checkedOn": "2026-10-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Window resizing is one of the most thoroughly solved problems on the desktop, and the hard part is a single Accessibility API call plus a global hotkey. An agent can produce a working menu bar app that grabs the focused window, computes the visible frame of whatever display it lives on, and sets position and size, in one session. The remaining work is not logic, it is the boring platform tax: permissions prompts, code signing, multi monitor coordinate math, and apps like Terminal that refuse to resize to exact pixels. If you only want the behavior for yourself, a Hammerspoon config does it in about ten lines and you are done before lunch. If you want something you forget is installed, that is what the paid version is selling.",
+  "coreLoopDIY": "Press a global hotkey and the focused window resizes to fill the visible area of the display it is currently on, with optional margins.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "macOS with Xcode installed, or Hammerspoon if you want the ten line version",
+    "Accessibility permission granted to your build",
+    "A machine you are willing to run unsigned local builds on"
+  ],
+  "whatYouLose": [
+    "Code signing and notarization, so your build nags on every OS update and will not move between machines cleanly",
+    "Sane handling of multiple displays with different scaling, plus Spaces and full screen edge cases",
+    "Per app exceptions for the handful of apps that lie about their resizable frame",
+    "Updates when Apple changes window behavior again, which it will",
+    "Icon, preferences UI, and the general feeling that someone cared"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The entire product is polish on top of one API call, which is a real thing to sell and also a thing you can approximate badly in an afternoon.",
+  "whyPeopleStillPay": "Because a utility you use thirty times a day cannot be 95 percent reliable. The DIY version works great until you plug in a second monitor, or update macOS, or hit the hotkey while a Chrome dialog has focus, and then you are debugging Accessibility API quirks instead of doing the thing you opened the window for. A few dollars once to never think about it again is a rational trade, and most people who build this themselves end up reinstalling the paid one within a month.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The free consolation prize is Hammerspoon, which does this in ten lines of Lua and asks nothing of you except tolerating Lua.",
+  "prompt": "Build a minimal macOS menu bar app called FillIt that resizes the focused window to fill its display.\n\nStack: Swift, SwiftUI for the menu bar item, AppKit and the Accessibility API for window control. No external packages. Target macOS 14 or later. Create an Xcode project structure that builds with xcodebuild from the command line.\n\nBehavior:\n- Register a global hotkey, default Control Option Return, using a Carbon RegisterEventHotKey shim or NSEvent global monitor, pick one and keep it simple.\n- On trigger: find the frontmost application via NSWorkspace, get its focused window with AXUIElementCopyAttributeValue on kAXFocusedWindowAttribute, read the window frame, determine which NSScreen contains the window center, then set kAXPositionAttribute and kAXSizeAttribute to that screen's visibleFrame.\n- Convert correctly between Cocoa bottom left origin coordinates and Accessibility top left global coordinates. Get this right for multi monitor setups with negative origins.\n- Support an inset value in points, default 0, applied on all four sides.\n- Second press of the hotkey on the same window restores the previous frame. Keep one cached frame per window id in memory only.\n\nMenu bar menu: a toggle for launch at login using SMAppService, a small inset stepper, an item that opens System Settings to the Accessibility pane, and Quit.\n\nPermissions: on first launch check AXIsProcessTrustedWithOptions and show a plain window explaining that Accessibility access is required, with a button that triggers the system prompt. Re-check on activation.\n\nOut of scope: half and quarter snapping, window layouts, drag to edge gestures, preferences persistence beyond UserDefaults, any analytics, any network calls, any accounts, any auto update. No telemetry, the app must make zero outbound connections.\n\nDeliver a README with build instructions, the known failure modes with apps that ignore AX resize requests, and a note that the build is unsigned so macOS will complain.",
+  "promptCurated": false
+}
