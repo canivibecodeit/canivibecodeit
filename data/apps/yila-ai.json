@@ -1,0 +1,50 @@
+{
+  "slug": "yila-ai",
+  "name": "Yila AI",
+  "domain": "yila.ai",
+  "category": "presentations",
+  "subcategory": "research papers to slide drafts",
+  "tagline": "Hosted workspace that turns papers and research notes into editable PowerPoint drafts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://yila.ai/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is a pipeline, not a platform: extract text from a PDF, ask a model for a section-by-section outline, render the outline into a PPTX. python-pptx and any decent LLM API get you a working version of that in an afternoon, and the output is a draft you were going to rewrite anyway. What you will not get in one sitting is the boring part that actually hurts: pulling figures and tables out of a two-column paper at usable resolution, keeping captions attached to the right image, respecting a conference or lab template, and a web editor to fix slide 7 without rerunning the whole job. There is no data moat and no network effect, just an LLM key and a lot of formatting edge cases. Also worth saying out loud: neither the hosted tool nor your clone verifies that the claims on the slides match the paper, so the checking work is identical either way.",
+  "coreLoopDIY": "Point a CLI at a PDF and a one-paragraph brief, get a reviewable outline file and then a PPTX built from it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) in .env",
+    "Python 3.11 with pymupdf and python-pptx",
+    "A .pptx template file if you care about branding",
+    "Local disk for extracted figures"
+  ],
+  "whatYouLose": [
+    "Clean figure and table extraction from multi-column academic PDFs, which is the single hardest part",
+    "A browser editor for nudging slides without rerunning the pipeline",
+    "Template and theme handling that survives contact with a real conference deck",
+    "Sharing, versioning and revisiting a project weeks later without digging through a folder",
+    "Whatever prompt tuning they have done specifically for academic structure, which you will rediscover by hand"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The defensibility is in PDF layout parsing and slide formatting quality, both unglamorous and both genuinely annoying to match.",
+  "whyPeopleStillPay": "Because a researcher with a talk on Thursday does not want to debug image bounding boxes. The hosted version absorbs the PDF parsing mess, hands back something that opens in PowerPoint without looking broken, and lets you fix it in a browser instead of in a Python traceback. If you make two decks a year, paying is obviously correct. If you make two a month and have opinions about your template, the local pipeline starts paying for itself fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The slide generation is easy, the PDF is the enemy. Budget your weekend for pymupdf, not for prompts.",
+  "prompt": "Build a local command line tool called paper2deck that turns a research paper PDF into an editable PowerPoint draft.\n\nStack, no substitutions: Python 3.11, pymupdf for PDF parsing, python-pptx for output, the Anthropic API for text generation, typer for the CLI. No web server, no database, no accounts, no telemetry.\n\nPipeline, three explicit stages so the user can intervene between them:\n1. `paper2deck extract paper.pdf` writes ./out/extract.json containing: document title, detected section headings with their body text, and a list of figures. Use pymupdf to pull embedded raster images and their nearest caption text (look for blocks starting with Figure/Fig./Table), save images to ./out/figures/ and reference them by path. Record page numbers for everything.\n2. `paper2deck outline --brief brief.txt` reads extract.json plus a plain text brief (audience, talk length in minutes, tone) and calls Claude to produce ./out/outline.yaml: a list of slides, each with title, 2 to 5 bullet strings, optional figure path, and optional speaker_notes. Target roughly one slide per minute. Prompt the model to quote or closely paraphrase the paper and to put any claim it is unsure about in speaker_notes rather than on the slide. The YAML is meant to be hand edited.\n3. `paper2deck build` reads outline.yaml and writes ./out/deck.pptx via python-pptx. Support `--template my.pptx` to inherit theme, fonts and slide masters from an existing deck; fall back to a plain 16:9 default. Use a title layout for slide 1, a title-and-content layout for bullet slides, and a title-and-picture layout when a figure path is present. Scale images to fit the placeholder without distorting aspect ratio. Write speaker_notes into the notes slide.\n\nIn scope: reproducible runs, clear errors when a figure file is missing, `--model` flag, API key read from .env via python-dotenv.\n\nOut of scope, do not build: OCR for scanned PDFs, vector figure reconstruction, citation formatting, fact checking, a GUI, cloud storage.\n\nAdd a README with a worked example and one sample brief.txt. Print a loud reminder after `build` that every number, claim and figure on the slides is unverified and must be checked against the paper.",
+  "promptCurated": false
+}
