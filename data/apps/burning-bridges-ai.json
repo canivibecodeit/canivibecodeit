@@ -1,0 +1,51 @@
+{
+  "slug": "burning-bridges-ai",
+  "name": "Burning Bridges AI",
+  "domain": "burningbridgesai.dev",
+  "category": "generative-media",
+  "subcategory": "hosted image and video generation",
+  "tagline": "Paid web app that runs third-party image and video models behind a single UI with model, duration, aspect ratio and resolution controls.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://burningbridgesai.dev/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product here is a control panel, not a model. An agent can rebuild the whole surface, prompt box, model picker, duration and aspect ratio and resolution selects, job queue, gallery, in one sitting, because every one of those controls is a field in somebody else's inference API. What you cannot rebuild is the GPU, so your clone still needs a fal.ai or Replicate key and still pays per second of video. That means the honest result is a cheaper, uglier, single-user version of the same thing, which is a real win if you generate occasionally and a wash if you generate a lot. Call it kinda: the build is easy, the bill does not go away.",
+  "coreLoopDIY": "A local web app where you type a prompt, pick a model and duration and aspect ratio and resolution, fire a job at a hosted inference provider, and watch finished images and clips land in a local gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An inference provider API key, fal.ai or Replicate",
+    "A card on file there, video generation is billed per generation and is not cheap",
+    "Node 20 plus local disk for output files"
+  ],
+  "whatYouLose": [
+    "Curated, pre-tested model and parameter presets, you will spend real money discovering which settings are garbage",
+    "Somebody else absorbing failed generations, timeouts and model deprecations",
+    "Commercial usage terms and indemnity language bundled into a paid plan",
+    "Shareable links, mobile access and anything resembling team use",
+    "Fast CDN delivery of large video files, you get a folder"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The moat is rented. They do not own the weights either, they own the GPU relationship, the defaults and the fact that it already works.",
+  "whyPeopleStillPay": "Because the annoying part of generative video is not the interface, it is knowing which model at which resolution and duration produces something you would actually use, and eating the cost of finding out. A hosted product has already burned that money, pinned sane defaults, and handles the long tail of queue failures and model swaps that will otherwise land in your lap on a Tuesday. If you generate a handful of clips a month, the subscription is roughly a convenience tax on top of inference you were going to pay for anyway. If you generate constantly, the math flips and your own wrapper wins.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A fine thing to clone, just do not pretend the clone is free: you are replacing a subscription with a metered API key.",
+  "prompt": "Build a local, single-user generative media studio. No accounts, no telemetry, no cloud deploy.\n\nStack, non-negotiable: Next.js 15 App Router, TypeScript, Tailwind, SQLite via better-sqlite3. Run with npm run dev on port 3000.\n\nInference: fal.ai via the @fal-ai/client package. Read FAL_KEY from .env.local. Never hardcode the key. Commit a .env.example with FAL_KEY= and nothing else.\n\nCore screen, one page:\n- A prompt textarea plus an optional negative prompt field.\n- Mode toggle: image or video.\n- Model select, populated from a hand-written models.ts registry. Each entry declares: id, label, mode, supported aspect ratios, supported resolutions, and for video, allowed durations in seconds. The UI must disable or hide controls the selected model does not support. Seed it with two image models and two video models you are confident exist on fal; if unsure, put obvious TODO placeholders rather than inventing endpoint ids.\n- Aspect ratio, resolution and duration selects driven entirely by the registry.\n- A seed field with a dice button for random.\n- Generate button that shows estimated cost if the registry has a price, otherwise says cost unknown.\n\nJobs: POST /api/generate inserts a row into a jobs table (id, created_at, mode, model, prompt, params json, status, error, output_path) with status queued, then submits to fal and polls server-side. The client polls GET /api/jobs every 2 seconds. Statuses: queued, running, done, failed. Show the real provider error text on failure, do not swallow it.\n\nOutputs: download the finished file to ./outputs/{job_id}.{ext} and serve it from a route handler. Store only the local path in SQLite.\n\nGallery: reverse-chronological grid below the form. Images render inline, videos use a native video tag with controls. Each card shows model, duration or resolution, seed, and a copy-params button that refills the form with that job's exact settings. Include delete, which removes the row and the file.\n\nOut of scope, do not build: auth, user accounts, Stripe, sharing links, upscaling, img2img, batch queues, image editing, mobile layout polish beyond basic responsive stacking.\n\nFinish with a README: how to get a FAL_KEY, how to add a model to the registry, and a blunt warning that video generation bills per generation and a careless afternoon costs real money.",
+  "promptCurated": false
+}
