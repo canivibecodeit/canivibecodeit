@@ -1,0 +1,51 @@
+{
+  "slug": "owl-agent",
+  "name": "Owl Agent",
+  "domain": "owlagent.me",
+  "category": "ai-assistant",
+  "subcategory": "autonomous AI agent runner",
+  "tagline": "Hosted AI agent that takes a goal in plain language, plans the steps, calls tools, and reports back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.owlagent.me/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The agent loop itself is not the hard part anymore: a model, a tool registry, a while loop, and a transcript log gets you most of the demo in an afternoon. What you will not reproduce in one sitting is everything around the loop: always-on scheduling, retries that do not silently burn tokens, OAuth into the services you actually want the agent to touch, and guardrails that stop a confused run from doing something dumb twice. A personal build is genuinely good for narrow, repeated tasks where you already know the shape of the work. It gets flaky the moment you want it to act across five SaaS accounts without supervision. Treat the DIY version as a scriptable assistant, not an employee.",
+  "coreLoopDIY": "A local agent runner that takes a plain-language goal, loops a model over a small set of registered tools until done, and writes every step to an inspectable transcript.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key with tool calling support",
+    "Node 20+ and a terminal",
+    "API keys or credentials for any tool you want the agent to touch",
+    "Willingness to read transcripts and cap spend yourself"
+  ],
+  "whatYouLose": [
+    "Always-on hosted execution: your laptop asleep means no runs",
+    "Prebuilt OAuth connectors, so every integration is yours to wire and refresh",
+    "Guardrails, approval steps, and spend caps that someone else already tuned",
+    "Mobile access and notifications when a run finishes or fails",
+    "Observability: traces, replays, and a UI that makes a 40-step run readable"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The agent loop commoditized fast. The connector catalog and the hosted scheduler are the parts people actually pay for.",
+  "whyPeopleStillPay": "Because the gap between a working agent loop and an agent you trust unattended is mostly unglamorous operations work: token credentials that expire, tools that return HTML instead of JSON, runs that need to resume at 3am, and a log you can actually audit when something goes sideways. Paying buys you the connectors already debugged and a server that does not sleep. If your use case is two or three tasks against APIs you already have keys for, that is a thin thing to pay for. If it is twelve tasks across a dozen vendor accounts, it is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this if you want one specific chore automated; buy something if you want a fleet of them running while you sleep.",
+  "prompt": "Build a local, single-user AI agent runner in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- TypeScript on Node 20, run with tsx\n- SQLite via better-sqlite3 for runs, steps, and tool call logs\n- Hono for a tiny local HTTP server on port 8787\n- One LLM provider using tool calling, key from .env as LLM_API_KEY, model name in .env as LLM_MODEL\n- Plain server-rendered HTML plus htmx for the UI. No React, no build step for the frontend.\n\nWhat it does:\n- POST a goal in plain language, create a run row, then loop: send goal plus transcript plus tool schemas to the model, execute any tool call it returns, append the result, repeat until the model emits a final answer or MAX_STEPS (default 15) is hit.\n- Persist every message, tool call, tool result, token usage, and latency to SQLite.\n- A run detail page showing the full transcript step by step, collapsible tool payloads, total tokens, and a cancel button.\n- A run list page with status: running, done, failed, cancelled, step-capped.\n\nTools to ship, in a registry file where each tool is name, zod schema, and handler:\n- http_get: fetch a URL, strip tags, return first 8000 chars of text\n- read_file and write_file, sandboxed to a ./workspace directory, reject path traversal\n- run_shell: allowlist of commands from .env, refuse everything else\n- sqlite_query: read-only query against a user-supplied db path\n\nSafety and cost, implement properly, do not skip:\n- Per-run token budget from .env, abort when exceeded\n- Tools marked dangerous require an approve click in the UI before execution; the run parks in a pending_approval state\n- Exponential backoff on provider 429s and 5xx, max 3 retries per call\n\nExplicitly out of scope: multi-user auth, OAuth connectors to third-party SaaS, scheduling or cron, mobile app, vector memory, multi-agent orchestration.\n\nDeliver a README with setup in under ten lines, a .env.example, and one seeded example run so the UI is not empty on first load.",
+  "promptCurated": false
+}
