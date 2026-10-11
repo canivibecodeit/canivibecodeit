@@ -1,0 +1,51 @@
+{
+  "slug": "producer-tag-generator",
+  "name": "Producer Tag Generator",
+  "domain": "producertag.org",
+  "category": "ai-audio",
+  "subcategory": "voice tag creation for beatmakers",
+  "tagline": "Browser tool that turns a typed phrase into a processed producer voice tag you can drop on a beat.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://producertag.org/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app is three things stacked: text to speech, an effects chain, and an MP3 export. An agent can wire all three in a sitting, because Web Audio gives you pitch, delay, reverb, distortion and filters for free, and offline rendering plus an MP3 encoder handles the file. The part you cannot one-shot is the voice itself: convincing tag voices come from a hosted TTS model, so your build either calls someone's API with your own key or settles for a local model that sounds thinner than what you hear on the site. The other gap is taste, meaning the preset stacks that make a tag sound like a tag instead of a robot reading a word. Build it if you want unlimited renders and full control of the chain, not if you expect the same voice bank out of the box.",
+  "coreLoopDIY": "Type a phrase, pick a voice and a preset, synthesize it, run it through a tunable Web Audio effects chain, preview, then render and download a normalized MP3 or WAV.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A TTS provider API key in .env, or a local model if you accept lower quality",
+    "Node 20 plus a modern browser for Web Audio and OfflineAudioContext",
+    "An MP3 encoder library for export, WAV only if you skip it",
+    "Some patience tuning preset chains so the tags do not sound flat"
+  ],
+  "whatYouLose": [
+    "The curated voice bank and the style labels that make picking a voice fast",
+    "Preset chains tuned by someone who has actually heard a thousand tags",
+    "Reliable MP3 rendering across browsers, your own export will have edge cases",
+    "Hosted inference, meaning you now own an API key, rate limits and per-render cost",
+    "Any licensing or usage clarity the service offers around commercial release"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is renting a good voice model and knowing which effects stack makes it sound like a tag. The first part is buyable, the second is taste.",
+  "whyPeopleStillPay": "Because a producer wants a tag in two minutes, not an afternoon of Web Audio graph debugging. Paying also outsources the voice model bill, the browser export quirks and the question of which preset actually sounds commercial. If you make tags constantly and hate paying per render, the DIY version pays off fast. If you need one tag for one project, the math is not close.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The effects chain is the easy half, the voice is the half you rent.",
+  "prompt": "Build a local web app called TagForge: a producer voice tag generator that runs on my machine.\n\nStack, no substitutions: Vite + React + TypeScript for the frontend, a small Express server in the same repo as an API proxy. No database, no accounts, no telemetry, no cloud storage.\n\nFlow:\n1. User types a short phrase, for example \"prod by ghostline\".\n2. User picks a voice from a list and a preset from a list.\n3. Clicking Generate calls POST /api/tts on the Express server, which proxies to the ElevenLabs text to speech API using ELEVENLABS_API_KEY from .env and returns raw audio.\n4. Frontend decodes the returned audio into an AudioBuffer and plays it through a live Web Audio effects chain so parameter changes are audible immediately.\n\nEffects chain, in this order, all with sliders and bypass toggles: gain, pitch shift via playbackRate on the source plus an optional detuned duplicate layer, highpass filter, lowpass filter, waveshaper distortion with a drive control, stereo widener using a short delay on one channel, feedback delay with time and mix, convolution reverb using a procedurally generated impulse response with decay and mix, then a simple limiter via DynamicsCompressor.\n\nShip at least five hardcoded presets that stack real values: Clean, Deep Pitch, Radio Filter, Hall Ghost, Stacked Chant. Presets set every slider at once and are editable afterward.\n\nExport: render the whole chain through OfflineAudioContext, peak normalize the result, then offer both WAV download and MP3 download. Use lamejs for the MP3 encode. Show the render duration and file size after export.\n\nAlso include: a project folder of recent renders kept in IndexedDB with name, date and a replay button, plus a JSON export and import of preset settings.\n\nOut of scope, do not build: user accounts, billing, voice cloning, multi track arrangement, any server side storage of audio, mobile native app.\n\nDeliver a README with setup steps, an .env.example containing ELEVENLABS_API_KEY, and a single npm run dev that starts both server and frontend. Never commit the key or send audio anywhere except the TTS provider.",
+  "promptCurated": false
+}
