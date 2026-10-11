@@ -1,0 +1,51 @@
+{
+  "slug": "4k-stogram",
+  "name": "4K Stogram",
+  "domain": "4kdownload.com",
+  "category": "audio-video",
+  "subcategory": "Instagram backup and media downloader",
+  "tagline": "Desktop app that downloads and backs up Instagram photos, videos, and stories from accounts, hashtags, or locations.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "one-time license, tiered by number of machines",
+    "unit": "one-time",
+    "source": "https://www.4kdownload.com/products/stogram-8",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The download loop is not the hard part: open source scrapers already do photos, videos, stories, and saved posts, and an agent can wrap one in a CLI plus a local SQLite index in an afternoon. The hard part is that Instagram actively does not want this to work, so endpoints shift, logins hit checkpoints, and rate limits turn into temporary bans. A paid desktop app is really a subscription to someone else keeping the scraper alive and shipping a build every time Meta changes something. Your version will work great for a month and then break on a Tuesday. If you are archiving a handful of accounts you follow, that tradeoff is fine; if you are archiving hundreds, it is not.",
+  "coreLoopDIY": "A local CLI that takes a list of Instagram accounts or hashtags, pulls new posts and stories on a schedule, and files them into dated folders with a SQLite index so nothing is downloaded twice.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ on your own machine",
+    "An Instagram account you are willing to risk rate limits or a checkpoint on",
+    "Session cookie or login stored in .env, not in code",
+    "Disk space, and the patience to re-pin a scraper library when it breaks"
+  ],
+  "whatYouLose": [
+    "A GUI with thumbnails, search, and progress bars instead of a terminal spewing filenames",
+    "Someone else's maintenance treadmill when Instagram changes its endpoints or adds a new challenge flow",
+    "Smooth handling of 2FA, checkpoints, and suspicious-login prompts",
+    "Edge case coverage: carousels, pinned posts, highlights, close-friends stories, expired links",
+    "Signed desktop builds on Windows and macOS that your family can actually install"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The integration here is adversarial: the vendor's real product is continuously re-reverse-engineering a platform that keeps changing on purpose.",
+  "whyPeopleStillPay": "Because scraping Instagram is a maintenance job, not a build job. People pay a one-time license so that when the download silently starts returning empty galleries, someone else fixes it and pushes an update, rather than them reading GitHub issues at midnight. Add a clickable interface that non-technical users can run without a Python environment and the price looks reasonable for what is, technically, a thin wrapper over a hostile API.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, just not permanently; treat your version as disposable and keep the archive, not the script.",
+  "prompt": "Build a local-only Instagram archiver CLI in Python 3.11. No web UI, no accounts, no telemetry, no cloud.\n\nStack: Python 3.11, instaloader as the scraping library, typer for the CLI, SQLite via the stdlib sqlite3 module, python-dotenv for secrets. Use a single pyproject.toml and a src/igarchive package. No Docker, no Postgres, no celery.\n\nWhat it does:\n1. `igarchive add ACCOUNT` and `igarchive add --hashtag TAG` append targets to a local targets table.\n2. `igarchive sync` iterates every target, fetches posts newer than the last synced shortcode, and downloads media plus the caption into data/ACCOUNT/YYYY-MM-DD_shortcode/ with the caption written as caption.txt and raw metadata as meta.json.\n3. `igarchive sync --stories` additionally pulls stories for accounts you follow.\n4. `igarchive list` prints each target, post count on disk, and last sync time.\n5. `igarchive doctor` checks that a login session exists, prints the last HTTP error seen, and exits nonzero if the session looks dead.\n\nRules:\n- Login once via `igarchive login`, which reads IG_USERNAME and IG_PASSWORD from .env, then saves instaloader's session file to ./session/. Never store the password anywhere else. Ship a .env.example and gitignore .env, ./session, and ./data.\n- Keep a SQLite table of downloaded shortcodes so re-running sync is idempotent and cheap.\n- Rate limit on purpose: configurable sleep between requests, default 3 to 8 seconds randomized, and exponential backoff with a hard stop after three consecutive 401 or 429 responses. Log the stop reason clearly instead of retrying forever.\n- Wrap every scrape call so a single failed post logs and continues rather than killing the run.\n- Write a plain-text run log to logs/sync-YYYY-MM-DD.log.\n\nOut of scope: GUI, Windows installer, proxy rotation, downloading accounts you do not have access to, any attempt to bypass a checkpoint or captcha.\n\nFinish with a README that states plainly that Instagram changes often, that this will break, and which single function to look at when it does.",
+  "promptCurated": false
+}
