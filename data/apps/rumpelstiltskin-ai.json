@@ -1,0 +1,52 @@
+{
+  "slug": "rumpelstiltskin-ai",
+  "name": "Rumpelstiltskin AI",
+  "domain": "rumpelstiltskin-ai.org",
+  "category": "ai-video",
+  "subcategory": "text-to-video studio",
+  "tagline": "A browser studio for generating short AI video clips from text and image prompts, with a gallery of your renders.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://rumpelstiltskin-ai.org/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Everything you actually see here is ordinary web work: a prompt form, a job queue, a progress spinner, a grid of finished clips, a download button. An agent can build that shell in a sitting and wire it to a hosted video model in an afternoon. What it cannot build is the generation itself, so you swap a subscription for metered API calls against someone else's GPUs and pay per second of footage either way. The gap is not the UI, it is the prompt plumbing: aspect ratios, seeds, image conditioning, retries on failed jobs, and whatever preset tuning makes the hosted product's output look less like a fever dream. Worth DIYing if you want your own archive and no credit expiry, not worth it if you expected to stop paying for compute.",
+  "coreLoopDIY": "A local studio page that submits text or image prompts to a hosted video model API, polls the job until it finishes, and files the resulting clip in a browsable local gallery with its prompt and settings attached.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted video model provider (Replicate, fal, or similar)",
+    "A credit card, because generation is billed per clip",
+    "Node 20 and about 10GB of local disk for cached renders",
+    "Patience for 30 to 180 second render times"
+  ],
+  "whatYouLose": [
+    "The video model itself, which you are now renting by the second instead of by the month",
+    "Tuned defaults and prompt rewriting that quietly make outputs look better than raw API calls",
+    "Hosted storage, sharing links, and anything resembling a team gallery",
+    "Model upgrades arriving without you touching the code",
+    "Any mobile experience beyond a page that technically loads on a phone"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "If the generation is itself a rented frontier model, the moat is thinner than it looks and mostly lives in defaults and queue reliability.",
+  "whyPeopleStillPay": "Because the subscription is a bundle: the model, the GPUs, the queue that does not lose your job at 90 percent, and someone else eating the cost of a failed render. A personal build gives you the archive and the knobs, but the bill just moves to a provider dashboard and the per-clip price is usually not better. Most people who try this once go back to paying, then keep the local gallery around as a backup of their own outputs.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The studio is a weekend; the clips are not. The moat is whoever owns the model weights and the GPU fleet behind them.",
+  "prompt": "Build a local, single-user AI video studio I run on my own machine. No accounts, no hosted backend, no telemetry.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3. Everything runs with `npm run dev` on localhost.\n\nGeneration: call a hosted video model through Replicate's HTTP API. Read REPLICATE_API_TOKEN and REPLICATE_MODEL from .env.local and commit a .env.example. Do not hardcode keys. Isolate every provider call in lib/provider.ts behind a single `generateVideo(params)` function so the provider can be swapped later.\n\nPages:\n1. /studio : a prompt form with text prompt, optional negative prompt, optional reference image upload, duration, aspect ratio (16:9, 9:16, 1:1), seed, and a Generate button. Show an estimated wait and the last settings used, persisted.\n2. /gallery : a responsive grid of finished clips, newest first, each with hover preview, prompt text, settings, download, delete, and a Reuse Settings button that sends you back to /studio prefilled.\n3. /clip/[id] : single clip page with the video player, full parameter dump, and raw provider response in a collapsible block.\n\nJobs: inserting a job writes a row with status queued, then a server-side poller advances it through running, done, or failed. Store the provider job id. Poll with backoff, cap at 10 minutes, mark failed with the provider error message instead of swallowing it. The studio page shows live status without a full reload via simple polling, not websockets.\n\nStorage: download finished videos to ./media and serve them locally so the gallery works offline after generation. Generate a poster thumbnail per clip with ffmpeg if it is on PATH, otherwise fall back to the first frame via a canvas grab on the client.\n\nOut of scope, do not build: user auth, billing, timeline editing, audio generation, upscaling, social sharing, model training.\n\nDeliver a README that states the real cost per clip comes from the provider, lists the env vars, and explains how to swap REPLICATE_MODEL. Seed the database with three fake completed rows pointing at sample files so the gallery is not empty on first run.",
+  "promptCurated": false
+}
