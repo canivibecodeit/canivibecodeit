@@ -1,0 +1,51 @@
+{
+  "slug": "viewtrack",
+  "name": "Viewtrack",
+  "domain": "viewtrack.app",
+  "category": "social-media",
+  "subcategory": "creator analytics",
+  "tagline": "Tracks views and engagement for your posts across social platforms in one dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.viewtrack.app/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The actual product here is a snapshot loop: hit a platform API every few hours, write the numbers to a table, draw a line. That part an agent writes before lunch. The gap is that half the platforms do not want to tell you anything without an approved developer app, and the two that matter most for short-form video are the two that make you beg. You can get YouTube working in an afternoon with an API key, fake the rest with manual entry or CSV import, and still have something useful for one person tracking their own accounts. What you will not have is the thing that quietly breaks every two months and gets fixed by someone else.",
+  "coreLoopDIY": "A local dashboard that polls the APIs you can actually access, snapshots view and engagement counts per post on a schedule, and charts growth over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "YouTube Data API key",
+    "developer app approval for any platform beyond YouTube, or manual entry as a fallback",
+    "somewhere that stays awake to run the scheduled job"
+  ],
+  "whatYouLose": [
+    "Working connectors for the platforms that gate their APIs behind app review",
+    "Someone else repairing the scrapers and endpoints when platforms change them",
+    "Mobile access and push alerts when a post takes off",
+    "Multi-account and client-facing reports if you ever need to show this to someone",
+    "Historical data before the day you ran the script for the first time"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The moat is not the charts, it is the maintenance contract on a dozen hostile APIs.",
+  "whyPeopleStillPay": "Because the boring part is not building it, it is keeping it alive. Platform APIs rot, rate limits move, auth flows change, and a creator checking numbers between edits does not want to debug a cron job. A few dollars a month to have somebody else own that, plus a phone-shaped view of it, is a reasonable trade for most people. The build makes sense if you are on one or two platforms and enjoy owning your own history.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chart is the easy half; the connectors are the product.",
+  "prompt": "Build a local-first social post analytics tracker called viewtrack-diy.\n\nStack, no substitutions: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling, Recharts for charts. Everything runs locally with `npm run dev`. No auth, no accounts, no hosted database, no telemetry.\n\nData model in SQLite:\n- accounts: id, platform ('youtube' | 'manual'), handle, external_id\n- posts: id, account_id, platform_post_id, title, url, published_at\n- snapshots: id, post_id, captured_at, views, likes, comments\n\nFeatures, in scope:\n1. A YouTube collector using the YouTube Data API v3 with an API key from .env (YOUTUBE_API_KEY). Given a channel ID, fetch the uploads playlist, upsert posts, then batch-fetch video statistics and insert one snapshot row per post per run. Respect quota: batch up to 50 video ids per request.\n2. A manual collector: a form and a CSV import (post url, title, date, views, likes, comments, captured_at) so platforms without an accessible API can be logged by hand.\n3. A scheduled runner: `npm run collect` that runs every collector once and is safe to call repeatedly. Document a cron line for every 6 hours in the README. Do not build an in-process scheduler.\n4. Dashboard page: table of posts sorted by views gained in the last 7 days, with sparklines. Post detail page: cumulative views line chart plus a per-day delta bar chart computed from snapshots.\n5. A \"velocity\" flag: mark any post whose last 24h view delta is more than 3x its trailing 7-day daily average.\n\nOut of scope, do not build: OAuth flows, TikTok or Instagram scraping, multi-user support, email or push alerts, PDF reports, deploy configs.\n\nDeliverables: schema migration run on boot, seed script with fake data so the UI renders before any API key exists, and a README that states plainly which platforms work out of the box and which require manual entry. Secrets only in .env, with a committed .env.example.",
+  "promptCurated": false
+}
