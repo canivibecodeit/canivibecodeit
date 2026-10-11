@@ -1,0 +1,52 @@
+{
+  "slug": "kenerate-ai",
+  "name": "Kenerate AI",
+  "domain": "kenerateai.net",
+  "category": "generative-media",
+  "subcategory": "multi-model media studio",
+  "tagline": "Hosted creative studio that generates images, video clips, voiceovers and music from one subscription.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://kenerateai.net/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Nothing here is algorithmically hard: the product is a prompt box, a job queue, a gallery and a billing wrapper around models somebody else trained. An agent can rebuild that shell in a weekend, and it will work, because fal.ai, Replicate and the big TTS providers sell the same capabilities by the second. The catch is that you are now the one holding the API keys, which means you eat per-render cost, rate limits, model deprecations and the occasional five minute video job that fails at 90 percent. You also lose the curated model picker, which sounds trivial until you are reading changelogs to find out which image model is currently good. Call it a credible personal replacement if you generate media occasionally, and a chore if you generate it daily.",
+  "coreLoopDIY": "A local web app with one prompt box per media type that fires jobs at hosted model APIs, polls for completion, and files the results in a searchable gallery with the prompt and settings attached.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for a model aggregator (fal.ai or Replicate) and a TTS provider",
+    "Pay-per-render spend, which is the actual cost center",
+    "Local disk or an S3 bucket for outputs",
+    "Patience with async jobs: video generations take minutes and fail sometimes"
+  ],
+  "whatYouLose": [
+    "Bundled pricing: a flat subscription hides the fact that video frames are expensive",
+    "Curation, someone else deciding which model is currently the good one",
+    "Mobile access unless you host it somewhere with auth",
+    "Commercial-use clarity and licensing terms spelled out for you in one place",
+    "Any polish around upscaling, inpainting, lipsync and the other second-order tools studios ship"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "content-rights"
+  ],
+  "moatNotes": "The defensible part is being the layer that keeps up with model churn and eats the GPU bill in bulk. That is operational work, not technical depth.",
+  "whyPeopleStillPay": "Because a flat monthly fee turns a volatile per-second GPU bill into a budget line, and because keeping a model roster current is a job. Most people who generate media want to type a prompt and get a usable clip, not evaluate which video model regressed this month or debug a webhook that dropped a job. The DIY version is honest and cheap at low volume, but it quietly hands you the role of integrator, and that role never finishes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The studio is a wrapper; the models are rented by everyone, including you.",
+  "prompt": "Build a local-only AI media studio called \"Studio\". Single machine, no accounts, no telemetry, no deploy step.\n\nStack, non-negotiable:\n- Next.js (App Router, TypeScript) with React Server Components where easy\n- SQLite via better-sqlite3 for job and asset records\n- Local filesystem storage under ./storage for generated media\n- Tailwind for styling, no component library\n- Model access through fal.ai's HTTP API only, plus OpenAI's speech endpoint for voiceover\n\nSecrets in .env.local: FAL_KEY, OPENAI_API_KEY. Read them server-side only. Never expose keys to the browser. Ship .env.example.\n\nFeatures in scope:\n1. Four generators on one page with tabs: Image, Video, Voiceover, Music. Each tab has a prompt textarea, a model dropdown populated from a hardcoded models.ts registry (id, label, kind, default params), and per-model numeric/select params rendered from that registry.\n2. Submit creates a row in a jobs table (id, kind, model, prompt, params JSON, status, error, created_at) and kicks off a server-side async call. Status flow: queued, running, done, failed.\n3. Poll job status from the client every 3 seconds until terminal. Video jobs can take several minutes: show elapsed time and never block the UI.\n4. On completion, download the output file to ./storage/{job_id}.{ext}, record it in an assets table, and serve it through a /api/asset/[id] route. Do not hotlink provider URLs, they expire.\n5. Gallery page: reverse-chronological grid of assets with inline preview (img, video, audio player), the original prompt, model, params, a copy-prompt button, a re-run button that reopens the generator prefilled, and delete that removes file plus row.\n6. Full-text search over prompts using SQLite FTS5.\n7. A spend log: store the provider's reported cost if returned, otherwise a hardcoded per-model estimate from the registry, and show a running total for the current month. Label it clearly as an estimate.\n\nOut of scope, do not build: user auth, multi-tenancy, payments, sharing links, team features, upscaling, inpainting, lipsync, Stripe, any analytics.\n\nHandle failures like an adult: retry once on 5xx, surface the provider's error string verbatim in the job row, and never leave a job stuck in running after a process restart (mark orphans failed on boot).\n\nDeliver a README with setup in four steps and one honest paragraph on per-render cost and how to swap models by editing models.ts.",
+  "promptCurated": false
+}
