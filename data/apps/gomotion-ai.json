@@ -1,0 +1,52 @@
+{
+  "slug": "gomotion-ai",
+  "name": "GoMotion AI",
+  "domain": "gomotionai.app",
+  "category": "ai-video",
+  "subcategory": "AI motion and animation generation",
+  "tagline": "AI tool that turns video or prompts into animated motion, aimed at creators who do not want to keyframe by hand.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://gomotionai.app/",
+    "checkedOn": "2026-10-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is a thin wrapper around the part you cannot one-shot: trained motion models and the GPUs that run them. An agent can absolutely build you an upload form, a job queue, and a results gallery in an afternoon, and that gets you a very nice empty box. The actual output quality comes from model weights plus a lot of unglamorous cleanup heuristics, and the open alternatives you can self-host are noticeably rougher than a polished commercial pipeline. If your use case is simple body motion capture from a single video, a local pose-estimation pipeline gets you surprisingly far for free. If you want clean, retargetable, production-usable motion from arbitrary input, you are paying for the models and the render farm, not the UI.",
+  "coreLoopDIY": "A local Python pipeline that takes an MP4, runs open-source pose estimation on it, and exports a rough skeletal animation you can import into Blender and clean up yourself.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Python 3.11 and ffmpeg locally",
+    "A machine with a GPU if you want this to finish before you lose interest",
+    "Blender installed for import, retargeting, and cleanup",
+    "Tolerance for jittery output and manual smoothing"
+  ],
+  "whatYouLose": [
+    "Model quality: commercial motion models are trained on licensed capture data you do not have",
+    "Text-to-motion entirely, open pose estimation only reads existing video",
+    "Clean rigs and retargeting that just work on your character instead of a day of bone mapping",
+    "Hands, fingers, and facial motion, which is where open pipelines fall apart first",
+    "Any kind of speed, local inference on long clips is a coffee-and-then-lunch affair"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "Motion data is expensive to capture and licensed carefully, which is why the good models are not sitting on a weights hub waiting for you.",
+  "whyPeopleStillPay": "Because the deliverable is believable motion, and believable motion is a model problem, not a software problem. You can replicate every button, the upload, the queue, the preview player, the download, and still ship output that looks like a drunk marionette. The commercial version is paying for licensed capture corpora, retargeting logic refined against thousands of real rigs, and inference hardware that returns a result in a minute instead of forty. For a hobby project the free pipeline is fine. For anything a client sees, the per-render fee is cheaper than your cleanup time.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the product in a day and the output in approximately never. The moat is licensed motion capture data plus the retargeting cleanup nobody blogs about.",
+  "prompt": "Build a local, single-user video-to-animation pipeline. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, uv for dependency management\n- MediaPipe Pose (or an equivalent open pose estimator) for 3D landmark extraction\n- ffmpeg via subprocess for frame extraction and clip trimming\n- Typer for the CLI\n- A single-file FastAPI + HTMX local UI on port 8000 for drag-and-drop jobs\n- SQLite for job records, stored in ./data/jobs.db\n\nIn scope:\n- CLI command: motion extract INPUT.mp4 --fps 30 --out out/clip.bvh\n- Extract per-frame 3D pose landmarks, map them to a fixed humanoid skeleton, write a valid BVH file\n- A temporal smoothing pass: one-euro filter or Savitzky-Golay over joint rotations, with --smooth 0..1\n- Foot contact detection and a crude foot-lock pass so the character does not skate\n- Render a side-by-side MP4 preview: original video next to a stick-figure playback of the BVH\n- Local web UI: drop a video, pick fps and smoothing, watch job status, download BVH and preview\n- A Blender import script in scripts/import_bvh.py that loads the BVH and retargets it onto the Rigify sample armature\n\nOut of scope, do not attempt:\n- Text-to-motion, hand and finger tracking, facial capture, multi-person tracking\n- Any hosted inference, API keys, or paid services\n- User auth, sharing, billing\n\nRequirements:\n- Everything runs offline after first model download\n- Any config lives in .env with a committed .env.example, no hardcoded paths\n- README with install steps, one worked example, and an honest Limitations section listing jitter, drift, and missing extremities\n- Write out/report.json per job with frame count, dropped-frame count, and mean landmark confidence so the user can tell when the capture is garbage",
+  "promptCurated": false
+}
