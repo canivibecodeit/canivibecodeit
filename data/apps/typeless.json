@@ -1,0 +1,50 @@
+{
+  "slug": "typeless",
+  "name": "Typeless",
+  "domain": "typeless.com",
+  "category": "voice-dictation",
+  "subcategory": "AI dictation with cleanup",
+  "tagline": "Hold a hotkey, talk, and get cleaned-up text pasted wherever your cursor is.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.typeless.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pipeline here is not a secret: record audio while a key is held, send it to a speech-to-text model, run one LLM pass to strip the ums and fix the punctuation, then type the result into whatever app has focus. An agent can wire that up on a Mac in an afternoon with a menu bar app, a global hotkey, and two API calls. What you will not match in one sitting is the feel: sub-second turnaround, correct handling of every weird text field, dictation commands, a vocabulary that learns your product names, and an iOS keyboard. Dictation lives or dies on latency and trust, and those are polish problems, which means they are exactly the problems a weekend build is worst at. Build it, use it for a week, and you will know whether the paid version is buying you anything.",
+  "coreLoopDIY": "A macOS menu bar app that records while a hotkey is held, transcribes it, runs a single cleanup pass, and types the text into the focused field.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS (accessibility and input monitoring permissions)",
+    "An OpenAI-compatible API key for transcription and cleanup, or a local whisper.cpp build",
+    "Python 3.11+ and ffmpeg"
+  ],
+  "whatYouLose": [
+    "Latency tuning: cloud round trips feel slow next to a tool that streams and pre-warms",
+    "Reliability inside stubborn apps: Electron editors, terminals, and password fields all misbehave differently",
+    "Custom vocabulary and adaptation to your names, jargon, and acronyms",
+    "Mobile: no iOS keyboard, no phone dictation, no sync of your settings",
+    "Someone else maintaining it through every macOS permissions change"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The model is rented from the same vendors you would rent from. The difference is everything wrapped around it.",
+  "whyPeopleStillPay": "Dictation is a tool you touch forty times a day, so a half second of lag or one dropped paste into Slack is enough to make you stop using it. Paid dictation apps spend their whole existence on that margin: warm connections, streaming transcription, per-app insertion quirks, formatting that guesses whether you are writing code or an email. A personal build gets you the concept immediately and the concept is genuinely useful, but you become the person who debugs accessibility permissions after every OS update. Some people enjoy that. Most people pay the small monthly fee and move on.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Easy to build, hard to make feel good · the gap is milliseconds and edge cases, not features.",
+  "prompt": "Build a local macOS push-to-talk dictation tool called \"mutter\". No accounts, no cloud storage, no telemetry.\n\nStack, non negotiable:\n- Python 3.11+, single project in this folder, managed with uv.\n- rumps for the menu bar app.\n- pynput for the global hotkey.\n- sounddevice + soundfile to capture mic audio to a temp WAV at 16kHz mono.\n- OpenAI-compatible HTTP calls via httpx. No SDK bloat.\n- pyobjc for pasteboard access and simulated paste.\n\nBehaviour:\n- Menu bar icon shows idle / recording / thinking states.\n- Hold Right Option to record. Release to stop. Under 300ms of audio is discarded.\n- On release: POST the WAV to the transcription endpoint (model from .env, default whisper-1).\n- Then one cleanup pass to a chat model with a fixed system prompt: remove filler words and false starts, add punctuation and sentence casing, keep the speaker's wording and do not summarise, return only the corrected text.\n- Copy the result to the pasteboard, then simulate Cmd+V into the frontmost app. Restore the previous pasteboard contents after 500ms.\n- Play a short system sound on start and finish so the user knows the state without looking.\n- Append every transcript to ~/.mutter/history.jsonl with timestamp, raw text, cleaned text, and duration.\n- Menu items: Toggle cleanup on/off, Open history, Quit.\n\nConfig:\n- .env with API_BASE_URL, API_KEY, STT_MODEL, CLEANUP_MODEL. Ship .env.example, gitignore .env.\n- ~/.mutter/vocabulary.txt, one term per line, injected into the cleanup system prompt as preferred spellings.\n\nOut of scope: streaming transcription, iOS, voice commands, speaker diarisation, any GUI beyond the menu bar.\n\nDeliver a README that states exactly which macOS permissions (Microphone, Accessibility, Input Monitoring) must be granted and where, plus how to run it at login via a launchd plist.",
+  "promptCurated": false
+}
