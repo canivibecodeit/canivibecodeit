@@ -1,0 +1,51 @@
+{
+  "slug": "vollna",
+  "name": "Vollna",
+  "domain": "vollna.com",
+  "category": "career",
+  "subcategory": "freelance job feed monitoring and alerts",
+  "tagline": "Monitors Upwork job postings against saved filters and pings you the second a matching gig appears, with client history stats attached.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.vollna.com/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanics here are genuinely simple: poll a job source, match against keyword and budget and country filters, dedupe, push a notification. An agent will write that for you before lunch, and a local version running every two minutes will beat the free tier's polling interval. The problem is the pipe: Upwork no longer hands out casual public job feeds, so you are either applying for API access, maintaining a scraper that breaks, or accepting a slower unofficial source. You also lose the enrichment layer, the client spend and hire rate and average paid rate numbers that make a posting worth reading in the first place, because that comes from an accumulated history of postings and outcomes you do not have. Build it if your filters are stable and you only need the firehose plus a Telegram ping.",
+  "coreLoopDIY": "Polls a job source on a schedule, scores each posting against your saved keyword, budget, country and client-rating rules, dedupes it and pushes the matches to Telegram with a one-click apply link.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Upwork API credentials, or a tolerated unofficial source",
+    "A Telegram bot token, or an SMTP account for email alerts",
+    "Somewhere to run a cron job that is awake when you are not"
+  ],
+  "whatYouLose": [
+    "Client history enrichment: total spend, hire rate, average paid rate, payment verification, all of which they aggregate over time",
+    "A years-deep archive of past postings for rate research and market trends",
+    "Polling infrastructure that does not quietly die when your laptop sleeps",
+    "Mobile push, browser extension, and a filter UI you did not have to build",
+    "Someone else absorbing the pain every time the upstream API or page structure changes"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The filter engine is the cheap half. The historical posting and client dataset is the half you cannot start accumulating retroactively.",
+  "whyPeopleStillPay": "Speed on a freelance marketplace is money: being the fourth proposal instead of the fortieth changes your win rate, and nobody wants that reliability sitting on a home machine with a flaky cron. The deeper reason is the client data. Knowing a poster has spent forty thousand dollars and hires eight out of ten times tells you whether to bother, and that judgment call is what you are actually buying. A DIY build gives you alerts; it does not give you the context that makes alerts worth acting on.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The alerting is a weekend; the client intelligence is not.",
+  "prompt": "Build a local freelance job alert monitor. Single Node.js 20 + TypeScript project, no framework, no web UI.\n\nStack, non negotiable:\n- TypeScript, run with tsx\n- better-sqlite3 for storage\n- node-cron for scheduling\n- Telegram Bot API for notifications via plain fetch\n- All config in .env and a filters.yaml file. No accounts, no hosted services, no telemetry.\n\nWhat it does:\n1. On a schedule (default every 3 minutes), fetch recent job postings from a configurable source module.\n2. Ship two source adapters behind one interface: (a) an Upwork GraphQL adapter that reads UPWORK_CLIENT_ID / UPWORK_CLIENT_SECRET / UPWORK_REFRESH_TOKEN from .env and handles token refresh, and (b) a generic RSS/Atom adapter for any feed URL. If credentials are missing, log a clear message and fall back to RSS.\n3. Normalize every posting to: externalId, title, description, postedAt, budgetMin, budgetMax, hourly boolean, skills[], clientCountry, clientRating, url.\n4. Load filters.yaml: a list of named filters, each with includeKeywords, excludeKeywords, minBudget, minHourly, allowedCountries, minClientRating, requirePaymentVerified. Match title + description case insensitively. Support quoted phrases.\n5. Insert matches into SQLite with a UNIQUE constraint on externalId so a posting never alerts twice, even across restarts.\n6. Send one Telegram message per match: filter name, title, budget, client country and rating, first 300 chars of the description, and the job URL. Batch at most 5 messages per cycle with a 1 second gap so you do not get rate limited.\n7. CLI commands: `npm start` (daemon), `npm run once` (single poll, prints matches, sends nothing), `npm run stats` (count of matches per filter over the last 7 days).\n\nExplicitly out of scope: client spend history, hire rate or any enrichment beyond what the source returns; auto applying or proposal generation; a dashboard; multi user support; any non Upwork marketplace beyond the generic RSS adapter.\n\nInclude a filters.yaml with two realistic example filters, a .env.example, and a README section that is honest about the fact that Upwork API access requires approval and that the RSS path may be rate limited or unavailable.\nWrite small unit tests for the filter matcher only.",
+  "promptCurated": false
+}
