@@ -1,0 +1,51 @@
+{
+  "slug": "browser-os",
+  "name": "BrowserOS",
+  "domain": "browseros.com",
+  "category": "ai-assistant",
+  "subcategory": "agentic browser",
+  "tagline": "An open-source, privacy-first browser with built-in AI agents that can click through sites and do tasks for you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://browseros.com/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The agent loop here is genuinely reproducible: an LLM reading a page tree and issuing clicks is a weekend of work, and plenty of people have built it. The browser is not. BrowserOS ships a maintained Chromium fork, which means tracking upstream security patches forever, signing and notarizing builds for three platforms, keeping extensions and profiles and passkeys and video codecs working, and not breaking people's daily driver. You can replicate the useful 80 percent as a local automation agent that drives your existing Chrome, which skips the whole browser-maintenance problem. You cannot one-shot a browser you would trust with your logged-in sessions.",
+  "coreLoopDIY": "A local CLI that takes a plain-English task, drives a persistent Chrome profile over CDP via Playwright, and loops LLM-chosen actions against the page accessibility tree until the task is done or it gives up.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a local Chrome or Chromium install",
+    "An API key for an LLM with decent tool-calling, or a local model behind an OpenAI-compatible endpoint",
+    "Willingness to let a script type into your logged-in sessions"
+  ],
+  "whatYouLose": [
+    "A real browser: tabs, sync, extension support, password and passkey handling, sane rendering of everything",
+    "Someone else tracking Chromium security releases so your daily driver is not a liability",
+    "Sidebar UX, highlight-to-ask, and the other bits that make in-browser AI feel native instead of like a terminal job",
+    "Packaged, signed, auto-updating builds for macOS, Windows, and Linux",
+    "Model routing and prompt tuning that has already failed against a thousand ugly real-world DOMs"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Forking Chromium is cheap to start and expensive forever. The cost is not the first build, it is release number forty.",
+  "whyPeopleStillPay": "Because a browser is the single most load-bearing app on most machines, and the bar for replacing it is not \"can an agent click a button\" but \"will this render my bank, keep my passkeys, and still open tomorrow.\" People paying for or adopting an agentic browser are buying the maintenance treadmill and the packaging, not the agent loop. The agent loop is the part you can actually clone in an afternoon.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The agent is a weekend; the browser around it is a permanent job. The moat is maintaining a Chromium fork and shipping signed builds people trust with their logged-in sessions.",
+  "prompt": "Build a local browser automation agent called \"pilot\". Node 20, TypeScript, Playwright, run with tsx. No web UI, no accounts, no telemetry, no cloud anything.\n\nStack, non-negotiable:\n- TypeScript, ESM, tsx for running, zod for schema validation\n- Playwright driving an existing Chrome install via launchPersistentContext with a profile dir at ./.profile so logins persist between runs\n- One LLM call path: an OpenAI-compatible chat completions endpoint with tool calling, configured by OPENAI_API_KEY, OPENAI_BASE_URL and PILOT_MODEL in .env. Ship .env.example, never commit keys.\n\nCLI:\n- `pnpm pilot \"task text\" --start https://example.com` runs a task\n- flags: --max-steps (default 25), --headed (default true), --dry-run (log intended actions, do not perform them)\n\nAgent loop, per step:\n1. Snapshot the page: url, title, and a flattened accessibility tree of interactive and text nodes, each with a stable integer ref. Truncate to roughly 6000 tokens, prefer in-viewport nodes.\n2. Send the task, a short rolling history of past actions and their results, and the snapshot to the model.\n3. Model must reply with exactly one tool call from: click(ref), type(ref, text, submit), select(ref, value), scroll(direction), navigate(url), wait(ms), extract(fields) which returns JSON, done(summary), fail(reason).\n4. Execute it, capture a screenshot to ./runs/TIMESTAMP/NNN.png, append the step to ./runs/TIMESTAMP/log.jsonl.\n5. Stop on done, fail, or max steps.\n\nSafety rails, implement them for real:\n- A domain allowlist in pilot.config.json; refuse navigation outside it and say so\n- Before any click or type on a page whose URL matches a deny pattern list (default: payment, checkout, transfer, delete, settings/billing), require typed confirmation in the terminal unless --yes\n- Never log input values for fields of type password\n\nOut of scope, do not build: a browser chrome or UI, extension support, multi-tab orchestration, scheduling, a server, Docker, auth, any hosted component.\n\nDeliver: working code, a README with a 60 second quickstart, and two example tasks that demonstrably work against public sites (a search-and-extract and a form fill on a demo form).",
+  "promptCurated": false
+}
