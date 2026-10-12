@@ -1,0 +1,51 @@
+{
+  "slug": "dropship",
+  "name": "Dropship",
+  "domain": "dropship.io",
+  "category": "commerce",
+  "subcategory": "ecommerce product research and competitor tracking",
+  "tagline": "Product research tool for dropshippers: tracks Shopify stores, estimates their sales, and surfaces trending products and ads.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription with tiered plans",
+    "unit": "flat",
+    "source": "https://www.dropship.io/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface here is a table with filters, which an agent can clone before lunch. The product is not the table, it is a continuously refreshed index of a very large number of Shopify stores plus sales estimates derived from watching inventory and order counters move over time. You can absolutely scrape a store's public products.json and infer units sold from variant inventory deltas, and for ten stores you are already tracking that is useful. What you cannot do in one session is backfill history you never collected, or discover stores you have never heard of, which is the entire point of a product research tool. The ad spy library is a separate pile of scraping and storage that is also someone else's ongoing cost.",
+  "coreLoopDIY": "Polls the public JSON endpoints of a store list you supply, snapshots products, prices and variant inventory on a schedule, and shows per product sales estimates from inventory deltas.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A list of competitor store domains you already care about",
+    "A box or cheap VPS that can run a cron job daily for weeks before the data is useful",
+    "Tolerance for stores that hide inventory counts or block scrapers"
+  ],
+  "whatYouLose": [
+    "Discovery: no catalog of stores you have not already found",
+    "History: estimates only start the day you start polling",
+    "Ad libraries and creative spy across Facebook and TikTok",
+    "Sales estimates calibrated against known ground truth, yours are raw inventory math",
+    "Supplier matching, store traffic estimates, and anything sourced from third party panels"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "Crawl breadth plus time in market. A tracker is cheap, an index of stores with two years of history is not.",
+  "whyPeopleStillPay": "Dropshipping research is a volume game: you want to see the product that started moving last week on a store you have never visited, and that requires someone crawling constantly at a scale you will not replicate from a laptop. Paying also offloads the maintenance tax of scrapers that break whenever a platform changes shape, which is the part of this work that is genuinely annoying. The counterargument is that most of this data is public and a focused watchlist of five competitors you actually respect often beats a firehose of trending junk. So the honest answer is: build the watchlist, rent the index.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the crawl is not. The moat is a continuously refreshed index of stores you have never heard of, with history going back further than your cron job.",
+  "prompt": "Build a local Shopify competitor tracker as a single Node.js + TypeScript project.\n\nStack, no substitutions: Next.js App Router with TypeScript, SQLite via better-sqlite3, Tailwind for styling, node-cron for scheduling. Everything runs locally with `npm run dev`. No accounts, no auth, no hosted services, no telemetry.\n\nData collection:\n- I supply store domains in a `stores.txt` file, one per line.\n- For each store, fetch the public endpoints: `/products.json?limit=250&page=N` paginating until empty, and `/sitemap.xml` as a fallback for product handles.\n- For each product, store: handle, title, product type, vendor, created_at, published_at, image URL, and for each variant: variant id, title, price, available flag, and `inventory_quantity` when present.\n- Snapshot everything on each run into a `snapshots` table keyed by (store, variant_id, fetched_at). Never overwrite history.\n- Respect robots.txt, set a descriptive User-Agent, rate limit to one request per second per store, retry twice with backoff, and record failures in a `fetch_errors` table instead of crashing.\n\nDerived metrics, computed in SQL views:\n- Estimated units sold per variant between two snapshots: drop in inventory_quantity, clamped at zero, ignoring increases, which are restocks.\n- Estimated revenue: units times price at the earlier snapshot.\n- New products detected per store per day, and price change events.\n\nUI, three pages:\n1. Stores: each tracked store, product count, last successful fetch, 7 day estimated revenue.\n2. Products: sortable table filtered by store, with 7 and 30 day estimated units, price, and a sparkline of inventory.\n3. Movers: products with the largest week over week jump in estimated units.\n\nAlso: a `npm run crawl` script for a one-off crawl, a cron entry that runs the crawl daily at 4am, and a CSV export button on the Products page.\n\nExplicitly out of scope: ad libraries, traffic estimates, supplier lookup, store discovery of any kind, and any attempt to guess sales for stores that hide inventory counts. If `inventory_quantity` is null for a store, show it as \"inventory hidden\" and fall back to tracking new products and price changes only.\n\nPut any config in `.env` (crawl concurrency, user agent string). Write a README that states plainly that estimates only begin accumulating from first crawl and are rough.",
+  "promptCurated": false
+}
