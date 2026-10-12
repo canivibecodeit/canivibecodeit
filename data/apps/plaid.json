@@ -1,0 +1,52 @@
+{
+  "slug": "plaid",
+  "name": "Plaid",
+  "domain": "plaid.com",
+  "category": "dev-tools",
+  "subcategory": "bank data aggregation API",
+  "tagline": "An API that connects apps to users' bank accounts for balances, transactions, identity and payment initiation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "usage based, quoted per product and per connected account",
+    "unit": "usage",
+    "source": "https://plaid.com/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Plaid is not a UI you can clone, it is thousands of bank connections plus the legal and security apparatus that lets them exist. An agent can absolutely build you a local transaction database with categorization and charts, and for one person that is often the actual goal. What it cannot build is authenticated, refreshing, tokenized access to your bank's data: that comes from bank partnerships, open banking agreements, screen-scraping fallbacks that get maintained daily, and audits nobody does for fun. If you are a developer wanting bank data for your own accounts, the honest path is CSV and OFX exports or a narrow consumer-facing aggregator, not a Plaid replica. If you are shipping a product to other people, you are buying the connection coverage, not the endpoints.",
+  "coreLoopDIY": "Imports your own bank CSV and OFX exports into a local SQLite ledger, dedupes, auto-categorizes with rules, and serves a dashboard plus a small read-only JSON API that mimics a transactions endpoint.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Manual CSV or OFX exports from each bank you care about",
+    "A rules file you maintain for merchant categorization",
+    "Local Python environment",
+    "Acceptance that data is as fresh as your last download"
+  ],
+  "whatYouLose": [
+    "Live, auto-refreshing connections to thousands of banks and credit unions",
+    "Bank-side auth flows, OAuth handoffs and token management",
+    "Identity, balance, liabilities, investments and payment initiation products",
+    "Someone else fixing connections the moment a bank changes its login page",
+    "Any legal footing to touch other people's financial credentials"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "The integration count is the product. Every one of those connections is a maintenance liability that Plaid absorbs so you don't.",
+  "whyPeopleStillPay": "Because the alternative is negotiating with banks yourself, or maintaining scrapers against institutions that actively change their login pages, or asking users to upload CSVs and watching your conversion rate die. Plaid also carries the part nobody wants: handling credentials, passing security reviews, answering regulators, and being the name a consumer vaguely trusts when a modal asks for their bank login. For a solo dev with one bank account, none of that matters. For anyone with users, all of it does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The endpoints are a weekend; the connections are not. The moat is thousands of maintained bank integrations plus the compliance posture that makes handling someone else's bank login legal.",
+  "prompt": "Build a local personal financial data warehouse called \"ledgerbox\". This is explicitly NOT a bank aggregator: no credentials, no scraping, no third-party financial API. Data comes in from files I download myself.\n\nStack, non-negotiable:\n- Python 3.12, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, plain CSS. uv for deps.\n- Everything runs with `uv run uvicorn app:app --reload`. No Docker, no accounts, no telemetry.\n\nCore features:\n1. `ingest/` folder watched on demand. Support CSV and OFX/QFX files. Parse OFX with the `ofxparse` library.\n2. CSV import needs a mapping layer: for each new file header signature, prompt me once in the web UI to map columns to date/description/amount/account, then store that mapping in a `csv_profiles` table and reuse it silently next time.\n3. Normalize everything into a `transactions` table: id, account_id, posted_date, description_raw, description_clean, amount_cents (integer, negative for outflow), currency, category, source_file, hash.\n4. Dedupe on a stable hash of (account_id, posted_date, amount_cents, description_raw). Re-importing the same file must be a no-op.\n5. Categorization: a `rules.yml` file of regex to category mappings, applied in order, first match wins. Ship about 30 sensible starter rules (groceries, rent, utilities, transit, subscriptions, income). Uncategorized falls to \"unknown\". A UI page lists unknowns grouped by cleaned merchant string with a one-click \"add rule\" that appends to rules.yml and re-runs categorization.\n6. Dashboard: monthly spend by category (stacked bars), net cash flow line, account balances derived from a user-entered starting balance plus transaction sums, and a searchable transaction table with filters for date range, account, category and text.\n7. A read-only JSON API at /api/transactions and /api/accounts with date and account query params, so my other scripts can read it. Localhost only, no auth, and say so in the README.\n\nExplicitly out of scope: bank connections, OAuth, payment initiation, investments, multi-user, hosting, mobile.\n\nSecrets: none needed. If you add anything optional, read it from .env via python-dotenv and commit a .env.example.\n\nWrite a README that states plainly that freshness depends on me downloading exports, and lists the OFX and CSV export paths for a generic bank so I know the manual loop I am signing up for. Include pytest tests for the parser, the dedupe hash and the rules engine.",
+  "promptCurated": false
+}
