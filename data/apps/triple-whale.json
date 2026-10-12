@@ -1,0 +1,53 @@
+{
+  "slug": "triple-whale",
+  "name": "Triple Whale",
+  "domain": "triplewhale.com",
+  "category": "analytics",
+  "subcategory": "ecommerce attribution",
+  "tagline": "Ecommerce analytics and marketing attribution dashboard for Shopify brands, pulling ad spend and store data into one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.triplewhale.com/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Plans are typically tiered by store revenue or ad spend.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard part is not hard: pull Shopify orders, pull spend from Meta and Google Ads, divide, chart it. An agent can produce a credible blended-ROAS and contribution-margin view in a weekend if you already have API access. The pain is not the math, it is the plumbing: Meta Marketing API review, Google Ads developer tokens, token refresh, rate limits, and the schema churn when a platform changes a field name. The genuinely hard part is pixel-based attribution and post-purchase survey data, which needs a script on your storefront collecting first-party click data and a model to reconcile it against platform-reported conversions. Build it for one store you own and it works; expect to maintain it forever.",
+  "coreLoopDIY": "A local dashboard that syncs Shopify orders and Meta plus Google ad spend nightly into SQLite and shows blended ROAS, MER, CAC and contribution margin by day and by campaign.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Shopify Admin API access token for your own store",
+    "Meta Marketing API app with ads_read (review required for anything beyond dev mode)",
+    "Google Ads API developer token and OAuth client",
+    "Somewhere to run a nightly job",
+    "Optional: a storefront script tag if you want click-level attribution"
+  ],
+  "whatYouLose": [
+    "Pixel-based multi-touch attribution and post-purchase survey attribution, which is the actual product",
+    "Connectors you did not write: TikTok, Klaviyo, Amazon, Snap, subscriptions apps",
+    "Benchmarks against other brands in your category",
+    "Anomaly alerts, forecasting, and the AI summaries",
+    "Someone else absorbing the breakage every time Meta changes its API"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The connector surface is the moat more than the dashboard. Dozens of ad and commerce APIs, each with its own auth theater and quirks, maintained by people whose job it is.",
+  "whyPeopleStillPay": "Because an in-house attribution dashboard is a job, not a project. The first version is a weekend; the version that still matches Shopify's numbers six months later after two platform API deprecations and a timezone bug in refunds is a recurring tax on someone technical. Brands running real ad spend would rather pay a few hundred a month than have their media buyer argue with a CSV. And the attribution layer, the pixel plus survey data plus the model that blends them with platform-reported conversions, is a data asset you cannot one-shot because it only gets useful after it has been collecting for months.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chart is easy, the connectors are the product. Build it if you run one store and like maintaining API clients.",
+  "prompt": "Build a local ecommerce marketing analytics dashboard for a single Shopify store. No accounts, no cloud, no telemetry.\n\nStack: TypeScript, Node 20, SQLite via better-sqlite3, Next.js App Router for the UI, Recharts for charts, Tailwind for styling. One repo, one process for the UI, one CLI script for syncing.\n\nSecrets in .env, loaded with dotenv, never committed. Include .env.example with:\nSHOPIFY_STORE_DOMAIN, SHOPIFY_ADMIN_TOKEN, META_AD_ACCOUNT_ID, META_ACCESS_TOKEN, GOOGLE_ADS_CUSTOMER_ID, GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, GOOGLE_ADS_REFRESH_TOKEN, DEFAULT_COGS_PERCENT, TIMEZONE\n\nSchema: orders (id, created_at, total_price, subtotal, discounts, shipping, tax, refunded_amount, currency, customer_id, is_first_order, utm_source, utm_medium, utm_campaign), ad_spend (date, platform, campaign_id, campaign_name, spend, impressions, clicks, platform_conversions, platform_revenue), sync_log (source, last_cursor, ran_at, status, error).\n\nSync script: `npm run sync -- --since 2024-01-01`. Three pullers.\n1. Shopify: GraphQL Admin API, paginate orders with cursor, store refunds, parse UTM params off landing_site when present, upsert by id, resumable from sync_log.\n2. Meta: Marketing API insights endpoint, daily breakdown by campaign, fields spend, impressions, clicks, actions, action_values.\n3. Google Ads: campaign performance report, daily, cost_micros converted to currency units.\nAll three: exponential backoff on 429 and 5xx, log failures to sync_log, never crash the whole sync because one platform is down.\n\nDashboard, one page, date range picker defaulting to last 30 days, all math in the store timezone:\n- Net revenue, total ad spend, MER (revenue divided by spend), blended ROAS, blended CAC (spend divided by new customers), contribution margin using DEFAULT_COGS_PERCENT.\n- Daily line chart: revenue vs spend, dual axis.\n- Campaign table: platform, campaign, spend, platform-reported conversions and revenue, platform ROAS, sortable.\n- A UTM-sourced revenue table next to the platform numbers, with a visible caption that the two will disagree and explaining why.\n\nExplicitly out of scope: a tracking pixel, multi-touch attribution models, post-purchase surveys, TikTok, Klaviyo, Amazon, forecasting, multi-store support, auth.\n\nWrite a README covering how to get each credential, including the fact that the Meta Marketing API needs app review for production access and the Google Ads developer token needs approval. Add a `npm run seed` that loads fake data so the UI runs before any credentials exist.",
+  "promptCurated": false
+}
