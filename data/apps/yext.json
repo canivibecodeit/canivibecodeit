@@ -1,0 +1,51 @@
+{
+  "slug": "yext",
+  "name": "Yext",
+  "domain": "yext.com",
+  "category": "seo-marketing",
+  "subcategory": "local listings and digital presence management",
+  "tagline": "Pushes a business's name, address, hours and attributes out to dozens of maps, directories and voice assistants from one dashboard, plus review management and site search.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per location, annual contract",
+    "unit": "custom",
+    "source": "https://www.yext.com/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Yext sells per location with annual contracts and mostly quotes enterprise deals.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard is not the product. The product is write access to a long list of third-party publishers: Google, Apple Maps, Bing, Yelp, Facebook, TomTom, Foursquare, assorted niche directories and data aggregators, each with its own API, contract and data policy. An agent can build you a clean single source of truth for your location data and push to the one or two places with a public API, and that is genuinely useful if you have one location. It cannot build the partnership layer, and for a single business you can just edit the four profiles that matter by hand in an afternoon. Review monitoring and listing drift alerts are the only parts that meaningfully survive as a DIY build.",
+  "coreLoopDIY": "A local JSON source of truth for your business facts that diffs against whatever profiles you can read via public APIs and flags drift, with a Google Business Profile write path and copy-paste payloads for everything else.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Business Profile API access, which means a Google Cloud project plus an approval request that can take days",
+    "OAuth credentials for any other platform you want to read",
+    "somewhere to run a daily cron, a laptop that stays on counts"
+  ],
+  "whatYouLose": [
+    "Syndication to the long tail of directories and data aggregators you have never heard of but that still feed maps and voice results",
+    "Automatic suppression of duplicate and rogue listings, which is half of what people actually buy",
+    "Review response workflows, templates and multi-location permissions",
+    "Yext Search and Pages, which are separate products bundled into the same pitch",
+    "Someone to escalate to when Google silently rejects your hours update"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "proprietary-data"
+  ],
+  "moatNotes": "Publisher write access is contractual, not technical. Also note the classic complaint: stop paying and some syndicated listings decay back to whatever the aggregators had before.",
+  "whyPeopleStillPay": "Because a chain with 400 locations cannot have a regional manager hand-editing Apple Maps, and because wrong hours on a holiday weekend costs real money. The buyer is paying for one update to land in dozens of places, for duplicates to get killed, and for an audit trail when corporate asks why store 212 shows up closed. A single-location owner is paying for convenience they could replace with four bookmarks and a calendar reminder.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the publisher network is not. The moat is signed write access to dozens of directories and data aggregators, which no amount of code gets you.",
+  "prompt": "Build a local-first \"business presence monitor\" as a single Node 20 + TypeScript project. No framework beyond Express for a tiny local UI, SQLite via better-sqlite3 for storage, no cloud, no telemetry, no accounts.\n\nData model:\n- locations table: name, address lines, lat/lng, phone, website, categories, hours (including special/holiday hours), attributes, social URLs.\n- Source of truth lives in ./data/locations.yaml, validated with zod on load. The YAML wins, the DB is a cache plus history.\n- snapshots table: platform, location_id, fetched_at, raw JSON, normalized JSON.\n- drift table: platform, location_id, field, expected, actual, first_seen, resolved_at.\n\nConnectors, as a plugin folder ./src/connectors/*.ts with one interface { id, read(location), write?(location) }:\n- google: real read and write against the Google Business Profile API using OAuth refresh token from .env. Document the API enablement and approval steps in README, and fail loudly with a clear message if access is not granted.\n- generic-http: read a public profile URL, extract JSON-LD LocalBusiness if present, normalize it. Do not scrape HTML beyond JSON-LD.\n- manual: no read, just emits a per-platform payload file the human pastes into that platform's dashboard. Include manual connectors for Apple Business Connect, Bing Places, Yelp and Facebook.\n\nJobs:\n- `npm run check` runs every connector read, stores a snapshot, diffs against the YAML, writes drift rows, and prints a terminal table of mismatches.\n- `npm run push` writes to any connector with a write method, dry-run by default, --apply to commit, always logging a before/after diff.\n- `npm run payloads` regenerates ./out/{platform}/{location}.md with the exact field values to paste manually.\n- node-cron inside a long-running `npm start` to run check daily at 07:00 local, plus a /dashboard page listing open drift.\n\nAlso: a reviews module that polls Google reviews only, stores them, and prints new ones since last run. No sentiment analysis, no AI responses.\n\nExplicitly out of scope: syndication to data aggregators, duplicate listing suppression, any platform without a public write API, multi-user permissions, hosted site search.\n\nAll secrets in .env, .env.example committed, real .env gitignored. README must state plainly which platforms are automated and which are copy-paste.",
+  "promptCurated": false
+}
