@@ -1,0 +1,51 @@
+{
+  "slug": "tryapi",
+  "name": "TryAPI",
+  "domain": "tryapi.dev",
+  "category": "dev-tools",
+  "subcategory": "utility API aggregation",
+  "tagline": "A single pay-as-you-go endpoint collection for common utility APIs: currency rates, IP geolocation, weather, UUIDs, social data.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://tryapi.dev/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Most of what an aggregator like this sells is a thin, friendly wrapper around data that is already free and public. UUID generation is a standard library call, currency rates come from the ECB daily feed, weather comes from Open-Meteo without a key, and IP geolocation runs offline from a GeoLite2 database file. An agent can stand up a self-hosted gateway with those endpoints, caching, API keys, and rate limiting in a weekend, and it will be cheap and fast because it is serving one user. The part that does not survive is anything scraped or licensed from a closed platform, X/Twitter data in particular, where the price you are paying is access rather than code. So: build the boring 80 percent yourself, keep paying someone for the parts that require a relationship with a hostile upstream.",
+  "coreLoopDIY": "Runs a local API gateway that exposes uuid, currency conversion, weather, and IP geolocation endpoints behind your own key, with response caching and per-key rate limits.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A free MaxMind account to download the GeoLite2 City database, or ip-api as a fallback",
+    "Somewhere to run a small container if you want it reachable from outside localhost",
+    "A paid upstream if you actually need social platform data"
+  ],
+  "whatYouLose": [
+    "Any social platform data: X/Twitter endpoints need licensed or scraped access you do not have",
+    "Someone else's uptime promise, your gateway is down when your box is down",
+    "Breakage absorption, when an upstream feed changes shape you are the one who notices",
+    "Breadth, you will build the five endpoints you use and not the other seventy-six",
+    "One invoice and one key instead of a drawer full of upstream accounts and quotas"
+  ],
+  "moatTags": [
+    "integrations",
+    "content-rights",
+    "scale-infra"
+  ],
+  "moatNotes": "The aggregation itself is the product: dozens of upstream relationships collapsed into one key and one bill. That is real convenience, it is just not technically deep.",
+  "whyPeopleStillPay": "Because wiring up ten upstream providers, each with its own auth scheme, rate limit, pricing page, and 3am breaking change, is a tax that never stops being paid. A pay-as-you-go aggregator turns that into one key and a usage line item, which is a genuinely good trade for a team shipping product rather than maintaining plumbing. It also covers the awkward endpoints, closed platform data especially, where there is no free public source and the cost is access rather than code. Someone running a couple of side projects will not feel that pain enough to justify it; someone with a production app and no appetite for vendor babysitting will.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the utility endpoints, rent the ones that require someone else's permission.",
+  "prompt": "Build a self-hosted utility API gateway called \"minigw\" in an empty folder.\n\nStack, no substitutions: Python 3.12, FastAPI, uvicorn, httpx, SQLite via sqlite3, maxminddb for offline geolocation. One Dockerfile and one docker-compose.yml. No frontend framework, no cloud services, no telemetry.\n\nEndpoints, all under /v1:\n- GET /v1/uuid?version=4|7&count=1-100 returns generated UUIDs locally.\n- GET /v1/fx?from=USD&to=EUR&amount=10 converts using the European Central Bank daily XML feed (https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml), cached 6 hours, cross rates computed via EUR.\n- GET /v1/weather?lat=&lon= proxies Open-Meteo (no API key needed), returns current temp, wind, and a 3 day daily summary, cached 15 minutes.\n- GET /v1/geoip?ip= reads a local GeoLite2-City.mmdb from ./data and returns country, city, lat, lon, timezone. If the file is missing, return a clear 503 telling the operator to download it.\n- GET /v1/health returns per-upstream last-success timestamps.\n\nCross-cutting requirements:\n- API key auth: keys live in .env as MINIGW_KEYS=key1,key2, passed as an X-API-Key header. Provide .env.example, never commit secrets.\n- Response cache and request log in SQLite at ./data/minigw.db. Log key, path, status, latency, timestamp.\n- Per-key token bucket rate limit, default 60 requests per minute, configurable by env var.\n- Uniform JSON envelope: {\"data\": ..., \"cached\": bool, \"source\": \"...\"} and uniform errors with an upstream detail field.\n- Timeouts of 5 seconds on every outbound call, one retry, and stale-cache fallback when an upstream fails.\n\nExplicitly out of scope: billing, metering dashboards, multi-tenant signup, and any social platform data. Do not attempt X/Twitter endpoints, there is no lawful free source and stubbing one is worse than omitting it.\n\nDeliver: README with curl examples for every endpoint, pytest tests that mock all outbound HTTP, and a make target that boots the stack on port 8080.",
+  "promptCurated": false
+}
