@@ -1,0 +1,52 @@
+{
+  "slug": "salesloft",
+  "name": "Salesloft",
+  "domain": "salesloft.com",
+  "category": "sales-outreach",
+  "subcategory": "sales engagement platform",
+  "tagline": "Multichannel sales engagement: email sequences, a dialer, call recording and pipeline analytics wired into your CRM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per user per month, annual contract",
+    "unit": "per-seat",
+    "source": "https://salesloft.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Salesloft does not publish list pricing and sells through annual contracts with a sales call.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The sequence engine is the easy part: a queue, a template, a scheduler, a send. Everything that makes Salesloft worth a four-figure annual seat is the stuff around it: bidirectional Salesforce and HubSpot sync that reps trust, a carrier-grade dialer with local presence and recording, deliverability and sending-reputation management, and the admin layer that lets a manager see 40 reps' activity in one view. You can build yourself a personal sequencer in a weekend and it will genuinely work for a few dozen prospects. It will not survive your ops team, your compliance review, or the moment you need call recording retention and two-party consent handling.",
+  "coreLoopDIY": "A local sequence runner that stores prospects in SQLite, walks them through a multi-step email cadence with configurable delays, sends through your own Gmail account, and auto-pauses anyone who replies.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite locally",
+    "A Google Workspace account plus a Google Cloud OAuth client for the Gmail API",
+    "A sending domain with SPF, DKIM and DMARC already configured, or your sends go to spam",
+    "Somewhere to run a daily cron, your laptop counts if you open it every day"
+  ],
+  "whatYouLose": [
+    "Bidirectional CRM sync, so activity logging back to Salesforce or HubSpot becomes manual copy-paste",
+    "The dialer entirely: no click-to-call, no local presence numbers, no call recording or transcripts",
+    "Deliverability tooling: warmup, send throttling, domain health monitoring, inbox rotation",
+    "Team layer: shared cadence libraries, manager dashboards, A/B testing on templates at volume, conversation intelligence",
+    "Compliance scaffolding for call recording consent, data retention and opt-out suppression lists across the whole org"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The real lock-in is the Salesforce object mapping. Once a RevOps team has wired cadence activity into opportunity reporting, ripping it out means rebuilding the reporting too.",
+  "whyPeopleStillPay": "Nobody buys Salesloft because sending scheduled emails is hard. They buy it because a VP of Sales needs one place where every rep's calls, emails and tasks land, and where that activity shows up in the CRM without anyone remembering to log it. The dialer alone is a real telecom product with real carrier relationships. Add recording retention, consent rules, suppression lists and SOC 2 paperwork, and the buy decision stops being about features and starts being about who gets blamed when the data is wrong.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "A personal cadence runner is a weekend; the thing a revenue org actually bought is not. The moat is bidirectional CRM sync plus a real dialer with recording and consent handling, and the reporting every manager has already built on top of it.",
+  "prompt": "Build a local, single-user sales cadence runner. No accounts, no hosted service, no telemetry.\n\nStack, non-negotiable: TypeScript on Node 20, SQLite via better-sqlite3, Hono for a small local web UI served at localhost:8787, plain server-rendered HTML with a single CSS file. No React, no ORM, no Docker.\n\nData model in SQLite:\n- prospects: id, first_name, last_name, email, company, title, timezone, status (active | paused | replied | bounced | finished), notes\n- cadences: id, name\n- steps: id, cadence_id, step_number, day_offset, subject_template, body_template, channel ('email' | 'manual_task')\n- enrollments: id, prospect_id, cadence_id, current_step, next_action_at, enrolled_at\n- events: id, prospect_id, type (sent | replied | task_done | paused), step_number, gmail_message_id, created_at\n\nFeatures, in scope:\n1. CSV import of prospects. Map columns in the UI, dedupe on email.\n2. Cadence editor: ordered steps with day offsets and Mustache-style {{first_name}} / {{company}} template variables.\n3. Enroll prospects into a cadence. Compute next_action_at from day_offset, skipping weekends.\n4. A 'run due' command that sends every email step due now through the Gmail API using OAuth refresh token from .env, threading replies to the original message via In-Reply-To and References headers.\n5. Reply detection: poll the Gmail API for messages in each thread from the prospect's address. If found, set status to 'replied' and stop all further sends for that prospect.\n6. Manual task steps surface in a 'Today' view with a Done button. No sending.\n7. A suppression list table. Any email on it is never sent to, enforced at send time, not at enroll time.\n8. Hard daily send cap, default 50, configurable, logged and enforced.\n\nOut of scope, do not build: a dialer, SMS, LinkedIn automation, open or click tracking pixels, CRM sync, multi-user roles, analytics dashboards.\n\nSecrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, SEND_FROM_ADDRESS in .env, gitignored. Ship a one-time `npm run auth` script that walks the OAuth consent flow locally and prints the refresh token.\n\nDeliver: npm scripts for `dev`, `auth`, `run-due`. A README with the cron line to run `run-due` each weekday morning, and a blunt paragraph noting that SPF, DKIM and DMARC on the sending domain are the user's problem and that sending cold volume from a personal mailbox will wreck its reputation.",
+  "promptCurated": false
+}
