@@ -1,0 +1,51 @@
+{
+  "slug": "workona",
+  "name": "Workona",
+  "domain": "workona.com",
+  "category": "bookmarks",
+  "subcategory": "browser tab and workspace manager",
+  "tagline": "A browser extension that organizes tabs into project workspaces, saves sessions, and syncs them across devices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pro",
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://workona.com/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea, named workspaces that hold a set of tabs you can close and reopen later, is a small amount of code sitting on top of chrome.tabs and chrome.storage. An agent can give you a working MV3 extension with workspaces, tab save and restore, and a search box in a single sitting. What takes longer is everything around it: reliable cross-device sync, session recovery after a crash, the resource panel that pulls in Drive and Notion docs, and the speed that makes you actually use it instead of reverting to 40 open tabs. Chrome's own tab groups plus bookmarks already covers a chunk of this for free, which is the real competitor here. Build it if you want your tab state in a file you control, pay if you want it to survive a laptop dying mid-session.",
+  "coreLoopDIY": "A Chrome extension that lets you create named workspaces, snapshot the current window's tabs into one, close it, and restore it later with search across all saved tabs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Chrome or any Chromium browser with developer mode for loading an unpacked extension",
+    "Node and npm if you want a build step, otherwise plain files work",
+    "Optional: a Google account if you want chrome.storage.sync instead of local storage"
+  ],
+  "whatYouLose": [
+    "Real cross-device sync with conflict handling, chrome.storage.sync has tight quotas and will bite you at scale",
+    "Crash and session recovery that reliably reconstructs what you had open before the browser died",
+    "The resource panel: searching and attaching Google Drive, Notion, Asana and Jira items to a workspace",
+    "Shared team workspaces and handoff, which is where the paid tiers actually earn their money",
+    "The responsiveness and keyboard flow of a tool someone has polished for years; a slow tab switcher goes unused"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Once a year of project workspaces lives in one tool, exporting it somewhere useful is nobody's idea of a fun afternoon.",
+  "whyPeopleStillPay": "Tab chaos is a daily irritation, and people pay small amounts to make daily irritations go away without thinking about it. Workona's value is that it is fast, it is there in every window, and it remembers your 30 projects well enough that you trust it with the only copy of your working context. A self-built version gives you the same data model but not the same trust, and the moment your own extension loses a workspace you will stop using it. The integrations also matter more than they look: being able to pull a Drive doc into a project without opening Drive is the part that quietly makes it a workspace tool rather than a bookmark folder.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The data model is trivial, the trust is not; your version has to never lose a workspace, once.",
+  "prompt": "Build a Chrome extension (Manifest V3) called \"Workspaces\" that organizes browser tabs into named project workspaces. Plain JavaScript, no framework, no build step: just manifest.json, a popup, a background service worker, and CSS. Target Chromium browsers.\n\nCore behavior:\n- A workspace is a name, a color, a created/updated timestamp, and a list of tabs (url, title, favIconUrl, pinned).\n- Popup UI lists all workspaces, newest-used first, with tab counts.\n- \"Save current window\" captures every tab in the active window into a new or existing workspace.\n- \"Open\" restores a workspace into a new window, or into the current window if it is empty.\n- \"Close workspace\" closes the window's tabs after re-syncing their current state back into the stored workspace, so the snapshot is always up to date.\n- Add, rename, recolor, duplicate, delete workspaces. Delete goes to a trash list that keeps the last 20 deletions for 30 days.\n- A search box at the top does fuzzy substring search across the titles and URLs of all saved tabs in all workspaces, plus all currently open tabs. Enter opens or focuses the result.\n- Keyboard shortcut (chrome.commands) to open the popup and jump straight into search.\n\nStorage and safety:\n- Store everything in chrome.storage.local as a single versioned JSON object with a schemaVersion field.\n- On every write, keep a rolling backup of the previous three states under separate keys. Losing a workspace must be recoverable.\n- Export all data to a JSON file and import it back, with a preview of how many workspaces will be added or overwritten.\n- Auto-resync open workspace tabs on tabs.onUpdated and tabs.onRemoved, debounced to about 2 seconds.\n\nExplicitly out of scope: accounts, servers, telemetry, analytics, cross-device sync, third-party integrations like Drive or Notion, team sharing. No network requests at all; the manifest should request only tabs, storage, and windows permissions.\n\nInclude a README with load-unpacked instructions and a short note on the storage schema. If you ever add a sync backend later, read endpoints and keys from a .env file, never hardcode them.",
+  "promptCurated": false
+}
