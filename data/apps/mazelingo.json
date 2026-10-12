@@ -1,0 +1,50 @@
+{
+  "slug": "mazelingo",
+  "name": "Mazelingo",
+  "domain": "mazelingo.org",
+  "category": "reading",
+  "subcategory": "language-learning reader",
+  "tagline": "Paste Japanese text and read it as a tunable Japanese-English blend, tapping any sentence to see the original.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://mazelingo.org/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core trick is mechanical: tokenize the Japanese, rank each word by frequency or JLPT tier, swap a controlled percentage of them for English glosses, keep the original sentence around for tap-to-reveal. Open tooling covers every piece, kuromoji.js for morphology and JMdict for glosses, so the whole thing runs offline in a browser tab with no API key and no model bill. What takes judgment is not the code, it is the reading feel: which words to swap, whether to keep particles and inflection intact, how to avoid Franken-sentences that teach nothing. A one-shot build gets you a working blended reader in a sitting and then you spend the next week tuning the substitution rules, which is the honest shape of this project. No network, no corpus, no lock-in to defend it.",
+  "coreLoopDIY": "Paste Japanese text, pick a blend percentage and difficulty tier, and read a mixed-language rendering where tapping a sentence swaps it back to the original.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a JMdict or jmdict-simplified dictionary dump for glosses",
+    "kuromoji.js or MeCab for Japanese tokenization",
+    "a word frequency or JLPT tier list to drive difficulty",
+    "Node for the one-time dictionary build step, nothing at runtime"
+  ],
+  "whatYouLose": [
+    "Hand-tuned substitution heuristics, your first version will produce some sentences that read like a ransom note",
+    "Gloss disambiguation, JMdict often gives five senses and a dumb picker chooses wrong",
+    "Polish on the reading surface: furigana toggles, saved position, sane typography for mixed scripts",
+    "Phone-friendly behavior, tap targets and offline caching are the fiddly part",
+    "Whatever content library or import pipeline the hosted version ships with"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is taste in how text gets blended, not technology. Taste is copyable, slowly.",
+  "whyPeopleStillPay": "Because someone already did the tuning. A reader like this lives or dies on whether the mixed sentences feel learnable, and that is hundreds of small decisions about particles, inflected verbs, proper nouns, and which gloss wins. Paying skips the week where your own build spits out text that is technically bilingual and practically unreadable, and you get it working on a phone without thinking about service workers.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the open-source Japanese NLP stack is good enough that the build is boring and the tuning is the whole job.",
+  "prompt": "Build a local, offline Japanese-English mixed reading web app in an empty folder.\n\nStack, pick nothing else: TypeScript, Vite, React, plain CSS. No backend, no accounts, no telemetry, no runtime network calls, no LLM API.\n\nData prep, a one-time Node script in scripts/build-dict.ts:\n- Download jmdict-simplified JSON and a Japanese word frequency list.\n- Emit a compact lookup at public/dict.json: headword plus reading plus one short English gloss plus a difficulty tier 1 to 5 derived from frequency rank.\n- Keep the file under about 8 MB, truncate long glosses to three words, drop rare senses.\n- Commit the script, not the download. Document the command in README.\n\nApp behavior:\n- One screen. A textarea to paste Japanese text, plus a Load sample button with two paragraphs of public domain Japanese.\n- Tokenize with kuromoji.js loaded from the local bundle, not a CDN.\n- Render the text sentence by sentence, split on 。！？ and newlines.\n- A blend slider from 0 to 100 percent and a difficulty selector 1 to 5. Substitute content words, nouns, verbs, adjectives, adverbs, whose difficulty tier is at or below the selected tier, up to the chosen percentage, picked lowest tier first so common words swap before rare ones.\n- Never substitute particles, auxiliaries, numbers, or proper nouns. For inflected verbs and adjectives, substitute the stem gloss and keep the Japanese inflection attached, for example 食べた becomes eat-た.\n- Substituted spans get a subtle underline. Clicking a span shows the original Japanese word inline. Clicking a sentence toggles that whole sentence back to pure original Japanese and back again.\n- Keyboard: space toggles the focused sentence, arrow keys move focus.\n- Persist the pasted text, slider state, and scroll position in localStorage. A Clear button wipes it.\n- Dark mode by system preference. Typography tuned for mixed Latin and Japanese, generous line height, no justified text.\n\nOut of scope, do not build: audio or TTS, spaced repetition, grammar explanations, user accounts, cloud sync, PDF or EPUB import, multiple language pairs.\n\nInclude vitest unit tests for the substitution picker: respects the percentage budget, never touches particles, preserves inflection suffixes, and is deterministic for the same input and settings.\n\nShip a README with setup, the dictionary build command, and one paragraph on how to tune the substitution rules.",
+  "promptCurated": false
+}
