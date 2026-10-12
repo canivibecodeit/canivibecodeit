@@ -1,0 +1,51 @@
+{
+  "slug": "instinct-ai",
+  "name": "Instinct AI",
+  "domain": "instinctai.org",
+  "category": "generative-media",
+  "subcategory": "all-in-one AI creative suite",
+  "tagline": "One subscription that bundles AI video, image, character animation, voiceover, music and transparent PNG generation behind a single interface.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://instinctai.org/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Suites like this are almost always a polished shell over other people's models: text to video, image diffusion, voice cloning, music, background removal, each one an API call with a credit meter attached. An agent can absolutely build you that shell in a session, with a prompt box per modality, a job queue, and a local gallery of outputs. What it cannot build is the models, so you swap one subscription for metered API bills at Replicate, fal, ElevenLabs or similar, and you become your own ops team when a model version gets deprecated. The honest gap is curation: the suite has picked which model and which parameters make a character animation not look cursed, and your DIY version starts with defaults. Build it if you already know which models you want and like paying per second of video; buy it if the point was not thinking about any of that.",
+  "coreLoopDIY": "A local web app with one tab per modality that sends your prompt to a chosen hosted model, polls the job, and drops every result into a searchable file gallery with its parameters saved.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for at least one generation host, Replicate or fal, plus a TTS provider",
+    "A credit card, since video and voice generation is metered and not cheap",
+    "Node 20 and about 20GB of free disk for outputs",
+    "Patience for async jobs that take minutes and sometimes fail"
+  ],
+  "whatYouLose": [
+    "Model curation: someone else already figured out which checkpoint and settings produce usable character animation",
+    "A unified credit balance instead of four separate metered API bills",
+    "Hosted rendering and queueing, so your laptop sleeping no longer kills a job",
+    "Templates, presets and whatever in-app editor they ship for trimming and compositing",
+    "Any mobile or share-a-link flow; your version lives on localhost"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "Aggregators of this kind rent the same models you can rent. The defensible part is the taste layer and the single bill, not the generation itself.",
+  "whyPeopleStillPay": "Because the alternative is maintaining seven API integrations whose model names change every quarter, and reading changelogs is not a creative activity. A bundled suite turns generation into a flat monthly number with no surprise invoices, and it hides the ugly parts: polling, retries, aspect ratio quirks, the specific seed and sampler that stop a dancing character from growing a sixth finger. If you produce content for a living, that curation is worth more than the margin you would save by wiring up Replicate yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The shell is a weekend; the GPU bill is forever.",
+  "prompt": "Build a local \"creative suite\" web app that wraps hosted generative models behind one interface. Stack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3, server-side jobs in Next route handlers. No auth, no accounts, no telemetry, single user on localhost.\n\nProviders: use Replicate for image, video and background-removal models, and ElevenLabs for text to speech. Read REPLICATE_API_TOKEN and ELEVENLABS_API_KEY from .env.local and write a .env.example. If a key is missing, show a clear banner in the UI for that tab instead of crashing.\n\nUI: a left sidebar with five tabs: Image, Video, Animate, Voice, Music. Each tab is a form with a prompt textarea, a model dropdown populated from a hardcoded models.ts registry (model slug, label, input schema, default params), and modality-specific controls, for example aspect ratio and steps for image, duration for video, voice id and stability for voice. Submitting creates a job.\n\nJobs: POST /api/jobs inserts a row (id, modality, model, params json, status, created_at), kicks off the provider call, and returns immediately. A poller route GET /api/jobs/:id checks provider status. The client polls every 3 seconds. Download finished assets to ./outputs/{job_id}.{ext} and store the local path plus any provider URL in the row. Retry transient 5xx twice with backoff, then mark the job failed and keep the provider error text visible.\n\nGallery: a /gallery page listing all finished jobs newest first, with inline image and video previews, an audio player for voice and music, the full params shown in a collapsible block, a \"rerun with these params\" button that prefills the matching tab, filter by modality, and text search over prompts.\n\nTransparent PNG: in the Image tab add a \"remove background\" action on any finished image that runs a background removal model on the stored file and saves the result as a new job linked to the parent.\n\nInclude a seeded models.ts with a few real Replicate model slugs and a comment saying model slugs rot and must be updated by hand.\n\nOut of scope, do not build: video timeline editing, multi-user anything, cloud deploy, credit systems, Stripe, model training, lipsync beyond whatever a single provider model offers.\n\nDeliverables: working app on npm run dev, migrations run on boot, README with setup, cost warning that video and voice calls are metered per use, and a note on where outputs live.",
+  "promptCurated": false
+}
