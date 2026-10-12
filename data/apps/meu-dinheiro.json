@@ -1,0 +1,51 @@
+{
+  "slug": "meu-dinheiro",
+  "name": "Meu Dinheiro",
+  "domain": "meudinheiroweb.com.br",
+  "category": "personal-finance",
+  "subcategory": "household budgeting (Brazil)",
+  "tagline": "Brazilian web app for tracking personal and family finances: accounts, categories, budgets, bills and reports.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.meudinheiroweb.com.br/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product is a ledger with categories, recurring bills, budget limits and a few charts, and an agent can produce that in an afternoon with SQLite and a chart library. What it cannot produce in one session is the boring plumbing that makes a finance app stick: automatic bank and card feeds, which in Brazil means Open Finance credentials or a paid aggregator, plus OFX quirks per bank. You can cover most of the gap with manual entry and OFX/CSV import, which is honestly how a lot of people use these tools anyway. The other gap is shape rather than code: a phone-friendly interface you will actually open at the checkout counter, and a spouse who can log in too. Build it if you like owning your numbers, keep paying if the appeal was the bank sync doing the typing for you.",
+  "coreLoopDIY": "A local web app where you record income and expenses against accounts and categories, import OFX/CSV statements from your bank, set monthly budget limits, and see where the money went.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a machine or small VPS to run it on",
+    "OFX or CSV statement exports from your bank for anything you do not want to type",
+    "Willingness to categorize transactions yourself for the first few weeks"
+  ],
+  "whatYouLose": [
+    "Automatic bank and credit card synchronization via Open Finance or an aggregator",
+    "A polished mobile experience for logging spend on the spot",
+    "Multi-user family access with sane permissions",
+    "Someone else's category taxonomy and reports that already match how Brazilian household bills work",
+    "Backups, uptime and recovery when your laptop dies mid-month"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the ledger, it is the pipe into the bank. Open Finance access is credentialed and regulated, so a hobby build either pays an aggregator or imports files by hand.",
+  "whyPeopleStillPay": "Because the hard part of personal finance software is not arithmetic, it is getting transactions into the system without you noticing. A paid product that pulls statements from your bank and card issuer, guesses categories, and nags you on your phone will beat a lovely self-hosted ledger that requires a monthly file-import ritual, because the ledger you stop updating is worth zero. Add a shared family login and a vendor that keeps the data alive across a laptop replacement, and the subscription is cheap relative to the chance you abandon the habit.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Double entry purists will reach for Beancount or Actual Budget instead, and they are not wrong.",
+  "prompt": "Build a single-user personal finance tracker that runs locally. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/financas.db, schema created on first run\n- Recharts for charts\n- Locale pt-BR, currency BRL, dates dd/MM/yyyy\n\nData model:\n- accounts: id, name, type (conta_corrente | poupanca | cartao_credito | dinheiro | investimento), opening_balance\n- categories: id, name, kind (receita | despesa), parent_id nullable\n- transactions: id, account_id, category_id, date, amount (integer centavos, signed), description, notes, tags, import_hash nullable unique\n- budgets: id, category_id, month (YYYY-MM), limit_cents\n- recurring: id, description, account_id, category_id, amount_cents, day_of_month, active\n\nFeatures, in scope:\n- Transaction list with filters by date range, account, category and free text search; inline edit and delete\n- Quick-add form that remembers the last used account and category\n- Import OFX and CSV statements: file upload, column/field mapping for CSV, dedupe via import_hash built from date + amount + description, a review screen where each imported row gets a category before commit\n- Category rules: if a description matches a stored substring, auto-assign a category on import\n- Dashboard: current balance per account, month income vs expense, expenses by category (pie), 12 month trend (bar), budget progress bars with over-limit in red\n- Recurring bills page that generates the current month's pending entries with one click\n- Monthly report page, printable, plus CSV export of all transactions\n- Seed script with a realistic pt-BR category tree (moradia, alimentacao, transporte, saude, educacao, lazer, salario, etc)\n\nOut of scope, do not attempt:\n- Open Finance or any bank API integration, no scraping bank sites\n- Multi-user, auth, sharing, mobile apps, double entry accounting, invoices or tax reports\n\nRules:\n- Store money as integer centavos everywhere, format only at render time\n- Any config in .env with a .env.example committed, never hardcode paths or secrets\n- Include a npm run backup script that copies the SQLite file with a timestamp\n- README with setup, import instructions and a one paragraph note on what this deliberately does not do\n- Ship it working: npm install, npm run seed, npm run dev",
+  "promptCurated": false
+}
