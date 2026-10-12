@@ -1,0 +1,51 @@
+{
+  "slug": "cerrix",
+  "name": "Cerrix",
+  "domain": "cerrix.com",
+  "category": "security",
+  "subcategory": "GRC / enterprise risk management",
+  "tagline": "Enterprise risk management suite with modules for internal audit, controls, incidents and compliance.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.cerrix.com/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Enterprise GRC tools of this kind are typically quoted per module and per user rather than listed publicly.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Underneath the module names this is a relational schema: risks, controls, assessments, actions, findings, audits, and the links between them, plus dashboards and exports. An agent can produce a working risk register with control mapping, a heat map, action tracking and a PDF or Excel export in a single session, and for one person or a small team that is genuinely enough. What it cannot one-shot is the part that makes a GRC tool defensible: tamper-evident audit trails, role separation between risk owner and auditor and approver, periodic attestation workflows, and the documented validation that an external auditor or regulator will accept as a system of record. If you want to track your own risks, build it. If someone else has to sign off on the output, the build is a prototype and the software is the evidence.",
+  "coreLoopDIY": "A self-hosted CRUD app where you register risks, score likelihood and impact, link them to controls and mitigating actions, and see the whole thing as a register plus a heat map with export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ and a place to run it (laptop or a small VM)",
+    "SQLite, no external database needed",
+    "A decision up front on your own scoring scale and risk taxonomy, because that is the actual design work"
+  ],
+  "whatYouLose": [
+    "Tamper-evident change history and the four-eyes approval flows auditors ask for",
+    "The internal audit module: engagement planning, workpapers, findings follow-up, all of which is a second app",
+    "Prebuilt framework content and mappings (ISO 27001, SOX, DORA style control libraries) that you would otherwise type in by hand",
+    "Multi-user permissions where risk owners, auditors and management see different slices",
+    "Someone to point at when the regulator asks who validated the tool"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "collaboration"
+  ],
+  "moatNotes": "The schema is boring on purpose. The value sits in process enforcement and in being the artifact an external auditor already recognizes.",
+  "whyPeopleStillPay": "Nobody buys an ERM suite because the data model is hard. They buy it because a risk register that lives in a spreadsheet or a homemade app gets questioned during an audit, and because the tool forces a cadence: reassessment reminders, action owners, sign-off trails, management reporting that looks the same quarter after quarter. Once several years of risk history, control evidence and audit findings are inside, switching means re-mapping everything and explaining the migration to the audit committee. The license is cheaper than that conversation.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for yourself, not for your auditor. The schema is a weekend; the acceptance is not.",
+  "prompt": "Build a self-hosted enterprise risk register as a single Python web app. No accounts system, no cloud services, no telemetry.\n\nStack, non negotiable: Python 3.11, FastAPI, Jinja2 templates server rendered, HTMX for inline edits, SQLite via SQLAlchemy, Alembic for migrations, plain CSS in one stylesheet. Run with uvicorn. Config from a .env file read with python-dotenv (APP_SECRET, DB_PATH, ORG_NAME). Commit a .env.example, never a real .env.\n\nData model:\n- Risk: title, description, category, owner (free text), inherent likelihood 1-5, inherent impact 1-5, residual likelihood 1-5, residual impact 1-5, status (open, mitigated, accepted, closed), review_due date, created_at, updated_at.\n- Control: title, description, type (preventive, detective, corrective), frequency, owner, effectiveness (effective, partial, ineffective, untested), last_tested date.\n- Action: title, description, risk_id, owner, due date, status (open, in progress, done, overdue computed), notes.\n- Link table between Risk and Control, many to many.\n- AuditLogEntry: append only, records entity type, entity id, field, old value, new value, timestamp. Write one row on every create and update. Never expose a delete endpoint for it.\n\nScreens:\n1. Register: sortable, filterable table of risks with inherent and residual scores, colour coded cells, filters by category, owner, status, overdue review.\n2. Risk detail: edit fields inline, attach controls, add and close actions, show that risk's audit log.\n3. Heat map: 5x5 grid, residual by default with a toggle for inherent, each cell lists the risks that land there.\n4. Controls list with effectiveness and last tested date, highlight anything untested or older than 12 months.\n5. Actions dashboard grouped by owner, overdue first.\n6. Export: one button producing an .xlsx with sheets for Risks, Controls, Actions, and one producing a printable HTML report for the whole register.\n\nSeed the database with roughly 20 plausible risks across 4 categories, 10 controls and 8 actions so the screens are not empty.\n\nExplicitly out of scope: multi tenant anything, user login and roles, internal audit engagement management, workpapers, prebuilt ISO or SOX control libraries, email notifications, file uploads.\n\nDeliver a README with a one command setup, how to run migrations, how to reset the seed data, and a short honest section stating that the audit log is append only by convention and not cryptographically tamper evident, so this is not a validated system of record.",
+  "promptCurated": false
+}
