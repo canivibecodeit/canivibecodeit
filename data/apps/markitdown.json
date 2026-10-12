@@ -1,0 +1,51 @@
+{
+  "slug": "markitdown",
+  "name": "MarkItDown",
+  "domain": "markitdown.tech",
+  "category": "documents",
+  "subcategory": "document to Markdown conversion",
+  "tagline": "Web tool that turns PDFs, Office files and web pages into clean Markdown.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://markitdown.tech/",
+    "checkedOn": "2026-10-10",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Document to Markdown conversion is one of the most thoroughly solved problems in open source, and the heavy lifting already exists as libraries: Microsoft's markitdown, pandoc, pdfplumber, python-docx. A hosted tool is mostly a drop zone, a job queue and a download button on top of that stack. An agent can wire a local version in a single sitting and you get unlimited files with no upload size caps and nothing leaving your machine. Where a paid version earns its keep is the ugly tail: scanned PDFs needing OCR, multi-column academic layouts, tables that survive the trip, and someone else maintaining the parsers when a format changes. If your inputs are normal documents, the DIY build is genuinely equivalent.",
+  "coreLoopDIY": "A local web app where you drag in PDFs, DOCX, XLSX, PPTX, HTML or images and get back Markdown files, previewed in the browser and downloadable individually or as a zip.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+ and Node, or just Python if you accept a server-rendered UI",
+    "pandoc and poppler installed locally for the stubborn formats",
+    "Tesseract if you want OCR on scanned PDFs",
+    "An OpenAI or Anthropic key only if you want AI image descriptions, otherwise none"
+  ],
+  "whatYouLose": [
+    "Someone else's accumulated fixes for weird PDF layouts, multi-column papers and merged table cells",
+    "A shareable URL you can send a colleague instead of asking them to install Python",
+    "Mobile and tablet use, unless you host your build somewhere",
+    "OCR quality tuning, which is a real rabbit hole if your inputs are scans",
+    "Batch throughput and queueing for hundreds of files at once, unless you build it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The underlying conversion engines are open source, so the defensible part is UI polish and edge case handling, not technology.",
+  "whyPeopleStillPay": "Because converting one document right now, from a phone or a locked-down work laptop, beats installing a Python toolchain and arguing with pandoc dependencies. Format conversion also has a long tail of failure modes that only show up in real files, and paying someone to have already hit those failures is reasonable if documents are your job rather than your hobby. For a developer who already has the environment, the calculus flips immediately.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rarer cases where the paid product and the DIY build literally call the same libraries.",
+  "prompt": "Build a local document-to-Markdown converter. Single machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Uvicorn\n- Jinja2 templates plus a little vanilla JS, no React, no build step\n- markitdown for the primary conversion path\n- pandoc via subprocess as a fallback for formats markitdown handles badly\n- pytesseract plus pdf2image for the optional OCR path\n- uv or a plain requirements.txt, your choice, but pin versions\n\nBehaviour:\n- One page at /: a drag and drop zone plus a file picker, multi file.\n- Accept pdf, docx, xlsx, pptx, html, htm, epub, csv, txt, png, jpg.\n- Also accept a pasted URL and fetch that page, then convert its HTML.\n- Convert each file in a background task, show per file status in a list: queued, converting, done, failed. Poll a /status endpoint, no websockets.\n- For each finished file, show the Markdown in a textarea with a copy button, a download .md button, and a rendered preview toggle.\n- A download all button that zips every result.\n- A checkbox per batch: run OCR on PDFs with no extractable text layer. Detect that case automatically and say so in the UI when it triggers.\n- Normalise output: strip repeated blank lines, keep heading levels, keep tables as GitHub flavoured Markdown, write images to an assets folder next to the .md and link them relatively.\n- If markitdown fails on a file, retry with pandoc, and if both fail, show the actual error text, not a generic message.\n\nStorage:\n- Write uploads and outputs under ./work/{job_id}/ on disk. No database. Delete jobs older than 24 hours on startup.\n\nOut of scope, do not build:\n- Auth, users, billing, usage limits, analytics, Docker, a hosted deploy path, a CLI.\n\nDeliver a README with install steps including the pandoc and tesseract system packages, and a .env.example holding only MAX_UPLOAD_MB and WORK_DIR. Anything else configurable stays in code.",
+  "promptCurated": false
+}
