@@ -1,0 +1,50 @@
+{
+  "slug": "facerater",
+  "name": "FaceRater",
+  "domain": "facerater.ai",
+  "category": "wellness",
+  "subcategory": "face analysis and style suggestions",
+  "tagline": "Browser-based face analysis that scores facial harmony, guesses your face shape, and suggests hairstyles.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://facerater.ai/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is landmark detection plus arithmetic. MediaPipe FaceLandmarker runs in the browser for free and hands you 468 points, and every \"harmony score\" on the market is a weighted average of ratios between those points compared against numbers someone picked. Face shape classification is a few width-to-height and jaw-to-cheek comparisons with thresholds, and the hairstyle advice is a lookup table from seven face shapes to a list of cuts. The only genuinely hard part is making the output feel authoritative, which is a design problem, not an engineering one. Build it, keep the photo on your own machine, and enjoy knowing exactly how arbitrary the number is.",
+  "coreLoopDIY": "Runs face landmark detection on a webcam frame or uploaded photo entirely in the browser, computes symmetry and proportion ratios into a composite score, classifies face shape, and returns a canned hairstyle and grooming list for that shape.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A modern browser with WebGL and camera access",
+    "MediaPipe Tasks Vision face landmarker model file, downloaded once",
+    "Optional: an LLM API key if you want the style coach to write prose instead of reading from a table"
+  ],
+  "whatYouLose": [
+    "Curated hairstyle reference photos, which are licensed images you do not have",
+    "A score calibrated against a large sample of faces, so your number has no population context at all",
+    "Mobile-native camera handling, guide overlays, and the lighting hints that make the capture step not awful",
+    "Before/after and progress tracking across saved sessions unless you build storage",
+    "Any claim that the output means something, which is admittedly also true of the paid version"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The moat is the capture flow and the confident-looking report card. Nobody is defending the math.",
+  "whyPeopleStillPay": "Because the free version of this is a novelty and the paid version is a feeling. People pay for a clean capture experience, a report that looks like it came from somewhere, and style suggestions attached to actual photos of actual haircuts rather than the string \"textured crop\". A self-built version gives you the same numbers with worse presentation, and presentation is most of what is being sold here.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The harmony score is a vibe with decimal places, and that is fine as long as you built the vibe yourself.",
+  "prompt": "Build a single-page web app called \"Face Metrics\" that analyzes a face photo entirely in the browser. No backend, no accounts, no telemetry, no uploads.\n\nStack, pick exactly this: Vite + React + TypeScript, Tailwind for styling, @mediapipe/tasks-vision for face landmarks. No other UI libraries.\n\nFlow:\n1. Landing panel with two inputs: \"Use camera\" (getUserMedia, show a live preview with a centered oval guide and a capture button) and \"Upload photo\" (file input, accept image/*).\n2. On capture, run FaceLandmarker in IMAGE mode with the face_landmarker.task model. Download the model into /public/models at setup time and load it from there, do not hotlink a CDN at runtime.\n3. If no face or more than one face is detected, say so plainly and let the user retry.\n\nAnalysis module (src/analysis.ts), pure functions over the 468 landmark points, fully unit tested with vitest:\n- Normalize points by interpupillary distance so results are scale invariant.\n- Symmetry: mirror landmarks across the vertical midline through the nose bridge and chin, report mean deviation as a 0-100 score.\n- Proportions: compute facial thirds (hairline-to-brow, brow-to-nose-base, nose-base-to-chin), vertical fifths, face width over face height, jaw width over cheekbone width, chin height, nose width over mouth width, eye spacing over eye width.\n- Harmony score: weighted average of how close each ratio sits to a configured target, with every target and weight in a single exported TARGETS object so it is obvious the numbers are chosen, not discovered.\n- Face shape: rule-based classifier over the same ratios returning one of oval, round, square, heart, diamond, oblong, triangle, plus a confidence value.\n\nOutput view:\n- Canvas overlay of the photo with landmarks, the midline, and the thirds/fifths guide lines, toggleable.\n- Report card: harmony score, symmetry score, detected face shape, and a table of every measured ratio next to its target and its delta.\n- A short disclaimer stating the score is an arbitrary weighted formula and not a measure of anything real. Keep it visible, not in a footer.\n- Style suggestions read from src/data/styles.json, keyed by face shape, with hairstyle names, beard or brow notes, and glasses frame shapes. Write the content yourself as plain text, do not embed or hotlink any photos.\n\nExtras:\n- \"Save report\" exports a PNG of the report card plus a JSON of the raw measurements, via download, nothing leaves the machine.\n- Optional: if VITE_OPENAI_API_KEY exists in .env, add a \"Style coach\" button that sends only the computed ratios and face shape as text (never the image) and renders the reply. If the key is absent, hide the button entirely. Ship .env.example, gitignore .env.\n\nOut of scope: age, gender, ethnicity, attractiveness ranking, leaderboards, user accounts, any server.\n\nDeliver a working `npm install && npm run dev`, a README explaining the formula and its arbitrariness, and passing tests.",
+  "promptCurated": false
+}
