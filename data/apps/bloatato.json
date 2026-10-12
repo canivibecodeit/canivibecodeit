@@ -1,0 +1,54 @@
+{
+  "slug": "bloatato",
+  "name": "Blotato",
+  "domain": "blotato.com",
+  "category": "social-media",
+  "subcategory": "multi-platform publishing",
+  "tagline": "AI writes, remixes and schedules posts, then publishes them to a dozen social platforms from one dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.blotato.com/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The AI part is the easy part: captions, hooks, repurposing one idea into eight formats, that is a prompt and a loop. The hard part is the plumbing, because every destination has its own OAuth dance, its own media spec, its own rate limits, and its own review process before you are allowed to post programmatically. For a single person posting to their own accounts you can mostly get there: Instagram via a business account on the Graph API, YouTube via the Data API, LinkedIn via member share, Bluesky and Mastodon for free, X only if you accept the write caps or pay for a tier. TikTok direct publishing is where it falls apart, since unaudited apps are stuck posting privately. So a weekend gets you a real scheduler that covers most of your accounts, and a permanent maintenance tax every time a platform changes its API.",
+  "coreLoopDIY": "Write or AI-generate one piece of content, auto-adapt it per platform, queue it with a time, and let a cron worker push it to each connected account through official APIs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Developer app registered on each platform you want to post to, with its own OAuth client and token refresh",
+    "Instagram and Facebook posting requires a Business or Creator account linked to a Page",
+    "X posting needs a paid API tier or you live inside a very small free write quota",
+    "ffmpeg locally for video and image reformatting per platform spec",
+    "An always-on box or small VPS so the scheduler fires when you are asleep",
+    "An LLM API key for the writing and repurposing step"
+  ],
+  "whatYouLose": [
+    "TikTok and Threads style destinations that require an audited app, which a personal build will not get",
+    "Hosted media handling: transcoding, thumbnails, aspect ratio fixes and CDN hosting of the asset the platform fetches",
+    "Someone else absorbing API breakage, token expiry weirdness and platform policy churn",
+    "The trend and viral-reference library that supplies the ideas, not just the words",
+    "Mobile app, approval flows, and a calendar UI you actually enjoy looking at"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the AI, it is being an approved app on platforms that make approval deliberately annoying.",
+  "whyPeopleStillPay": "Because the value is distribution, not generation. Anyone can get an LLM to write ten hooks, but getting a post to actually land on Instagram, YouTube Shorts, LinkedIn, X, Pinterest and TikTok from one click requires being a vetted API client on each of them, keeping tokens alive, and reformatting media to six different specs. People pay to never think about that again, and to have one calendar instead of six tabs. If you only post to two or three platforms you personally control, the subscription is mostly convenience; if you post to eight, it is infrastructure you cannot cheaply reproduce.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The generator is trivial; the publisher is the product. Budget your weekend for OAuth, not prompts.",
+  "prompt": "Build a local-first multi-platform social scheduler called \"spudpost\". Single user, no accounts, no telemetry.\n\nStack, no substitutions:\n- TypeScript, Node 20, Fastify for the API and a server-rendered UI with HTMX plus plain CSS\n- SQLite via better-sqlite3, file at ./data/spudpost.db, migrations in ./migrations\n- node-cron for the publishing worker, run in the same process\n- ffmpeg invoked as a child process for media reformatting\n- All secrets in .env, loaded with dotenv, never committed. Include .env.example\n\nFeatures in scope:\n1. Compose screen: one text body, optional media files, plus a target checkbox per connected platform.\n2. \"Adapt\" button: calls an LLM (OpenAI API, model and key from .env) to rewrite the body per selected platform using per-platform rules stored in a prompts/ folder as editable markdown. Show the drafts side by side and let me edit any of them before queueing.\n3. Queue: each post row is (platform, body, media_path, scheduled_at, status, attempts, last_error). Statuses: draft, queued, publishing, published, failed.\n4. Worker: every minute, pick queued rows where scheduled_at is due, publish, write the platform post id or the error back to the row. Exponential backoff, max 3 attempts, never silently drop.\n5. Media pipeline: before publishing, ffmpeg-normalize the asset to the target platform spec (resolution, aspect, max duration, max bytes) and cache the output under ./data/media.\n6. Platform adapters behind one interface: publish(post) returns an id or throws. Implement Bluesky (app password), Mastodon (access token), LinkedIn member share, YouTube Data API video upload, Instagram Graph API image and reel publish for a business account. Each adapter in its own file with a short comment naming the exact scope or permission it needs.\n7. A /connections page that shows which adapters have valid credentials in .env and when each token expires, with a refresh button where the API supports it.\n8. A week-view calendar of scheduled and published posts.\n\nExplicitly out of scope: TikTok direct publishing, analytics and engagement metrics, team approvals, AI image or video generation, any hosted media CDN, any payment code.\n\nShip with: README that lists, per platform, the exact developer app setup steps and required scopes; a seed script that creates a fake adapter so the queue and worker can be tested with zero real credentials; and vitest tests for the scheduler selection logic, backoff, and the media normalizer argument builder. Make npm run dev start the server and worker together on port 8787.",
+  "promptCurated": false
+}
