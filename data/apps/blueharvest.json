@@ -1,0 +1,49 @@
+{
+  "slug": "blueharvest",
+  "name": "Blue Harvest",
+  "domain": "zeroonetwenty.com",
+  "category": "productivity-utilities",
+  "subcategory": "macOS metadata cleanup",
+  "tagline": "A macOS background utility that stops .DS_Store and other Apple metadata files from littering USB sticks, network shares and other non-Mac volumes.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "one-time license",
+    "unit": "one-time",
+    "source": "https://www.zeroonetwenty.com/blueharvest/",
+    "checkedOn": "2026-10-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is a single-purpose janitor: watch volumes, delete .DS_Store, ._AppleDouble forks, .Spotlight-V100, .Trashes and friends, ideally before anyone on Windows sees them. A coding agent can get you most of the way in one sitting with a launchd agent, a volume mount watcher and a sweep function, and macOS already ships the two defaults keys that suppress the network and USB cases outright. What you are actually buying is the polish: a menu bar item, real time FSEvents watching instead of sweeps, sane exclusions so it never eats something you cared about, and the confidence that comes from a signed binary doing deletions on your behalf. There is no network, no data, no account, nothing you need their servers for. If you only care about one external drive and one SMB share, the DIY version is honestly fine.",
+  "coreLoopDIY": "A launchd background agent that notices when a volume mounts, then sweeps it for Apple metadata files and deletes them, repeating on a timer and on every new mount.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "macOS with python3 available",
+    "Permission to load a user launchd agent",
+    "Full Disk Access for the agent if you want it touching every volume"
+  ],
+  "whatYouLose": [
+    "Real time FSEvents watching, so junk can exist for a few minutes before a sweep kills it",
+    "A menu bar UI, per volume toggles and visible cleanup stats",
+    "Careful exclusion logic, which matters a lot when the program's whole job is deleting files unattended",
+    "A signed, notarized binary and someone else's testing across macOS versions",
+    "Handling of the weird cases: Time Machine volumes, disk images, odd SMB servers, case sensitivity"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is nerve, not code. Anyone can write rm for a glob pattern; shipping it as a thing people trust to run unattended for years is the hard part.",
+  "whyPeopleStillPay": "Because the cost of the app is roughly one hour of your time, and the failure mode of a homemade file deleter running as a background daemon is losing something you cannot get back. People also pay for the toggle: a menu bar switch that cleans a drive on demand, excludes the one share that should keep its metadata, and tells you it actually did something. A cron job that silently deletes files is a different product from a utility you can see working.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Before you build anything, try the two built in defaults keys for network and USB stores; they cover a surprising share of why people buy this.",
+  "prompt": "Build a macOS background utility called dsjanitor that keeps non-Mac volumes free of Apple metadata files.\n\nStack, no alternatives: Python 3 (system python3), standard library only, plus one launchd user agent plist. No GUI, no third party packages, no network calls, no telemetry, no accounts.\n\nDeliverables in this folder:\n1. dsjanitor.py: the agent.\n2. com.local.dsjanitor.plist: a LaunchAgent that runs dsjanitor.py with RunAtLoad true and StartInterval 300.\n3. install.sh: copies the plist to ~/Library/LaunchAgents, loads it with launchctl, and prints the Full Disk Access instructions.\n4. config.json: user editable settings.\n5. README.md: install, uninstall, and how to read the log.\n\nBehavior:\n- On each run, enumerate mounted volumes under /Volumes plus any paths listed in config.json extra_roots.\n- Skip any volume whose mount point matches an entry in config.json excluded_volumes, and skip volumes that look like Time Machine backups or the boot volume.\n- Walk each eligible volume and delete files named .DS_Store, .Spotlight-V100, .Trashes, .fseventsd, .TemporaryItems, .apdisk, and AppleDouble sidecars matching ._* only when a sibling file with the same name minus the leading ._ exists.\n- Hard safety rule: never delete anything outside an eligible volume root, never follow symlinks out of the volume, never delete directories that are not in the list above, and treat the pattern list as a closed allowlist defined in one constant.\n- Support a --dry-run flag that logs what it would delete and deletes nothing. Make dry run the default behavior of config.json on first install so the user opts in.\n- Track newly appeared mount points in a small state file under ~/Library/Application Support/dsjanitor so a freshly mounted volume gets an immediate sweep on the next tick.\n- Log one line per deletion and one summary line per run to ~/Library/Logs/dsjanitor.log with simple rotation at 1 MB.\n\nAlso write a setup section in the README showing the two native suppression commands for network and USB stores via defaults write com.apple.desktopservices, and say plainly that these prevent most junk from being written in the first place and the agent is cleanup for everything else.\n\nOut of scope: menu bar UI, FSEvents watching, preference pane, code signing, notarization, Windows or Linux support.\n\nFinish by printing a short manual test plan: create a fake .DS_Store on a test volume, run with --dry-run, then run for real.",
+  "promptCurated": false
+}
