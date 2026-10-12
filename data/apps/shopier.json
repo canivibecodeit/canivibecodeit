@@ -1,0 +1,52 @@
+{
+  "slug": "shopier",
+  "name": "Shopier",
+  "domain": "shopier.com",
+  "category": "commerce",
+  "subcategory": "storefronts and payment collection",
+  "tagline": "Turkish platform that gives small sellers an instant storefront or payment link and collects card payments, including installments.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "commission per transaction",
+    "unit": "usage",
+    "source": "https://www.shopier.com/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Shopier is commission-based per sale rather than a flat subscription.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The storefront part of Shopier is genuinely trivial: product list, cart, checkout page, order emails, an admin screen. The part people actually pay for is money arriving in a Turkish bank account from a Turkish card, with installment options, 3D Secure, buyer protection and the tax paperwork that follows. That is a regulated payment flow, and you cannot one-shot a payment facilitator. You can build a store and bolt on a licensed gateway yourself, but then you are doing merchant onboarding, contracts, chargeback handling and reconciliation, which is the whole job Shopier exists to absorb. Build the shop if you want to own the frontend; do not expect to replace the money layer.",
+  "coreLoopDIY": "A self-hosted product catalog with cart and checkout that hands payment off to a licensed gateway using your own merchant keys, plus a tiny admin for products and orders.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A merchant account with a licensed payment provider and its API keys",
+    "A domain and somewhere to host a Node app",
+    "SMTP credentials for order emails",
+    "Willingness to handle refunds, disputes and tax reporting yourself"
+  ],
+  "whatYouLose": [
+    "Instant payment collection without your own merchant agreement and underwriting",
+    "Installment plans on Turkish credit cards, which buyers expect and which are a real conversion lever",
+    "Buyer-facing trust: a known checkout brand versus your unknown domain asking for card details",
+    "Payouts, reconciliation and invoice paperwork handled for you",
+    "Shareable payment links, mobile app, and the shipping and digital-delivery plumbing that ships by default"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "The regulated bit is not technical difficulty, it is permission: holding other people's money and settling it requires licensing, underwriting and audits that no coding agent can emit.",
+  "whyPeopleStillPay": "Because the commission buys a legal and financial shortcut, not software. A micro-seller running an Instagram shop needs a card payment they can accept today, with installments, a checkout page buyers do not flinch at, and a payout that lands in a bank account with the paperwork mostly sorted. Writing the cart is an afternoon. Becoming an entity that can legally collect card payments on behalf of a stranger is not, and if your store is doing modest volume, the percentage is cheaper than the alternative in both money and attention.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is a weekend; the money rails are not. The moat is payment licensing plus a checkout brand Turkish buyers already trust with their card numbers.",
+  "prompt": "Build a self-hosted mini storefront for a single small seller. I will run it myself and connect my own payment gateway account.\n\nStack, no alternatives:\n- Next.js (App Router) with TypeScript\n- SQLite via better-sqlite3, file at ./data/shop.db, migrations as plain SQL run on boot\n- Tailwind for styling, no component library\n- Nodemailer for transactional email\n\nIn scope:\n- Public pages: home with product grid, product detail page, cart, checkout, order confirmation\n- Products: title, slug, description (markdown), price in minor units, currency, stock count, up to 4 image uploads stored on disk under ./data/uploads\n- Support digital products: on paid order, email a time-limited signed download link instead of shipping fields\n- Cart kept in a signed cookie, no login for buyers\n- Checkout collects name, email, phone, shipping address when any item is physical, then creates an order row with status 'pending'\n- Payment: implement a single PaymentProvider interface with two implementations, a 'manual' one that marks the order awaiting bank transfer and shows my IBAN from .env, and a 'stripe' one using Checkout Sessions with a webhook at /api/webhooks/stripe that flips the order to 'paid'. Keep the interface clean so another gateway can be added later.\n- Admin at /admin behind a single password from .env, stored as a signed session cookie: create and edit products, upload images, list orders, filter by status, mark shipped with a tracking number, trigger refund instructions (text only, no API refund)\n- Emails: order received to buyer, new order alert to me, shipped notification with tracking\n- Seed script with 3 sample products, one of them digital\n\nOut of scope, do not build:\n- Multi-seller or multi-tenant anything\n- Buyer accounts, wishlists, reviews, coupons, abandoned cart flows\n- Installment plans, 3D Secure handling, or any attempt to process cards directly\n- Tax calculation, invoicing, or accounting exports\n- Analytics, telemetry, or third-party scripts\n\nRules:\n- All secrets in .env: ADMIN_PASSWORD, SESSION_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SMTP_*, SELLER_IBAN, SITE_URL. Ship a .env.example.\n- Validate every form input server side with zod, return field level errors\n- Never trust client prices, always recompute totals from the database at checkout\n- One command to run: npm run dev. One to seed: npm run seed.\n- README: how to run, how to point a domain at it, how to register the Stripe webhook, and an explicit warning that collecting payments means I am the merchant of record and own refunds, disputes and tax reporting.",
+  "promptCurated": false
+}
