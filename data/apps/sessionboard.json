@@ -1,0 +1,51 @@
+{
+  "slug": "sessionboard",
+  "name": "Sessionboard",
+  "domain": "sessionboard.com",
+  "category": "project-management",
+  "subcategory": "event speaker and session management",
+  "tagline": "Speaker, session and call-for-papers management for conference organizers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sessionboard.com/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible core is a CFP intake form, a reviewer scoring queue, a speaker portal where people upload bios and headshots and confirm details, and an agenda grid you drag sessions into. All of that is ordinary CRUD plus file uploads plus a lot of email, and an agent will get you a working version in a weekend. What does not come for free is the part event teams actually buy: two-way sync with the registration and event platform of record, deadline nudges that reliably land in inboxes, dozens of non-technical collaborators poking at the same agenda without breaking it, and the hundred small states a real conference generates (declines, swaps, co-presenters, embargoed sessions). If you are running one event with thirty sessions, build it. If you are running a 2,000-session show that feeds a mobile app and a badge system, do not.",
+  "coreLoopDIY": "A self-hosted CFP form, a reviewer scoring queue, speaker profile pages with file uploads, and a drag-to-slot agenda builder with CSV export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS to run it on",
+    "SMTP credentials if you want speaker emails to actually arrive",
+    "Local or S3-compatible storage for headshots and slide decks"
+  ],
+  "whatYouLose": [
+    "Integrations with registration and event platforms, so your agenda does not flow into the mobile app, website or badge printer automatically",
+    "Email deliverability and nudge sequences that chase 200 speakers for missing bios without landing in spam",
+    "Granular roles and review workflows for track chairs, marketing, and AV who all touch the same data",
+    "Audit trails, SSO and the security paperwork enterprise event teams get asked for",
+    "Someone to call at 11pm the night before doors open"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "switching-costs"
+  ],
+  "moatNotes": "The agenda is upstream of the website, the app, the badges and the room signage, so the integrations are the product more than the UI is.",
+  "whyPeopleStillPay": "Conference production is a deadline machine with no slack in it, and the cost of a wrong room or a missing speaker bio is public embarrassment. Teams pay so the agenda lives in one system that already talks to their registration platform and their event app, and so that chasing speakers is automated rather than a shared inbox and a spreadsheet. A self-built version handles the data fine; it just makes you the integration layer and the on-call engineer during show week.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great fit for a one-track community conference, bad fit for anything that feeds a mobile app.",
+  "prompt": "Build a self-hosted conference session and speaker manager called \"Deckchair\".\n\nStack, no substitutions: Next.js 15 (App Router, TypeScript), SQLite via better-sqlite3, Tailwind, Zod for validation. Local filesystem uploads under ./uploads. No external services, no analytics, no telemetry, no user accounts system beyond what is described below.\n\nAuth: single organizer password from ORGANIZER_PASSWORD in .env, checked into a signed httpOnly cookie. Speakers and reviewers get unguessable magic links (random 32-char tokens stored in SQLite, no passwords, no email verification flow).\n\nData model: events, sessions (title, abstract, track, format, duration, status: submitted/accepted/declined/confirmed), speakers (name, email, bio, headshot path, company, title), session_speakers join table, reviews (reviewer token, session id, score 1-5, comment), slots (room, day, start time), and session_slot assignment.\n\nBuild these screens:\n1. Public CFP form at /cfp/[eventSlug]: session details plus speaker details, creates speaker and session records, returns the speaker a magic link on screen and via SMTP if configured.\n2. Speaker portal at /s/[token]: edit bio, upload headshot and slide deck, see session status, confirm or withdraw.\n3. Reviewer queue at /r/[token]: one session at a time, score and comment, skip, shows no other reviewer's scores.\n4. Organizer dashboard: session list with average score, status filters, bulk accept/decline, speaker completeness column (missing bio, missing headshot, unconfirmed).\n5. Agenda builder: grid of rooms by time slots for a day, drag accepted sessions into slots, warn on speaker double-booking, nothing else clever.\n6. Exports: CSV of sessions with speakers and slots, CSV of speakers, and a JSON dump of the whole agenda.\n\nEmail: optional nodemailer transport from SMTP_* env vars. If unset, log the email body to stdout instead of failing. Include one manual action: \"email speakers with missing materials\".\n\nExplicitly out of scope: registration, ticketing, payments, badge printing, mobile app, multi-tenant billing, any third-party event platform sync.\n\nShip a seed script that creates one event with 25 fake sessions, 30 speakers and 3 reviewer tokens, plus a README with setup in under ten lines and a .env.example. Keep the whole thing under 2,500 lines and make `npm run dev` work on a clean checkout.",
+  "promptCurated": false
+}
