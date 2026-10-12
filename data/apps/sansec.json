@@ -1,0 +1,52 @@
+{
+  "slug": "sansec",
+  "name": "Sansec",
+  "domain": "sansec.io",
+  "category": "security",
+  "subcategory": "ecommerce malware detection and threat intel",
+  "tagline": "Malware and skimmer detection for ecommerce servers, built on a long-running Magento threat intel corpus.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sansec.io/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely write a scanner that walks a Magento webroot, hashes files against a known-good baseline, and screams about eval and base64_decode in template directories. What you cannot write is the thing Sansec actually sells: years of collected skimmer samples, obfuscation variants, attacker infrastructure, and the knowledge of which weird-looking file is a real Magecart injection versus a vendor's bad code. Their detection rules exist because they run forensics on breached stores and feed what they find back into the product. A DIY scanner catches the lazy attacks and misses the ones designed to evade generic heuristics, which is most of the ones that matter. Add to that: if you are doing this because a payment processor asked for a forensic report, your homemade Python script is not an acceptable answer.",
+  "coreLoopDIY": "Builds a hash baseline of a clean ecommerce codebase, then re-scans on a schedule and reports new, changed, or suspicious-looking files plus risky DB rows.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Shell access to the server running the store",
+    "A known-clean reference of the codebase, ideally a fresh composer install or git checkout",
+    "Read access to the store database",
+    "Somewhere to send alerts, email or a webhook"
+  ],
+  "whatYouLose": [
+    "The threat intel corpus: thousands of real skimmer and backdoor samples that generic heuristics do not match",
+    "Low false positive rates, your own rules will flood you with legitimate vendor code that looks ugly",
+    "Detection of DB-resident and layout-injected skimmers that never touch the filesystem",
+    "Forensic reporting that a bank, insurer, or PCI assessor will actually accept",
+    "Someone else's full-time job staying current with new obfuscation every month"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The product is a thin shell around a dataset that only exists because they keep getting called in after breaches.",
+  "whyPeopleStillPay": "Because the cost of a missed skimmer is customer card data leaking for six months, and nobody wants to explain to their payment processor that they were relying on a weekend project. Detection quality here is not a code problem, it is a sample collection problem, and the samples come from doing incident response on hundreds of compromised stores. There is also the boring institutional reason: when something goes wrong, you want a named vendor's report, not your own grep output.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A file integrity monitor is a weekend build; knowing what the changed file actually is, is not. The moat is a decade of skimmer samples collected from real breached stores, and the forensic credibility that comes with it.",
+  "prompt": "Build a self-hosted file integrity and anomaly scanner for a PHP ecommerce codebase (assume Magento 2 layout, but do not hardcode beyond directory names in config).\n\nStack: Python 3.11, standard library plus click for the CLI and PyMySQL for the DB checks. SQLite for the baseline store. No web UI, no accounts, no telemetry, no cloud anything. Single installable package with a console script named `storewatch`.\n\nCommands:\n- `storewatch baseline --root /path/to/webroot` : walk the tree, record relative path, size, mtime, sha256 for every file, write to a local SQLite db. Store a baseline label and timestamp.\n- `storewatch scan --root /path/to/webroot` : re-walk, diff against the most recent baseline, report added, modified, and deleted files.\n- `storewatch suspicious --root /path/to/webroot` : heuristic pass independent of the baseline.\n- `storewatch db-scan` : connect using credentials from .env and check the DB for known-risky content.\n- `storewatch report --format text|json` : last scan results.\n\nHeuristics for `suspicious`, each a separate named rule with a severity:\n- PHP files anywhere under pub/media, pub/static, var, or generated\n- source containing eval(, assert(, base64_decode(, gzinflate(, create_function(, preg_replace with /e\n- long base64-looking string literals over 200 chars\n- files with mtime newer than the newest composer.lock mtime\n- .htaccess files containing php_value or AddHandler outside the webroot root\n- world-writable PHP files\n\nFor `db-scan`, check: core_config_data rows where path matches design/head/includes or contains script tags, cms_block and cms_page content containing script tags or base64, and admin_user rows created or logged in within a configurable window.\n\nOutput: human-readable text by default with severity, rule name, path, and a one-line excerpt; `--json` for machine use. Exit code 1 if anything above a configurable severity threshold is found, so it works in cron.\n\nInclude: a sample .env.example with DB_HOST, DB_NAME, DB_USER, DB_PASS; an --exclude flag accepting glob patterns plus a sane default exclude list (var/cache, var/log, var/session, pub/static); a short README explaining that this detects lazy attackers and clumsy changes, not evasive skimmers, and that it is not a substitute for a real forensic scanner.\n\nOut of scope: signature databases, malware removal, quarantine, any network calls, email delivery (print to stdout and let cron handle mail).",
+  "promptCurated": false
+}
