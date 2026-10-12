@@ -1,0 +1,51 @@
+{
+  "slug": "ticketpartners",
+  "name": "Ticketpartners",
+  "domain": "ticketpartners.nl",
+  "category": "commerce",
+  "subcategory": "event ticketing",
+  "tagline": "Dutch event ticketing: online ticket sales, payment handling and door scanning for organizers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://ticketpartners.nl/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Ticketing vendors in this market typically charge per sold ticket plus payment costs rather than a flat monthly fee."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software part of ticketing is genuinely small: an event page, a cart, a payment redirect, a signed QR code, and a scanner that says green or red. An agent can put that together in a weekend with Mollie or Stripe and a SQLite database, and for a single show with a few hundred attendees it will work fine. What you are actually buying from a ticketing company is not the form, it is being the party that touches the money: payouts, refunds, chargebacks, VAT invoices, and a human who answers the phone when the onsale spikes or the door scanner loses wifi. If you run two gigs a year and already have a payment account, build it. If ticket revenue is how you pay the venue, the per-ticket fee is cheap insurance.",
+  "coreLoopDIY": "Publish an event page, sell tickets through a hosted payment redirect, email each buyer a signed QR ticket, and validate those QR codes at the door with a phone browser.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Mollie or Stripe account with iDEAL enabled, plus the API keys",
+    "Transactional email that is not your personal Gmail: Resend, Postmark or SMTP",
+    "A small VPS or a serverless host, and a domain for ticket links",
+    "A phone with a camera for the door scanner, and a plan for when the venue wifi dies"
+  ],
+  "whatYouLose": [
+    "Being insulated from the money: refunds, chargebacks, failed payouts and VAT invoicing all land on you",
+    "Support on sale day, for both you and confused buyers who typed their email wrong",
+    "Battle-tested door hardware and offline scanning, which is exactly where homemade ticketing breaks",
+    "Capacity for an onsale spike, where everyone arrives in the same 90 seconds",
+    "Fraud and duplicate-ticket handling that has already seen every trick at the entrance"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "scale-infra"
+  ],
+  "moatNotes": "Handling other people's ticket money is a regulated, liability-heavy job. The scanner app is the easy half.",
+  "whyPeopleStillPay": "Because the failure mode is not a bug report, it is 400 people standing outside in the rain while you refresh a dashboard. Organizers pay per ticket to make ticketing someone else's operational problem: the payment rails, the refund desk, the scanners that work when the hall has no signal, and the phone number for the two hours around doors. That is an insurance product wearing a web app, and it is priced accordingly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a DIY for your own small events; stop short of selling tickets for other people's money.",
+  "prompt": "Build a self-hosted ticketing app for small events. Stack: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling. No ORM, plain SQL. Run locally with `npm run dev`, deploy as a single Node process.\n\nIn scope:\n- Admin area behind a single password from ADMIN_PASSWORD in .env (cookie session, no user accounts, no OAuth).\n- Admin can create events: title, description, date, venue, capacity, and one or more ticket types with name, price in cents, and quantity.\n- Public event page at /e/[slug]: event info, remaining stock per ticket type, quantity selector, buyer name and email, checkout button.\n- Checkout via Mollie using MOLLIE_API_KEY from .env (iDEAL plus card). Create an order row in status 'pending', redirect to the Mollie hosted payment page, handle the webhook at /api/webhook/mollie to flip the order to 'paid'. Reserve stock on order creation and release it on expiry or failure, inside a transaction so you cannot oversell.\n- On payment, generate one ticket row per ticket sold with a random id and an HMAC signature using TICKET_SECRET. Render a QR code encoding id plus signature. Email the buyer an HTML receipt with the QR codes inline using Resend (RESEND_API_KEY) and a from address from .env.\n- Door scanner at /scan, admin-only: camera QR scan in the browser, POST the payload to /api/scan which verifies the signature, checks the ticket exists and is unused, marks it checked in with a timestamp, and returns a big green VALID, orange ALREADY SCANNED, or red INVALID. Log every scan attempt.\n- Admin dashboard per event: tickets sold, revenue, checked-in count, searchable attendee list, CSV export, and a manual re-send receipt button.\n\nOut of scope: seat maps, discount codes, multi-organizer accounts, refunds through the app (do those in the Mollie dashboard), offline mode, native apps, analytics, telemetry.\n\nAll secrets in .env, with a .env.example committed. Write a README covering local setup, Mollie test mode, how to expose the webhook during development, and the explicit warning that this is for your own events and you are the merchant of record. Seed script with one demo event and two ticket types. Include a test for the oversell guard and one for signature verification.",
+  "promptCurated": false
+}
