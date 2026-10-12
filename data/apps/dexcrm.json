@@ -1,0 +1,51 @@
+{
+  "slug": "dexcrm",
+  "name": "Dex",
+  "domain": "getdex.com",
+  "category": "crm",
+  "subcategory": "personal CRM",
+  "tagline": "A personal CRM that pulls your contacts together and nags you to follow up with people before the relationship goes cold.",
+  "priceMonthly": 12,
+  "pricing": {
+    "plan": "Dex Pro",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://getdex.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The actual data model here is embarrassingly simple: people, notes, a last-contacted date, a desired cadence, and a query that asks who is overdue. An agent can hand you that in an afternoon and it will work fine for the two hundred people you genuinely care about. What you cannot one-shot is the plumbing Dex sells: the LinkedIn connection sync, the browser extension, the Google and iCloud contact merge, the email and calendar scraping that logs interactions without you typing anything, and the phone app that puts the nudge in your pocket. Without automatic interaction logging, a personal CRM degrades into a chore, and chores lose. Build it if you are willing to log manually or wire up one Gmail API read scope yourself.",
+  "coreLoopDIY": "Stores people with notes, tags and a keep-in-touch cadence, then shows a daily list of who is overdue and lets you log a touchpoint in one click.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a place to run it locally or on a small VPS",
+    "CSV export from Google Contacts or LinkedIn for the initial import",
+    "Optional Google OAuth credentials if you want Gmail or Calendar auto-logging"
+  ],
+  "whatYouLose": [
+    "LinkedIn connection sync and the browser extension that captures people as you browse",
+    "Automatic interaction logging from email and calendar, so every touchpoint becomes manual data entry",
+    "Native iOS and Android apps with push reminders and phone contact sync",
+    "Cross-source dedupe and contact enrichment, so your import will have three versions of the same person",
+    "Someone else maintaining OAuth scopes and API changes that break quietly"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the CRM, it is the ingest pipes. Nobody pays for a contacts table.",
+  "whyPeopleStillPay": "Personal CRMs die from friction, not from missing features. Dex earns its money by removing the two steps most likely to kill the habit: getting your people in, and remembering that you talked to them. The LinkedIn sync, the extension, the email and calendar reading and the mobile reminder are the product; the relationship timeline is just a view on top. If you are honest about whether you will manually log a coffee chat three weeks from now, you already know whether the DIY version survives.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A keep-in-touch query is twenty lines of SQL; the habit is the hard part and integrations are what protect it.",
+  "prompt": "Build a local-first personal CRM web app in an empty folder.\n\nStack, no substitutions:\n- Next.js 15 App Router with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/crm.db, schema created on first run\n- No auth, no accounts, no telemetry, no cloud services. Single user on localhost.\n\nData model:\n- person: id, full_name, emails (json array), phones (json array), company, role, location, how_we_met, birthday (nullable), cadence_days (nullable int), last_contacted_at (nullable), archived (bool), created_at\n- note: id, person_id, body (markdown), occurred_on, created_at\n- tag and person_tag join table\n- touchpoint: id, person_id, channel (call, email, text, coffee, event, other), occurred_on, summary\n\nScreens:\n1. Dashboard: \"Overdue\" list computed as last_contacted_at + cadence_days < today, sorted by most overdue, each row with a one-click \"Logged a touchpoint\" button that opens a small inline form (channel, date defaults today, one line summary) and updates last_contacted_at. Also a \"Birthdays in the next 30 days\" panel.\n2. People: searchable, filterable by tag and cadence, keyboard-focused search box.\n3. Person detail: fields editable inline, a merged timeline of notes and touchpoints newest first, a markdown note composer.\n4. Import: upload a Google Contacts CSV or LinkedIn connections CSV, map columns, show a dry-run preview with likely duplicates flagged by normalized email and lowercased name, then commit.\n\nAlso ship:\n- GET /api/ics that returns an iCalendar feed of birthdays and overdue nudges so a real calendar app can show them\n- A \"Export everything\" button that writes JSON and CSV to ./export\n\nExplicitly out of scope, do not attempt: LinkedIn scraping, Gmail or Calendar OAuth, mobile apps, push notifications, contact enrichment, multi-user.\n\nAny secrets go in .env with a committed .env.example. Include a README with setup, the overdue query explained, and a seed script that inserts 25 fake people so the dashboard is not empty on first run.",
+  "promptCurated": false
+}
