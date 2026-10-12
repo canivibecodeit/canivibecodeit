@@ -1,0 +1,51 @@
+{
+  "slug": "plot",
+  "name": "Plot",
+  "domain": "plotwork.space",
+  "category": "notes-knowledge",
+  "subcategory": "AI canvas for story and idea structuring",
+  "tagline": "A card based canvas for plotting ideas or stories, with an AI partner that can read and edit the cards alongside you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.plotwork.space/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible surface here is a draggable card canvas with links between cards, and that is a well trodden one-session build with any modern canvas library. The part that eats the weekend is the data model: cards that know about each other, relationships that survive edits, and a graph the AI can traverse without being handed the entire document every turn. The AI partner is the real gap, not because calling a model is hard, but because a tool using agent that reliably reads, adds, edits and deletes the right cards and then pushes back on your assumptions takes a lot of prompt and schema discipline before it stops quietly mangling your board. You can get something you personally enjoy using in a weekend. Getting something you trust to edit your own canvas unsupervised is further out.",
+  "coreLoopDIY": "A local card canvas where you create, link and rearrange cards, plus a chat sidebar whose model can read the whole board and propose structured create, edit and delete operations you approve.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key with function or tool calling, in .env",
+    "Node and a browser; everything else runs locally",
+    "A local database file for the board, no account system"
+  ],
+  "whatYouLose": [
+    "A model that has been tuned against real boards, so your DIY agent will hallucinate card references more often",
+    "Undo, versioning and conflict handling that actually hold up when the AI makes a bad bulk edit",
+    "Mobile and tablet use, since a hand rolled canvas is desktop first by default",
+    "Rendering and interaction polish: snapping, smooth pan and zoom, selection behaviour, keyboard flow",
+    "Sync across devices and any form of sharing a board with someone else"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is interaction quality and a disciplined agent schema, not infrastructure. Both are copyable, just slowly.",
+  "whyPeopleStillPay": "People pay because the gap between a card canvas that works and one that feels good is mostly invisible until you build it. Drag physics, link routing, sane selection, an AI that edits the correct card every single time, none of that shows up in a screenshot but all of it decides whether you keep the tool open. If structuring ideas is your actual job, paying a small monthly fee to skip two weeks of yak shaving on an agent tool schema is an easy trade. If you just want a place to push cards around, your own build will do fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The canvas is the easy half; the agent that edits it without lying about which card it touched is the whole product.",
+  "prompt": "Build a local-first card canvas app with an AI thinking partner. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Vite + React + TypeScript\n- React Flow for the canvas\n- Zustand for state\n- SQLite via better-sqlite3 behind a tiny Express server in the same repo\n- Tailwind for styling\n- One LLM provider, Anthropic, via its official SDK with tool use\n\nData model:\n- card: id, title, body (markdown), kind (one of idea, scene, character, question, note), x, y, createdAt, updatedAt\n- edge: id, fromCardId, toCardId, label, kind (one of causes, blocks, supports, contradicts, follows)\n- board: single implicit board, no multi board support\n\nCanvas behaviour:\n- create card on double click of empty canvas\n- drag to move, persist position on drop with debounce\n- drag from card handle to another card to create an edge, then type a label inline\n- click a card to open a right side editor panel with title, kind, markdown body, and a list of its incoming and outgoing edges as clickable links\n- delete key removes the selected card and all its edges\n\nAI partner panel:\n- chat sidebar on the left\n- every request sends a compact board summary: all cards as id, title, kind, first 200 chars of body, plus all edges\n- expose tools: list_cards, get_card, create_card, update_card, delete_card, create_edge, delete_edge, ask_user\n- the model must only act via tools; never let it return raw card text that gets applied silently\n- every mutating tool call renders as a pending diff card in the chat with Apply and Reject buttons; nothing touches the database until Apply\n- system prompt instructs the model to challenge assumptions, surface contradictions between cards, and say \"I cannot find a card matching that\" instead of guessing an id\n- keep an append only audit log table of applied operations and add a single level global undo that reverts the last applied batch\n\nIn scope: everything above, seed script with 8 example cards and 6 edges, README with setup.\nOut of scope: auth, multiplayer, mobile layout, image cards, export to anything, search beyond a simple title filter, streaming animations.\n\nSecrets: ANTHROPIC_API_KEY in .env, loaded server side only, never shipped to the browser. Commit a .env.example.\nFinish with: npm install, npm run seed, npm run dev working in one shot.",
+  "promptCurated": false
+}
