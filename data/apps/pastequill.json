@@ -1,0 +1,50 @@
+{
+  "slug": "pastequill",
+  "name": "PasteQuill",
+  "domain": "pastequill.com",
+  "category": "productivity-utilities",
+  "subcategory": "clipboard and snippets",
+  "tagline": "A paste-layer writing utility: clipboard history, saved snippets, and cleanup or rewriting of whatever you are about to paste.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pastequill.com/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Clipboard-and-snippet utilities are the canonical one-shot build: a global hotkey, a local database of the last few hundred copies, fuzzy search, and a paste-back shortcut. Adding a rewrite step is one API call against text you already have in memory, so there is no data the vendor owns that you cannot reproduce. The hard parts are not the features, they are accessibility permissions, reliable global hotkeys, and not leaking passwords into your history, and an agent can get all three roughly right in a sitting. What you will not get in a session is a signed, notarized, auto-updating app that survives OS upgrades. For a tool only you run, that is a fair trade.",
+  "coreLoopDIY": "A local menubar app that records clipboard history to SQLite, lets you search and re-paste with a global hotkey, stores reusable snippets, and optionally pipes the selection through an LLM to clean it up before pasting.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Rust and Node toolchains for a Tauri build",
+    "macOS accessibility and input monitoring permissions, or the Windows/Linux equivalents",
+    "an LLM API key in .env if you want the rewrite step"
+  ],
+  "whatYouLose": [
+    "Code signing and notarization, so your own machine will fight you on first launch",
+    "Auto-updates and fixes when an OS release breaks global hotkeys or paste injection",
+    "Sync across devices, which is the single biggest reason people pay for clipboard tools",
+    "Hardened exclusion rules for password managers and secure fields, which the paid tools have tuned over years",
+    "Polish: ranking that surfaces the right clip first, previews for images and files, keyboard flow that never stutters"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "Utilities like this live or die on latency and on never eating your clipboard. That is craft, not defensibility.",
+  "whyPeopleStillPay": "Because a paste tool is in the hot path of everything you type, and a half-second hiccup or one lost clip is enough to make you stop trusting it. Paid versions handle the ugly edges: secure field detection, encrypted sync across a laptop and a desktop, image and file clips, and an installer that keeps working after the next OS update. A local build covers the loop, but you become the person who maintains it on the day Apple changes the accessibility API.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The feature list is a weekend; the trust that it will never swallow a clipboard is the part you earn slowly.",
+  "prompt": "Build a local-only clipboard and snippet utility as a desktop app. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Tauri 2 with a Rust backend and a React + TypeScript + Vite frontend. SQLite via rusqlite for storage. No Electron.\n\nCore behavior:\n1. A background clipboard watcher polls the system clipboard every 400ms and stores new plain-text entries in SQLite with content, char count, source app name if available, and created_at. Deduplicate consecutive identical copies.\n2. Cap history at 500 entries, trimming oldest first. Pinned entries are exempt from trimming.\n3. A global hotkey (Cmd+Shift+V on macOS, Ctrl+Shift+V elsewhere) opens a small always-on-top search window. Typing filters history with case-insensitive substring match plus simple scoring that prefers recent and pinned items. Enter copies the selected item back to the clipboard and closes the window. Arrow keys navigate, Esc closes.\n4. A Snippets tab: create, edit, delete named reusable text snippets. Snippets appear in the same search list, tagged as snippets.\n5. A rewrite action: with an item selected, Cmd+R sends its text to an LLM with one of three fixed instructions (fix grammar, make it shorter, make it plain) and writes the result to the clipboard. Read OPENAI_API_KEY from .env and show a clear disabled state if it is missing. Never send anything to the network unless the user explicitly triggers rewrite.\n6. Privacy guards: skip capture when the clipboard is marked transient or concealed where the OS exposes that, and maintain a user-editable deny list of app names whose copies are never stored. Add a Pause capture toggle in the tray menu.\n\nUI: dark, dense, single keyboard-first list. No onboarding, no settings sprawl. One Settings pane with history cap, deny list, and hotkey display.\n\nOut of scope: image or file clips, sync, sharing, multi-device, auto-update, code signing, analytics.\n\nDeliverables: working dev setup via npm run tauri dev, a .env.example, and a README covering the macOS accessibility permission prompt and how to reset the database.",
+  "promptCurated": false
+}
