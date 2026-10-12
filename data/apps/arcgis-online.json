@@ -1,0 +1,53 @@
+{
+  "slug": "arcgis-online",
+  "name": "ArcGIS Online",
+  "domain": "arcgis.com",
+  "category": "databases",
+  "subcategory": "GIS and web mapping",
+  "tagline": "Esri's hosted GIS platform for storing spatial data, making web maps and dashboards, and sharing them with an organization.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "annual per named user, plus credits for analysis and storage",
+    "unit": "per-seat",
+    "source": "https://arcgis.com/",
+    "checkedOn": "2026-10-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Esri sells by user type with credit consumption on top, so effective monthly cost varies a lot.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The slice most people actually use is small: upload a GeoJSON or CSV, style it by an attribute, click a feature to see its fields, share a link. That is a weekend with MapLibre and PostGIS, and the result is genuinely nicer to use than the Esri web viewer for one person's data. What you cannot one-shot is everything underneath: the geocoder, the basemaps and imagery, Living Atlas reference layers, the geoprocessing toolbox, projection handling for the thousands of CRSs real survey data arrives in, and the whole Pro plus Field Maps plus Survey123 pipeline that a working GIS shop lives in. Also note that if your org already pays for ArcGIS, your coworkers' data lives there and your map does not. Build it for your own projects, not to replace a county GIS department.",
+  "coreLoopDIY": "Imports spatial files into PostGIS, lets you style and filter layers on a MapLibre basemap, and publishes a read-only share link.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Docker for Postgres plus PostGIS",
+    "a basemap tile source and respect for its attribution and usage terms",
+    "a server or VPS if you want share links to work from outside your laptop",
+    "willingness to reproject messy inputs by hand when proj4 guesses wrong"
+  ],
+  "whatYouLose": [
+    "Geocoding, routing and drive-time analysis, which are paid services, not code you can write",
+    "Esri basemaps, imagery and Living Atlas reference layers, which are licensed data",
+    "The geoprocessing toolbox: buffers you can hack, but spatial statistics, network analysis and raster tools you cannot",
+    "The field data collection stack, Field Maps and Survey123, including offline sync",
+    "Org-level sharing, groups, named users and the audit trail that public agencies actually need",
+    "Interoperability with the ArcGIS Pro desktop workflows your colleagues use"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The software is the thin part. The geocoder, the imagery and the curated reference layers are licensed assets, and twenty years of institutional workflows are bolted to the desktop product.",
+  "whyPeopleStillPay": "Because ArcGIS is not really a web app, it is the hosted end of a desktop and field ecosystem that an entire profession was trained on. A planner who needs parcel data, a basemap that is legally clear to use, a geocoder that handles rural addresses, and a dashboard a city council will accept is not shopping for a map viewer. Add procurement inertia, government compliance language and the fact that the data already lives there, and the per-seat cost stops being the deciding factor. Personal projects and one-off analyses are a different story, and that is exactly where a DIY build wins.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal map viewer is a weekend; a geocoder is not. The moat is licensed data plus a desktop ecosystem an entire profession was trained on.",
+  "prompt": "Build a self-hosted personal GIS web app in this empty folder. Call it localgis.\n\nStack, pick nothing else: Vite + React + TypeScript frontend, MapLibre GL JS for the map, Express + TypeScript API, Postgres 16 with the PostGIS extension via docker-compose, Drizzle ORM for schema and migrations. No Next.js, no cloud services, no telemetry.\n\nIn scope:\n- Import GeoJSON, CSV with lat/lon columns, and zipped shapefiles (use shpjs server side). Store geometry in PostGIS as geometry(Geometry, 4326), reproject on import with proj4 when the source declares a different CRS.\n- Project model: a project has many layers. Layer list with drag to reorder, show/hide, opacity.\n- Style editor per layer: single color, categorized by an attribute, or graduated by a numeric attribute with a chosen number of classes. Controls for fill, stroke width, stroke color, point radius.\n- Click a feature to open a popup showing all attributes. Attribute table panel with sorting, text filter, and zoom to selected row.\n- Simple drawing: add point, line and polygon features into a scratch layer, edit attributes in a form, persist to PostGIS. Use terra-draw.\n- Basemap: raster OSM tiles by default, with the tile URL and attribution string read from .env so it is easy to swap in a self-hosted Protomaps or MapTiler key. Render the attribution control always.\n- Publish: generate a read-only share URL with a random token that renders the project map with no editing UI.\n- Export any layer back out as GeoJSON.\n\nOut of scope, do not build: user accounts (single admin password from .env, cookie session), geocoding, routing, raster or imagery analysis, spatial statistics, offline or mobile apps, real-time multi-user editing.\n\nPerformance: for layers over 50k features, serve them as Mapbox Vector Tiles generated on the fly from PostGIS with ST_AsMVT and a /tiles/:layer/:z/:x/:y.pbf endpoint. Smaller layers can go over as plain GeoJSON.\n\nSecrets in .env with a committed .env.example: ADMIN_PASSWORD, DATABASE_URL, BASEMAP_TILE_URL, BASEMAP_ATTRIBUTION.\n\nDeliver a README with docker-compose up then npm run dev, and seed one sample dataset so the app is not empty on first load. Write tests only for the import and MVT endpoints.",
+  "promptCurated": false
+}
