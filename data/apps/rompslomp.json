@@ -1,0 +1,52 @@
+{
+  "slug": "rompslomp",
+  "name": "Rompslomp",
+  "domain": "rompslomp.nl",
+  "category": "finance-accounting",
+  "subcategory": "Dutch small business bookkeeping",
+  "tagline": "Dutch online bookkeeping for freelancers and small companies, with invoicing, expense tracking and BTW returns.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://rompslomp.nl/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The bookkeeping core here is genuinely simple: invoices out, costs in, a ledger, and a quarterly BTW worksheet. An agent can produce a local single-user version in a weekend that prints decent invoices and hands you the exact numbers for rubrieken 1a through 5b. What it cannot produce is the bank feed, the direct digital filing hookup, and the quiet confidence that the VAT logic was checked by people who do this for a living. Dutch tax rules also move: KOR thresholds, reverse charge edge cases, the 7 year retention duty, the e-invoicing direction of travel. You are not buying software, you are renting someone else's obligation to keep up.",
+  "coreLoopDIY": "A local web app where you issue numbered invoices, log expenses with attached receipts, and generate a per-quarter BTW aangifte worksheet plus a year end profit and loss you can hand to an accountant.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a machine you actually back up",
+    "Your own KvK, BTW and IBAN details",
+    "Willingness to type the BTW figures into Mijn Belastingdienst Zakelijk yourself",
+    "Somewhere durable to keep receipts and ledgers for 7 years"
+  ],
+  "whatYouLose": [
+    "PSD2 bank feeds and automatic matching of transactions to invoices, so reconciliation becomes manual",
+    "Direct digital BTW and ICP filing from inside the app",
+    "Someone else updating the VAT and KOR logic when the rules change",
+    "Mobile receipt capture with OCR, and the habit it supports",
+    "The soft insurance of an established tool: if your homegrown ledger is wrong, the correction and the fine are both yours"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part is not double entry, it is being credibly correct about Dutch VAT and staying correct next year.",
+  "whyPeopleStillPay": "Because bookkeeping is the one piece of software where being almost right is worse than useless. People pay a small monthly fee to outsource the question \"is this how the Belastingdienst wants it\" to a vendor who answers that question for thousands of other one person companies, and who connects to the bank so the admin shrinks to a few clicks a week. A self built ledger is fine while revenue is simple and you are disciplined. It gets expensive the first time a quarter closes wrong, or the first time your accountant asks for something your own export does not have.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you want to understand your own books; keep the real filing in the hands of something that gets patched.",
+  "prompt": "Build a local-first bookkeeping app for a single Dutch sole trader (eenmanszaak/ZZP). No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Next.js (App Router, TypeScript), SQLite via better-sqlite3 with plain SQL migrations, Tailwind. Runs with `npm run dev` on localhost. All business config (company name, KvK number, BTW-id, IBAN, address, invoice number prefix) in .env plus a settings table seeded from it.\n\nData model: customers, invoices, invoice_lines, expenses, attachments, ledger_entries. Money stored as integer cents, never floats. Every write appends to an immutable audit_log row (what changed, old value, new value, timestamp). Nothing is ever hard deleted: invoices get a credit note, expenses get a void flag.\n\nFeatures in scope:\n1. Invoices: sequential gapless numbering per year, line items with BTW rate per line (21, 9, 0), BTW verlegd / intracommunautaire levering flag that zeroes VAT and prints the required note, credit notes, paid/unpaid status with payment date.\n2. Invoice PDF via a print stylesheet and headless print route. Must include all legally required fields: invoice number, both parties' names and addresses, your KvK and BTW-id, invoice date, delivery date, per-rate VAT breakdown, total excl and incl.\n3. Expenses: date, supplier, amount excl, VAT rate, deductible percentage, category, file upload stored on disk under /data/attachments with a hash based filename.\n4. BTW aangifte worksheet per quarter: computed totals mapped to rubrieken 1a, 1b, 2a, 3a, 3b, 4a, 4b, 5b and the amount payable. Read only, clearly labelled as a worksheet to be typed into Mijn Belastingdienst Zakelijk, with no filing integration.\n5. ICP listing per quarter for intra-EU B2B sales, grouped by customer BTW-id.\n6. Year end: profit and loss, debtor list at 31 December, CSV export of all tables plus a zip of attachments.\n7. `npm run backup` script that copies the SQLite file and attachments into a timestamped folder.\n\nExplicitly out of scope: bank connections, OCR, multi user, multi currency, payroll, multi entity, kleineondernemersregeling automation (expose it only as a flag that suppresses VAT on invoices and prints a note), and anything that talks to the Belastingdienst.\n\nAdd a seeded demo dataset and unit tests for the VAT and rubriek calculations, including a reverse charge invoice, a 9 percent line, a credit note, and a partially deductible expense. Print a README warning that the VAT mapping is unverified and must be checked against current Belastingdienst guidance before use.",
+  "promptCurated": false
+}
