@@ -1,0 +1,52 @@
+{
+  "slug": "datingphotos",
+  "name": "DatingPhotos",
+  "domain": "datingphotos.me",
+  "category": "ai-image",
+  "subcategory": "AI dating profile photos",
+  "tagline": "Upload a pile of selfies, get back a set of AI-generated photos meant to look good on dating apps.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://datingphotos.me/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is not secret: fine-tune a LoRA on 15 to 25 selfies of one face, then run a batch of prompts through a good base image model and pick the keepers. An agent can wire that up around a hosted training API in an afternoon, and you will be paying GPU money either way, so the cost gap is smaller than it looks. What you are actually buying from a product like this is the prompt library and the taste: which lighting, framing, wardrobe and backgrounds read as 'real photo of a normal person' instead of 'uncanny LinkedIn alien'. Your first DIY batch will be 80 percent garbage because you do not have that list yet, and iterating on it is the whole job. Buildable, genuinely useful, but the polish is the product.",
+  "coreLoopDIY": "A local web app that uploads your selfies, kicks off a LoRA fine-tune on a hosted GPU API, then generates and grids out photos from a prompt list you can edit.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Replicate (or equivalent) API token and a credit card for GPU time",
+    "15 to 25 varied selfies of one face, decent lighting, no sunglasses",
+    "Node 20 and local disk for generated images",
+    "Patience to hand-tune a prompt list over several batches"
+  ],
+  "whatYouLose": [
+    "A curated prompt and style library that someone already A/B tested against real dating app results",
+    "Automatic culling: the paid service hides the failures, your grid will show you all of them",
+    "Face-consistency QA, so you will personally reject the batches with wrong teeth, wrong ears, extra fingers",
+    "Upscaling, skin retouch and mild color grading chained in by default",
+    "Any hand-holding on which selfies to upload, which is where most bad outputs actually start"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The model weights are commodity. The accumulated knowledge of which 40 prompts produce photos that do not look AI-generated is not, and neither is the nerve to let a stranger upload their face.",
+  "whyPeopleStillPay": "Because this is a one-time job with an emotional deadline. Nobody wants to spend a weekend learning LoRA training ranks and prompt weighting in order to have a better profile by Friday, and the paid version ships a result that is already filtered down to the usable shots. If you enjoy fiddling with image models you will have more fun and more control doing it yourself, and you will also own the trained weights instead of renting an output pack. If you don't, pay the one-time fee and move on.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the taste is not: budget two or three throwaway batches before anything is postable.",
+  "prompt": "Build a local-only web app called \"selfie-studio\" that turns a set of selfies into AI-generated portrait photos.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3, and the Replicate HTTP API for all GPU work. No auth, no accounts, no analytics, no telemetry. Single user, runs on localhost.\n\nSecrets: REPLICATE_API_TOKEN in .env.local, read server-side only. Ship .env.example and never log the token.\n\nFlow to implement:\n1. Upload page: drag and drop 15 to 25 images, store them under ./data/uploads/:subjectId, show thumbnails, warn if fewer than 15 or if any file is under 768px on the short edge.\n2. Train: zip the uploads server-side and POST a LoRA fine-tune job to Replicate using a Flux LoRA trainer. Store job id, status and resulting weights reference in SQLite. Poll status from a server route, show progress in the UI.\n3. Prompt library: seed the database with 24 portrait prompts in a prompts.ts file, each with a label, the prompt text, a negative prompt, and an aspect ratio. Cover outdoor daylight, coffee shop, evening indoor, standing full body, laughing candid, and one plain neutral shot. Make every field editable in the UI and persist edits.\n4. Generate: run selected prompts against the trained weights, 4 images each, write results to ./data/output/:subjectId, record prompt, seed and file path per image.\n5. Review grid: all generated images in a masonry grid with keep / reject toggles, a filter for kept only, and a \"download kept as zip\" button. Rejections stay on disk but hidden.\n\nIn scope: cost estimate before each run based on image count, a retry button for failed jobs, and a seeds column so a good image can be re-rolled with small prompt edits.\n\nOut of scope, do not build: upscaling, face swapping, payments, multi-user support, cloud storage, mobile app, any kind of sharing or public gallery.\n\nDeliverables: working app on npm run dev, README with the exact model slugs used and a note that training costs real money per run, and a one-command script to wipe ./data.",
+  "promptCurated": false
+}
