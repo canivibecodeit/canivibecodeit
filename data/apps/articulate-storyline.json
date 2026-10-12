@@ -1,0 +1,51 @@
+{
+  "slug": "articulate-storyline",
+  "name": "Articulate Storyline 360",
+  "domain": "articulate.com",
+  "category": "education",
+  "subcategory": "e-learning authoring / SCORM",
+  "tagline": "Desktop authoring tool for building interactive e-learning courses that export to SCORM and run in any LMS.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Articulate 360",
+    "basis": "annual per user",
+    "unit": "per-seat",
+    "source": "https://www.articulate.com/360/storyline/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Storyline is sold inside the Articulate 360 annual subscription, which is priced per seat per year and is not cheap.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If what you actually need is \"interactive slides with a quiz that reports a score to an LMS\", that is a JSON-driven web app plus an imsmanifest.xml, and an agent can get there in a weekend. SCORM 1.2 is an old, well-documented, surprisingly small API surface, and a hand-rolled player will load faster than anything Storyline publishes. What you cannot one-shot is Storyline itself: the WYSIWYG canvas, the timeline, the states and triggers model, the variable logic, the accessibility work, and the fact that your subject matter experts can use it without knowing what JSON is. So this is a replacement for a developer building their own courses, not a replacement for an instructional design team. Decide which one you are before you start.",
+  "coreLoopDIY": "Define a course as YAML slides with text, media, branching, and scored questions, render it as a static interactive web player, and package it as a SCORM 1.2 zip that any LMS will swallow.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and a willingness to write course content as structured text instead of dragging boxes",
+    "An LMS or SCORM Cloud trial to test the package against",
+    "Your own images, audio, and video; no stock library comes with this"
+  ],
+  "whatYouLose": [
+    "The visual editor, which is the entire product for non-developers",
+    "The timeline, states, triggers, and variables model that makes complex interactions possible without code",
+    "Accessibility and WCAG work that Articulate has sunk years into, plus screen reader testing",
+    "Review 360 style stakeholder review cycles with threaded comments on specific slides",
+    "Content Library assets, course templates, translation export/import, and the long tail of LMS quirks they already worked around"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The lock-in is the .story file. Thousands of existing courses live in a proprietary format that only Storyline can open, and nobody is hand-porting a 200 course catalog.",
+  "whyPeopleStillPay": "Because the people who build corporate training are rarely the people who write code, and Storyline is one of the few tools where a non-technical instructional designer can produce a branching, scored, accessible, LMS-compliant course by themselves. The price looks absurd until you price one contract developer week. Add a decade of existing .story source files, a team that knows the trigger panel by heart, and a compliance auditor who wants to see WCAG claims from a vendor, and the renewal signs itself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend build if you are a developer who happens to need SCORM. Terrible plan if the person authoring courses is not you.",
+  "prompt": "Build a static e-learning course player and SCORM 1.2 packager. No accounts, no server, no telemetry.\n\nStack, pick this and do not deviate: TypeScript, Vite, plain DOM with no UI framework, Tailwind for styling. Node scripts for the build and packaging steps.\n\nRepo layout:\n- /course/course.yaml : the single source of truth for a course\n- /course/assets/ : images, audio, video referenced by relative path\n- /src/player/ : the runtime that renders course.yaml\n- /src/scorm/ : SCORM 1.2 API wrapper\n- /scripts/package.ts : builds and zips a SCORM package into /dist-scorm\n\ncourse.yaml schema, implement exactly this and validate it with zod:\n- title, id, passingScore (0-100)\n- slides: array of blocks. Each slide has an id, a layout (text, media, twoColumn), optional narration audio, optional notes, and optional nextRules for branching based on a stored variable.\n- question slide types: multipleChoice (single answer), multiSelect, trueFalse, freeTextUngraded. Each scored question has points and feedback for correct and incorrect.\n- variables: named numbers, strings, and booleans the course can set and read, so branching works without hardcoding.\n\nPlayer requirements:\n- Slide-by-slide navigation with prev/next, a progress bar, and a slide menu that respects a locked-navigation flag.\n- Resume support: persist current slide, variables, and answers to the SCORM suspend_data field, falling back to localStorage when no LMS is present.\n- Keyboard navigation, visible focus states, aria-live announcements on slide change, and real alt text pulled from the yaml. Do not fake accessibility, just do these four things properly.\n- A results slide that computes the score, compares it to passingScore, and reports status.\n\nSCORM layer:\n- Find the LMS API by walking window.parent and window.opener, standard SCORM 1.2 discovery.\n- On init call LMSInitialize, set cmi.core.lesson_status to incomplete. On finish set lesson_status to passed or failed, cmi.core.score.raw, min, max, then LMSCommit and LMSFinish.\n- If no API is found, log it once and run fully offline. Never crash.\n\nPackaging:\n- scripts/package.ts runs the Vite build, generates a valid SCORM 1.2 imsmanifest.xml from course.yaml, copies assets, and zips everything to /dist-scorm/course-{id}.zip.\n\nExplicitly out of scope: a visual editor, a timeline, animations, xAPI, cmi.interactions, multi-course catalogs, and any cloud hosting. Ship a README with one sample course in /course that exercises branching, both quiz types, and a passing score, plus the exact commands to preview locally and to produce the zip.",
+  "promptCurated": false
+}
