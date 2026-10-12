@@ -1,0 +1,52 @@
+{
+  "slug": "tikfusion",
+  "name": "TikFusion",
+  "domain": "tikfusion.com",
+  "category": "social-media",
+  "subcategory": "short-form video generation at volume",
+  "tagline": "A web tool for mass-producing short-form video variants by recombining hooks, clips and captions for TikTok-style posting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.tikfusion.com/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interesting part of a tool like this is combinatorics plus rendering: take N hooks, M bodies, a caption template, and spit out a pile of distinct-enough videos. That is ffmpeg with a loop around it, and an agent will write it in an afternoon. Where the DIY version stalls is everything after the render: TikTok's publishing API is gated behind app review, so you will be dragging files into the app by hand, and you get no trend or performance feedback loop to tell you which hook actually worked. Rendering dozens of 1080x1920 clips locally is also slow and fan-loud compared to someone else's render farm. Build it if the bottleneck is producing variants; pay if the bottleneck is getting them posted and measured.",
+  "coreLoopDIY": "A local script that cross-multiplies hook clips, body clips and caption lines, then renders every combination to vertical MP4s with burned-in text and light randomization so they do not fingerprint as duplicates.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg and ffprobe installed locally",
+    "Python 3.11",
+    "Your own source clips and hook footage",
+    "A font file for caption rendering",
+    "Disk space and patience for encoding"
+  ],
+  "whatYouLose": [
+    "Direct publishing and scheduling to TikTok, which needs approved API access you probably will not get",
+    "Any performance data tying a specific hook to views, so no feedback loop",
+    "Cloud rendering: your laptop encodes serially while a fan screams",
+    "Managed caption styling and auto-subtitles that look native instead of homemade",
+    "Whatever template and hook library the product ships with, which is often the real product"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The platform API gate is the actual wall here. Rendering is a commodity; permission to post is not.",
+  "whyPeopleStillPay": "Because the render is the easy half. Volume posting only works if publishing is cheap, and publishing is cheap only if someone else holds the API approval and the account plumbing. Add a stock of hooks and templates that already perform, plus not having to babysit ffmpeg jobs on a laptop, and the subscription buys throughput rather than capability. If you are posting to one or two accounts manually anyway, that math flips fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The variant factory is a weekend; the posting pipe is someone else's API approval.",
+  "prompt": "Build a local command-line tool called \"clipfusion\" that mass-produces vertical short-form video variants from my own footage. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, Typer for the CLI, Pydantic for config validation\n- ffmpeg and ffprobe called via subprocess, no Python video libraries\n- Jinja2 to render a static HTML review gallery\n- uv or plain venv for deps, no Docker\n\nInput layout in the working folder:\n- input/hooks/*.mp4 (short attention-grabbing openers)\n- input/bodies/*.mp4 (main content clips)\n- input/audio/*.mp3 (optional background tracks)\n- captions.txt (one caption line per row)\n- config.toml (output resolution, fps, max variants, randomization ranges, font path)\n\nBehavior:\n- Enumerate the cross product of hooks x bodies x captions, cap it at config.max_variants, deterministic order with a seedable shuffle\n- For each variant: concat hook then body, scale and center-crop to 1080x1920, normalize fps and audio loudness with loudnorm, burn the caption with drawtext using the configured font, optionally mix a background track under the original audio at a configured level\n- Apply light per-variant randomization so outputs are not byte-identical: speed 0.97 to 1.03, tiny zoom, 1 to 3 frames trimmed off the head, slight saturation shift. All ranges come from config.toml\n- Write to output/NNN_hookname_bodyname.mp4 plus output/manifest.json recording every ingredient and parameter per file\n- Skip work that already exists so reruns are incremental, with a --force flag to override\n- Render jobs in parallel with a --jobs flag, default to CPU count minus one\n- Probe inputs first and fail loudly with a readable message if a clip is corrupt, silent, or not vertical-convertible\n\nAlso build: `clipfusion gallery` writes output/index.html, a grid of the rendered variants with inline video tags and their manifest metadata, so I can review and delete losers fast.\n\nOut of scope, do not build: uploading or scheduling to TikTok or any platform, OAuth, text-to-speech, auto-subtitling via speech recognition, a hosted web server, user accounts, analytics.\n\nInclude a README with install steps, a sample config.toml, and a one-command smoke test that generates three variants from two tiny ffmpeg-synthesized test clips so I can verify the pipeline without supplying footage. Any API keys, if you add an optional feature later, go in .env and are read with python-dotenv.",
+  "promptCurated": false
+}
