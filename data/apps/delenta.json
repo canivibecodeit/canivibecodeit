@@ -1,0 +1,53 @@
+{
+  "slug": "delenta",
+  "name": "Delenta",
+  "domain": "delenta.com",
+  "category": "crm",
+  "subcategory": "coaching business platform",
+  "tagline": "All-in-one platform for coaches: client management, scheduling, payments, program delivery and a branded client portal.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.delenta.com/",
+    "checkedOn": "2026-10-05",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Delenta is a bundle, not an algorithm: bookings, client records, session notes, packages with session credits, invoices, a client-facing portal and some landing page tooling. Every single piece of that is standard CRUD that an agent can scaffold, and a solo coach with ten to thirty clients genuinely does not need a platform to track them. The gaps are the boring plumbing: Stripe checkout and refunds, Google Calendar two-way sync, timezone math that does not embarrass you in front of a paying client, reminder emails that actually land, and a video call link per session. You can get a working local version in a weekend and a version you would let clients log into after a few more evenings. If you are a coaching business with multiple coaches, shared availability and revenue splits, stop reading and keep paying.",
+  "coreLoopDIY": "A single-coach web app where clients book from your real availability, you log session notes against their record, and packages burn down session credits with Stripe-paid invoices attached.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a place to run it (a small VPS or Fly/Render box)",
+    "Stripe account for payments and a webhook endpoint",
+    "Google Cloud project with Calendar API credentials if you want two-way calendar sync",
+    "Transactional email provider (Resend or Postmark) for booking confirmations and reminders",
+    "A domain, because clients will not click a bare IP address"
+  ],
+  "whatYouLose": [
+    "Payments and tax handling you did not have to think about: Stripe webhooks, failed cards, refunds and partial package refunds are all now your bugs",
+    "Reliable reminder delivery, which is mostly deliverability reputation rather than code",
+    "Mobile access for you and your clients that feels like an app instead of a cramped web page",
+    "Prebuilt landing pages, lead capture and the marketing side of the bundle",
+    "Multi-coach support: shared availability, assignment, per-coach reporting and payouts"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The lock-in is not clever software, it is calendars, Stripe accounts, historic session notes and clients who already know where to log in.",
+  "whyPeopleStillPay": "Coaches sell hours, and every hour spent debugging a timezone bug or a failed Stripe webhook is an hour not billed. The bundle is the product: one monthly fee replaces a booking tool, an invoicing tool, a notes doc, a client portal and a reminder system, each of which would otherwise need wiring together and babysitting. There is also a trust layer that is hard to fake alone: clients expect to pay through something that looks like a real business, not a self-hosted form on a subdomain. Self-hosting makes sense if you are technical, your client list is small and you mostly want your notes and schedule to stop fighting you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Nothing here is hard, there is just a lot of it, and the last twenty percent is all payments and email deliverability.",
+  "prompt": "Build a self-hosted coaching practice manager for a single coach. No multi-tenant, no team features, no marketing site builder.\n\nStack, non-negotiable: Next.js (App Router, TypeScript), SQLite via Prisma, Tailwind, server actions. Run it with `npm run dev` locally and as a single Node process in production. No external auth provider.\n\nTwo surfaces in one app:\n1. Coach admin at /admin, protected by a single password from COACH_PASSWORD in .env, stored in an httpOnly session cookie.\n2. Client portal at /c/[token], where each client gets an unguessable link token. No client passwords.\n\nData model: Client (name, email, timezone, notes, archived), Package (client, name, totalSessions, sessionsUsed, priceCents, status), Session (client, startsAt UTC, durationMins, status: scheduled/completed/no-show/cancelled, meetingUrl, privateNotes, sharedNotes, packageId nullable), AvailabilityRule (weekday, startTime, endTime, timezone), Blackout (start, end, reason), Invoice (client, packageId, amountCents, stripeCheckoutId, status).\n\nFeatures, in scope:\n- Availability editor: weekly recurring windows plus one-off blackouts, all entered in the coach timezone from COACH_TZ.\n- Public booking at /c/[token]/book: shows open slots in the client's stored timezone, derived from availability minus existing sessions minus blackouts. Store everything in UTC, render with date-fns-tz. Write a test for the slot generator across a DST boundary.\n- Session credits: booking against an active package increments sessionsUsed; cancelling more than 24h out refunds the credit.\n- Session notes: privateNotes visible only in /admin, sharedNotes visible in the client portal.\n- Stripe Checkout for packages: a server action creates a Checkout Session, a /api/stripe/webhook route verifies the signature and marks the Invoice paid and the Package active. Keys in .env.\n- Email via Resend: booking confirmation, cancellation, and a 24h reminder. Reminders run from a /api/cron/reminders route guarded by a CRON_SECRET header, called by an external cron.\n- Admin dashboard: today's sessions, packages running low on credits, unpaid invoices.\n- CSV export of clients and sessions.\n\nExplicitly out of scope: video hosting (paste a meeting URL per session), landing pages, lead forms, group coaching, multiple coaches, in-app chat, analytics, telemetry of any kind.\n\nDeliver a seed script with two fake clients and one package, a README covering .env vars and the cron setup, and no secrets committed.",
+  "promptCurated": false
+}
