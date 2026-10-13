@@ -1,0 +1,52 @@
+{
+  "slug": "rank-pill",
+  "name": "Rank Pill",
+  "domain": "rankpill.com",
+  "category": "seo-marketing",
+  "subcategory": "AI SEO content generation",
+  "tagline": "Generates SEO blog articles in bulk from keywords and auto-publishes them to your CMS.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://rankpill.com/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is a prompt chain: take a keyword, outline it, write 1500 words, add internal links, push it to WordPress. An agent can rebuild that in a weekend and you will pay only for model tokens, which is almost certainly cheaper than a seat. The gaps are the unglamorous parts: real keyword and SERP data costs money through third-party APIs, CMS publishing means OAuth or app passwords per platform, and bulk generation needs queueing and retry logic so a failed run at article 40 of 100 does not eat your budget. Nothing here is a moat, it is just plumbing you now own. Worth noting the output quality ceiling is the same either way, because everyone is calling the same frontier models.",
+  "coreLoopDIY": "A local CLI that takes a list of keywords, runs an outline then draft then internal-link pass through an LLM, stores articles in SQLite, and optionally publishes them to WordPress as drafts.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (Anthropic or OpenAI)",
+    "Node 20+ and a terminal",
+    "A WordPress site with REST API and an application password, if you want publishing",
+    "Optionally a keyword data API key if you want search volumes rather than your own keyword list"
+  ],
+  "whatYouLose": [
+    "Keyword research with actual search volume and difficulty data, unless you pay for a data API yourself",
+    "One-click integrations for Webflow, Shopify, Ghost and friends",
+    "Managed queueing, so bulk runs fail in ways you have to debug",
+    "A dashboard your non-technical collaborators can use",
+    "Whatever prompt tuning they have done on top of the base model, which is real but not visible"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The publishing integrations and the licensed keyword data are the only parts you cannot trivially replicate. Both are rentable, not defensible.",
+  "whyPeopleStillPay": "Because the people buying this mostly do not want to own a content pipeline, they want articles to appear on their site while they do something else. A hosted tool with a button is worth real money to a marketer who will never open a terminal, and the per-month cost is trivial against the time cost of babysitting a homemade script. If you are technical and generating for one or two of your own sites, the math flips hard the other way.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The writing is the easy part now; the boring part is making 100 of them land in a CMS without you watching.",
+  "prompt": "Build a local-first CLI tool called \"quill\" that generates SEO blog articles in bulk and optionally publishes them to WordPress.\n\nStack, non-negotiable: TypeScript on Node 20, commander for the CLI, better-sqlite3 for storage, the Anthropic SDK for generation, zod for config validation. No web server, no accounts, no telemetry, no hosted anything.\n\nData model in a local SQLite file at ./quill.db:\n- keywords: id, term, status (pending | drafted | published | failed), created_at\n- articles: id, keyword_id, title, slug, meta_description, markdown, word_count, model, created_at\n- runs: id, started_at, finished_at, requested, succeeded, failed\n\nCommands:\n- quill init: creates the db, writes a .env.example with ANTHROPIC_API_KEY, WP_BASE_URL, WP_USER, WP_APP_PASSWORD\n- quill add --file keywords.txt: one keyword per line, dedupes against existing rows\n- quill gen --limit N --concurrency 3: for each pending keyword run a three-step chain: (1) outline as JSON with H2s and search intent, (2) draft 1200 to 1800 words of markdown from that outline, (3) a revision pass that inserts internal links to other articles already in the db whose titles are topically related, plus a title and a meta description under 155 chars. Write each article to ./out/{slug}.md with YAML frontmatter and also store it in SQLite.\n- quill publish --limit N: POST articles to the WordPress REST API at /wp-json/wp/v2/posts as status=draft, converting markdown to HTML with marked. Store the returned post id.\n- quill list and quill show {id}: plain table output, no colors library needed beyond basic ANSI.\n\nRequirements: every LLM call retries three times with exponential backoff, per-keyword failures mark that row failed and do not abort the run, concurrency is a simple promise pool, every command is idempotent and safe to re-run. Log token usage per article to stdout so cost is visible.\n\nExplicitly out of scope: keyword research, search volume data, SERP scraping, rank tracking, any CMS other than WordPress, image generation, scheduling. Document in the README that keyword input is the user's job.\n\nSecrets come from .env via dotenv only. Ship a README with install, env setup, and a three-command quickstart. Include vitest tests for the markdown-to-HTML step, the slugifier, and the internal-link matcher using a mocked LLM client.",
+  "promptCurated": false
+}
