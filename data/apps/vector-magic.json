@@ -1,0 +1,52 @@
+{
+  "slug": "vector-magic",
+  "name": "Vector Magic",
+  "domain": "vectormagic.com",
+  "category": "design",
+  "subcategory": "raster to vector tracing",
+  "tagline": "Uploads a bitmap image and traces it into clean vector art as SVG, EPS or PDF.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://vectormagic.com/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Vector Magic has historically sold both an online subscription and a one-time desktop license, so the real number depends which you buy.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Raster to vector tracing is a solved open problem: VTracer and potrace are both free, local and genuinely good, so an agent can wrap one in a web UI with live preview sliders in a single sitting. For logos, flat art, screenshots and scanned line work, that homemade tool will get you to a usable SVG most of the time. Where it falls short is the hard stuff: noisy photos, JPEG artifacts, low-res antialiased edges, and the sub-pixel corner decisions that make Vector Magic's output look hand-drawn instead of blobby. Vector Magic also quietly does a lot of preprocessing you will not replicate by accident, and it gives you an interactive cleanup step instead of a parameter guessing game. So: yes for the 80 percent case, no for the input you actually gave up on and went looking for a paid tool about.",
+  "coreLoopDIY": "A local web page where you drop an image, tune tracing parameters with live side by side preview, and download the resulting SVG or PDF.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+",
+    "the vtracer pip package (Rust tracer, ships prebuilt wheels)",
+    "Pillow for preprocessing and color quantization",
+    "cairosvg if you want PDF or PNG export",
+    "a browser"
+  ],
+  "whatYouLose": [
+    "Tracing quality on photographs and compressed or low-res inputs, which is the actual reason people pay",
+    "The interactive cleanup and segment editing pass",
+    "Batch processing and a polished desktop app that remembers your settings",
+    "EPS output that reliably opens in old Illustrator and CorelDRAW versions",
+    "Someone else's decades of tuning on the parameters you will now be guessing at with sliders"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat here is not data or network, it is twenty years of edge-case tuning in an image pipeline, which is exactly the kind of moat a one-shot build gets 80 percent of and then stalls on.",
+  "whyPeopleStillPay": "Because the free tracers are great until they are not, and the moment you need a vector of a customer's 400px JPEG logo for print, parameter roulette stops being fun. People pay for the specific confidence that the output will be clean enough to hand to a printer without redrawing it, plus an editor to fix the three bits the algorithm got wrong. If you trace flat graphics occasionally, you will never miss it. If tracing is billable work, the license is cheaper than an afternoon.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The open source tracers are good enough that the honest build is a UI on top of VTracer, not a new algorithm.",
+  "prompt": "Build a local raster-to-vector tracing tool. Single project, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11 with FastAPI and uvicorn\n- vtracer (pip package) as the tracing engine\n- Pillow for preprocessing\n- cairosvg for optional PDF and PNG export\n- One static HTML page with vanilla JS and no build step\n\nBehavior:\n- POST /trace accepts an uploaded image plus tracing params, returns SVG text.\n- Params exposed in the UI as controls: mode (spline | polygon | pixel), color mode (color | binary), number of colors (2-64), filter_speckle, corner_threshold, length_threshold, splice_threshold, path_precision.\n- Preprocessing toggles before tracing: despeckle (median filter), upscale 2x with Lanczos, posterize to N colors, and a threshold slider used only in binary mode.\n- GET / serves the page: drop or pick an image, original on the left, traced SVG rendered inline on the right, both pan and zoom together.\n- Debounce re-trace on param change, show elapsed trace time and output path count and SVG byte size.\n- Download buttons: .svg always, .pdf and .png via cairosvg.\n- Keep the last 10 traces in memory with their params so the user can flip back to a setting that looked better.\n\nIn scope: single-image tracing, live preview, export, parameter presets for \"logo\", \"line art\", \"flat illustration\", \"photo-ish\".\nOut of scope: user accounts, hosted deployment, EPS output, node-level path editing, batch folders, any ML model.\n\nConstraints:\n- Everything runs offline on localhost. No API keys needed; if you add any config, read it from .env and commit a .env.example only.\n- Hard-cap upload size at 20 MB and reject non-image types.\n- Write a README with exact run commands and one honest paragraph on where this output is worse than commercial tracers (photos, JPEG artifacts, low-res antialiased edges).\n",
+  "promptCurated": false
+}
