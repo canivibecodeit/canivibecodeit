@@ -1,0 +1,51 @@
+{
+  "slug": "talktg",
+  "name": "TalkTG",
+  "domain": "talktg.com",
+  "category": "customer-support",
+  "subcategory": "live chat widget",
+  "tagline": "A website chat widget that routes visitor messages into Telegram so you can reply from your phone.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://talktg.com/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a thin, well-chosen layer over two things that already exist: a chat bubble and the Telegram Bot API. The whole mechanism is a websocket or polling endpoint, a per-visitor conversation ID, a sendMessage call into your chat, and a webhook that maps your reply back to the right browser session. An agent can produce a working version in one sitting, and self-hosting means you keep the message history instead of renting it. The real work is the unglamorous part: forum topics or reply-threading so ten simultaneous visitors do not become one unreadable stream, plus reconnect handling when someone's laptop sleeps. If you run one site and answer a handful of messages a day, the DIY version is genuinely fine.",
+  "coreLoopDIY": "Embeds a one-script chat widget on your site, forwards each visitor message to your Telegram bot as its own thread, and pipes your Telegram replies back to that visitor's browser in real time.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A Telegram bot token from BotFather",
+    "Your Telegram chat or group ID (a group with topics enabled works best for threading)",
+    "A small always-on host with a public HTTPS URL for the webhook",
+    "SQLite or Postgres for conversation history"
+  ],
+  "whatYouLose": [
+    "Hosted uptime: if your box is down, the widget is a dead button on a live site",
+    "Polish on the widget itself: unread badges, typing indicators, mobile keyboard quirks, dark mode",
+    "Multi-site and multi-agent routing, plus any notion of who claimed a conversation",
+    "Abuse controls: rate limits, spam filtering, blocking, which matter the day a bot finds your endpoint",
+    "Nice-to-haves like visitor metadata, page context, transcripts by email, offline message capture"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is the hundred small widget behaviors and the reply-threading edge cases, not the Telegram hop itself.",
+  "whyPeopleStillPay": "Because nine dollars a month is cheaper than owning a service that must be reachable from every visitor's browser at all hours. A support widget is user-facing infrastructure: when it breaks, it breaks in public, and you find out from a customer rather than a log. Paying also skips the weeks of small fixes after launch, the iOS keyboard pushing the input off screen, the reconnect loop that silently drops a message, the spam flood that fills your Telegram. If support is incidental to your actual business, renting the reliability is the right trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare SaaS products where the pitch and the implementation are roughly the same size.",
+  "prompt": "Build a self-hosted website chat widget that relays messages through a Telegram bot.\n\nStack, no substitutions: Node 20, TypeScript, Fastify, ws for websockets, SQLite via better-sqlite3, vanilla TS for the widget bundled with esbuild. No frameworks in the widget, no React, no Tailwind.\n\nPieces to build:\n1. A single JS file served at /widget.js that injects a chat bubble and panel into any page via one script tag with a data-site attribute. Shadow DOM so host page CSS cannot touch it.\n2. A websocket endpoint at /ws. On connect, the widget sends a visitorId from localStorage, or the server mints one. Server creates or resumes a conversation row.\n3. Telegram outbound: on each visitor message, call sendMessage to TELEGRAM_CHAT_ID. If TELEGRAM_TOPIC_MODE is on, create a forum topic per conversation with createForumTopic and store the message_thread_id, so each visitor is its own thread. Otherwise prefix messages with a short conversation code.\n4. Telegram inbound: expose POST /telegram/webhook, verify the secret token header, map message_thread_id or the reply-to message back to a conversation, store the reply, push it over the websocket to that visitor if connected.\n5. Persist every message in SQLite: conversations, messages, visitor metadata (first seen page URL, user agent, referrer). Include the page URL in the first Telegram message so you know where the person is.\n6. Offline handling: if the visitor is gone, queue the reply and deliver on reconnect.\n7. Rate limit per visitorId and per IP, cap message length, drop anything over the cap.\n8. A /admin page behind basic auth listing conversations and full transcripts.\n\nSecrets in .env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_WEBHOOK_SECRET, ADMIN_USER, ADMIN_PASS, ALLOWED_ORIGINS.\n\nOut of scope: accounts, billing, multi-tenant signup, analytics, telemetry, email notifications, canned responses, AI replies.\n\nDeliver: README with BotFather setup, how to set the webhook with curl, a Dockerfile, a demo.html that loads the widget, and one script that seeds a fake conversation so the admin page is not empty.",
+  "promptCurated": false
+}
