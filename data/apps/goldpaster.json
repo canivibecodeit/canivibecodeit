@@ -1,0 +1,50 @@
+{
+  "slug": "goldpaster",
+  "name": "Goldpaster",
+  "domain": "goldpaster.pro",
+  "category": "productivity-utilities",
+  "subcategory": "clipboard manager",
+  "tagline": "A desktop paste utility: clipboard history, saved snippets, and fast keyboard recall.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://goldpaster.pro/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Clipboard history is one of the most one-shot-able categories in software: a background listener, a local database, a search box, and a global hotkey. An agent can get you a working local version in a single session, and the data never needs to leave your machine, which is arguably better for a tool that sees every password you copy. The honest caveat is that we know very little about this particular product, so if it does something unusual with cross-device sync, rich formats, or team snippet libraries, the gap widens. Polish is where paid clipboard tools earn their keep: hotkey conflicts, paste-as-plain-text, pinned items, and not leaking memory while sitting in your menu bar for three weeks. Build it, run it for a month, and you will know exactly which of those you actually missed.",
+  "coreLoopDIY": "Watches the system clipboard, stores every text and image copy in a local SQLite database, and brings up a searchable overlay on a global hotkey that pastes the chosen entry back into the focused app.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "macOS or Windows dev machine with Node and the Rust toolchain",
+    "Accessibility or input monitoring permission granted to the dev build",
+    "Optional code signing if you want it to launch without warnings on other machines"
+  ],
+  "whatYouLose": [
+    "Cross-device sync, so your phone and second laptop keep their own separate histories",
+    "A signed, notarized, auto-updating binary instead of a dev build you rebuild by hand",
+    "Handling for the weird clipboard flavors: rich text, file references, images from specific apps",
+    "Years of accumulated hotkey and focus-stealing edge cases that only show up in real use",
+    "Someone else to blame when it silently stops recording copies"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "Clipboard tools get sticky because the history itself becomes a working memory you do not want to abandon, not because the code is hard.",
+  "whyPeopleStillPay": "Because a clipboard manager is infrastructure you touch forty times a day, and infrastructure that glitches is worse than no infrastructure at all. Paid tools in this space are selling reliability, a menu bar presence that never hangs, sane defaults for paste-as-plain-text, and the fact that someone else tested it against the OS update that broke everything. A weekend build gets you ninety percent of the function and none of that assurance, which is a fine trade for a personal tool and a bad one for a team.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Public details on this one are thin, so treat the verdict as category-level rather than product-level.",
+  "prompt": "Build a local clipboard manager desktop app. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Tauri v2 with a React plus TypeScript frontend, Vite for the dev server\n- Rust backend using the tauri clipboard-manager and global-shortcut plugins\n- SQLite via tauri-plugin-sql for storage, file lives in the app data directory\n- Tailwind for styling, no component library\n\nCore behavior:\n- A Rust background task polls the system clipboard every 400ms and writes new text entries to SQLite with content, a sha256 hash, char count, source app name if available, and a created_at timestamp\n- Deduplicate on hash: if the incoming item matches the newest row, do nothing; if it matches an older row, bump that row to the top instead of inserting\n- Also capture images as PNG blobs on disk with a row pointing at the file path\n- Global hotkey Cmd+Shift+V (Ctrl+Shift+V on Windows) opens a frameless, always-on-top, 640px wide overlay window centered on the active display\n- The overlay is a search box plus a keyboard-navigable list of the last 500 entries, fuzzy filtered as you type, arrow keys to move, Enter to paste, Escape to close\n- Enter writes the entry back to the clipboard, hides the overlay, then synthesizes a paste keystroke into the previously focused app\n- Shift+Enter pastes as plain text with whitespace trimmed\n- Cmd+P on a highlighted row pins it; pinned rows sort above everything else and are never pruned\n- Settings screen: history limit, poll interval, launch at login toggle, and a list of app bundle ids to ignore so password managers are never recorded\n- A Clear history button that actually vacuums the database\n\nExplicitly out of scope: sync, mobile, sharing, snippet variables, OCR, any network call whatsoever.\n\nDeliverables: working dev build via npm run tauri dev, a README with the hotkey list and the permissions macOS will prompt for, and a seed script that inserts 50 fake entries so the list can be tested without copying things by hand. Keep all config in .env where secrets would otherwise be needed; there should be none.",
+  "promptCurated": false
+}
