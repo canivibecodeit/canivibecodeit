@@ -1,0 +1,52 @@
+{
+  "slug": "searchfit-ai",
+  "name": "Searchfit AI",
+  "domain": "searchfit.ai",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility",
+  "tagline": "Tracks and tries to improve how a brand shows up in AI search answers instead of classic blue links.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://searchfit.ai/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanic here is not mysterious: ask a bunch of models a bunch of buyer-intent questions on a schedule, see whether your brand gets named, log it, chart it. An agent can build that loop in a weekend, and for a single brand with twenty prompts it will be good enough to tell you whether you are invisible. What you cannot cheaply build is breadth: many models, many locales, repeated sampling to beat answer variance, and months of history to prove a change did anything. The other half of these tools is the advice layer, the part that tells you which pages and schema to fix, and that is a consultant in a trench coat either way. Build it if you want one dashboard for one brand; pay if you need the longitudinal record.",
+  "coreLoopDIY": "Runs a saved list of prompts against a few LLM APIs on a schedule, detects whether your brand and competitors get mentioned or cited, and stores every run so you can chart share of voice over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for at least two model providers, ideally ones with live web search enabled",
+    "A budget for tokens: sampling the same prompt repeatedly is the whole point and it costs money",
+    "A machine or small VPS that can run a daily cron job",
+    "A real prompt list, which is the actual work and nobody can generate it for you"
+  ],
+  "whatYouLose": [
+    "Coverage across many models, regions and answer modes, which is where most of the subscription price goes",
+    "Months of baseline history you did not start collecting, so your first chart is a flat line",
+    "Competitor benchmarks drawn from other customers' tracked prompts",
+    "Citation-source analysis that tells you which pages the models actually pulled from",
+    "The recommendation layer, such as it is, plus the reporting PDF your client expects"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible asset is the time series, not the scraper. Every day you did not run it is a day you cannot backfill.",
+  "whyPeopleStillPay": "Because agencies need a chart with twelve months on the x-axis, and because running the same query a hundred times across five models with web search on is a real infrastructure and token bill that is genuinely cheaper to rent. Also because AI search visibility is currently a panic purchase: people buy a dashboard to prove they are doing something about it, and a self-hosted script does not come with a logo to put on the slide.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scraper is a weekend; the history is not. Start logging today even if you never build the pretty part.",
+  "prompt": "Build a local AI search visibility tracker. Single Node 20 + TypeScript project, no framework, no cloud account, no telemetry.\n\nStack, non negotiable:\n- TypeScript, run with tsx, no bundler\n- SQLite via better-sqlite3 for all storage, file at ./data/visibility.db\n- Model calls to OpenAI and Anthropic APIs via plain fetch, keys from .env (OPENAI_API_KEY, ANTHROPIC_API_KEY)\n- Report output as a single static HTML file with inline CSS and one inline chart drawn as SVG, no JS libraries\n\nConfig: a config.yaml with brand name, brand aliases, brand domain, a list of competitor names, and a list of prompt strings grouped by intent tag.\n\nCore loop, implemented as `npm run track`:\n- For every prompt, for every configured model, send the prompt N times (default 3, configurable) and store each raw answer text, model id, timestamp and run id\n- Detect mentions: case insensitive match of brand name and aliases, plus competitor names, plus any URL containing the brand domain\n- Record per answer: mentioned yes/no, first-mention character offset, cited domain list extracted from URLs in the answer\n- Compute per prompt and per run: mention rate, average position rank among all detected brands, competitor mention rates\n- Store everything, never overwrite, every run is append only\n\n`npm run report` reads the DB and writes ./out/report.html: current mention rate per prompt, share of voice vs competitors, a time series of overall mention rate per run date, and the top cited domains across all answers.\n\nAlso include `npm run export` dumping all runs to CSV.\n\nIn scope: the sampling loop, the SQLite schema with migrations as plain SQL files, retry with exponential backoff on 429, a cost estimate printed after each run, an example config.yaml with 15 realistic prompts.\n\nOut of scope: user accounts, a web server, auth, scheduling UI, recommendation engine, anything that writes to a third party service. For scheduling just print the crontab line to add.\n\nWrite a README that says plainly: the value of this tool is the accumulated history, so run it daily starting now, and do not change the prompt list casually because it breaks comparability.",
+  "promptCurated": false
+}
