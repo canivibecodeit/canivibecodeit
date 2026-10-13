@@ -1,0 +1,52 @@
+{
+  "slug": "koinly",
+  "name": "Koinly",
+  "domain": "koinly.io",
+  "category": "finance-accounting",
+  "subcategory": "crypto tax reporting",
+  "tagline": "Imports your exchange and wallet history, reconstructs cost basis, and spits out country-specific crypto tax reports.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Newbie",
+    "basis": "per tax year, by transaction count",
+    "unit": "one-time",
+    "source": "https://koinly.io/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Koinly bills per tax year by transaction volume, not monthly, so a monthly figure would be fiction.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Pulling trades from a couple of exchange APIs is the easy 20 percent and it is genuinely easy. The other 80 percent is historical price data for thousands of illiquid tokens at the minute you traded them, decoders for hundreds of DeFi protocols and bridges so a swap does not look like two unexplained transfers, dozens of mutually incompatible exchange CSV dialects including dead exchanges whose APIs no longer exist, and cost basis engines that match what a specific tax authority will actually accept. If you only ever bought BTC and ETH with fiat on one exchange and never moved them, a weekend script does the job and you should write it. The moment there is a wallet, a staking reward, an airdrop, a bridge, or a token that is not on a price feed, you are building a data company instead of a tool. Being wrong here costs more than the subscription.",
+  "coreLoopDIY": "A local ledger that ingests exchange CSVs plus one chain's transaction history, matches disposals against acquisitions with FIFO or HIFO, and exports a gains report you still have to sanity check yourself.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "CSV exports or read-only API keys from every exchange you have ever used",
+    "Your wallet addresses and the patience to label internal transfers by hand",
+    "A historical price source, and a plan for tokens it does not cover",
+    "Enough knowledge of your own jurisdiction's rules to know when the output is wrong"
+  ],
+  "whatYouLose": [
+    "Historical spot prices for long-tail tokens at the exact timestamp of each trade",
+    "DeFi, NFT, bridge, staking and airdrop decoding, which is where most of the real transaction volume hides",
+    "Support for exchanges that have shut down, changed their CSV format, or rate-limited you out",
+    "Jurisdiction-specific report formats and the implicit opinion on what an auditor accepts",
+    "Automatic detection of missing cost basis and duplicate transfers, which is most of what the product actually does"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The integration count is advertised as a feature, but the real asset is the accumulated price history and protocol decoder library behind it. Nobody rebuilds eight years of minute-level pricing for dead altcoins on a Saturday.",
+  "whyPeopleStillPay": "Because the failure mode is not a bad UI, it is an incorrect filing. People pay once a year, at a price lower than one hour of an accountant's time, to turn an incoherent pile of CSVs into something with a number on it they can sign. The aggregation is cheap and always was; what you are buying is the price oracle, the transfer-matching heuristics, and someone else's confidence that the output format is acceptable where you live.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A FIFO calculator is a weekend; a price oracle for 20,000 tokens across eight years is not. The moat is the accumulated historical pricing and protocol decoders, plus the implied liability of getting a tax number right.",
+  "prompt": "Build a local crypto cost-basis tool. Python 3.11, SQLite, Typer for the CLI, no web UI, no accounts, no telemetry, no cloud.\n\nScope: this is a personal ledger for spot trades and simple transfers. It is not tax software and must say so.\n\nIn scope:\n- `ingest` command that reads CSV files from ./imports. Write explicit parsers for exactly two formats: Coinbase and Kraken. Each parser maps to a single normalized Transaction row: timestamp UTC, venue, type (buy, sell, trade, transfer_in, transfer_out, fee, reward), asset, quantity, fee_asset, fee_quantity, external_id.\n- Idempotent ingest: dedupe on (venue, external_id). Re-running must not double count.\n- `price` command that backfills USD spot prices from the CoinGecko public API for any transaction lacking one, caching every lookup in a `prices` table keyed by (asset, date) so you never hit the network twice for the same day. Read COINGECKO_API_KEY from .env if present, work without it.\n- `match` command implementing FIFO and HIFO lot matching per asset, selectable by flag. Fees on acquisition increase basis; fees on disposal reduce proceeds. Store resulting disposals in a `disposals` table with acquired_at, disposed_at, quantity, basis_usd, proceeds_usd, gain_usd, holding_period (short or long, 365 day cutoff).\n- `report --year YYYY` writing a disposals CSV plus a summary of short term and long term totals.\n- `audit` command that prints every problem before any number is trusted: disposals with no matching acquisition lot, assets with unpriced days, transfer_out rows with no corresponding transfer_in, and negative running balances.\n\nOut of scope, and stub these loudly rather than fake them: DeFi and NFT decoding, bridges, staking and airdrop valuation, margin and futures, non-USD base currency, any tax form generation.\n\nStore everything in ./data/ledger.db. Secrets in .env, .env.example committed, .env gitignored.\n\nShip pytest coverage for the lot matcher with at least these cases: partial lot consumption, multiple disposals against one lot, a disposal with zero matching basis, and a fee-inclusive buy.\n\nREADME must open with a blunt warning that the output is unverified, that unpriced days and unmatched lots silently produce wrong gains, and that `audit` is not optional.",
+  "promptCurated": false
+}
