@@ -1,0 +1,51 @@
+{
+  "slug": "spedy",
+  "name": "Spedy",
+  "domain": "spedy.com.br",
+  "category": "finance-accounting",
+  "subcategory": "Brazilian electronic fiscal documents (NF-e / NFS-e)",
+  "tagline": "Brazilian invoicing and fiscal document service: issue, transmit and store electronic notas fiscais via API or dashboard.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://spedy.com.br/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part of Brazilian fiscal documents is not the CRUD, it is the government. NF-e means signed XML against SEFAZ schemas per state, with A1 or A3 certificates, contingency modes, cancellation and correction windows, and schema versions that change on a government timetable. NFS-e is worse: historically a per-municipality circus of incompatible webservices, each with its own auth, its own field quirks and its own downtime, now mid-migration to the national standard, which means supporting both. An agent can absolutely build you a local ledger that parses, stores and reports on XMLs you already have, and that is genuinely useful. It cannot build you a legally valid issuer in one session, and if it half-builds one you find out at audit time.",
+  "coreLoopDIY": "Parses NF-e and NFS-e XML files you already received, stores them in SQLite, and gives you a searchable ledger with per-month totals, tax breakdowns and CSV export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite locally",
+    "XML files for the documents you want to track, exported from whoever actually issues them",
+    "A real issuer (service or accountant) if you need to emit documents, not just read them"
+  ],
+  "whatYouLose": [
+    "Actual issuance: signing, transmitting and getting an authorization protocol from SEFAZ or the municipality",
+    "Per-municipality NFS-e coverage and the national standard migration handled for you",
+    "Schema and layout updates tracked when the tax authority changes them, which it does",
+    "Cancellation, carta de correcao, inutilizacao and contingency flows",
+    "Someone to call, and someone whose fault it is, when a transmission fails on a deadline"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The integration surface here is thousands of municipal endpoints plus state SEFAZ environments, all of which can break independently and none of which you control.",
+  "whyPeopleStillPay": "Because the output has to be legally valid, not merely correct. A homemade issuer that works in 95 percent of cases produces invoices that are missing, rejected or wrong in the other 5 percent, and in Brazil that shows up as fines, blocked shipments or an accountant refusing to close the month. Paying a fiscal API means someone else tracks schema versions, certificate expiry, municipal outages and the NFS-e national migration, and that labor never ends. It is the rare SaaS bill that is cheaper than the maintenance it replaces.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "An XML ledger is a weekend; a legally valid issuer is not. The moat is the tax authority itself: signed schemas, per-municipality endpoints and the ongoing job of chasing both as they change.",
+  "prompt": "Build a local fiscal document ledger for Brazilian NF-e and NFS-e XML files. Read-only archive and reporting, NOT an issuer.\n\nStack, no substitutions:\n- Node 20 with TypeScript, Fastify for the HTTP server\n- SQLite via better-sqlite3, file at ./data/ledger.db\n- fast-xml-parser for XML\n- Server-rendered HTML with plain CSS, no frontend framework, no build step beyond tsc\n\nIn scope:\n- A watched folder ./inbox. On startup and on an /import POST, parse every .xml file in it.\n- Detect document type: NF-e (infNFe) vs NFS-e (national standard DPS/NFSe layout and a generic fallback). If a file is unrecognized, record it in an errors table with the reason and move on. Never crash on one bad file.\n- Extract and store: access key or document id, type, series, number, issue date, issuer CNPJ and name, recipient doc and name, total value, tax fields where present (ICMS, ISS, PIS, COFINS), status if the XML carries a protocol, and the raw XML blob.\n- Deduplicate on access key or document id. Re-importing the same file is a no-op.\n- Web UI at /: filterable table (date range, type, issuer, recipient, free text), click a row for a detail page showing parsed fields plus the raw XML in a pre block.\n- /reports: totals per month and per issuer, tax breakdown, count of documents, rendered as tables.\n- /export.csv honoring the current filters.\n- One CLI command: npm run import -- ./some/folder\n\nExplicitly out of scope, do not attempt, and say so in the README:\n- Signing XML, handling A1/A3 certificates, or transmitting anything to SEFAZ or any municipality\n- Cancellation, carta de correcao, inutilizacao, contingency\n- Any claim that output is legally valid\n\nRules: no accounts, no cloud, no telemetry, no external API calls. Any config goes in .env with a committed .env.example. Include a seed script that writes two synthetic sample XMLs into ./inbox so the thing demos on first run. Write a README with setup, the import loop, and a blunt paragraph on what this is not.",
+  "promptCurated": false
+}
