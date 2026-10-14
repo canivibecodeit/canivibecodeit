@@ -1,0 +1,51 @@
+{
+  "slug": "trends-monitor",
+  "name": "Trends Monitor",
+  "domain": "trendsmonitor.net",
+  "category": "seo-marketing",
+  "subcategory": "keyword and search demand tracking",
+  "tagline": "Tracks Google Trends keywords, surfaces rising search demand, and keeps historical snapshots for SEO and product research.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://trendsmonitor.net/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The logic here is thin: poll a public trends endpoint on a schedule, diff yesterday against today, flag the risers. An agent will write that, plus a dashboard and email digest, in a session. The problem is the pipe, not the code: Google Trends has no supported public API, the unofficial clients get rate limited and break on schema changes, and you will spend more time babysitting scrapers than reading insights. The other problem is time: a snapshot archive is only useful once it exists, and yours starts empty today while theirs does not. Fine if you track a dozen terms in one niche, annoying if you want breadth.",
+  "coreLoopDIY": "A scheduled job that pulls interest-over-time and rising-query data for your keyword list, stores every pull in SQLite, and emails you what moved.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a box that stays on, or a cron runner, for scheduled polling",
+    "an unofficial Google Trends client and tolerance for it breaking",
+    "a proxy or residential IP once Google starts throttling you",
+    "SMTP credentials if you want the digest emailed"
+  ],
+  "whatYouLose": [
+    "Their historical archive. Yours is empty until you have collected for months.",
+    "Someone else absorbing the scraping arms race when endpoints change or rate limits tighten.",
+    "Breadth: curated category and region coverage beyond the keywords you thought to add.",
+    "Discovery of terms you never asked about, which is the actual point of a trends tool.",
+    "Polished charts, comparison views, and exports you would otherwise hand-roll."
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The archive is the product. Scraping at scale without getting blocked is the tax they pay so you do not.",
+  "whyPeopleStillPay": "Because the value is backfill and breadth, neither of which a fresh local script has. Paying means you can ask what a keyword did last spring and get an answer today, and you can browse risers you were never tracking. A DIY build answers the first question twelve months from now and the second one never, unless you remember to add the keyword before it rises, which defeats the purpose.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you have ten keywords and one niche; buy it if you need to know what happened before you showed up.",
+  "prompt": "Build a local Google Trends monitor. Python 3.11, SQLite, no cloud services, no accounts, no telemetry.\n\nStack, non negotiable:\n- uv for deps, single project, src layout\n- trendspy (or pytrends if trendspy fails to install) as the Trends client\n- SQLite via sqlite3, file at data/trends.db\n- FastAPI + Jinja2 templates for a read-only dashboard on localhost:8000\n- APScheduler for the daily poll, plus a CLI so I can run a poll by hand\n\nData model:\n- keywords(id, term, geo, category, active, created_at)\n- snapshots(id, keyword_id, pulled_at, window, payload_json)\n- interest_points(id, keyword_id, date, value, pulled_at)\n- rising_queries(id, keyword_id, pulled_at, query, kind, value)\n\nBehavior:\n- Keywords live in keywords.yaml, synced into the DB on startup.\n- A poll fetches interest-over-time (12 month window) and related/rising queries per keyword, stores the raw JSON payload in snapshots and the parsed rows in the typed tables. Never overwrite a prior pull, append only.\n- Throttle: random 5 to 15 second sleep between keywords, exponential backoff with jitter on 429, resume from where it stopped.\n- After a poll, compute movers: percent change in trailing 7 day average versus the prior 7 days, plus rising queries not seen in any earlier snapshot for that keyword.\n- Email a digest of movers via SMTP if SMTP_HOST is set in .env, otherwise write digest markdown to out/digest-YYYY-MM-DD.md.\n\nDashboard: keyword list with sparklines rendered as inline SVG, a per keyword page with the full interest series and a table of first-seen rising queries, and a movers page for the latest poll. Server-rendered HTML, no JS framework.\n\nOut of scope: user auth, multi tenancy, paid APIs, Docker, charts libraries, any attempt to backfill history before the first poll.\n\nSecrets in .env, loaded with python-dotenv, .env.example committed. Include keywords.yaml with three example terms, a README with the exact commands to seed, poll once, and serve, and pytest tests for the mover math using fixture JSON so the tests never hit the network.",
+  "promptCurated": false
+}
