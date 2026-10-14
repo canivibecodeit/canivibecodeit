@@ -1,0 +1,51 @@
+{
+  "slug": "google-chat",
+  "name": "Google Chat",
+  "domain": "chat.google.com",
+  "category": "community",
+  "subcategory": "team chat",
+  "tagline": "Google's team messaging app: direct messages, group spaces and threads, wired into Gmail and Workspace.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Included with Google Workspace",
+    "basis": "per user, monthly, as part of a Workspace plan",
+    "unit": "per-seat",
+    "source": "https://chat.google.com/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Chat is not sold standalone, it rides along with Workspace, and free consumer Google accounts get it at no cost.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The chat app itself is genuinely unremarkable: WebSockets, a message table, rooms, threads, file uploads. An agent can build that in an afternoon and it will feel fine. The problem is that a messaging app with one user is a notes app with extra steps, and the people you need to reach are in Chat because their employer bought Workspace, not because they liked the product. On top of that sits the part nobody wants to build: push notifications on two mobile platforms, delivery guarantees on flaky networks, Gmail and Calendar and Meet hooks, admin controls, retention and eDiscovery. You can self host a nice internal chat for a household or a small team that all agrees to move. You cannot one-shot the reason anyone is on this one.",
+  "coreLoopDIY": "A self hosted chat server with spaces, threaded replies, file attachments and live updates over WebSockets, for a small group you personally invite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS with a domain and TLS",
+    "Everyone you want to talk to agreeing to install or bookmark it",
+    "Optional: a push service or email relay if you want notifications away from the tab"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps with reliable background push",
+    "Gmail, Calendar and Meet integration, including Chat living inside the Gmail sidebar",
+    "Years of searchable history and the org directory that makes @mentions resolve to real people",
+    "Admin, retention, DLP and eDiscovery controls that compliance teams actually require",
+    "Interop with external organizations whose IT will never allowlist your box"
+  ],
+  "moatTags": [
+    "network-effects",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Workspace bundling is the distribution channel: nobody evaluates Google Chat, they are issued it.",
+  "whyPeopleStillPay": "Almost nobody buys Google Chat. They buy Workspace for Gmail and Docs, and Chat arrives in the box, which means the per-seat cost of the messaging is effectively invisible and the switching conversation never happens. For the small number of teams that do choose it deliberately, the pitch is that it is already authenticated against the same accounts, already governed by the same admin console, and already auditable by the same retention rules as everything else. That is an IT procurement argument, not a product argument, and it is not one a weekend build can answer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The app is a weekend; the room full of coworkers is not. The moat is Workspace bundling plus the admin and compliance layer that makes IT sign off.",
+  "prompt": "Build a self hosted team chat server for a small private group. Stack: Node 20, Fastify, plain WebSockets via the ws package, SQLite via better-sqlite3, and server rendered HTML with a small vanilla JS client. No React, no build step, no external services.\n\nData model in SQLite:\n- users: id, display_name, password_hash, created_at\n- spaces: id, name, description, is_dm, created_at\n- memberships: user_id, space_id, last_read_at\n- messages: id, space_id, user_id, parent_id (nullable, for threads), body, created_at, edited_at\n- attachments: id, message_id, filename, mime, size, path\n\nFeatures that are in scope:\n- Email plus password signup gated behind an INVITE_CODE from .env, with sessions in a signed httpOnly cookie\n- Spaces list in a left sidebar, message timeline in the main pane, threaded replies opening in a right pane\n- Direct messages modeled as two-person spaces with is_dm set\n- Live delivery over one WebSocket per connected client, with a room subscription per open space\n- Optimistic send with a client generated id, reconciled when the server echoes the saved message\n- File uploads written to ./uploads, served with correct content type, 25MB cap, images rendered inline\n- Full text search over messages using SQLite FTS5, scoped to spaces the user belongs to\n- Unread badges derived from last_read_at, plus a simple @mention highlight\n- Markdown-lite rendering: bold, italic, inline code, fenced code, links. Escape all HTML first.\n\nExplicitly out of scope: mobile apps, push notifications, video calls, external federation, SSO, admin console, retention policies. Do not add any of it.\n\nSecrets in .env: PORT, SESSION_SECRET, INVITE_CODE, DATABASE_PATH. Ship a .env.example.\n\nDeliver a README with run instructions, a seed script that creates one admin user and a #general space, and a one paragraph honest note stating that this is a private chat for a group you invite yourself and is not a replacement for anything your employer administers.",
+  "promptCurated": false
+}
