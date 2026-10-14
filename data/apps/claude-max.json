@@ -1,0 +1,52 @@
+{
+  "slug": "claude-max",
+  "name": "Claude Max",
+  "domain": "claude.com",
+  "category": "ai-assistant",
+  "subcategory": "frontier model subscription",
+  "tagline": "The high usage tier of Claude, with much larger limits and access to Claude Code.",
+  "priceMonthly": 100,
+  "pricing": {
+    "plan": "Max",
+    "basis": "monthly per user, two tiers (5x and 20x usage)",
+    "unit": "per-seat",
+    "source": "https://claude.com/en/articles/11049741-what-is-the-max-plan",
+    "checkedOn": "2026-10-14",
+    "confidence": "medium",
+    "notes": "AI-drafted from a site submission; price unverified. Max is sold in two tiers, the higher one costs multiples of the base.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You are not paying for a chat window, you are paying for a model you cannot train and inference you cannot afford. A coding agent will happily build you a nicer chat client in an afternoon, and that client will still be pointing at someone's API. Swapping in a local open weights model is real, but you trade a frontier model for something markedly worse at long reasoning and code, plus a GPU bill or a laptop that sounds like a hair dryer. The one thing a DIY build genuinely wins is cost shape: metered API billing often works out cheaper than a flat subscription unless you are a heavy daily user. So build the client if you want the UI, but understand that is a wrapper, not a replacement.",
+  "coreLoopDIY": "A local chat app with streaming responses, saved conversations in SQLite, and a model switcher between a hosted API and a local Ollama model.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key from a model provider, kept in .env",
+    "Bun or Node installed locally",
+    "Optional: Ollama plus a machine with enough VRAM if you want the fully local path",
+    "Willingness to watch a metered bill instead of a flat one"
+  ],
+  "whatYouLose": [
+    "The actual frontier model, which no amount of code generates",
+    "Generous flat-rate limits, replaced by per-token billing that punishes long sessions",
+    "Claude Code and the agentic tooling bundled into the plan",
+    "Mobile and desktop apps, sync across devices, and voice",
+    "Projects, memory, connectors, web search and file handling that quietly do a lot of work"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The UI is the cheapest part of this product by several orders of magnitude.",
+  "whyPeopleStillPay": "Flat pricing on heavy usage is the whole pitch. If you are in the model all day, metered API calls get expensive fast and unpredictably, and the Max tiers exist precisely so power users stop doing mental math mid-task. On top of that, the plan bundles Claude Code, the apps, and the connector plumbing, so you are buying a working environment rather than a raw endpoint. Local open weights are genuinely good now and worth running for private or routine work, but nobody is matching a frontier model's long-context coding from a consumer GPU this year.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat window is a one-sitting build; the thing answering you is not. The moat is a frontier model plus the datacenter it runs in, and neither fits in your repo.",
+  "prompt": "Build a local, single-user chat client for large language models. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Bun as runtime and package manager\n- Hono for the HTTP server\n- React + Vite + TypeScript for the frontend\n- Tailwind for styling\n- bun:sqlite for persistence, file at ./data/chat.db\n\nRequirements:\n- Server reads ANTHROPIC_API_KEY and OPENAI_API_KEY from .env via Bun's built-in env loading. Never expose keys to the browser; all model calls go through the server.\n- Provider abstraction with three adapters: Anthropic Messages API, an OpenAI-compatible endpoint, and Ollama at http://localhost:11434. Each adapter exposes streamChat(messages, model) returning an async iterator of text chunks.\n- POST /api/chat streams tokens to the client over SSE. Persist the user message immediately and the assistant message when the stream completes or aborts.\n- SQLite schema: conversations(id, title, model, provider, created_at, updated_at), messages(id, conversation_id, role, content, created_at). Index messages on conversation_id.\n- Auto-title a conversation from the first user message, truncated to 60 chars. No extra model call for titles.\n- UI: left sidebar with conversation list, search box filtering by title, new chat button, delete with confirm. Main pane renders markdown with fenced code blocks, syntax highlighting, and a copy button per block. Composer sends on Enter, newline on Shift+Enter, and has a stop button that aborts the in-flight stream.\n- Model picker in the header, populated from a models.json config file the user can edit. Remember the last used model per conversation.\n- Per-message token counts and a running estimated cost for the conversation, using rates from models.json. Show it, do not hide it.\n- Export a conversation to markdown.\n\nExplicitly out of scope: authentication, multi-user support, file uploads, web search, tool calling, RAG, mobile app, any hosted deployment.\n\nDeliver a README with setup steps, a .env.example, and a seeded models.json. Handle a missing API key with a clear error in the UI, not a stack trace.",
+  "promptCurated": false
+}
