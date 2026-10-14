@@ -1,0 +1,52 @@
+{
+  "slug": "corona-render",
+  "name": "Chaos Corona",
+  "domain": "chaos.com",
+  "category": "design",
+  "subcategory": "3D rendering engine",
+  "tagline": "Photorealistic CPU/GPU renderer plugged into 3ds Max and Cinema 4D.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.chaos.com/pt/corona?srsltid=AU7gw4Uz7hrkkCfQKlfpEX6Nr7_HxLfuWAzB-mX1iYRGw915dNSqUF9w",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A coding agent can absolutely write you a path tracer in an afternoon, and it will produce a pretty sphere on a checkerboard. Corona is a production renderer: adaptive sampling, caustics, a physically based material library, an AI denoiser, volumetrics, hair, displacement, and interactive render that updates while an artist drags a light. On top of that it lives inside 3ds Max and Cinema 4D as a plugin, reading their scene graphs, modifiers, instancing, and animation, which is years of host integration work no one one-shots. Even if you matched the math, you would not match the minutes-per-frame, and render time is the whole product. The consolation build is a real path tracer that teaches you exactly why this costs money.",
+  "coreLoopDIY": "Loads a glTF scene plus an HDRI, traces it with a brute force progressive path tracer on the CPU, and writes a denoised PNG.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Rust toolchain",
+    "a glTF or OBJ test scene",
+    "an HDRI environment map",
+    "a lot of CPU time and patience"
+  ],
+  "whatYouLose": [
+    "Any plugin integration with 3ds Max or Cinema 4D, so no real scenes, modifiers, or instancing",
+    "Interactive render that reacts to viewport edits in near real time",
+    "Adaptive sampling, light solvers, and caustics, which is the difference between 4 minutes and 4 hours",
+    "The material and asset libraries artists actually build with",
+    "Production features: motion blur, hair, volumetrics, displacement, render elements, distributed rendering"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The performance work is the product. Sampling strategy and denoising are where a decade of engineering hides, and they are invisible until you try to reimplement them.",
+  "whyPeopleStillPay": "Because studios bill by the hour and renders block deliveries. A renderer that converges twice as fast on a 400GB archviz scene pays for itself in a week, and it has to do that from inside the DCC the artist already models in, with the materials the rest of the team shares. Nobody is swapping that out for a hobby tracer that reads glTF.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A toy path tracer is a weekend; a production renderer is a decade. The moat is twenty years of sampling and denoising research welded into 3ds Max and Cinema 4D, where the artists already live.",
+  "prompt": "Build a standalone offline path tracer in Rust. Empty folder, cargo project, CLI only.\n\nStack, no substitutions:\n- Rust stable, no GPU, no wgpu, CPU only.\n- rayon for parallelism, image for PNG output, gltf for scene loading, glam for math.\n- Single binary: `cargo run --release -- scene.gltf --hdri env.hdr --spp 512 --out render.png`.\n\nIn scope:\n- Load a glTF 2.0 file: meshes, transforms, node hierarchy, camera (use the first camera, fall back to a default if absent).\n- Build a BVH over triangles with a surface area heuristic split. This matters more than anything else for speed, do it properly.\n- Unidirectional path tracer with Russian roulette termination after depth 4, hard cap at depth 16.\n- Materials: a single principled-ish BSDF with base color, roughness, metallic, and emissive, read from glTF PBR metallic-roughness. Cosine-weighted diffuse plus GGX specular with importance sampling. No clearcoat, no sheen, no subsurface.\n- Lighting: emissive triangles plus an equirectangular HDR environment map. Importance sample the environment with a 2D CDF, do not just uniformly sample the sphere.\n- Next event estimation to the environment and to emissive triangles, with multiple importance sampling between BSDF and light sampling.\n- Progressive rendering: write the PNG every 32 samples per pixel so the user can watch it converge and kill it early.\n- Tone map with ACES approximation, then sRGB encode on output. Keep the internal framebuffer linear f32.\n- Deterministic per-pixel RNG seeded from pixel index plus sample index so renders are reproducible.\n\nOut of scope, do not build:\n- Any GUI, viewport, or web server.\n- Motion blur, depth of field beyond a simple aperture flag, volumetrics, hair, displacement, subsurface scattering.\n- A denoiser. Instead, print a note in the README that production renderers lean on OIDN or OptiX and that brute force convergence is why this is slow.\n- Accounts, telemetry, network calls of any kind.\n\nDeliverables:\n- src/ split into bvh.rs, camera.rs, material.rs, sampling.rs, scene.rs, main.rs.\n- A README with the exact command to render the bundled test scene and a table of spp versus wall clock on a 8-core machine.\n- No secrets needed, so no .env. If you add one, you have misunderstood the task.",
+  "promptCurated": false
+}
