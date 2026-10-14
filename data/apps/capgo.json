@@ -1,0 +1,54 @@
+{
+  "slug": "capgo",
+  "name": "Capgo",
+  "domain": "capgo.app",
+  "category": "dev-tools",
+  "subcategory": "live updates for Capacitor apps",
+  "tagline": "Over-the-air live updates for Capacitor mobile apps, pushed without an app store review.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://capgo.app/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Capgo is open source at its core, so the DIY version is less a clone and more a self-host: the plugin already exists and you mostly need a bundle host plus an update manifest endpoint. An agent can scaffold a signed zip store, version channel logic and a tiny API in one sitting, and for a single app you control, that is genuinely enough. What you lose is everything around the hot path: staged rollouts, per-device channels, rollback when a bad bundle bricks launch, analytics on who actually installed what, and the CDN that makes a 10MB bundle download fast everywhere. There is also the uncomfortable part where shipping JS updates outside the stores lives in a grey zone that Apple tolerates only within limits, and a hosted vendor has thought harder about staying inside them than your weekend script has. Build it if you ship one app and like reading logs; pay if a bad bundle going out to real users would ruin your month.",
+  "coreLoopDIY": "Builds and signs a Capacitor web bundle, uploads it to object storage, and serves a version manifest the app checks on launch to download and swap in the new bundle.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Capacitor app you actually control and can rebuild",
+    "Object storage or any static host for bundles (S3-compatible or plain nginx)",
+    "A small always-on server or serverless function for the update manifest",
+    "Signing keypair so the app rejects bundles you did not publish",
+    "Patience for testing rollback on a real device, not just the simulator"
+  ],
+  "whatYouLose": [
+    "Staged rollouts and percentage-based releases",
+    "Automatic rollback when a bundle crashes on boot",
+    "Per-channel and per-device targeting for beta testers",
+    "Install analytics: who got which bundle, and who is stuck",
+    "A CDN that makes downloads fast outside your own region",
+    "Someone else tracking app store policy changes on your behalf"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The plugin is the commodity part. The distribution, the rollback safety net and the edge delivery are the parts you notice only when they are missing.",
+  "whyPeopleStillPay": "Because the failure mode is brutal and silent. A self-hosted update server that serves a broken bundle takes your app down on every launch, and the only fix is a store release that takes days. Paying buys staged rollouts, a rollback button, and a CDN that does not fall over when you actually have users, which is exactly the moment self-hosting stops being fun. For a side project with fifty installs, none of that matters. For anything with revenue attached, the monthly fee is cheap insurance against a bad Tuesday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The plugin is open source, so this is one of the rare entries where self-hosting is the official path, not the hack.",
+  "prompt": "Build a minimal self-hosted over-the-air update server for a Capacitor app, plus the publish tooling around it.\n\nStack, no substitutions:\n- Node 20 with Fastify for the API\n- SQLite via better-sqlite3 for bundle metadata\n- Local disk for bundle storage, with an S3-compatible adapter behind a one-file interface\n- A single CLI entrypoint written as a Node script, no build step\n\nWhat to build:\n1. `bin/publish.js`: takes a path to a built Capacitor web dir, zips it, computes a sha256, signs the hash with an ed25519 private key from .env, uploads the zip to storage, and inserts a row (app_id, channel, version, sha256, signature, size, created_at).\n2. `GET /updates/:app_id?channel=production&version=1.2.3`: returns JSON with url, version, sha256 and signature if a newer bundle exists on that channel, or 204 if the client is current. Compare versions with semver, not string sort.\n3. `GET /bundles/:id`: streams the zip with an ETag and correct content-length.\n4. `POST /admin/channels`: moves an existing bundle id to a channel so you can promote a beta bundle to production without re-uploading.\n5. `POST /admin/rollback`: marks the current bundle on a channel as bad and re-points the channel at the previous good one.\n\nRules:\n- Admin routes require a bearer token from ADMIN_TOKEN in .env. Everything else is public read.\n- Ship a `docs/client.md` explaining how to wire @capgo/capacitor-updater or a hand-rolled fetch-and-unzip to this endpoint, including signature verification on device. Do not try to write the native side.\n- Include a seed script and a test that publishes two versions and asserts the manifest, the 204, and the rollback all behave.\n- No telemetry, no accounts, no analytics dashboard. One operator, one token.\n- Secrets in .env only: SIGNING_KEY, ADMIN_TOKEN, optional S3_* vars. Ship .env.example.\n- README must state plainly that there is no staged rollout and no crash-triggered auto-rollback, and that shipping a broken bundle will require a manual rollback call.",
+  "promptCurated": false
+}
