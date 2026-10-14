@@ -1,0 +1,52 @@
+{
+  "slug": "testgorilla",
+  "name": "TestGorilla",
+  "domain": "testgorilla.com",
+  "category": "hr",
+  "subcategory": "pre-employment assessments",
+  "tagline": "Pre-employment screening built on a library of skills, cognitive and personality tests you send to candidates before interviewing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.testgorilla.com/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is a timed quiz runner with unique candidate links and a scoring table, which an agent can produce in an afternoon. The product is not the quiz runner. It is hundreds of role-specific tests written and maintained by subject matter experts, benchmarked against a candidate pool large enough to make a percentile mean something, plus the psychometric paperwork you want on file when a rejected applicant asks why. Add anti-cheating signals, question rotation so the answers do not end up on a forum, and the fact that candidates recognise the brand and do not assume your link is phishing. You can build your own test for one role you understand deeply and it will be fine; you cannot build a library you trust for roles you do not.",
+  "coreLoopDIY": "Self-hosted assessment runner: you write the questions, it generates per-candidate links, enforces a timer, auto-grades multiple choice and code, and ranks submissions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A server or VPS with a public URL candidates can reach",
+    "Email sending (SMTP or a transactional provider) for invite links",
+    "You writing every question yourself, which is the actual work",
+    "A code sandbox or test runner if you want to grade programming answers"
+  ],
+  "whatYouLose": [
+    "The test library: hundreds of validated role tests you did not have to write",
+    "Benchmarks, so a score of 72 means nothing without a comparison pool",
+    "Validity and adverse-impact documentation if someone challenges your process",
+    "Anti-cheating: proctoring, webcam snapshots, question rotation, leaked-answer monitoring",
+    "Candidate trust in an unfamiliar link, and a polished taking experience across devices"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "brand-trust"
+  ],
+  "moatNotes": "Percentiles are the real product. A score without a population behind it is a number you made up.",
+  "whyPeopleStillPay": "Hiring teams pay because writing a defensible test for a role you are hiring for, and have therefore never done yourself, is a genuinely hard research task and the downside of getting it wrong is a bad hire or a discrimination claim. The library removes that work, the benchmarks turn raw scores into decisions, and the brand means candidates complete the assessment instead of ghosting a suspicious link. A self-hosted quiz app gives you the delivery mechanism and none of that. It makes sense for one role you know cold, and almost no sense across a hiring pipeline.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The quiz runner is a weekend; the test library is not. The moat is a validated question bank, a benchmark pool big enough to make percentiles real, and the compliance trail behind both.",
+  "prompt": "Build a self-hosted pre-employment assessment runner. Single Next.js app (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling. No external services beyond SMTP.\n\nData model:\n- test: id, title, description, time_limit_minutes, pass_threshold\n- question: id, test_id, type (single_choice | multi_choice | short_text | code), prompt_markdown, options_json, correct_json, points, position\n- candidate: id, name, email, created_at\n- invite: id, test_id, candidate_id, token (random 32 chars), status (sent | started | submitted | expired), started_at, submitted_at, expires_at\n- answer: id, invite_id, question_id, response_json, auto_score, manual_score, reviewer_note\n\nAdmin side (password-gated with a single ADMIN_PASSWORD from .env, cookie session, no user accounts):\n- CRUD for tests and questions, with questions authored in Markdown and imported or exported as JSON so the bank lives in version control\n- Create a candidate, generate an invite, send the link by SMTP with a plain text email\n- Results table per test: candidate, raw score, percent, time taken, status, sorted descending\n- Per-submission review page showing each answer next to the expected answer, with a manual score field for short_text and code questions\n\nCandidate side (no login, token link only):\n- Landing page: test title, question count, time limit, one Start button that is irreversible\n- One question per screen, progress indicator, server-authoritative countdown based on started_at so refreshing does not reset the clock\n- Answers saved on every navigation so a dropped connection does not lose work\n- Auto-submit when the timer expires, then a plain thank-you page with no score shown\n\nGrading: exact match for choice questions, case-insensitive trimmed match against an accepted-answers list for short_text, code questions stored unscored and flagged for manual review. Do not try to execute candidate code.\n\nExplicitly out of scope: webcam proctoring, tab-switch spying, anti-cheat heuristics, percentile benchmarks, ATS integrations, multi-tenant orgs, billing.\n\nShip with: .env.example (ADMIN_PASSWORD, SMTP_URL, APP_URL), a seed script that loads one example test from JSON, and a README covering deploy on a single VPS behind HTTPS. Explain in the README that scores are only meaningful relative to your own candidates and that the questions are your responsibility.",
+  "promptCurated": false
+}
