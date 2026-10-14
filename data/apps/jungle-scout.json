@@ -1,0 +1,52 @@
+{
+  "slug": "jungle-scout",
+  "name": "Jungle Scout",
+  "domain": "junglescout.com",
+  "category": "commerce",
+  "subcategory": "amazon seller research",
+  "tagline": "Product research and sales estimation for Amazon sellers, built on scraped and modeled marketplace data.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription",
+    "unit": "flat",
+    "source": "https://www.junglescout.com/",
+    "checkedOn": "2026-09-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Entry tiers are subscription-based with higher tiers for agencies and brands.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The UI here is the cheap part. The expensive part is a continuously refreshed index of millions of Amazon listings plus a model that turns a Best Sellers Rank into a plausible monthly unit estimate, calibrated against real seller data that Jungle Scout has been collecting for a decade. An agent can build you a tidy local dashboard in an afternoon, but with no data feed it will just show you empty charts. Amazon's own Product Advertising API is gated behind affiliate sales and does not expose sales volume, and scraping the storefront at research scale is fragile, rate-limited, and against terms. What you can honestly build is a profit and margin workbench over your own Seller Central data, with price and rank history rented from a data API like Keepa.",
+  "coreLoopDIY": "A local Python tool that pulls your own SP-API sales and fee data plus Keepa price and rank history for a watchlist of ASINs, then computes landed cost, FBA fees, and margin per product in a small self-hosted dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 and SQLite locally",
+    "A paid Keepa API key for price and rank history, or manual CSV imports",
+    "Amazon SP-API credentials for your own seller account if you want real sales and fee data",
+    "Willingness to accept that competitor sales estimates are guesses without a calibration dataset"
+  ],
+  "whatYouLose": [
+    "Sales volume estimates for products you do not own, which is the entire reason people buy this",
+    "The searchable product and keyword database across categories and marketplaces",
+    "Keyword search volume and reverse ASIN lookups",
+    "Supplier and review analysis, launch and rank tracking, and the alerting around them",
+    "Anything resembling support when Amazon changes a page structure or fee schedule"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The BSR-to-sales model is only as good as the private seller data it was fit on, and that dataset compounds with every customer who connects their account.",
+  "whyPeopleStillPay": "Sellers are making four and five figure inventory bets and want a number to point at before wiring money to a factory. Jungle Scout's estimates are not gospel and experienced sellers will tell you so, but they are consistent, cover every category, and are cheap relative to one bad pallet of product. Rebuilding the crawl infrastructure alone is a real engineering program, and renting equivalent data through third-party APIs at research volume costs more than the subscription. The margin calculator you can build yourself; the market you are guessing about you cannot.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the numbers inside it are not. The moat is a decade of crawled listings and private seller data used to calibrate rank into revenue.",
+  "prompt": "Build a local Amazon seller margin workbench. Single user, runs on my laptop, no accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.12, SQLite via sqlite3, FastAPI for the app, Jinja2 templates with HTMX for interactivity, plain CSS, no build step. Typer for the CLI. uv or pip with a requirements.txt, your choice, but pick one and commit.\n\nData model in SQLite: products (asin, title, category, cost_of_goods, shipping_per_unit, notes), snapshots (asin, captured_at, price, buybox_price, sales_rank, review_count, rating), fees (asin, referral_fee, fulfillment_fee, storage_fee_monthly, effective_from), orders (order_id, asin, units, revenue, date) imported from Seller Central reports.\n\nIngestion:\n1. A Keepa adapter behind an interface named PriceHistorySource, reading KEEPA_API_KEY from .env. Fetch price and sales rank history for a watchlist of ASINs and write snapshots. If the key is missing, the app must still run and say so plainly.\n2. A CSV importer for Seller Central business reports and settlement reports into orders and fees. Tolerate messy headers.\n3. Do not scrape amazon.com. Do not fake data. Include a seed_demo command that loads clearly labeled synthetic rows for UI work.\n\nMath, put it in a pure module with unit tests: landed cost per unit, total Amazon fees per unit, net margin per unit, margin percent, break even price, ROI on cost of goods, and a units-needed-to-clear-a-target-profit helper. Round money with Decimal, never floats.\n\nUI: a product list with margin and ROI columns sorted worst first, a product detail page with a price and rank sparkline rendered as inline SVG from the snapshots table, and an editable cost form that recomputes margin immediately via HTMX.\n\nExplicitly out of scope: competitor sales volume estimates, keyword search volume, reverse ASIN lookup, listing optimization scores. Where the UI would show those, render a short honest note saying the data source does not exist locally.\n\nDeliver: README with setup in under ten lines, .env.example, requirements.txt, pytest suite for the math module, and a make run target. No Docker.",
+  "promptCurated": false
+}
