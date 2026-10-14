@@ -1,0 +1,50 @@
+{
+  "slug": "peekpanda",
+  "name": "PeekPanda",
+  "domain": "peekpanda.com",
+  "category": "seo-marketing",
+  "subcategory": "app store intelligence",
+  "tagline": "Competitive intelligence for iOS apps: paid ad creatives, keyword rankings and top performing social content.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://peekpanda.com/#paid-ads",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The UI here is a table and some cards, which an agent can produce before lunch. The product is not the UI, it is a standing archive of ad creatives scraped out of Apple Search Ads, Meta and TikTok placements over months, cross-referenced against keyword rank histories for tens of thousands of apps. You cannot see a competitor's paid ads by asking Apple nicely; you see them by running devices and accounts that get served those ads, continuously, at scale. A one-shot build can track public App Store metadata and your own keyword ranks, and that is genuinely useful, but it will never retroactively know what creative a competitor ran in March. If the reason you pay is the back catalog, you are paying for the back catalog.",
+  "coreLoopDIY": "Polls Apple's public search and lookup endpoints on a schedule to track your chosen apps' metadata, ratings and keyword rank positions over time, with diffs when listings change.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS that can run a daily cron",
+    "A list of competitor app IDs and keywords you actually care about",
+    "Patience for Apple rate limits and occasional endpoint changes"
+  ],
+  "whatYouLose": [
+    "Historical ad creatives you never collected, which is most of the point",
+    "Any visibility into paid placements at all, since public endpoints do not expose them",
+    "Viral social content tracking across TikTok and Instagram, which needs its own scraping stack",
+    "Estimated installs and revenue modeling, which is guesswork built on a large panel you do not have",
+    "Keyword volume scores, which are inferred from data Apple does not publish"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "Ad creative libraries are an archive business. The value compounds with every month of collection and cannot be backfilled.",
+  "whyPeopleStillPay": "Because paid ad intelligence is an archaeology problem, not an API problem. Nobody hands you a competitor's creative rotation; it has to be harvested from the wild by infrastructure that was already running before you had the question. Even if you built a perfect scraper today, your first useful dataset is six months out, and by then you are maintaining a device farm and fighting ad platform fingerprinting instead of doing marketing. The rank tracking half is commodity and worth self-hosting. The ad spy half is not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the archive is years. The moat is a continuously running collection fleet and the historical creative library it has already banked, which no new build can backfill.",
+  "prompt": "Build a local iOS App Store rank and listing tracker. Node 20, TypeScript, SQLite via better-sqlite3, Express for a minimal server-rendered dashboard using EJS. No React, no cloud, no accounts, no telemetry.\n\nData sources, public only:\n- https://itunes.apple.com/lookup?id=APPID&country=us for app metadata\n- https://itunes.apple.com/search?term=KEYWORD&country=us&entity=software&limit=200 for keyword result ordering\nNo scraping of ad platforms, no headless browsers, no logged-in sessions.\n\nSchema:\n- apps: id, track_id, bundle_id, name, developer, added_at\n- keywords: id, term, country, added_at\n- snapshots: id, track_id, captured_at, version, price, rating_avg, rating_count, description_hash, screenshot_urls_json\n- ranks: id, keyword_id, track_id, captured_at, position (null if not in top 200)\n- changes: id, track_id, captured_at, field, old_value, new_value\n\nCLI, via a single bin entry:\n- add-app TRACK_ID\n- add-keyword TERM\n- collect : fetch every tracked app and keyword once, write snapshots and ranks, diff the newest snapshot against the previous one and write rows into changes for name, version, price, description_hash and screenshot set\n- report : print each app's current rank per keyword plus 7 day and 30 day deltas\n\nDashboard on localhost:3000:\n- one page listing tracked apps with current ranks and arrows for movement\n- one page per app showing a sparkline per keyword, rendered as inline SVG, no chart library\n- one page showing the changes feed, newest first\n\nRequirements: throttle to one request per second with retry and backoff on 403 and 429, store the raw JSON response for every fetch in a responses/ folder keyed by timestamp so nothing is lost to a schema change, read COUNTRY and PORT from .env with dotenv, ship a .env.example, and include a README section showing the crontab line for a daily collect.\n\nExplicitly out of scope: paid ad creatives, install or revenue estimates, keyword search volume, social content tracking. Do not fake these with placeholder numbers. If a value cannot be derived from the public endpoints, do not display a field for it.\n\nFinish with npm scripts for collect, serve and a seed command that adds three example app IDs and five keywords.",
+  "promptCurated": false
+}
