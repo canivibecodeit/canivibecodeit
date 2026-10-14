@@ -1,0 +1,51 @@
+{
+  "slug": "deskcommcrm",
+  "name": "DeskcommCRM",
+  "domain": "deskcomm.com.br",
+  "category": "crm",
+  "subcategory": "CRM with customer messaging",
+  "tagline": "Brazilian CRM for small sales and support teams, built around tracking contacts, deals and customer conversations in one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.deskcomm.com.br/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The CRM half of this is a solved problem: contacts, a deal pipeline, notes, next-action reminders, a dashboard. An agent will produce a clean local version of that in an afternoon and it will be faster than most hosted CRMs because it holds about four hundred records instead of four hundred thousand. The part that does not survive one-shotting is the messaging side: official WhatsApp Business API access means a Meta app review, a verified business, template message approval and a BSP relationship, and the unofficial route gets numbers banned. So you get the system of record for free and you keep paying someone for the pipe. If you are a solo operator who already talks to customers from your own phone, that trade is fine; if you have three agents sharing one number, it is not.",
+  "coreLoopDIY": "A local CRM with contacts, a drag-and-drop deal pipeline, per-contact activity timeline, follow-up reminders and CSV import/export, all in one SQLite file.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and a machine that stays on if you want reminders to fire",
+    "A WhatsApp Business API provider if you want real message sending, which is a separate paid dependency",
+    "Someone to actually type the notes in, which is the real failure mode of every self-built CRM"
+  ],
+  "whatYouLose": [
+    "Official WhatsApp Business API access, template approval and number verification, which is the actual hard part",
+    "Shared team inbox: assignment, internal notes, who-is-typing, conversation handoff",
+    "Mobile apps and push notifications, so the follow-up reminder dies in a browser tab",
+    "Message history retention and audit trails for LGPD requests",
+    "Local support in Portuguese from people who answer, plus Brazilian billing and integrations with local tooling"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is not the CRM schema, it is being an approved channel partner on someone else's messaging network.",
+  "whyPeopleStillPay": "Because the pipeline board is the cheap part and the phone number is the expensive part. Getting a business verified with Meta, keeping templates approved, and routing a single number across multiple agents without getting flagged is ongoing operational work that nobody wants to own. Add Portuguese-language support, LGPD paperwork and the fact that sales teams will use a mediocre tool their manager mandates and refuse to use a great one they have to install, and a monthly per-seat fee is the cheaper option for anyone with employees.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this if you are a one-person shop; if you have a shared number and three agents, pay the invoice.",
+  "prompt": "Build a local-first personal CRM. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js 15 App Router, TypeScript, Tailwind, shadcn/ui\n- SQLite via better-sqlite3, Drizzle ORM, single file at ./data/crm.db\n- Runs with `npm run dev` on localhost only, single user, no auth\n\nData model:\n- contacts: id, name, company, email, phone, whatsapp, source, tags (json array), created_at\n- deals: id, contact_id, title, value_cents, currency default BRL, stage, expected_close, created_at, closed_at, lost_reason\n- activities: id, contact_id, deal_id nullable, type (note | call | meeting | message | email), body, occurred_at\n- tasks: id, contact_id nullable, deal_id nullable, title, due_at, done_at\n\nStages are configurable in a config file: default lead, contacted, proposta, negociacao, ganho, perdido.\n\nScreens:\n1. Pipeline: kanban board of deals by stage, drag to move, stage change writes an activity row automatically. Column headers show count and summed value in BRL.\n2. Contact detail: fields on the left, merged chronological timeline of activities and tasks on the right, quick-add note box that defaults to now.\n3. Tasks: everything due today or overdue, grouped, one click to complete.\n4. Dashboard: open pipeline value, deals won this month, contacts with no activity in 30 days.\n\nAlso build:\n- CSV import for contacts with a column-mapping step and dedupe on email or phone\n- CSV and JSON export of everything\n- Global search across contacts, deals and activity bodies using SQLite FTS5\n- Phone and currency formatting for Brazil (pt-BR locale, R$)\n- `npm run backup` that copies the db file to ./backups with a timestamp\n\nExplicitly out of scope, do not attempt:\n- WhatsApp or email sending of any kind. Instead, render a `wa.me` deep link and a `mailto:` link per contact that open the user's own client, and add a one-click \"log this message\" button that writes an activity row.\n- Multi-user, permissions, or team assignment\n- Push notifications. Overdue tasks surface in the UI and in the page title only.\n\nSeed 20 fake Brazilian contacts and 10 deals so the board is not empty on first run. Put nothing in .env except an optional DB_PATH. Write a README with setup, the backup command, and a blunt note that there is no WhatsApp integration and why.",
+  "promptCurated": false
+}
