@@ -1,0 +1,53 @@
+{
+  "slug": "pixellab",
+  "name": "PixelLab",
+  "domain": "pixellab.ai",
+  "category": "ai-image",
+  "subcategory": "pixel art and sprite generation",
+  "tagline": "AI generator for pixel art characters, sprites, tilesets and frame-by-frame animation, with editor plugins.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.pixellab.ai/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The parts that look like the product are the easy parts: a prompt box, palette quantization, nearest-neighbour downscale, sprite sheet export. All of that is a weekend of Python. The part you cannot reproduce is a model actually tuned to emit clean pixel grids, consistent characters across 4 or 8 rotations, and inbetween animation frames that hold the same silhouette. Generic Stable Diffusion plus a pixel-art LoRA gives you pixel-ish art: blurry grids, drifting palettes, a character who grows a new hat between frames. You can build a fun local sprite toy, you cannot build the animation pipeline, and that is the whole reason people pay.",
+  " coreLoopDIY": null,
+  "coreLoopDIY": "Local Gradio app that runs a pixel-art LoRA over SDXL, snaps output to a fixed palette and pixel grid, and exports transparent PNGs plus a sprite sheet.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "an NVIDIA GPU with 12GB+ VRAM, or a rented one",
+    "Python 3.11, diffusers, Pillow, Gradio",
+    "a Hugging Face token for model weights",
+    "patience for background removal on dark sprites"
+  ],
+  "whatYouLose": [
+    "Rotation sets: the same character viewed from 4 or 8 angles without redrawing itself",
+    "Skeleton and inbetween animation, which is the actual product",
+    "Character consistency across a batch, so your walk cycle is eight different characters",
+    "Aseprite, Godot and Figma plugin integration, so everything round-trips through your downloads folder",
+    "Genuinely clean pixel grids instead of upscaled mush with a palette filter on top"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Fine-tuning a diffusion model to respect a pixel grid and keep a character identical across animation frames is the hard research, and it is not in any public checkpoint you can pull down.",
+  "whyPeopleStillPay": "Because game artists do not want pixel-art-flavoured illustrations, they want assets that drop into an engine: fixed canvas size, fixed palette, transparent background, consistent character across every frame and every facing direction. Hitting that reliably is a model problem, not a UI problem, and the open checkpoints are not there yet. The editor plugins matter too: an asset that needs ten minutes of manual cleanup per frame is worse than no asset at all. A local build is a decent idea generator for mockups and placeholder art, which is a real use, just not the paid one.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the palette snapping and the export formats in an afternoon. The moat is a model fine-tuned to keep one character identical across eight rotations and twelve frames, and nothing you can download does that.",
+  "prompt": "Build a local pixel-art sprite generator. Stack: Python 3.11, diffusers, Pillow, Gradio. No accounts, no cloud, no telemetry.\n\nIn scope:\n1. Load SDXL base plus a pixel-art LoRA from Hugging Face (make the LoRA repo id a config value so I can swap it).\n2. Gradio UI with: prompt, negative prompt, seed, target sprite size (16, 32, 48, 64), palette size (8, 16, 32), and a batch count.\n3. Generation pipeline, in this order: generate at 1024x1024, crop to square, nearest-neighbour downscale to the target size, snap colors to a palette using median-cut quantization at the chosen palette size, then nearest-neighbour upscale to a 512px preview so I can actually see it.\n4. Background removal: flood fill from the four corners with a color tolerance slider, write alpha, keep a toggle to skip it.\n5. Palette lock: let me upload a PNG, extract its unique colors, and quantize all future output to that exact palette instead of median-cut.\n6. Export: individual transparent PNGs at true sprite size, plus a horizontal sprite sheet of the batch with a JSON metadata file (frame width, height, count).\n7. Local gallery: every generation writes to ./out/TIMESTAMP/ with the full params in params.json so I can reproduce a seed.\n\nOut of scope, do not attempt: rotation sets, skeleton rigging, animation inbetweening, tileset auto-tiling, editor plugins. Say so in the README.\n\nSecrets: HF_TOKEN in .env, read with python-dotenv, .env in .gitignore. Model weights cache to ./models.\n\nShip: app.py, pipeline.py, palette.py, requirements.txt, README.md with GPU VRAM requirements and a one-command run. Default to CPU with a loud warning if no CUDA device is found. No tests, no Docker.",
+  "promptCurated": false
+}
