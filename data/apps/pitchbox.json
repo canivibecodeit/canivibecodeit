@@ -1,0 +1,53 @@
+{
+  "slug": "pitchbox",
+  "name": "Pitchbox",
+  "domain": "pitchbox.com",
+  "category": "seo-marketing",
+  "subcategory": "link building outreach",
+  "tagline": "Outreach platform for link building and blogger relations: prospecting, email sequences, reply tracking, and SEO metrics in one pipeline.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pitchbox.com/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part everyone thinks they are paying for, a prospect list plus templated multi-step email sequences plus reply detection, is a weekend build on top of SQLite and the Gmail API. The parts that actually make Pitchbox work are not: SERP-scale prospecting, contact and email discovery, and live Moz/Majestic/Ahrefs/Semrush metrics hanging off every domain, all of which are paid APIs you now rent directly. Deliverability is the other tax, since sending a few hundred cold emails a day from your own domain is a reputation project, not a cron job. If you already have your prospect list and you send modest volume, the DIY version is genuinely fine. If your job is finding ten thousand sites a month and getting replies from them, you are rebuilding a data business, not an app.",
+  "coreLoopDIY": "A local outreach CRM that imports a prospect CSV, merges contacts into multi-step email sequences sent through your own Gmail account, stops a sequence when someone replies, and tracks every campaign's status in one dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Google Cloud project with Gmail API enabled and an OAuth client (sending and reading your own mailbox)",
+    "Your own domain with SPF, DKIM and DMARC configured if you want anything to land",
+    "A prospect list you sourced yourself, or paid API keys for SERP scraping and email discovery",
+    "Paid API access if you want live SEO metrics per domain",
+    "A machine or small VPS that stays awake to run the send scheduler"
+  ],
+  "whatYouLose": [
+    "Built-in prospecting: keyword to SERP to site to contact, with dedupe against sites you already pitched",
+    "Email discovery and verification, so you will be guessing at addresses or paying a finder API",
+    "Live SEO metrics (DA/DR, traffic, spam score) attached to every prospect for filtering",
+    "Deliverability engineering: warmup, throttling, rotation, bounce handling, blocklist hygiene",
+    "Team workflow: assigning outreach to writers or VAs, shared templates, approval, and per-campaign reporting"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "Pitchbox sits on top of other people's expensive APIs and resells the convenience of them all being in one row of a table. That bundling is the product.",
+  "whyPeopleStillPay": "Because outreach at commercial scale is a volume problem, and volume is where every seam in a homemade tool tears: duplicate pitches to the same site, addresses that bounce, sequences that keep firing after someone replied from a different address, a sending domain that quietly gets throttled. Pitchbox absorbs the integration bill and the operational babysitting, and gives agencies something they can hand to a junior with a template library and a report at the end of the month. If link building is how you bill clients, the subscription is cheaper than the hours.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The sequencer is the easy half; the list is the expensive half.",
+  "prompt": "Build a local link-building outreach CRM. Single user, runs on my machine, no accounts, no telemetry, no cloud services beyond the Gmail API.\n\nStack, non-negotiable: Node 20 + TypeScript, Express for the server, better-sqlite3 for storage, EJS templates with plain CSS, htmx for interactivity. No React, no ORM, no Docker. One repo, npm start boots everything.\n\nData model in SQLite: prospects (domain, site name, contact name, email, notes, source, status, created_at), campaigns (name, from_name, daily_send_cap), steps (campaign_id, step_number, delay_days, subject_template, body_template), sends (prospect_id, campaign_id, step_number, gmail_message_id, gmail_thread_id, sent_at, status), replies (prospect_id, thread_id, received_at, snippet).\n\nFeatures, in scope:\n- CSV import of prospects with column mapping and dedupe on normalized domain, so I never pitch the same site twice across any campaign.\n- Campaign builder: name it, define 1 to 4 steps with delay_days and {{first_name}}, {{site_name}}, {{domain}} merge tags. Render a live preview against a chosen prospect.\n- Enroll selected prospects into a campaign. A scheduler (node-cron, every 10 minutes) sends due steps via the Gmail API, respecting daily_send_cap and a random 30 to 180 second jitter between sends.\n- All follow-ups go as replies in the same Gmail thread (In-Reply-To and References headers set correctly).\n- Reply detection: poll the Gmail API for new messages on tracked thread IDs. Any inbound message from someone other than me marks the prospect as replied and halts all remaining steps for them immediately.\n- Bounce handling: detect mailer-daemon messages on tracked threads and mark the prospect bounced.\n- Dashboard: per campaign, counts for enrolled / sent / replied / bounced, plus reply rate. One prospect detail page showing the full send and reply timeline.\n\nOut of scope, do not build: prospecting or SERP scraping, email finding or verification, SEO metrics lookups, open and click tracking pixels, team seats, any analytics.\n\nAuth: Google OAuth desktop flow, token cached to disk in .gitignore. Secrets in .env (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET). Ship a .env.example.\n\nSeed the DB with 10 fake prospects and one 3-step campaign. Add a DRY_RUN=true mode that logs the exact MIME message instead of calling Gmail, and default to it. README: setup in under 10 steps, plus a blunt paragraph on SPF/DKIM/DMARC and why sending 500 cold emails on day one will torch the domain.",
+  "promptCurated": false
+}
