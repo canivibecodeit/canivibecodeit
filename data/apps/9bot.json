@@ -1,0 +1,52 @@
+{
+  "slug": "9bot",
+  "name": "9bot",
+  "domain": "9bot.com.br",
+  "category": "customer-support",
+  "subcategory": "messaging chatbots",
+  "tagline": "Brazilian chatbot platform for messaging channels, aimed at business support and sales conversations.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://9bot.com.br/en",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A chatbot that answers messages on WhatsApp and friends is, mechanically, a webhook plus a state machine plus an LLM call, and an agent will write that in an afternoon. What you cannot write is the boring part: an approved WhatsApp Business number, template message review, a provider relationship with Meta, and something that keeps answering at 3am while you sleep. For one person running one number for one purpose, the Cloud API is open enough that a self-hosted bot is genuinely viable. For a team that needs a shared inbox, human handoff, and someone to call when messages stop delivering, it is not. Details here are thin, so treat the pricing and plan shape as unconfirmed.",
+  "coreLoopDIY": "Runs a webhook server that receives WhatsApp Cloud API messages, walks them through a JSON conversation flow with an LLM fallback, and logs every thread to a local database with a simple read-only inbox view.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Meta developer account with a WhatsApp Business number approved on the Cloud API",
+    "A public HTTPS endpoint for the webhook, so a small VPS or a tunnel",
+    "An LLM API key if you want free-text answers instead of only scripted menus",
+    "Willingness to read Meta's template message rules before sending anything outbound"
+  ],
+  "whatYouLose": [
+    "Shared agent inbox and clean handoff from bot to human",
+    "Uptime that is someone else's problem, including delivery failures and number bans",
+    "Prebuilt connectors to CRMs, order systems, and payment flows",
+    "Analytics, conversation tagging, and reporting that a manager will actually look at",
+    "Local support in Portuguese when Meta changes the rules again"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard dependency is Meta, not the vendor. Whoever holds the approved number and the template library holds the product.",
+  "whyPeopleStillPay": "Because the chat logic was never the expensive part. Businesses pay for a number that stays approved, messages that get delivered, agents who can take over mid-conversation, and a vendor who absorbs the platform policy churn. A one-person bot answering a personal line sidesteps all of that, which is exactly why it is cheap to build and why it does not replace the commercial version for anyone with a support queue.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine as a personal autoresponder, useless the moment two humans need to share the same conversation.",
+  "prompt": "Build a self-hosted WhatsApp chatbot runner for a single business number.\n\nStack, no substitutions:\n- Node 20 with TypeScript\n- Fastify for the HTTP server\n- SQLite via better-sqlite3, file at ./data/bot.db\n- No framework beyond that, no Docker, no cloud services\n\nIn scope:\n1. POST /webhook receives WhatsApp Cloud API message events. GET /webhook handles Meta's hub.challenge verification. Verify the X-Hub-Signature-256 header against APP_SECRET and reject mismatches.\n2. Persist every inbound and outbound message: wa_id, direction, body, timestamp, flow state.\n3. Load a conversation flow from ./flows/main.json. Each node has an id, a prompt text, and either a list of keyword matches mapping to next node ids or a type of \"llm\" or \"end\".\n4. On each inbound message, look up the contact's current node, match the reply, send the next node's text via the Cloud API graph endpoint, and advance state.\n5. For \"llm\" nodes, call the OpenAI chat completions API with the last ten messages of that thread plus a system prompt loaded from ./flows/system.md, and send the reply back.\n6. Human takeover: if a contact sends \"atendente\" or \"human\", set thread status to paused and stop auto-replying until it is unpaused from the CLI.\n7. A read-only inbox at GET / listing threads and messages, server-rendered HTML, no JavaScript build step.\n8. A CLI script npm run pause and npm run resume taking a wa_id.\n\nOut of scope: outbound campaigns, template message management, multi-channel support, multi-user accounts, analytics dashboards, anything resembling billing.\n\nSecrets in .env, read with process.env, never committed: WHATSAPP_TOKEN, PHONE_NUMBER_ID, VERIFY_TOKEN, APP_SECRET, OPENAI_API_KEY.\n\nShip a README with the exact Meta app setup steps, how to point the webhook at a local tunnel for testing, and a sample flows/main.json with three nodes. Include a fake-event script that posts a sample payload to /webhook so the whole loop can be tested without touching Meta. No telemetry.",
+  "promptCurated": false
+}
