@@ -1,0 +1,51 @@
+{
+  "slug": "minimax-h3",
+  "name": "MiniMax H3",
+  "domain": "mini-max-h3.com",
+  "category": "ai-video",
+  "subcategory": "text and image to video generation",
+  "tagline": "Web front end for MiniMax's H3 video model: type a prompt or drop a first frame, get a short 2K clip back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://mini-max-h3.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is a prompt box, an upload field, a queue spinner and a gallery, all of which an agent will hand you before lunch. The thing you are actually paying for is inference on a frontier video model you cannot train, cannot download and cannot run on your machine. Any personal replacement is a thin client holding someone else's API key, which means you have rebuilt the chrome and kept the bill. Third-party portals like this one also tend to be resellers, so the honest DIY move is to skip the middle layer and call the model provider directly from your own tiny UI. Worth noting: you may be trading a known provider relationship for an unknown one, and generated-video terms vary wildly on commercial use.",
+  "coreLoopDIY": "A local web app where you paste a prompt or a first frame, it submits the job to a hosted video model API with your own key, polls until done, and files the resulting mp4 into a browsable local gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted video model with billing enabled",
+    "Node 20 and a browser",
+    "Disk space, video files get large fast",
+    "Patience for multi-minute generation queues"
+  ],
+  "whatYouLose": [
+    "Access to whatever specific model weights and tuning this site exposes, if they differ from the public API",
+    "Prepaid or bundled credit pricing, which can be cheaper than raw API rates at low volume",
+    "Queue priority and retry handling during peak demand",
+    "Prompt presets, aspect ratio and resolution defaults that someone already tested for you",
+    "Hosted storage and shareable links for finished clips"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra"
+  ],
+  "moatNotes": "Nobody is one-shotting a video diffusion model, and nobody is one-shotting the GPU fleet it runs on either.",
+  "whyPeopleStillPay": "Because the interface is not the product. Video generation costs real money per second of output and requires hardware that is not in your apartment, so every so-called competitor in this space is a billing layer plus a form. People pay a portal rather than the upstream API because credits are simpler than cloud billing, because the UI has sane defaults for resolution and duration, and because they want to try the thing tonight, not read docs. That is a convenience fee, not a moat, but convenience fees are a real business.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the front end in an afternoon and will still be renting the same GPUs. The moat is the model weights and the inference fleet behind them, neither of which fits in a repo.",
+  "prompt": "Build a local, single-user web app for generating short videos from a hosted video model API. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Node 20, TypeScript, Express for the server\n- Plain static front end: one index.html, one app.js, no framework, no build step\n- SQLite via better-sqlite3 for the job table\n- Files on disk under ./media\n\nFeatures:\n1. A form with: prompt textarea, optional first-frame image upload, duration select, resolution select, model name field (default read from .env).\n2. POST /api/jobs validates input, submits the generation request to the provider API using MODEL_API_KEY and MODEL_BASE_URL from .env, stores the returned remote job id with status 'queued'.\n3. A background poller (setInterval, 10s) checks every non-terminal job, updates status, and on success downloads the mp4 to ./media/{id}.mp4 plus a poster frame if the API returns one.\n4. GET /api/jobs returns all jobs newest first. The front end polls it every 5s and renders a grid of cards: thumbnail or spinner, prompt text, status, duration, cost field if the API reports one.\n5. Clicking a card opens an HTML5 video player inline. A delete button removes the row and the file.\n6. Re-run button copies a finished job's parameters back into the form.\n\nRequired behavior:\n- Secrets only in .env, ship .env.example with MODEL_API_KEY, MODEL_BASE_URL, MODEL_NAME, PORT.\n- Isolate every provider call in src/provider.ts with submit(), status() and fetchResult() so swapping vendors is one file.\n- Retry failed polls three times with backoff, then mark the job 'failed' and store the raw error text so I can read it.\n- Warn in the UI before submitting if estimated cost is unknown.\n\nOut of scope: user auth, hosting, payments, prompt enhancement, in-browser editing, any attempt to run a model locally.\n\nDeliver a README with setup in under ten lines and npm run dev working on first try.",
+  "promptCurated": false
+}
