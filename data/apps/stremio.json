@@ -1,0 +1,53 @@
+{
+  "slug": "stremio",
+  "name": "Stremio",
+  "domain": "stremio.com",
+  "category": "audio-video",
+  "subcategory": "media center / streaming client",
+  "tagline": "A cross-platform media center that pulls catalogs, metadata and playable streams from community addons into one player.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Stremio Premium",
+    "basis": null,
+    "unit": "flat",
+    "source": "https://stremio.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Core app is free, Premium is the paid tier.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The player part of Stremio is genuinely one-shottable: metadata from TMDB, a search against an indexer you already run, and a torrent-to-HTTP streaming bridge feeding a video tag. What you cannot one-shot is the addon protocol and the several hundred community addons that make Stremio interesting, plus the shipped clients for Android TV, iOS, Fire Stick and the desktop app that handles casting and background caching. A weekend build gets you a decent browser-based watch page on your own machine; it does not get you the thing on the TV in the living room without more work than the label suggests. Also worth saying out loud: most of Stremio's practical value comes from addons whose legality varies by what you point them at, and your DIY clone inherits that exact problem with none of the plausible deniability.",
+  "coreLoopDIY": "A local web app that searches your own indexer for a title, streams the chosen torrent over HTTP while it downloads, and plays it in the browser with TMDB artwork and subtitles.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine that stays on",
+    "A TMDB API key for metadata and artwork",
+    "Your own indexer endpoint, for example a Jackett or Prowlarr instance you already run",
+    "ffmpeg installed for remuxing anything the browser will not play",
+    "Bandwidth and scratch disk for partial downloads"
+  ],
+  "whatYouLose": [
+    "The addon ecosystem: hundreds of community catalogs, subtitle providers and stream resolvers you did not have to write",
+    "Native apps for Android TV, iOS, Fire Stick and Samsung TVs, which is where most people actually watch",
+    "Debrid service integrations and the cached, instant playback they enable",
+    "Cross-device library, watch progress and Trakt sync without you building an account system",
+    "Casting, background caching and a player that survives a codec it has never seen"
+  ],
+  "moatTags": [
+    "network-effects",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The addon protocol is open and documented, which is exactly why the addons all live where the users are. Cloning the client does not clone the catalog.",
+  "whyPeopleStillPay": "People pay Stremio Premium mostly to stop thinking about plumbing: it bundles the storage and caching side so streams start fast, removes friction across devices, and keeps the library in sync between the phone, the desktop and the TV. The free tier already does the hard part, so the paid tier is convenience rather than capability. Self-hosting your own version means you are now the person who gets paged when the indexer dies mid-episode, and that job is worth a few dollars a month to most households.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player is a weekend; the addon directory and the TV apps are the product. Whatever you build will be great on a laptop and useless on a couch.",
+  "prompt": "Build a local, single-user media streaming web app. Personal use, runs on my own machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Node 20 with TypeScript, Express for the API\n- webtorrent as the torrent engine, streaming to HTTP range requests\n- better-sqlite3 for a single local.db (library, watch progress, cached metadata)\n- Plain server-rendered HTML with htmx and a little vanilla JS. No React, no build step beyond tsc.\n- ffmpeg shelled out only when remuxing is needed\n\nSecrets in .env: TMDB_API_KEY, INDEXER_URL, INDEXER_API_KEY. Ship .env.example. Never commit keys.\n\nFeatures in scope:\n1. Search page: query TMDB for movies and TV, show poster, year, overview, and for TV an episode list.\n2. For a selected title or episode, query the configured indexer (Torznab compatible, for example Jackett or Prowlarr) and list results with name, size, seeders, and a parsed quality guess. Sort by seeders.\n3. Clicking a result starts a webtorrent session, picks the largest video file, and exposes GET /stream/:infoHash that honors HTTP Range so the browser video element can seek while downloading.\n4. If the file is not browser-playable (mkv, unsupported audio), remux on the fly with ffmpeg to fragmented mp4 and pipe that instead. Detect with a quick ffprobe.\n5. Subtitles: fetch from OpenSubtitles if OPENSUBTITLES_API_KEY is set, otherwise accept a local .srt upload. Convert srt to vtt and attach as a track.\n6. Watch progress saved every 10 seconds per title, resume prompt on reopen.\n7. A /library page listing everything started, with progress bars and a delete button that removes cached data from disk.\n8. Config page to set the download directory and a max cache size, with LRU eviction.\n\nOut of scope, do not build: user accounts, mobile or TV clients, casting, an addon protocol, transcoding to multiple bitrates, any hosted deployment.\n\nDeliver a README with setup, a legal note that I am responsible for what I point the indexer at, and npm run dev that starts on localhost:7000.",
+  "promptCurated": false
+}
