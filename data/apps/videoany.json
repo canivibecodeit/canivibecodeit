@@ -1,0 +1,52 @@
+{
+  "slug": "videoany",
+  "name": "VideoAny",
+  "domain": "videoany.ai",
+  "category": "ai-video",
+  "subcategory": "AI video generation wrapper",
+  "tagline": "Web app for generating and editing video with AI models, aimed at people who do not want to touch a model API directly.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://videoany.ai/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product surface here is a prompt box, a job queue, and a gallery, and an agent will give you all three in an afternoon. What it cannot give you is the thing doing the actual work: text-to-video and image-to-video models are nobody's weekend project, so your personal version is a front end over somebody else's inference endpoint. That is a real build and often a cheaper one, since you pay provider rates instead of credit-pack markup, but you have swapped a subscription for an API key and a metered bill. The gaps that bite are the unglamorous ones: long-running jobs that fail halfway, aspect ratio and duration quirks per model, and the fact that you now own every retry. Worth it if you generate often enough to care about per-second cost, pointless if you render four clips a month.",
+  "coreLoopDIY": "Local web app that takes a prompt or a reference image, fires it at a hosted video model API, polls the job to completion, and stores the result in a browsable local library with its generation settings.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API key for a hosted video model provider (fal.ai, Replicate, or a direct Veo/Kling key)",
+    "A funded account on that provider, billed per generation",
+    "ffmpeg installed locally for trimming, stitching, and thumbnails",
+    "Disk space, since video files get large fast"
+  ],
+  "whatYouLose": [
+    "Model access as a bundled commodity: you now negotiate with providers, rate limits, and per-second pricing yourself",
+    "Whatever prompt rewriting and parameter tuning the product does behind the scenes to make mediocre prompts produce decent clips",
+    "A hosted render farm, so long jobs die when your laptop sleeps",
+    "Any mobile or share-a-link experience",
+    "Day-one access to new models when they drop; you upgrade your own integrations"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is rented, not owned: this sits on top of the same foundation models you can call, which makes it a distribution and UX business rather than a technology one.",
+  "whyPeopleStillPay": "Because credits are a simpler mental model than an inference bill, and because a tuned interface that hides sampler settings, resolution limits, and model-specific prompt quirks genuinely saves hours of flailing. Most people generating video want a clip, not a pipeline, and will happily pay a markup to never read a provider changelog. The subscription also absorbs failed generations, which is a quiet subsidy you lose the moment you hold the API key yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wrapper is a weekend; the model is a datacenter. Build it if your monthly credit spend already embarrasses you.",
+  "prompt": "Build a local AI video generation studio. No accounts, no cloud, no telemetry, single user on localhost.\n\nStack, non negotiable:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3 for the job and asset tables\n- Local filesystem for video files under ./storage/videos\n- fal.ai as the only model provider, called server side\n- ffmpeg via fluent-ffmpeg for thumbnails and trimming\n\nEnvironment:\n- FAL_KEY in .env.local, never exposed to the client, never committed\n- Ship .env.example and a README with setup and the ffmpeg prerequisite\n\nFeatures that are in scope:\n- A generate page: prompt textarea, optional reference image upload for image-to-video, model picker (hardcode two or three fal video endpoints), duration and aspect ratio selects\n- Submit creates a row in the jobs table with status queued and the full request payload stored as JSON\n- A background poller (a simple setInterval worker started from an API route, or a /api/jobs/tick endpoint hit by the client every 5 seconds) that advances queued jobs to running, polls fal for completion, downloads the finished mp4 to ./storage/videos, and writes status done or failed with the provider error text\n- A library page: grid of generated clips with ffmpeg-made poster frames, hover to play, click for a detail view showing the exact prompt, model, parameters, cost estimate if the provider returns one, and a Regenerate button that reopens the form prefilled\n- Trim action on the detail view: start and end seconds, runs ffmpeg, saves as a new asset linked to the parent\n- Search and filter the library by prompt text and model\n- Delete removes both the DB row and the file\n\nExplicitly out of scope: user auth, sharing links, payment, any model training or hosting, multi user, mobile app.\n\nBe honest in the UI about money: show a running count of generations this month and a note that every generation bills the fal account directly. Handle the common failure modes for real, provider timeouts, moderation rejections, and partial downloads, and surface the raw error instead of a generic toast.",
+  "promptCurated": false
+}
