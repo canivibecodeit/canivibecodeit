@@ -1,0 +1,52 @@
+{
+  "slug": "everflow",
+  "name": "Everflow",
+  "domain": "everflow.com.br",
+  "category": "seo-marketing",
+  "subcategory": "affiliate and partner tracking",
+  "tagline": "Partner and affiliate marketing platform: tracking links, click and conversion attribution, payout reporting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://everflow.com.br/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Partner tracking platforms in this tier usually quote annual contracts rather than publishing a monthly number.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Mechanically, affiliate tracking is a redirect that logs a click, a postback endpoint that logs a conversion, and a join between the two. An agent can produce that in a single session and it will genuinely work for a handful of partners and a few thousand clicks a day. What falls over is everything around it: the partner-facing portal, click fraud and duplicate filtering, cookieless and server-to-server edge cases, currency and payout math, and the dozens of prebuilt integrations with ad platforms and shopping carts. There is also the trust problem: both you and your partners are reading the same numbers, and a homegrown tracker is the thing both sides blame first. Fine for your own funnels, hard to hand to external affiliates you negotiate money with.",
+  "coreLoopDIY": "Generates per-partner tracking links, redirects and logs each click with a click ID, accepts server-side conversion postbacks, and reports clicks, conversions and owed payouts per partner.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A server or VPS with a stable public domain for the redirect endpoint",
+    "Node 20+ and SQLite",
+    "Advertisers or offer pages willing to fire a postback or pixel with your click ID",
+    "A short custom domain if you want links that do not look like spam"
+  ],
+  "whatYouLose": [
+    "A partner-facing portal where affiliates log in, grab links and see their own stats",
+    "Click fraud detection, bot filtering and duplicate conversion dedupe",
+    "Prebuilt integrations and postback templates for ad platforms, carts and networks",
+    "Low-latency global redirects with real uptime guarantees, which matters because every dropped redirect is lost revenue",
+    "A neutral third party both sides accept when the numbers disagree"
+  ],
+  "moatTags": [
+    "integrations",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The attribution logic is commodity. The integration catalog and the fact that your partners already trust the dashboard are not.",
+  "whyPeopleStillPay": "Because the product is not the redirect, it is the arbitration. When an affiliate says they drove 400 conversions and you say 310, somebody has to be the record of truth, and that somebody cannot be a script you wrote. Add the partner portal, the payout workflows, the fraud filtering and the long tail of platform integrations, and paying per month to never argue about tracking starts looking cheap relative to one disputed invoice. Self-hosting makes sense when the partners are all you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for your own campaigns, not for people you owe money to.",
+  "prompt": "Build a self-hosted affiliate click and conversion tracker. Empty folder, no scaffolding tools.\n\nStack, non negotiable: Node 20, Fastify, better-sqlite3, server-rendered HTML with plain templates and a little vanilla JS. No React, no ORM, no cloud services.\n\nData model in SQLite: partners (id, name, token, payout_cents, payout_type flat or percent), offers (id, name, destination_url), clicks (id uuid, partner_id, offer_id, ts, ip_hash, user_agent, referrer, sub1..sub5), conversions (id, click_id, ts, revenue_cents, payout_cents, status pending or approved or rejected, external_id unique).\n\nEndpoints:\n- GET /c/:offerId?pid=PARTNER_TOKEN&sub1=...: insert a click row, generate a click id, set a first party cookie with it, 302 to the offer destination with {clickid} substituted into the URL template. This path must be fast and must never throw; log and redirect anyway on error.\n- GET /postback?clickid=...&amount=...&txid=...&key=SECRET: record a conversion, compute payout from the partner rule, reject duplicate txid, return 200 text.\n- GET /px.gif?clickid=...: same as postback but returns a 1x1 gif, for advertisers that cannot do server to server.\n- GET /admin: password protected via basic auth from .env. Shows partners, offers, clicks, conversions, conversion rate and owed payout per partner, with a date range filter. Lets you create partners and offers and copy their tracking links.\n\nRules: hash IPs with a salt from .env, never store raw IPs. Dedupe conversions on external_id. Reject postbacks with an unknown or expired click id older than a configurable attribution window (default 30 days). All secrets in .env, ship a .env.example.\n\nOut of scope: partner logins, fraud scoring, payment processing, email, multi currency, anything resembling a network marketplace.\n\nDeliver a README with run instructions, a seed script that creates one partner and one offer, and a curl example for a click plus a postback end to end.",
+  "promptCurated": false
+}
