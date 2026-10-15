@@ -1,0 +1,53 @@
+{
+  "slug": "gling-ai",
+  "name": "Gling",
+  "domain": "gling.ai",
+  "category": "audio-video",
+  "subcategory": "silence and filler-word removal for creator video",
+  "tagline": "Uploads your raw podcast or talking-head footage, cuts silences, filler words and bad takes, and hands back an edit or a timeline you can open in your NLE.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.gling.ai/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The expensive-sounding part is the cheap part: silence detection is an ffmpeg filter, and filler words fall out of a local Whisper transcript with word timestamps. An agent can give you a CLI that ingests a file, builds a cut list, renders a rough cut and spits out an EDL or FCPXML in a weekend. What does not fall out for free is the review step: a waveform plus transcript UI where you scrub, unkill a cut, and trust what you are about to export. Bad-take detection, the thing that actually saves hours on a two-hour recording, is a judgment call dressed up as a feature, and your heuristic version will be noticeably dumber. Build it if you record weekly and tolerate a terminal; pay if you need someone else on your team to use it.",
+  "coreLoopDIY": "Transcribe locally with word-level timestamps, compute a cut list from silence and filler-word rules, then render a rough cut and export an EDL/FCPXML for your editor.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg on PATH",
+    "Python 3.11 and faster-whisper (GPU strongly preferred for long files)",
+    "The original media files on local disk",
+    "An NLE that imports FCPXML or CMX3600 EDL if you want to refine the cut",
+    "Disk space for intermediate renders"
+  ],
+  "whatYouLose": [
+    "A real review UI: waveform, transcript scrubbing, click to restore a cut",
+    "Bad-take detection and best-take selection, which is most of the actual time saved",
+    "Clean XML round-trip that survives Premiere, Resolve and Final Cut version quirks",
+    "Multi-track and multicam handling, including per-speaker mic cleanup",
+    "Someone else's GPUs doing a two-hour transcription while you make coffee",
+    "Non-technical collaborators being able to use the thing at all"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the model, it is the export fidelity and the confidence that the cut list is right before you commit to it.",
+  "whyPeopleStillPay": "Because editors do not want a cut list, they want a timeline that opens correctly. Getting FCPXML to behave identically across three NLEs and a decade of versions is unglamorous work that nobody wants to redo, and a half-correct XML export costs you more time than manual editing ever did. Add the review UI and the bad-take pass, and the subscription is competing against your Saturday, which it usually wins.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The cutting is a weekend; the trusting is not. Pay for the review UI and the export fidelity, not the silence detector.",
+  "prompt": "Build a local CLI tool called \"roughcut\" that removes silences and filler words from long-form talking-head or podcast video.\n\nStack, no substitutions: Python 3.11, managed with uv. faster-whisper for transcription. ffmpeg via subprocess for all media work. typer for the CLI. No web server, no accounts, no cloud APIs, no telemetry.\n\nCommands:\n1. roughcut transcribe INPUT: transcribe with faster-whisper (model size via --model, default \"medium\", word_timestamps=True) and write transcript.json next to the input, caching so reruns are free.\n2. roughcut plan INPUT: from the transcript plus ffmpeg silencedetect output, build cuts.json: a list of keep-segments with start, end, and a reason for every removed span.\n3. roughcut render INPUT: render roughcut.mp4 from cuts.json using ffmpeg concat of stream-copied segments where keyframes allow, re-encoding only at boundaries.\n4. roughcut export INPUT --format fcpxml|edl: emit a timeline referencing the ORIGINAL file with the keep-segments as clips, so the cut is editable in an NLE.\n\nPlan rules, all configurable in a roughcut.toml written on first run:\n- Drop silences longer than min_silence (default 0.6s), leaving pad_ms (default 120ms) of room tone on each side.\n- Drop filler words from a configurable list (um, uh, you know, like, I mean) only when surrounded by silence or sentence boundaries, never mid-phrase.\n- Never create a keep-segment shorter than 0.25s; merge instead.\n- Snap all cut points to zero crossings in the audio to avoid clicks.\n\nAlso print a summary: original duration, output duration, time saved, count of cuts by reason.\n\nOut of scope, do not build: bad-take detection, GUI, waveform viewer, multicam, speaker diarization, subtitle burn-in, uploads.\n\nInclude a README with install steps, a sample roughcut.toml, and one worked example on a 60 minute file. Put nothing in .env since nothing needs a secret; if you add one later, document it there.",
+  "promptCurated": false
+}
