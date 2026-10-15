@@ -1,0 +1,51 @@
+{
+  "slug": "memoq",
+  "name": "memoQ",
+  "domain": "memoq.com",
+  "category": "localization",
+  "subcategory": "computer-assisted translation (CAT)",
+  "tagline": "Desktop and server CAT tool with translation memory, termbases, file filters and QA for professional translators.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "translator pro",
+    "basis": "annual per translator license",
+    "unit": "per-seat",
+    "source": "https://www.memoq.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The conceptual core of a CAT tool is not mysterious: split text into segments, store every confirmed pair in a translation memory, fuzzy-match new segments against it, enforce a glossary, write the target back into the original file. An agent can build that in a weekend for plain text, Markdown and simple DOCX, and if you translate your own documents it will genuinely save you time. What it cannot do in one session is the part memoQ actually sells: a filter matrix for InDesign, XLIFF flavors, subtitles, tagged HTML, Excel with embedded formatting, plus tag protection, segmentation rules per language, and 100-plus QA checks that catch the numeral you dropped in segment 412. The other half is social: agencies hand you a package and expect it back as a package, with the TM and term changes intact. If you freelance for clients, your tool choice is their choice, not yours.",
+  "coreLoopDIY": "A local segment-grid editor that imports a document, fuzzy-matches each segment against a SQLite translation memory, flags glossary terms, and exports the translated file plus a TMX.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 locally",
+    "A browser for the editor UI",
+    "Optional machine translation API key if you want pretranslation"
+  ],
+  "whatYouLose": [
+    "File filters for the formats clients actually send: IDML, SDLXLIFF, PO, SRT, tagged HTML, Excel with inline formatting",
+    "Tag handling and tag verification, which is where naive DOCX round-trips quietly destroy formatting",
+    "The QA battery: numbers, terminology consistency, double spaces, length limits, inconsistent translations of the same source",
+    "Server projects, package exchange with agencies, and shared TM/termbase access for teams",
+    "Language-aware segmentation rules, alignment of legacy bilingual documents, and the LiveDocs style corpus features"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The real asset is the filter and tag layer: hundreds of edge cases per file format, each one a support ticket someone already paid for.",
+  "whyPeopleStillPay": "Professional translation is a supply chain, and the file is the contract. Agencies send packages, expect clean returns, and audit QA reports, so a freelancer's tooling has to interoperate with whatever the project manager runs. On top of that, a mature CAT tool has absorbed a decade of format pathologies that nobody wants to rediscover by shipping a client an InDesign file with mangled tags. The translation memory itself is yours and portable via TMX, which is the one genuinely open part of this world, but the machinery around it is tedious and expensive to recreate.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for translating your own stuff, useless for translating other people's stuff on their terms.",
+  "prompt": "Build a local, single-user computer-assisted translation tool called \"tmdesk\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12, FastAPI, uvicorn\n- SQLite via sqlite3 (file: tmdesk.db), no ORM\n- rapidfuzz for fuzzy matching\n- python-docx for DOCX, lxml for XLIFF\n- Frontend: one server-rendered HTML page plus vanilla JS, no build step, no framework\n\nData model:\n- projects(id, name, source_lang, target_lang, created_at)\n- documents(id, project_id, filename, original_path, format)\n- segments(id, document_id, ord, source, target, status) where status is new|draft|confirmed|locked\n- tm_units(id, source_lang, target_lang, source, target, created_at) with an index on source\n- terms(id, source_lang, target_lang, source, target, note, case_sensitive)\n\nImport:\n- Accept .txt, .md, .docx and XLIFF 1.2/2.0 (.xlf, .xliff)\n- Segment plain text and Markdown on sentence boundaries with an abbreviation exception list for en, de, fr, es; keep paragraph breaks as hard segment boundaries\n- For DOCX, one segment per paragraph, store the paragraph index so export can write back in place\n- For XLIFF, read trans-unit/unit source and any existing target\n\nEditor:\n- Two-column segment grid, keyboard first: Ctrl+Enter confirms the segment, writes it to the TM, and jumps to the next unconfirmed one\n- Right panel shows the top 5 TM matches with a percentage from rapidfuzz token_set_ratio, click to insert\n- Term hits in the current source segment are highlighted and listed with their target\n- Simple QA panel per segment: untranslated, empty target, numbers present in source but missing in target, trailing/double whitespace, target longer than 2x source\n- Progress bar: confirmed segments vs total\n\nExport:\n- Target DOCX by writing targets back into the original paragraphs (preserve paragraph styles, do not attempt run-level tag mapping)\n- Target .txt/.md by joining segments\n- XLIFF 2.0 bilingual export for any document\n- TMX 1.4b export of the whole TM, and TMX import that upserts units\n\nOptional pretranslation:\n- If DEEPL_API_KEY is set in .env, add a \"pretranslate empty segments\" button that fills targets with status draft. If the key is absent, hide the button entirely. Never call any network service otherwise.\n\nExplicitly out of scope, do not attempt: InDesign/IDML, Excel, SRT, run-level tag protection, server projects, package exchange, alignment, multi-user access.\n\nDeliver: requirements.txt, app.py, templates/, static/, a seed script that creates a demo project from a sample.md, and a README with run instructions and the keyboard shortcuts. Include pytest tests for segmentation, fuzzy match ranking, and DOCX round-trip.",
+  "promptCurated": false
+}
