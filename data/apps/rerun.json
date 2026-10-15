@@ -1,0 +1,52 @@
+{
+  "slug": "rerun",
+  "name": "Rerun",
+  "domain": "rerun.build",
+  "category": "dev-tools",
+  "subcategory": "build and job reruns",
+  "tagline": "Developer tooling built around re-running work: jobs, builds, and runs that need to happen again with the same inputs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://rerun.build/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Public detail on this one is thin, so treat the verdict as provisional. The generic shape of a rerun tool is not hard: a job definition, a runner that shells out, captured logs, and a button that replays the exact same invocation with the same environment. An agent will scaffold that in a sitting and it will genuinely work for your own scripts on your own machine. The gaps show up where these products earn money: hooking into GitHub Actions, CI providers, cloud build caches, and secrets managers, plus hosted runners that are available when your laptop is not. If the real product is mostly orchestration glue across other people's CI, the DIY version covers your personal jobs and stops at the integration wall.",
+  "coreLoopDIY": "Define jobs in YAML, run them locally, capture logs and exit codes, and replay any past run with the identical command, env, and inputs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 22 and a terminal",
+    "SQLite (bundled via better-sqlite3)",
+    "A machine that stays awake if you want scheduled reruns",
+    "Docker only if you want isolated job environments"
+  ],
+  "whatYouLose": [
+    "Hosted runners: your laptop asleep means nothing reruns",
+    "Prebuilt CI and VCS integrations, including the OAuth and webhook plumbing",
+    "Managed secrets handling and audit trails for who reran what",
+    "A polished log viewer with search, annotations, and shareable run links",
+    "Support and someone else's on-call when the runner wedges"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part is never running a command twice, it is plugging cleanly into every CI and VCS people already use.",
+  "whyPeopleStillPay": "Because rerunning a job is the easy 10 percent and the other 90 percent is credentials, webhooks, provider quirks, and a runner that exists when you are asleep. Teams pay to stop babysitting the glue, and to have a shared surface where everyone can see the run history instead of digging through one person's terminal scrollback. A solo build is great for your own scripts and immediately annoying the moment someone else needs to see the output.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Scoring a product with a sparse public surface, so the verdict leans on the category rather than the specific feature list.",
+  "prompt": "Build a local, self-hosted job runner with first-class reruns. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Node 22 + TypeScript, ESM\n- Fastify for the HTTP server\n- SQLite via better-sqlite3 for all state\n- Server-rendered HTML with plain templates plus htmx for live log polling. No React, no build step for the frontend.\n- Jobs defined in a single jobs.yaml at the repo root, parsed with yaml\n\nBehaviour:\n- jobs.yaml defines named jobs: name, command (string run through a shell), cwd, env map, and an optional cron expression.\n- POST /jobs/:name/run spawns the job with child_process.spawn, streams stdout and stderr into the runs table line by line with timestamps and a stream tag.\n- Every run record stores: job name, resolved command, cwd, the exact env snapshot (with values of keys listed in jobs.yaml secrets masked in the UI), start time, end time, exit code, and the id of the run it was a rerun of, if any.\n- POST /runs/:id/rerun replays that stored invocation verbatim: same command, same cwd, same env snapshot, regardless of whether jobs.yaml has changed since. This is the whole point. Make it exact.\n- Cron jobs are scheduled in-process with node-cron. Missed runs while the process was down are not backfilled; say so in the README.\n- Concurrency: one run per job name at a time, queued in SQLite. Global cap configurable via .env.\n\nUI, four pages, ugly is fine:\n- / lists jobs with last run status and a Run button\n- /jobs/:name shows run history for that job\n- /runs/:id shows merged log output, exit code, and a Rerun button, auto-refreshing while running\n- /runs shows all runs across jobs, filterable by status\n\nConfig:\n- .env for PORT, DATABASE_PATH, MAX_CONCURRENT_RUNS. Ship .env.example. Never commit secrets.\n- Secrets referenced by jobs come from the process environment, not from jobs.yaml values.\n\nExplicitly out of scope, do not build:\n- GitHub or any CI provider integration, webhooks, OAuth\n- Multi-user auth, roles, sharing links\n- Containerised job isolation\n- Notifications of any kind\n\nDeliverables: working server, jobs.yaml with two sample jobs (one that succeeds, one that exits non-zero), npm start, and a README that states the known limits including the sleeping-laptop problem.",
+  "promptCurated": false
+}
