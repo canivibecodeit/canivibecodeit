@@ -1,0 +1,53 @@
+{
+  "slug": "clipin-ai",
+  "name": "Clipin AI",
+  "domain": "clipin.ai",
+  "category": "ai-video",
+  "subcategory": "AI UGC ad generation",
+  "tagline": "Generates UGC-style talking-head product videos from a script or product link, using AI avatars.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://clipin.ai/",
+    "checkedOn": "2026-10-12",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit-based free trial suggests usage pricing.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app is a thin product surface over the expensive part: avatar video generation, lipsync, and voice cloning. None of that runs on a laptop in one sitting, and the open models that come close need a serious GPU, hours of fiddling, and still look like 2023. You can absolutely one-shot the orchestration layer: script writing, shot list, caption burn-in, aspect ratio variants, batch rendering. But the avatar frames have to come from somewhere, and every honest path routes through a paid hosted API, which means you rebuilt the dashboard, not the product. Add that the believable avatars are licensed real humans with signed releases, which is a legal pipeline, not a code problem.",
+  "coreLoopDIY": "A local CLI that writes UGC scripts from a product URL, calls a hosted avatar-video API per scene, then stitches, captions, and exports vertical and square cuts with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and ffmpeg installed locally",
+    "An LLM API key for script generation",
+    "A hosted avatar or lipsync API key, this is the unavoidable dependency",
+    "A TTS API key if the avatar provider does not bundle voices",
+    "Patience for render queues and per-second billing"
+  ],
+  "whatYouLose": [
+    "Avatar likenesses that are actually licensed, so you cannot ship the output as an ad without your own releases",
+    "Lipsync and head-motion quality that survives a 9:16 crop on a phone screen",
+    "A curated avatar roster, accents, and age ranges that someone already cast and tested",
+    "Credit metering, retries, and failed-render handling that someone else already debugged",
+    "Template hooks and pacing that were tuned against real ad performance, not vibes"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "content-rights",
+    "scale-infra"
+  ],
+  "moatNotes": "The frontier here is not the UI, it is the model weights plus a signed-release library of human faces and voices. Both get more expensive to replicate every quarter.",
+  "whyPeopleStillPay": "Because the thing being bought is rendered frames, not software. A personal build gets you the script and the stitching, which is maybe twenty percent of the work and zero percent of the cost, and you still pay per second of video to somebody with GPUs. Then there is the part nobody enjoys thinking about: a product ad featuring a synthetic person needs that person's likeness to be legally usable, and paying a vendor who already handled that is cheaper than handling it yourself. People pay to skip both the GPU bill and the lawyer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline around the video is a weekend; the video is not. The moat is model weights plus a roster of real humans who signed something.",
+  "prompt": "Build a local command-line UGC video pipeline. Node 20 + TypeScript, no web UI, no accounts, no telemetry.\n\nStack, non-negotiable:\n- TypeScript compiled with tsx, run as a CLI\n- ffmpeg and ffprobe invoked as child processes, assume they are on PATH\n- SQLite via better-sqlite3 for a render log\n- All keys from .env, loaded with dotenv, never hardcoded, ship a .env.example\n\nCommands:\n1. `script --url <product-url> --angle <hook-angle> --count 3`\n   Fetch the page, strip to text, send to an LLM (OPENAI_API_KEY) and emit 3 UGC scripts as JSON: hook, body beats, call to action, target duration 20-30s, plus a per-scene breakdown with spoken line and on-screen caption.\n2. `render --script <file.json> --avatar <provider-avatar-id>`\n   For each scene, call the avatar video provider configured in .env (AVATAR_API_BASE, AVATAR_API_KEY) with the spoken line, poll until the clip is ready, cache the mp4 under ./cache keyed by a hash of text + avatar id so reruns cost nothing.\n3. `assemble --script <file.json> --ratio 9x16,1x1`\n   Concatenate scene clips with ffmpeg, burn in captions from the scene breakdown using drawtext with a bold sans font and a dark stroke, normalize audio with loudnorm, export one mp4 per requested ratio into ./out.\n4. `log` prints the render history from SQLite: date, scenes, cached vs billed, estimated cost.\n\nExplicitly out of scope: training or running any video model locally, voice cloning, a browser UI, scheduled posting, anything resembling a license for a human likeness.\n\nBe loud about the dependency. In the README, state plainly that the avatar frames come from a paid third-party API, that this tool only orchestrates them, and that using a generated person in a paid ad is the user's legal problem.\n\nFail clearly: if a key is missing, print which env var and exit 1. If a render fails, keep the partial cache and resume on the next run.\n\nDeliverables: package.json, tsconfig.json, src/ with one file per command, README.md with setup in under ten lines, .env.example. No Docker, no CI.",
+  "promptCurated": false
+}
