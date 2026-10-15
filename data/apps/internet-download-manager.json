@@ -1,0 +1,52 @@
+{
+  "slug": "internet-download-manager",
+  "name": "Internet Download Manager",
+  "domain": "internetdownloadmanager.com",
+  "category": "productivity-utilities",
+  "subcategory": "download manager",
+  "tagline": "Windows download accelerator that splits files into parallel segments, resumes broken transfers, and hooks into browsers to catch every download link.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Lifetime license",
+    "basis": "one-time per user",
+    "unit": "one-time",
+    "source": "https://www.internetdownloadmanager.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The engine is not the hard part: HTTP range requests, a segment scheduler, part files on disk, and a resume table in SQLite is a single-sitting build, and an agent that leans on aria2 or yt-dlp gets there even faster. The hard part is the part people actually bought, which is the browser hook that intercepts every click and hands the URL to the downloader with cookies and referrer intact. That means a per-browser extension plus a native messaging host, signed and installed, and it breaks every time Chrome changes its mind about manifests. Also worth asking whether you need this at all in 2026, since most hosts are fast, most CDNs cap connections per IP, and some actively punish segmenting. Build it if you pull big files off slow or flaky servers, skip it otherwise.",
+  "coreLoopDIY": "A local queue manager that downloads any URL in parallel byte-range segments, resumes after interruption, and retries flaky servers without starting over.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 and a local disk you do not mind filling",
+    "Servers that actually honor HTTP Range and Accept-Ranges",
+    "A browser extension plus native messaging host if you want click interception",
+    "yt-dlp if you want the video-grabbing behavior"
+  ],
+  "whatYouLose": [
+    "Browser integration that silently catches every download, including authenticated and session-cookie links",
+    "The video sniffer that pulls media out of a page you are already watching",
+    "Windows shell polish: tray icon, scheduler, antivirus handoff, file type rules",
+    "Two decades of accumulated workarounds for servers that lie about ranges, redirect mid-transfer, or throttle per connection",
+    "Someone else's problem when a browser update kills the integration"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is boring and real: edge cases with badly behaved servers, plus a browser hook that has survived every extension API purge since 2002.",
+  "whyPeopleStillPay": "It is a one-time payment for software that has worked the same way since Windows XP, and for a certain kind of user that is the entire pitch. People on capped, flaky, or slow connections genuinely notice the difference, and nobody wants to maintain a native messaging host as a hobby. The paid version is also the path of least resistance: install, click once, and every download in the browser routes through it forever. A homegrown queue manager asks you to paste URLs, which is exactly the friction IDM removed.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The downloader is a weekend; the browser hook is the actual product.",
+  "prompt": "Build a local download manager called \"segs\" in an empty folder. Stack: Python 3.12, FastAPI, httpx, SQLite via stdlib sqlite3, and one static HTML page with vanilla JS. No frontend framework, no accounts, no telemetry, no cloud.\n\nCore engine:\n- Given a URL, issue a HEAD (fall back to a Range: bytes=0-0 GET) to learn Content-Length and whether Accept-Ranges is supported.\n- If ranges are supported, split into N segments (default 8, configurable) and download them concurrently with httpx.AsyncClient, each writing to its own .part file in a .segs/ work dir.\n- If ranges are not supported, fall back to a single stream and say so in the UI.\n- Persist every segment's byte offset and bytes-written to SQLite after each flush so a killed process can resume exactly where it stopped.\n- On completion, concatenate parts into the final file, verify total size, delete the work dir.\n- Retry with exponential backoff on 5xx, connection resets, and short reads. Treat a server that returns 200 to a Range request as non-resumable and restart that segment cleanly.\n- Support custom headers per download: Cookie, Referer, User-Agent, read defaults from .env.\n\nUI at http://127.0.0.1:8777:\n- Paste a URL or several, pick a destination dir, press Add.\n- Table of downloads with status, percent, live speed, ETA, segment count. Pause, resume, cancel, remove.\n- Global concurrency limit and per-host connection cap, both editable and stored in SQLite.\n- Server-sent events for progress, polling is fine as a fallback.\n\nAlso ship a tiny CLI: segs add URL, segs ls, segs resume ID.\n\nIn scope: resumable segmented HTTP/HTTPS downloads, queue, speed limiting, basic checksum verify if the user pastes a sha256.\nOut of scope: browser extension, native messaging, torrents, FTP, video sniffing. If a URL looks like a media page, just shell out to yt-dlp if it is on PATH and stream its progress into the same table.\n\nSecrets and defaults in .env, config in SQLite, no network calls except the downloads themselves. Include a README with the resume behavior documented and a note that some CDNs rate-limit or ban multi-connection clients, so default segments to 8 and let the user lower it.",
+  "promptCurated": false
+}
