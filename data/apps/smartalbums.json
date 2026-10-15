@@ -1,0 +1,51 @@
+{
+  "slug": "smartalbums",
+  "name": "SmartAlbums",
+  "domain": "smartalbums.com",
+  "category": "design",
+  "subcategory": "photo album layout for photographers",
+  "tagline": "Desktop album design software that turns a folder of client photos into press-ready wedding album spreads.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.smartalbums.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic, drop photos onto a two-page spread, snap them into a grid, export at print resolution with bleed, is very much a weekend build. An agent can give you a local layout canvas, auto-fill from a folder, spread navigation, and a 300 DPI JPEG or PDF export without much drama. What it will not give you is the part photographers actually pay for: hundreds of hand-tuned layout templates, the auto-design pass that makes defensible choices in seconds, and per-lab size and bleed presets that match what the printer expects. Color management for press output is also a real rabbit hole, and your homemade sRGB JPEGs may come back looking nothing like your screen. Build it if you make one album a year for yourself; do not build it if a bad export costs you a client.",
+  "coreLoopDIY": "A local app that fills photo spreads from a folder using grid templates, lets you nudge and crop each frame, and exports print-resolution spreads as JPEG or PDF.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a browser",
+    "A folder of exported JPEGs or TIFFs",
+    "Target album spread size, DPI and bleed from your lab's spec sheet"
+  ],
+  "whatYouLose": [
+    "The large curated template library and the auto-design pass that picks layouts for you",
+    "Lab-specific size, bleed and gutter presets that are known to print correctly",
+    "Client proofing links and revision round-trips",
+    "Color-managed, soft-proofed output with ICC profiles for press",
+    "Lightroom and Photoshop round-tripping, plus a maintained desktop app on two operating systems"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the canvas, it is the thousand small defaults that make a spread look designed and print correctly on a specific lab's press.",
+  "whyPeopleStillPay": "Album design is billable time, and the people buying this are measuring it in albums per hour, not in features. A tool that auto-designs a 40 page album in a minute and exports files the lab accepts without a reprint pays for itself in one wedding. A personal clone gets you the layout canvas but leaves you doing the design judgment yourself, which is exactly the work you were trying to buy back.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The canvas is easy, the taste is not · budget a test print before you trust your own exporter.",
+  "prompt": "Build a local-only album spread designer called \"Spreads\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Node 20 + Express backend, TypeScript.\n- React + Vite frontend, TypeScript, plain CSS, no component library.\n- sharp for image decoding and print rendering, pdf-lib for PDF assembly, better-sqlite3 for project state.\n- Single command: npm run dev starts API on 3001 and UI on 5173.\n\nCore behavior:\n1. On startup the user picks a local folder path (typed into the UI, validated server side). The API scans it for .jpg/.jpeg/.tif, reads EXIF capture time with sharp metadata, and builds a photo list sorted chronologically with cached 1200px thumbnails in .cache/.\n2. Project settings: spread width and height in inches, DPI (default 300), bleed in inches, gutter in inches. Stored in SQLite.\n3. A spread is an ordered list of frames. Ship 12 hardcoded grid templates per spread (1-up full bleed, 2-up, 3-up variants, 4-up, 5-up, 6-up, asymmetric sets) defined as normalized x/y/w/h rectangles. Auto-fill: walk the photo list in order, assign templates in rotation, respecting portrait vs landscape aspect by preferring templates whose frame aspect is closest.\n4. Editor canvas: one spread at a time, rendered to scale in the browser with HTML canvas or absolutely positioned img elements. Each frame crops its photo with object-fit cover semantics. User can pan the image inside a frame by dragging and zoom with a slider; store offset and scale per frame. User can swap a frame's photo by dragging a thumbnail from a filmstrip, swap the spread's template, reorder spreads, and add or delete spreads.\n5. Export: server-side render each spread at full DPI with sharp (composite each cropped frame onto a white canvas sized width+2*bleed by height+2*bleed), write numbered JPEGs at quality 95 into ./export, and also assemble a single PDF with pdf-lib at the exact trim size with bleed. Draw an optional gutter-safe overlay only in the browser preview, never in the export.\n\nExplicitly out of scope: color management and ICC profiles (document in the README that exports are sRGB and that the user must test print), auto-design beyond the rotation heuristic, client proofing, lab integrations, text and graphic layers, RAW decoding, multi-user anything.\n\nSecrets: none needed. If you add any config, use .env and commit .env.example only.\n\nDeliver a README with the run commands, the data model, a note that all file access is local, and a loud warning that a test print is required before trusting any export.",
+  "promptCurated": false
+}
