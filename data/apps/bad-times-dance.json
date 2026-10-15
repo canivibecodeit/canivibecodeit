@@ -1,0 +1,52 @@
+{
+  "slug": "bad-times-dance",
+  "name": "Bad Times Dance",
+  "domain": "badtimesdance.net",
+  "category": "ai-video",
+  "subcategory": "photo to dance video",
+  "tagline": "Uploads a single photo and returns a short AI-generated dance clip of that person.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://badtimesdance.net/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Apps in this niche usually sell credit packs rather than seats.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is a form, a job queue, and a progress spinner wrapped around an image-to-video model with a fixed dance motion reference. An agent can rebuild that shell in an afternoon, and if you are willing to pay a model host per clip you get essentially the same output. The gap is the model itself: doing this locally means a character animation pipeline on a serious GPU, plus the unglamorous work of making a stranger's face survive five seconds of hip movement without melting. Also unglamorous: the curated motion reference and the audio sync that makes the meme land, which is product taste, not code. Call it a weekend if you rent the model, longer if you insist on running your own weights.",
+  "coreLoopDIY": "A local web page that takes a photo, sends it plus a stored dance motion reference to an image-to-video endpoint, polls the job, and hands back a five second MP4 with the track mixed in.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted video model (fal, Replicate, or similar) or a 24GB+ GPU for open-weight character animation",
+    "ffmpeg on the machine",
+    "A dance motion reference clip you actually have the right to use",
+    "Patience with queue times and reroll costs"
+  ],
+  "whatYouLose": [
+    "Someone else eating the GPU bill and the failed generations",
+    "A motion reference and music bed that were picked because they are funny, not because they were the first thing on disk",
+    "Face and identity consistency tuning that stops the output looking like a stranger wearing your head",
+    "Phone-friendly upload, share sheet, and a result you can post without re-encoding",
+    "Any guardrails around uploading photos of people who did not consent"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The moat is rented, not owned: whoever runs it is also one API call away from the same model you are. The durable part is knowing which five seconds of motion is the joke.",
+  "whyPeopleStillPay": "Because the whole appeal is friction-free: you are on your phone, you are mildly amused, you upload one photo and get something postable in under a minute. Nobody in that mood is installing ffmpeg or provisioning a GPU. Paying a few dollars for a credit pack is correctly priced against the twenty minutes of setup plus per-clip inference you would pay anyway, and the hosted version has already burned through the reroll attempts to figure out which settings do not produce body horror.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The app is a spinner with good taste in motion references. The code is the easy half.",
+  "prompt": "Build a local, single-user web tool called \"dancegen\" that turns one uploaded photo into a five second dance video.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Jinja2 templates, vanilla JS. No React, no build step.\n- SQLite via sqlite3 stdlib for a jobs table. No ORM.\n- ffmpeg invoked via subprocess for trimming, audio mux, and final encode.\n- Video generation via the fal.ai HTTP API using an image-to-video or character-animation model that accepts a driving motion reference. Read FAL_KEY from .env with python-dotenv. Do not hardcode secrets.\n\nFlow:\n1. GET / renders an upload form: one image file input, a dropdown of motion presets read from ./motions/*.mp4, and a submit button.\n2. POST /jobs saves the image to ./uploads/, inserts a job row with status queued, and kicks off a background task.\n3. The background task uploads the image and the chosen motion clip to the model endpoint, polls until done, downloads the result to ./outputs/, then runs ffmpeg to trim to exactly 5.0 seconds, scale to 720x1280, mux ./audio/track.mp3 if present, and write final.mp4.\n4. GET /jobs/{id} returns JSON status. The result page polls it every 3 seconds and swaps in a video tag when status is done.\n5. Failures store the provider error text and show it verbatim. No silent retries.\n\nIn scope: upload, preset selection, one job at a time, a /gallery page listing past outputs with delete buttons.\nOut of scope: accounts, payments, telemetry, cloud storage, queues beyond a single in-process worker, mobile app, model training.\n\nShip ./motions/.gitkeep and ./audio/.gitkeep plus a README that states plainly: you must supply your own motion reference clips and audio, each generation costs real money, and the output quality is the model's fault, not the app's. Include a make run target and a .env.example.",
+  "promptCurated": false
+}
