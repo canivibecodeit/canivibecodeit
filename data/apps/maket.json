@@ -1,0 +1,51 @@
+{
+  "slug": "maket",
+  "name": "Maket",
+  "domain": "maket.ai",
+  "category": "design",
+  "subcategory": "generative architecture and floor plans",
+  "tagline": "Generative design tool that produces residential floor plans, 3D views and zoning feasibility checks from a room program and a site.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.maket.ai/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The layout generator is the part that looks hard and is actually the easy part: rectangle packing with adjacency constraints and simulated annealing is a known problem with published approaches. The part that makes Maket worth paying for is the regulatory layer, parcel and zoning data per municipality, setbacks, lot coverage, FAR, allowed unit counts, plus outputs that a drafter or a permit reviewer will accept. An agent can give you a plausible bubble diagram in an afternoon; it cannot give you the answer to whether your county lets you put a second dwelling in the back yard. There is also the quiet problem that a floor plan which looks fine in SVG can be structurally or code-illegally wrong in ways you will only discover at plan review. Build the toy for exploring ideas, do not expect it to replace the thing you were going to hand to a designer.",
+  "coreLoopDIY": "A local script that takes a site boundary and a list of rooms with sizes and adjacency preferences, then anneals its way to a non-overlapping floor plan rendered as SVG.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "Willingness to hand-write a room program and site polygon as JSON",
+    "Any browser to view the SVG output"
+  ],
+  "whatYouLose": [
+    "Zoning and building code data for your actual jurisdiction, which is the thing you were really buying",
+    "3D massing and interior renders",
+    "Exports anyone downstream accepts: DXF, DWG, IFC, PDF sheet sets",
+    "Material and cost estimation",
+    "Plans that have been sanity checked against how buildings are actually framed and circulated"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "Aggregating and normalizing zoning ordinances across thousands of municipalities is grinding, expensive data work, and it decays every time a council votes.",
+  "whyPeopleStillPay": "Because the output has to survive contact with a permit office. Anyone exploring a renovation or an infill build is not short of ideas, they are short of confidence that the idea is legal and buildable on their specific parcel, and that confidence comes from codified local rules plus file formats that architects and engineers can open. A self-built generator gives you pretty options with no authority behind them, which is the one thing the paid tool is selling.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A layout annealer is a weekend project; a zoning database is not. The moat is normalized municipal code data plus output formats the rest of the building industry will actually accept.",
+  "prompt": "Build a local, offline generative floor plan explorer. No accounts, no cloud, no telemetry.\n\nStack: Python 3.11, standard library plus numpy only. Single CLI entry point `plan.py`. No web framework, no database.\n\nInput: a JSON file `program.json` with:\n- `site`: a rectangle in meters {width, height} (rectangles only, no arbitrary polygons)\n- `rooms`: list of {name, min_area, aspect_min, aspect_max, needs_exterior_wall: bool}\n- `adjacency`: list of [room_a, room_b, weight] where positive weight means should be adjacent\n- `corridor_width`: float\n\nAlgorithm: treat each room as an axis-aligned rectangle. Initialize with a slicing-tree layout so there are no overlaps by construction. Then run simulated annealing over tree mutations (swap leaves, flip cut direction, shift cut ratio). Cost function sums: area shortfall penalty, aspect ratio violation, unmet adjacency weight measured by shared wall length, exterior-wall requirement violations, and unused site area.\n\nOutput: for each of the top N solutions, write `out/plan_01.svg` with rooms drawn as labeled rectangles including dimensions in meters, plus `out/report.txt` listing per-room achieved area and which constraints were violated. Also write `out/program_echo.json` so results are reproducible. Accept `--seed`, `--iterations`, `--top 5`.\n\nShip a `program.json` example for a small 3 bedroom single storey house and a README with one command to run it.\n\nExplicitly out of scope, say so in the README: zoning or building code checking, setbacks, FAR, 3D, stairs, multi storey, structural framing, door and window placement, DXF or IFC export, cost estimation. State plainly that output is a massing study, not a permittable drawing.",
+  "promptCurated": false
+}
