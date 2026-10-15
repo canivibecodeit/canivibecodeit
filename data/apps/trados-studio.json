@@ -1,0 +1,52 @@
+{
+  "slug": "trados-studio",
+  "name": "Trados Studio",
+  "domain": "trados.com",
+  "category": "localization",
+  "subcategory": "computer-assisted translation (CAT)",
+  "tagline": "Desktop CAT tool: segment source files, translate against a translation memory and termbase, run QA, export back to the original format.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Studio Freelance",
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.trados.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Trados sells perpetual licences and subscriptions; tiers differ sharply between freelance and enterprise.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The actual translation loop is not mysterious: split text into segments, look up fuzzy matches in a translation memory, show the translator a bilingual grid, save confirmed pairs back. An agent can build that over a weekend with SQLite, a decent fuzzy matcher and TMX import/export, and for someone translating plain text, markdown or XLIFF it will genuinely work. What it cannot do in one sitting is the thing Trados actually sells: dozens of file filters that pull translatable strings out of InDesign, FrameMaker, PowerPoint, SDL packages and tagged HTML and then put them back with formatting intact. The other half is social, not technical: agencies send .sdlppx packages and expect .sdlrpx back, so a homegrown tool makes you the person who breaks the handoff. Build it if you are your own client. Do not build it if someone else pays your invoices.",
+  "coreLoopDIY": "A local bilingual editor that segments a document, proposes fuzzy and exact matches from a SQLite translation memory plus termbase hits, and writes confirmed translations back out to the source format and to TMX.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a local machine you can leave running",
+    "Existing TMX files if you want your old translation memory to carry over",
+    "Optional machine translation API key in .env if you want MT suggestions",
+    "Willingness to restrict yourself to text, markdown, docx and XLIFF inputs"
+  ],
+  "whatYouLose": [
+    "File filters for 60+ formats with tag and layout round-trip; your build handles four formats and will mangle a tagged InDesign export",
+    "Package interop: no .sdlxliff, .sdlppx or .sdlrpx, so agency workflows and client review cycles break",
+    "MultiTerm termbases, cloud TM sharing, Perfect Match, AutoSuggest and the rest of the leverage features",
+    "A serious QA engine: configurable regex checks, segment-level verification profiles, length limits for UI strings",
+    "Someone to blame and a support contract when a 400-file project corrupts on export the night before delivery"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "brand-trust"
+  ],
+  "moatNotes": "The format filters are the product. Fifteen years of handling every weird tag in every DTP export is not something you reproduce over a weekend, and the fact that clients request Trados deliverables by name turns a technical moat into a contractual one.",
+  "whyPeopleStillPay": "Professional translators do not buy Trados because the editor grid is delightful, they buy it because the work arrives as a Trados package and has to leave as one. The TM and termbase are portable in theory, via TMX and TBX, but the project structure, the filters and the client's expectations are not. On top of that, a week of lost billable hours costs more than the licence, so nobody experiments with their production toolchain. A self-built CAT tool is viable exactly for the translator who owns the whole pipeline: literary work, personal projects, one direct client who only sends docx.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The translation memory is a weekend; the file filters are a decade.",
+  "prompt": "Build a local, single-user computer-assisted translation (CAT) tool. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), rapidfuzz for fuzzy matching.\n- Frontend: server-rendered Jinja2 templates plus vanilla JS. No React, no build step.\n- Run with: uvicorn app:app --reload, data in ./data/cat.db, config in .env.\n\nIn scope:\n1. Project model: a project has a name, source language, target language, and one or more imported files.\n2. Importers for exactly four formats: .txt, .md, .docx (python-docx, paragraph level), and XLIFF 1.2/2.0 (lxml, trans-unit / unit level). Nothing else. Reject other extensions with a clear message.\n3. Segmentation: split source text into sentence segments with a simple rule-based splitter (period, question mark, exclamation, plus abbreviation exceptions from a small hardcoded list). Store segment order, source text, target text, and status (new, draft, confirmed, locked).\n4. Translation memory: table of (source_lang, target_lang, source_text, target_text, created_at, origin). On opening a segment, show the top 5 matches with a similarity score using rapidfuzz token_set_ratio on normalised text. Mark 100% matches as exact. Clicking a match inserts it into the target field.\n5. Termbase: import a two-column CSV of source term / target term. Highlight matched terms in the source segment and list suggested target terms in a side panel.\n6. Editor UI: a two-column bilingual grid, keyboard-first. Enter confirms the segment and advances, Ctrl+Enter confirms without advancing, arrow keys move between segments. Show progress as confirmed / total.\n7. On confirm, write the pair into the TM immediately.\n8. QA checks, run on demand over a file: empty target, target identical to source, number mismatch between source and target, inconsistent translations of the same source string, double spaces. Output a list of flagged segments linking into the editor.\n9. Export: write the translated text back to the original format, preserving docx paragraph structure and XLIFF unit ids. Also export the project TM as valid TMX 1.4b, and import TMX 1.4b into the TM.\n10. Optional machine translation: if MT_API_KEY and MT_ENDPOINT exist in .env, add a 'suggest' button per segment that calls it and labels the result as MT. If absent, hide the button entirely. Never call out by default.\n\nOut of scope, do not attempt: .sdlxliff or Trados packages, InDesign/FrameMaker/PDF filters, tag-level inline formatting beyond what docx paragraphs give you, multi-user collaboration, real-time sync, authentication.\n\nDeliverables: app.py, importers/, exporters/, templates/, static/, schema.sql, .env.example, and a README with install steps, keyboard shortcuts, and an explicit 'known limitations' section listing the formats it will destroy.",
+  "promptCurated": false
+}
