@@ -1,0 +1,51 @@
+{
+  "slug": "fylo-host",
+  "name": "Fylo.Host",
+  "domain": "fylo.host",
+  "category": "cloud-storage",
+  "subcategory": "file hosting and share links",
+  "tagline": "Hosted file storage with shareable download links.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://fylo.host/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software half of a file host is genuinely a one-sitting build: presigned uploads to object storage, a metadata table, share links with expiry and optional passwords. The part you cannot code away is the bill and the babysitting, since egress is the actual product being sold here and someone has to eat it. A self-hosted version on Backblaze B2 or R2 plus a small VPS gets you to feature parity for personal use quickly, and it will be cheaper right up until you share something popular. What you give up is durability you did not have to think about, a CDN edge near your recipients, and native mobile clients. Public pricing and feature details for this specific service are thin, so treat the comparison as directional rather than line by line.",
+  "coreLoopDIY": "Drag files into a private web app, get permanent or expiring share links backed by your own S3-compatible bucket.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An S3-compatible bucket (Cloudflare R2, Backblaze B2, or local MinIO)",
+    "A domain and somewhere to run a small Node process",
+    "Willingness to watch your egress bill"
+  ],
+  "whatYouLose": [
+    "Someone else absorbing bandwidth spikes when a link goes wide",
+    "CDN edges, so downloads are as fast as your single region and no faster",
+    "Abuse, malware scanning and takedown handling, which becomes your problem the moment you share a link publicly",
+    "Native mobile and desktop sync clients",
+    "Backups and durability guarantees you did not have to configure"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "brand-trust",
+    "execution-polish"
+  ],
+  "moatNotes": "Storage is commodity, egress is not. The pricing page of any file host is really a bandwidth futures contract.",
+  "whyPeopleStillPay": "Because the failure modes of a homemade file host are boring and expensive: a link that goes viral, a bucket misconfigured to public, a VPS that runs out of disk during an upload, a recipient in another continent waiting on a 2GB download from your single region. Paying a host means the surprise traffic is their line item and the uptime is their pager. For a handful of personal transfers a DIY build is fine and arguably nicer, but the moment other people depend on your links, the money buys you the right to stop thinking about it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The code is a weekend of pleasant work; the egress line item is forever.",
+  "prompt": "Build a single-user self-hosted file host called \"Drop\" in an empty folder.\n\nStack, no substitutions: Next.js 15 (App Router, TypeScript), Tailwind for styling, SQLite via better-sqlite3 for metadata, and the AWS SDK v3 S3 client for storage. No ORM, write plain SQL. No auth provider: a single admin password from .env checked into an httpOnly signed cookie session.\n\nIn scope:\n- Login page that accepts ADMIN_PASSWORD from .env and sets a signed session cookie.\n- Admin dashboard listing all uploaded files: name, size, content type, upload date, download count, link status.\n- Drag and drop multi-file uploader that requests a presigned PUT URL from the server, uploads directly to S3, then confirms to the server which writes the metadata row. Show per-file progress.\n- Share links at /d/[token] where token is a 12 char nanoid. The page shows filename, size, a download button, and nothing else. Download goes through a server route that issues a short-lived presigned GET and redirects, then increments the download count.\n- Per-link options set at upload time or edited later: expiry date, max downloads, optional password (bcrypt hashed, prompted on the share page), and a revoke toggle.\n- Expired, revoked or exhausted links return a plain 410 page.\n- A delete action that removes the S3 object and the row.\n- Storage config from .env: S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_FORCE_PATH_STYLE. Include a docker-compose.yml with MinIO for local dev and a seed script that creates the bucket.\n\nOut of scope, do not build: multi-user accounts, folders, previews or thumbnails, virus scanning, email notifications, billing, analytics beyond the download counter, telemetry of any kind.\n\nHard requirements: file bytes never pass through the Next.js server, only presigned URLs. Enforce a MAX_UPLOAD_BYTES limit from .env server side when signing. Ship .env.example, a README with local MinIO and production R2/B2 setup steps, and a one line warning in the README that public links mean public egress bills.\n\nWhen done, print the login URL and the admin password source.",
+  "promptCurated": false
+}
