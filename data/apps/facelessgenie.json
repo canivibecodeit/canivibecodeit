@@ -1,0 +1,51 @@
+{
+  "slug": "facelessgenie",
+  "name": "Facelessgenie",
+  "domain": "facelessgenie.ai",
+  "category": "ai-video",
+  "subcategory": "faceless short-form video generation",
+  "tagline": "Generates faceless short-form videos: AI script, voiceover, stock or generated visuals, burned-in captions, ready to post.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.facelessgenie.ai/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is one of the most documented things in open source: LLM writes a script, TTS reads it, ffmpeg stacks b-roll and burns word-level captions, done. An agent can absolutely produce a working local version in a sitting, and the output will be recognizably the same genre of video. What you will not get in one session is the boring half: templated caption styles that actually look good, sane b-roll matching instead of random clips, and scheduled auto-posting to TikTok, YouTube Shorts and Reels, which means OAuth apps, review queues and platform policy pain. You also pay per generation either way, so the savings are on the wrapper, not the models. Build it if you want control over the template and the prompt; keep paying if the value to you is pressing a button and having it land on three accounts overnight.",
+  "coreLoopDIY": "A local CLI that turns a topic into a vertical MP4: LLM script, TTS voiceover, stock b-roll cut to the audio, word-level burned captions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "OpenAI API key (script + TTS) or ElevenLabs key for better voices",
+    "Pexels or Pixabay API key for stock footage",
+    "enough disk and CPU patience for rendering, or a GPU if you swap in generated visuals"
+  ],
+  "whatYouLose": [
+    "Auto-posting and scheduling to TikTok, YouTube Shorts and Instagram: each is its own OAuth app and approval slog",
+    "Caption and template presets that already look like the trending style, instead of your first attempt at drawshtext",
+    "Decent automatic b-roll matching, which is a search and ranking problem, not a prompt",
+    "A hosted render queue: long videos on your laptop are slow and interrupt everything else",
+    "Voice cloning and library management, if the paid tier offers it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is template taste plus the posting integrations, not the video assembly. Everyone assembles video the same way.",
+  "whyPeopleStillPay": "Because the point of a faceless content operation is volume, and volume dies the moment a human has to babysit a render or paste a file into three apps. A paid tool absorbs the two ugliest parts: presets that look like what currently performs, and credentialed pipes into the platforms. A local script gets you one good video and a lot of fiddling with font sizing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The render is a weekend; the posting integrations are the actual product.",
+  "prompt": "Build a local CLI tool that generates faceless vertical short-form videos from a topic string. No web UI, no accounts, no telemetry, no cloud storage.\n\nStack: TypeScript on Node 20, run with tsx. ffmpeg and ffprobe invoked as child processes (assume they are on PATH, fail loudly with install instructions if not). Zero database: everything lands in ./out/{slug}/.\n\nSecrets in .env, loaded with dotenv: OPENAI_API_KEY, PEXELS_API_KEY. Ship .env.example. Never log keys.\n\nCommand: npm start -- \"topic here\" --duration 40 --voice onyx\n\nPipeline, in order, each step writing an artifact to the run folder so it can be resumed:\n1. Script: call the OpenAI chat API for a hook-first narration script targeting the requested duration at roughly 150 words per minute. Save script.json with the full text plus 4 to 8 visual search keywords, one per beat.\n2. Voiceover: OpenAI TTS to voice.mp3, then ffprobe the real duration.\n3. Captions: transcribe voice.mp3 with the Whisper API requesting word-level timestamps, save words.json. Do not guess timings from the script.\n4. B-roll: for each beat keyword, query the Pexels video API for vertical clips, download the highest resolution under 1080x1920, cache to ./cache/ by ID so reruns are free.\n5. Assemble: ffmpeg concat the clips, scale and crop each to 1080x1920, trim the timeline to the exact voiceover length, mux the voiceover as the only audio track.\n6. Captions burn-in: generate an ASS subtitle file from words.json with a 2 to 4 word rolling group, bold sans font, white fill, thick black outline, centered at 65 percent height, then burn it with the ffmpeg subtitles filter.\n7. Write out/{slug}/final.mp4 and print the path.\n\nExplicitly out of scope: posting or scheduling to any platform, voice cloning, image generation, multi-user anything, a job queue.\n\nInclude a README with a real run example, the ffmpeg version assumption, and a rough per-video API cost estimate. Add one npm script that runs the whole pipeline on a fixed sample topic so the build is verifiable without arguments.",
+  "promptCurated": false
+}
