@@ -1,0 +1,51 @@
+{
+  "slug": "tidely",
+  "name": "Tidely",
+  "domain": "tidely.com",
+  "category": "finance-accounting",
+  "subcategory": "liquidity planning and cash flow forecasting",
+  "tagline": "Cash flow and liquidity forecasting for small businesses, fed by bank account and accounting integrations.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.tidely.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The math Tidely does is not hard: take balances, add expected inflows and outflows, project forward, draw a line that dips below zero somewhere. An agent can build that as a local app in an afternoon and it will be genuinely useful if you are willing to feed it CSV exports. What you cannot one-shot is the plumbing: licensed open banking access to hundreds of banks, refreshed daily, plus accounting connectors that pull actual open invoices and due dates instead of your guesses. Without live feeds your forecast is only as fresh as the last time you remembered to export. For a solo operator or one company with two accounts, that tradeoff is fine; for a finance team that treats the forecast as a shared source of truth, it is not.",
+  "coreLoopDIY": "Import bank transaction CSVs, define recurring and one-off expected cash movements, and render a daily projected balance curve with scenarios and a low-cash warning date.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "CSV or CAMT exports from your bank(s)",
+    "a list of recurring inflows and outflows you actually know",
+    "Node 20 and a browser, everything runs locally"
+  ],
+  "whatYouLose": [
+    "Automatic daily bank feeds via licensed open banking, so your data is only as current as your last export",
+    "Accounting integrations (DATEV, lexoffice, sevDesk and friends) that pull real open invoices with real due dates",
+    "Automatic categorisation and pattern detection on your transaction history",
+    "Multi-user access, comments and a shared forecast that a bank or investor will look at",
+    "Someone else maintaining the connectors when a bank changes its API"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The forecast is the demo. The bank and accounting connectors, and the regulatory permission to have them, are the product.",
+  "whyPeopleStillPay": "Because the value is not the projection, it is not having to think about where the numbers came from. A finance person wants to open a tab and see today's real balances across every account, with real open invoices already in the timeline, without a monthly ritual of downloading exports and reconciling them by hand. That reliability is also what makes the number shareable with a bank or a board. A local build gives you the model but hands the data entry back to you, and data entry is exactly what people are paying to stop doing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Perfectly reasonable weekend build if you are one person with two bank accounts and a tolerance for CSV exports. The moment invoices and colleagues enter the picture, the subscription starts looking cheap.",
+  "prompt": "Build a local liquidity planning app called Runway. No accounts, no cloud, no telemetry, single user, runs on my machine.\n\nStack, no substitutions: Next.js 15 App Router with TypeScript, Tailwind, SQLite via better-sqlite3, Recharts for charts, Zod for validation. Server actions for all writes. No auth, no external APIs.\n\nData model:\n- accounts: name, currency, current balance, balance_as_of date\n- transactions: account_id, date, amount (signed), counterparty, description, category, source ('import' or 'manual')\n- planned_items: label, amount (signed), category, start date, recurrence ('once' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'), end date nullable, confidence ('confirmed' | 'likely' | 'maybe'), account_id\n- scenarios: name, plus a join table of planned_item overrides (multiplier and date shift) so I can model 'best case' and 'the big client pays late'\n\nFeatures:\n1. CSV import page. Let me upload a bank CSV, map columns to date/amount/counterparty/description in the UI, preview rows, and commit. Handle both comma and semicolon delimiters, dot and comma decimals, and dedupe on (account, date, amount, counterparty).\n2. Rule based categorisation: regex or substring rules on counterparty text that assign a category, applied on import and re-runnable over history.\n3. Recurring detection: flag counterparties that appear at a similar amount in 3 or more consecutive months and offer to turn them into planned_items with one click.\n4. Forecast engine: given today's balances plus planned items expanded over a horizon (30 / 90 / 180 / 365 days), compute a daily projected balance. Weight 'likely' at 0.75 and 'maybe' at 0.4 in a toggleable weighted mode.\n5. Dashboard: total liquidity today, projected balance curve per scenario overlaid, the first date the curve crosses below a configurable minimum buffer shown loud and in plain language, and a table of the next 30 days of expected movements.\n6. Export the forecast as CSV.\n\nSeed the database with two example accounts and a dozen planned items so the dashboard is not empty on first run.\n\nOut of scope, do not build: bank API connections, open banking, invoice or accounting integrations, multi user, multi currency conversion, mobile app, PDF reports.\n\nAny config goes in .env, do not hardcode paths. Write a README with setup, how to import a CSV, and a blunt note that the forecast is only as current as the last import.",
+  "promptCurated": false
+}
