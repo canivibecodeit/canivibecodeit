@@ -1,0 +1,51 @@
+{
+  "slug": "promptwatch",
+  "name": "Promptwatch",
+  "domain": "promptwatch.com",
+  "category": "monitoring",
+  "subcategory": "LLM prompt and answer monitoring",
+  "tagline": "Runs a set of prompts against LLMs on a schedule and tracks how the answers change over time.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://promptwatch.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is unglamorous: keep a list of prompts, fire them at model APIs on a cadence, store every response, diff against the last run, shout when something moves. That is a genuine one-sitting build with SQLite, a cron job and two API keys. The gap is that answers from an API are not the same thing as answers a real person sees in a consumer chat product with search, memory and personalization in the loop, and closing that gap means scraping surfaces that actively resist scraping. You also lose the longitudinal baseline: a monitoring tool is only useful once it has months of history, and yours starts empty today. Build it if you want to watch your own prompts drift; buy it if the point is comparing yourself to competitors on a panel you did not have to assemble.",
+  "coreLoopDIY": "Stores a list of prompts, runs them against one or more model APIs on a schedule, saves every response, and diffs each run against the previous one with a summary of what changed.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API keys for whichever models you want to watch, and a budget for tokens",
+    "A machine or small VPS that can run a scheduled job",
+    "An SMTP or email API key if you want alerts instead of a dashboard you remember to open"
+  ],
+  "whatYouLose": [
+    "Data from actual consumer surfaces (chat products with live search, memory, personalization) rather than raw API calls",
+    "Competitor and category benchmarks you did not have to instrument yourself",
+    "Months of accumulated history on day one, which is the only thing that makes trend lines mean anything",
+    "Semantic change detection that is smarter than a text diff plus a judge model you wrote in ten minutes",
+    "Someone else absorbing model deprecations, rate limits and format changes"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The asset is the time series and the panel of prompts across many customers, not the polling code.",
+  "whyPeopleStillPay": "Monitoring products sell accumulated time, not features. Anyone can poll an endpoint; almost nobody wants to be the person who notices in month four that the cron died in month two, or who has to explain why the baseline resets every time a model is retired. Paying also buys the comparative view: how your answers stack up against everyone else being tracked, which is data you structurally cannot generate alone. If you only care about your own prompts and your own drift, none of that is worth a subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Polling is trivial, patience is not, and a monitoring tool with two weeks of history tells you nothing.",
+  "prompt": "Build a local prompt monitoring tool. Stack: TypeScript on Node 22, SQLite via better-sqlite3, no ORM, no framework beyond Hono for a tiny local dashboard. Single repo, npm scripts only, no Docker.\n\nData model in SQLite:\n- prompts: id, text, label, models (comma separated), schedule_cron, active\n- runs: id, prompt_id, model, started_at, response_text, tokens_in, tokens_out, cost_usd, error\n- changes: id, prompt_id, model, run_id, prev_run_id, similarity, verdict, summary\n\nRunner: a `npm run poll` command that finds every active prompt due to run, calls the configured providers (OpenAI and Anthropic, plain fetch against their HTTP APIs, no SDKs), and writes one row per prompt per model per run. Temperature 0. Retry twice on 429 or 5xx with backoff, then record the error row and move on. Never let one failing provider abort the batch.\n\nDiffing: after each run, compare to the previous successful run for that same prompt and model. Compute a cheap similarity score (token set Jaccard plus normalized Levenshtein on the first 2000 chars). If similarity falls below a configurable threshold, make one extra model call that classifies the change as cosmetic, substantive or contradictory and writes a one sentence summary into `changes`.\n\nAlerts: on any substantive or contradictory change, send one email via Resend if RESEND_API_KEY is set, otherwise append to alerts.log. Batch all alerts from a run into a single message.\n\nDashboard on localhost:8787: a prompt list with sparkline-free plain tables, a prompt detail page showing every run in reverse order with the diff highlighted, a page of recent changes, and a running cost total. Server rendered HTML, no client framework, no build step for the frontend.\n\nScheduling: a `npm run watch` command using node-cron that calls the same poll code in process. Also print the exact crontab line to use instead if the user prefers system cron.\n\nSecrets in .env: OPENAI_API_KEY, ANTHROPIC_API_KEY, RESEND_API_KEY, ALERT_EMAIL. Commit a .env.example. No accounts, no auth, no telemetry, binds to 127.0.0.1 only.\n\nOut of scope: scraping consumer chat interfaces, browser automation, competitor benchmarking, multi user support, hosted deployment.\n\nSeed the database with three example prompts and include a README with setup, cost warnings and how to add a provider.",
+  "promptCurated": false
+}
