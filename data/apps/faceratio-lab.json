@@ -1,0 +1,50 @@
+{
+  "slug": "faceratio-lab",
+  "name": "FaceRatio Lab",
+  "domain": "faceratiolab.com",
+  "category": "ai-image",
+  "subcategory": "face measurement and styling",
+  "tagline": "Browser-based face shape, symmetry and proportion analysis from a photo, with an optional paid report and AI hairstyle try-on.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Detailed report",
+    "basis": "one-time per report",
+    "unit": "one-time",
+    "source": "https://faceratiolab.com/",
+    "checkedOn": "2026-10-09",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified."
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "The measurement core here is a commodity: an open face landmark model gives you several hundred points on a photo, and everything after that is arithmetic on distances and ratios. An agent can wire up MediaPipe FaceLandmarker in a browser page, draw the mesh, compute symmetry deltas, facial thirds and fifths, jaw and cheekbone widths, and classify a face shape with a handful of thresholds, all on-device in one sitting. The honest caveat is that the numbers are the easy part and the interpretation is invented by whoever ships it: there is no ground truth for \"symmetry score 78\". What you cannot one-shot is the AI hairstyle try-on, which needs a hosted image model and real prompt engineering to not produce a wig on a mannequin. If you want measurements and a printable summary, build it. If you want the try-on, pay for it or budget for API credits.",
+  "coreLoopDIY": "Loads a photo in the browser, runs a local face landmark model, computes symmetry and proportion ratios, classifies face shape, and renders a printable report with the mesh overlay.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A modern desktop or mobile browser with WebAssembly and WebGL",
+    "The MediaPipe Tasks Vision face landmarker model file, downloaded locally",
+    "Any static file host, or just a local dev server",
+    "An image model API key only if you also want hairstyle try-on"
+  ],
+  "whatYouLose": [
+    "The AI hairstyle try-on entirely, unless you bolt on a paid image model and accept the privacy tradeoff",
+    "A report that looks designed rather than like a debug dump of 40 numbers",
+    "Threshold tuning: your face shape classifier will disagree with itself on borderline faces until someone sits down and calibrates it",
+    "Pose and lens correction, so a head tilt of five degrees will quietly ruin your symmetry score",
+    "Styling copy written by someone who knows what to do with a long oval face"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The defensible parts are the report design and the hairstyle generation, not the geometry. Anyone can measure a jaw; convincing someone the measurement means something is the product.",
+  "whyPeopleStillPay": "Because 12.99 once is less friction than installing Node to find out whether your face is a heart or a diamond, and because the paid tier is selling a feeling rather than a calculation. The free on-device scan does the honest work; the report wraps it in confidence and layout, and the hairstyle try-on is the thing a DIY build genuinely cannot match without a hosted generative model. People also pay for the absence of a decision: the tool picks a verdict instead of handing you ratios and asking you to interpret them.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The geometry is free and open source; the product is the confident paragraph printed underneath it.",
+  "prompt": "Build a static, fully client-side face measurement web app. No backend, no accounts, no telemetry, no uploads: every pixel stays in the browser tab.\n\nStack, no substitutions: Vite + TypeScript + vanilla DOM, plain CSS, no UI framework. Use @mediapipe/tasks-vision FaceLandmarker in IMAGE mode. Download face_landmarker.task into /public/models at setup time and load it from there, so the app works offline.\n\nFlow:\n1. Drop zone plus file input plus an optional \"use camera\" button via getUserMedia with a single still capture.\n2. Run FaceLandmarker on the image. If zero faces or more than one face are detected, say so plainly and stop.\n3. Draw the image to a canvas with the landmark mesh and the measurement lines overlaid. Include a toggle to hide the overlay.\n4. Compute and display, all normalized to interocular distance so pixels never appear in the UI:\n   - face width to height ratio\n   - jaw width, cheekbone width, forehead width, and their ratios\n   - facial thirds: hairline to brow, brow to nose base, nose base to chin\n   - facial fifths across the horizontal\n   - left vs right symmetry: mirror the landmark set across the best-fit vertical midline and report mean and max deviation per region (eyes, nose, mouth, jaw)\n   - nose width to mouth width, and eye spacing ratio\n5. Classify face shape into oval, round, square, heart, diamond, oblong, triangle with explicit threshold rules in one readable config object. Show which rules fired.\n6. Detect head tilt and yaw from the landmarks and show a warning banner when either exceeds a few degrees, because the ratios stop meaning anything.\n7. Report view: a clean single-column layout with the overlay image, a metrics table, the shape call, and the rule trace. Export via window.print() with a print stylesheet. Also offer \"download JSON\".\n\nExplicitly out of scope: hairstyle try-on, attractiveness or \"golden ratio\" scoring, age or gender estimation, any server, any analytics.\n\nBe honest in the UI copy: add a short permanent footer saying these are geometric measurements from a single 2D photo, sensitive to pose and lens, and are not a judgement of anything.\n\nShip a README with setup, the model download command, and a one-paragraph note on how the thresholds were chosen. If any API key is ever needed later, read it from .env and never commit it.",
+  "promptCurated": false
+}
