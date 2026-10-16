@@ -1,0 +1,51 @@
+{
+  "slug": "picturethis",
+  "name": "PictureThis",
+  "domain": "picturethisai.com",
+  "category": "ai-image",
+  "subcategory": "plant identification",
+  "tagline": "Point your phone at a plant and get a species ID, care tips, and disease diagnosis.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.picturethisai.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A plant ID app is, at the core, an image classifier plus a care database, and you can get surprisingly far by piping a photo into a general vision model and asking what it is. For common houseplants and garden species that works well enough that you will stop paying. Where it falls apart is the long tail: cultivars, regional weeds, lookalike toxic berries, and early-stage disease, where PictureThis leans on a fine-tuned model trained on tens of millions of labeled plant photos. You also lose the mobile app, which matters a lot for something you use while crouching in a garden bed. Build it as a phone-friendly web app and accept that it will be confidently wrong sometimes.",
+  "coreLoopDIY": "Upload or snap a plant photo in the browser, send it to a vision model with a structured prompt, and get back species, confidence, care instructions, and a saved history of your plants.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a vision-capable LLM",
+    "A phone with a browser (install the web app to the home screen)",
+    "Somewhere to host it, or just run it on your laptop and use it over LAN"
+  ],
+  "whatYouLose": [
+    "A model actually fine-tuned on plant taxonomy, so accuracy on cultivars and lookalikes drops",
+    "A real native app with offline capture and fast camera handling",
+    "Curated care databases with watering schedules, light requirements and toxicity warnings written by people",
+    "Disease diagnosis that was trained on labeled diseased-leaf imagery rather than guessed from general knowledge",
+    "Community features, plant collections, reminders and the general polish of a mass-market consumer app"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The labeled plant photo corpus is the real asset; general vision models are good but not botanist-good.",
+  "whyPeopleStillPay": "Because people use this app outdoors, one-handed, when they want an answer in two seconds about whether the thing their kid just chewed is poisonous. A self-hosted web app that you have to remember the URL for does not win that moment. The paid version also wraps the ID in a care plan, reminders and a plausible-looking disease diagnosis, which is most of the perceived value even if the underlying classification is the hard part. For a hobbyist who IDs a plant twice a month, the DIY build is genuinely fine and basically free.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Good enough for your windowsill, not good enough to bet a foraging trip on.",
+  "prompt": "Build a self-hosted plant identification web app called \"Sprout\".\n\nStack: Next.js 14 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3. No auth, no accounts, no telemetry. Single user, runs locally or on a small VPS.\n\nCore flow:\n1. Mobile-first page with a big capture button that opens the device camera (input type=file with capture=environment) or accepts an uploaded image.\n2. Client resizes the image to max 1024px on the long edge before upload to keep tokens down.\n3. Server route POST /api/identify sends the image to an OpenAI vision model (model name in .env) with a strict prompt asking for JSON: common_name, scientific_name, family, confidence (0-1), two or three plausible lookalikes, toxicity_to_pets, toxicity_to_humans, light, water_frequency_days, soil, common_problems (array), and a short care_summary.\n4. Validate the response with zod. If parsing fails, retry once, then surface the raw text instead of crashing.\n5. Render the result as a card. Show the confidence number plainly and print a visible disclaimer: not a botanist, do not eat anything based on this.\n\nAlso build:\n- A \"My Plants\" page. Saving a result stores the image file under ./data/images and a row in SQLite with a nickname, the ID result JSON, and date added.\n- A per-plant detail page showing the photo, the identification, and a simple watering log: a \"watered today\" button that appends a timestamp, plus a computed \"next water\" date from water_frequency_days.\n- A second route POST /api/diagnose that takes a photo of an existing saved plant plus its known species and asks the model what is wrong with it, returning JSON with likely_cause, severity, and fixes (array).\n\nExplicitly out of scope: push notifications, native apps, user accounts, payment, social feeds, offline mode, any plant database beyond what the model returns.\n\nInclude a .env.example with OPENAI_API_KEY and OPENAI_VISION_MODEL. Add a web manifest so it installs to the iOS and Android home screen. Write a README with setup steps and one honest paragraph saying accuracy on uncommon species and early disease will be worse than a commercial plant ID app.\n\nSeed nothing. Make it run with npm install and npm run dev.",
+  "promptCurated": false
+}
