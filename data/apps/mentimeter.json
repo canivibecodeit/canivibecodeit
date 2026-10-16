@@ -1,0 +1,51 @@
+{
+  "slug": "mentimeter",
+  "name": "Mentimeter",
+  "domain": "mentimeter.com",
+  "category": "presentations",
+  "subcategory": "live audience polling",
+  "tagline": "Interactive presentations with live polls, quizzes and word clouds the audience answers from their phones.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://mentimeter.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanic is not hard: a room code, a websocket, a bar chart that grows as answers land. An agent can give you a working presenter view, a phone-friendly voting page, multiple choice, open text, a scale question and a crude word cloud in a weekend. What breaks is everything around it: 200 people on hotel wifi hitting your laptop, the slide editor that makes it look like a real deck, the PowerPoint and Teams add-ins, and the quiet assumption that menti.com will be up when you are standing in front of a room. Build it for your own team standup or classroom and it is genuinely fine. Build it for a client workshop and you will spend the first five minutes apologising for the join link.",
+  "coreLoopDIY": "Runs a local web app where you create poll questions, project a room code, and watch a live chart update as participants answer from their phones.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "a machine that can be reached by participants: either same wifi with a LAN IP, or a cheap VPS / tunnel for a public URL",
+    "participants with phones and a browser"
+  ],
+  "whatYouLose": [
+    "Reliability at crowd scale: your laptop plus hotel wifi is not a CDN, and the failure happens live in front of people",
+    "The actual presentation editor: slide layouts, themes, fonts, images, so you end up pairing your polls with a separate deck",
+    "PowerPoint, Google Slides, Teams and Zoom integrations, which is how most people actually run these",
+    "Polished question types: proper word cloud layout, quiz leaderboards with timing and points, ranking, 2x2 grids",
+    "Result exports, per-session history, and sharing a results link with people who were not in the room"
+  ],
+  "moatTags": [
+    "collaboration",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The hard part is not the poll, it is being the thing 300 strangers can load at the same time without you thinking about it.",
+  "whyPeopleStillPay": "Because the product is used in the one moment where you cannot debug. People pay for a join URL audiences recognise, servers that absorb a conference room spike, and quiz and word cloud rendering that looks deliberate on a projector. A self-hosted clone is great for recurring internal use where you control the room and the stakes are low, and a bad idea the first time you present to people who are paying you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for your own standups and lectures, risky for anything you would call a workshop.",
+  "prompt": "Build a self-hosted live audience polling app, like a minimal Mentimeter, in an empty folder.\n\nStack, no substitutions:\n- Node 20 with Express and Socket.IO\n- better-sqlite3 for storage, file at ./data/polls.db\n- Server-rendered HTML with EJS, plain CSS, no build step, no framework\n- qrcode npm package to render the join QR as a data URL\n\nWhat to build:\n1. Presenter side at /admin, protected by a single ADMIN_PASSWORD from .env via a cookie session. Create a \"session\" containing an ordered list of questions.\n2. Question types: multiple choice (2-8 options), open text, and scale 1-5. Nothing else.\n3. Presenter view at /present/:sessionId shows the current question full screen, large, dark background, with a big room code and a QR code pointing at the join URL. Results update live: horizontal bars for choice and scale, a scrolling list of submissions for open text. Arrow keys move between questions and push the change to all connected participants over Socket.IO.\n4. Participant view at /join and /r/:code is phone-first: enter code, see only the question the presenter is currently on, tap or type an answer, see a \"thanks\" state, wait for the next question. One vote per question per browser, enforced with a random participant id in localStorage plus a unique index in SQLite. No accounts.\n5. Room codes: 6 digits, unique among active sessions.\n6. /present/:sessionId/results.csv exports all answers for that session.\n\nRules:\n- Everything is local: no telemetry, no analytics, no third-party JS, no CDN links. Bundle nothing you do not need.\n- Secrets in .env: ADMIN_PASSWORD, PORT, PUBLIC_BASE_URL (used to build the join URL and QR, so it works over LAN IP or a tunnel).\n- Handle reconnects: on socket connect, participants re-sync to the presenter's current question index.\n- Out of scope, do not build: slide editor, images, themes, quizzes with scoring or timers, word clouds, user accounts, multi-presenter, PowerPoint integration.\n- Include a README with setup, a note on how to expose it over LAN vs a tunnel, and an honest warning that this is sized for roughly a few dozen participants, not a conference hall.",
+  "promptCurated": false
+}
