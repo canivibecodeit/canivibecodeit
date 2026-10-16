@@ -1,0 +1,50 @@
+{
+  "slug": "chrome-goldmine",
+  "name": "Chrome Goldmine",
+  "domain": "chromegoldmine.com",
+  "category": "rss-research",
+  "subcategory": "idea and opportunity databases",
+  "tagline": "A curated database of Chrome extension opportunities mined from public store data: high demand, weak or abandoned incumbents.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://chromegoldmine.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The underlying data here is public: install counts, star ratings, review counts and last-updated dates all sit on Chrome Web Store listing pages. An agent can absolutely build you a crawler that walks store categories and search terms, stashes the results in SQLite, and ranks them by some opportunity score like installs divided by rating pain. What you do not get in one sitting is the part that actually takes work: crawling at scale without getting throttled, keeping the extractors alive when the store markup shifts, and the human pass that separates a real gap from a listing that is dormant because nobody wants it. So the mechanism is a weekend build and the judgment is not. Fine if you enjoy running your own crawler, annoying if you wanted a list to read over coffee.",
+  "coreLoopDIY": "Crawl Chrome Web Store category and keyword pages, store installs, rating, review count and last-update per extension in SQLite, then score and browse candidates in a local dashboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and a machine you can leave running for a few hours",
+    "Playwright with a headless Chromium download",
+    "Patience for rate limiting and for the store's HTML changing under you"
+  ],
+  "whatYouLose": [
+    "Curation: someone already threw out the dead categories, the policy-banned niches and the ideas that only look like gaps",
+    "Freshness without effort: your snapshot rots the moment you stop running the crawler",
+    "Writeups and context around each opportunity, as opposed to a raw score column",
+    "Crawler maintenance you did not sign up for, every time the store markup moves",
+    "Any signal on which of these ideas ten other people are already shipping"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The inputs are public; the assembled, cleaned, human-filtered set is the product. That is a real but shallow moat, the kind that erodes if someone else runs the same crawler and writes better notes.",
+  "whyPeopleStillPay": "Because the crawl is the boring half. Anyone can compute installs over rating, but sitting with a few thousand rows and deciding which ones represent an actual underserved job to be done is hours of unglamorous reading, and paying once for a pre-filtered list is cheaper than a weekend you were going to spend building the product instead. There is also the freshness tax: a database someone else maintains stays current, whereas your personal crawler quietly breaks in March and you notice in July.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scraper is the easy part; the taste is the product.",
+  "prompt": "Build a local Chrome Web Store opportunity miner. No accounts, no hosted services, no telemetry.\n\nStack, no substitutions: TypeScript on Node 20, Playwright with Chromium, better-sqlite3 for storage, a single Express server rendering server-side HTML with plain CSS. Everything runs on localhost.\n\nData model in SQLite (file: data/store.db):\n- extensions: id (store slug), name, url, category, installs (int), rating (real), rating_count (int), last_updated (text), description, first_seen, last_seen\n- crawl_runs: id, started_at, finished_at, pages_visited, errors\n\nCrawler (npm run crawl):\n- Reads seed queries and categories from seeds.json (ship a starter file with ~15 keyword seeds like \"screenshot\", \"tab manager\", \"invoice\", \"gmail\").\n- For each seed, walk Chrome Web Store search and category result pages with Playwright, collect listing URLs, then visit each listing and extract name, installs, rating, rating count, last updated date, short description.\n- Parse installs strings like \"10,000+ users\" into integers. If a field is missing, store null, never guess.\n- Politeness is mandatory: one page at a time, randomized 1500-4000ms delay, hard cap of MAX_PAGES from .env, resume support so a rerun skips rows seen in the last 7 days.\n- Wrap every extractor in try/catch, log failures to crawl_runs.errors, keep going. Assume the markup will change.\n\nScoring (pure function, unit tested with a few fixtures):\n- opportunity = log10(installs + 1) weighted against rating pain (5 - rating), a staleness bonus for last_updated older than 18 months, and a confidence penalty when rating_count is under 20.\n- Store the score as a computed column in a view, not baked into the table.\n\nUI at localhost:8787:\n- One table page: sortable by score, installs, rating, staleness. Filters for category, min installs, max rating.\n- Row detail page showing raw fields, the score breakdown term by term, and a link to the live listing.\n- A \"notes\" text field per extension saved to SQLite, because the human pass is the actual work.\n\nOut of scope: publishing this anywhere, auth, multi-user, exports beyond a single \"download CSV\" button, any paid API, any LLM calls.\n\nDeliver: README with setup and the honest caveat that selectors will rot, .env.example with MAX_PAGES and PORT, npm scripts crawl / score / dev, and a seeded demo run using 3 seeds so I can see output within a few minutes.",
+  "promptCurated": false
+}
