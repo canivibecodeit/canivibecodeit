@@ -1,0 +1,51 @@
+{
+  "slug": "base-com",
+  "name": "Base",
+  "domain": "base.com",
+  "category": "ai-assistant",
+  "subcategory": "AI agents for recurring work",
+  "tagline": "A hosted platform for AI agents that run recurring business tasks across your tools.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://base.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core idea here, an LLM with tools that wakes up on a schedule and does a defined job, is one of the most reproducible things in software right now. A coding agent can give you a local runner with cron, tool calling, a task log and a tiny dashboard in a single session, and for personal use that covers most of the value. What does not reproduce in one sitting is the connector layer: every OAuth app you want the agent to touch is its own slog, and the hosted version ships dozens of them already wired with token refresh and retries. You also inherit the unglamorous reliability work, meaning timeouts, partial failures, idempotency, and knowing when an agent quietly did nothing for three days. Build it if your agent touches two or three services you already have API keys for; pay if it needs to live inside a company's stack.",
+  "coreLoopDIY": "A local agent runner that executes scheduled, prompt-defined tasks with tool access and logs every run so you can see what it actually did.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (Anthropic or OpenAI)",
+    "API credentials for whatever services the agent should touch",
+    "A machine or small VPS that stays awake for scheduled runs"
+  ],
+  "whatYouLose": [
+    "Prebuilt, maintained connectors to common SaaS tools instead of you hand-rolling each API client",
+    "Token refresh, rate limit handling and retry logic that someone else keeps alive",
+    "Multi-user access, approvals and audit trails if anyone besides you depends on the output",
+    "Someone to call when an agent silently stops firing or burns budget in a loop",
+    "Guardrails and evaluation tooling for agents that take real actions rather than draft text"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the model, it is the hundred small adapters and the retry logic behind them.",
+  "whyPeopleStillPay": "Because an agent that only reads and writes files is a toy, and an agent that touches a company's real systems needs credentials, permissions, logs and a human who gets paged. The local build is genuinely fine for one person automating their own inbox or reports. The moment someone else depends on the output, the thing you are actually buying is accountability plus a connector catalog you would otherwise spend months building and then maintaining forever.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The runner is a weekend; the integrations are the rest of your life.",
+  "prompt": "Build a local AI agent runner called \"minibase\" in an empty folder.\n\nStack, no substitutions: TypeScript, Node 20, Hono for the HTTP server, SQLite via better-sqlite3, node-cron for scheduling, Anthropic SDK for the model. Server-rendered HTML with a single CSS file. No React, no auth, no cloud services, no telemetry.\n\nWhat it does:\n- Agents are defined as markdown files in ./agents/*.md with YAML frontmatter: name, schedule (cron expression), model, tools (array of tool names), enabled (bool). The markdown body is the system prompt.\n- On boot, load all agent files, register their cron schedules, and watch the directory for changes.\n- Each run: build the conversation, call the model with tool definitions, execute tool calls in a loop up to 10 turns, store the full transcript.\n- Tools live in ./tools/ as plain modules exporting a JSON schema and a handler. Ship exactly four: http_fetch (GET only, allowlisted hosts from .env), read_file and write_file (sandboxed to ./workspace), and send_email via SMTP creds from .env. Make adding a fifth tool a one-file change.\n- Persist runs in SQLite: id, agent, started_at, finished_at, status (ok | error | timeout), token counts, full JSON transcript.\n- Hard limits per run: 120 second wall clock, max 10 tool calls, max turns configurable per agent. Kill and mark timeout when exceeded.\n\nUI at localhost:8787:\n- / lists agents with last run status, next scheduled time, and a \"run now\" button.\n- /runs is a reverse-chronological run log with status badges.\n- /runs/:id shows the full transcript, every tool call with arguments and result, and the error if it failed.\n\nAlso: a CLI entry (npm run agent -- NAME) to trigger one agent and print the transcript to stdout.\n\nAll secrets in .env, with a .env.example checked in. Ship two example agents: a daily digest that fetches two URLs and emails a summary, and a weekly file-tidying agent. Include a README with setup in under ten lines.\n\nOut of scope: multi-user accounts, OAuth flows, a connector marketplace, approval workflows, vector storage.",
+  "promptCurated": false
+}
