@@ -1,0 +1,52 @@
+{
+  "slug": "stanley",
+  "name": "Stanley",
+  "domain": "getstanley.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI agent / assistant",
+  "tagline": "An AI assistant that takes instructions and does work on your behalf across your accounts and tools.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://x.getstanley.ai/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The hard part of an AI assistant is not the AI. Nobody in this category trains their own frontier model, so what you are paying for is the harness: tool definitions, auth into your accounts, memory that survives restarts, and enough prompt tuning that it does not confidently do the wrong thing. A coding agent will give you a local assistant with tool calling and a task loop in a weekend, and for a single user with two or three tools wired in that is genuinely useful. It falls apart at the boundaries: OAuth into third party services, running while your laptop is shut, and the unglamorous evaluation work that keeps an agent from hallucinating an action. Verdict is a hedge because the product's exact scope is not something to overstate.",
+  "coreLoopDIY": "A local agent loop that takes a natural language task, plans, calls a small set of tools you define, and reports back with a transcript you can audit.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "An API key for a frontier model, plus a token budget",
+    "Willingness to write your own tool functions for anything you want it to touch",
+    "A small VPS if you want it to run when your laptop is closed"
+  ],
+  "whatYouLose": [
+    "Pre-built, pre-authed integrations; every connector becomes your OAuth problem",
+    "Hosted scheduling and background execution, so your agent only runs when you do",
+    "Memory and retrieval that someone else tuned, instead of the JSON file you wrote at 1am",
+    "Guardrails and evals; your version will cheerfully take a confident wrong action",
+    "Mobile access, notifications, and anything resembling polish"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The model is rented by everyone. The differentiation is connector coverage and the accumulated tuning that stops an agent from being embarrassing.",
+  "whyPeopleStillPay": "Because a personal agent is only as useful as the number of things it can actually reach, and reaching things means OAuth apps, token refresh, rate limits, and webhook endpoints, none of which are fun and all of which break silently. Paying converts a permanent maintenance job into a subscription, and gets you background execution so tasks happen at 6am without your laptop being open. There is also a trust dimension: a hosted product has an incentive to make its agent behave, while your weekend build has only your patience.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Assistant wrappers are the easiest thing to build badly and the hardest thing to build boringly reliable.",
+  "prompt": "Build a local personal AI assistant with a tool-calling agent loop. No accounts, no cloud dashboard, no telemetry.\n\nStack, non-negotiable:\n- TypeScript on Node 20, single repo, pnpm\n- CLI entry point via a bin script, plus a tiny local HTTP server on port 8787 for a browser chat page\n- SQLite via better-sqlite3 for conversation history, task records, and memory notes\n- One model provider: Anthropic Messages API with native tool use, key in .env as ANTHROPIC_API_KEY\n- Zod for tool input schemas, no ORM, plain SQL\n\nCore loop:\n- Accept a task as natural language, either from CLI arg or the chat page\n- Run an agent loop: send messages plus tool schemas, execute requested tools, feed results back, repeat until the model returns a final answer or hits a max of 20 iterations\n- Persist every message, tool call, tool result, and token count to SQLite so any run can be replayed and audited\n- Print a readable transcript at the end: what it did, in order, with results\n\nTools to implement, and only these:\n- read_file and write_file, sandboxed to a ./workspace directory, reject any path escaping it\n- run_shell, with an allowlist of commands defined in config.ts, everything else refused\n- http_fetch, GET only, returns status plus text truncated to 20k chars\n- remember and recall, writing and full-text searching short notes in SQLite\n- list_tasks and finish_task against a local tasks table\n\nSafety and honesty:\n- Every write_file and run_shell call requires interactive confirmation unless --yolo is passed\n- Print estimated token spend per run\n- If the model asks for a tool that does not exist, return an error result and let it recover, never crash\n\nAlso include:\n- A cron-ready command: assistant run-scheduled, which reads jobs from a schedules table and executes them, so a system cron entry can drive it\n- .env.example, README with setup in under ten lines, and three example tasks that actually work end to end\n\nExplicitly out of scope: OAuth into third party services, email or calendar access, multi-user auth, hosted deployment, streaming UI polish, vector databases. Keep it under 1500 lines and make it run on first try.",
+  "promptCurated": false
+}
