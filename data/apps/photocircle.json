@@ -1,0 +1,51 @@
+{
+  "slug": "photocircle",
+  "name": "PhotoCircle",
+  "domain": "photocircleapp.com",
+  "category": "cloud-storage",
+  "subcategory": "private shared photo albums",
+  "tagline": "Private photo sharing app for groups: everyone dumps their camera roll into one shared album instead of texting pictures back and forth.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.photocircleapp.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The server half of this is boring: upload endpoint, thumbnails, albums, invite links, a grid view. An agent will hand you a working self-hosted shared gallery in a single sitting, and for one family trip that is genuinely enough. The part that does not survive the one-shot is everything that makes people actually use it: native apps on both platforms, background camera roll upload that does not eat battery, push notifications when someone adds photos, and the small matter of convincing five relatives to install your thing. Face grouping and automatic suggestion of who to share with are a separate project entirely. Call it a weekend for something you would use, and a few more weekends before anyone else would.",
+  "coreLoopDIY": "A self-hosted web app where you create an album, share an invite link, and anyone with the link uploads photos that get thumbnailed, EXIF-sorted and displayed in a shared grid with full-size download.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small VPS or home server with real disk space, plus a domain and HTTPS if non-technical people will open the links",
+    "Backups you actually run, because this becomes the only copy of someone's trip photos",
+    "Node 20+ and ffmpeg if you want video thumbnails"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps, which is where photo sharing actually happens",
+    "Background camera roll sync, so uploads only occur when someone remembers to open a browser tab",
+    "Push notifications and the activity feed that make a shared album feel alive",
+    "Face recognition and automatic share suggestions",
+    "Someone else worrying about storage, CDN delivery and the photos surviving your hardware"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "collaboration",
+    "network-effects"
+  ],
+  "moatNotes": "The moat is not the storage, it is being the app the whole group already has installed. Photo sharing is only useful at the point where the least technical person in the group can use it without you on the phone.",
+  "whyPeopleStillPay": "Because a shared photo album is a group product and groups do not adopt a link to your home server. People pay for apps their mother in law can install, that quietly upload the wedding photos in the background, that notify everyone when a new batch lands, and that will still hold the images in five years when the laptop they were taken on is gone. A self-hosted gallery covers the storage problem, which was never the hard part.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Immich exists and is a much better destination than anything an agent writes from scratch, but a one-album web app is still a fine weekend if you want to understand the pieces.",
+  "prompt": "Build a self-hosted shared photo album web app. Stack: Next.js 15 (App Router, TypeScript), SQLite via better-sqlite3, sharp for image processing, local disk for originals. No external services, no user accounts, no telemetry.\n\nData model in SQLite:\n- albums: id, slug, title, created_at, owner_token, view_token, upload_token\n- photos: id, album_id, filename, original_name, uploader_name, width, height, taken_at, uploaded_at, mime\n\nBehaviour:\n- POST /api/albums creates an album, returns three links: owner, upload (can view + add), view-only. Tokens are random 24-char strings. Access control is token-in-URL only, no login.\n- /a/[slug]?t=TOKEN renders a responsive masonry grid of thumbnails, newest first by taken_at, falling back to uploaded_at. Infinite scroll in pages of 50.\n- Clicking a photo opens a lightbox with keyboard arrows, the uploader's name, the capture date, and a download link to the original.\n- Upload page accepts multi-file select and drag-and-drop, including multi-select from a phone camera roll. Show per-file progress. Ask once for an uploader name, store it in localStorage.\n- On upload: read EXIF DateTimeOriginal with sharp metadata for taken_at, strip GPS from the stored copy, generate 400px and 1600px WebP derivatives into ./data/derived, keep the original byte-for-byte in ./data/originals.\n- Owner token also enables deleting photos and renaming the album.\n- Accept HEIC by converting to JPEG on upload. Accept mp4 and mov: store them, extract a poster frame with ffmpeg if ffmpeg is on PATH, otherwise show a generic video tile.\n- Add a PWA manifest so the album can be saved to a phone home screen.\n- GET /api/albums/[slug]/zip streams a zip of originals, owner token only.\n\nConfig in .env: DATA_DIR, MAX_UPLOAD_MB, PORT. Include a Dockerfile, a docker-compose.yml mounting ./data, and a README covering backups and how to put it behind a reverse proxy with TLS.\n\nExplicitly out of scope: native mobile apps, background camera roll sync, push notifications, face recognition, comments, reactions, cloud storage backends. Do not add them. Do not add an auth system.\n\nWrite tests for token access rules and for EXIF date extraction. Seed script that generates 60 fake photos so the grid can be checked immediately.",
+  "promptCurated": false
+}
