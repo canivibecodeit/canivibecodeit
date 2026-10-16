@@ -1,0 +1,52 @@
+{
+  "slug": "bidprime",
+  "name": "BidPrime",
+  "domain": "bidprime.com",
+  "category": "sales-outreach",
+  "subcategory": "government bid and RFP alerts",
+  "tagline": "Daily alerts for government bids, RFPs and contract opportunities matched to your keywords and regions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.bidprime.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product looks like a keyword alert engine, and the alert engine genuinely is a weekend build. What you cannot build in one session is the feed: tens of thousands of federal, state, county, city, school district and special district procurement portals, most of them ancient ASP pages, PDF dumps or email-only lists with no API and no standard format. BidPrime's actual asset is years of scraper maintenance plus humans fixing the ones that break, and the fact that a missed bid costs you a contract, not a pleasant afternoon. You can cover SAM.gov yourself for free, because the federal government publishes a real API, and that gets you maybe the part of the market you already knew about. Everything local, which is where most of the winnable small contracts live, stays out of reach.",
+  "coreLoopDIY": "Polls the free SAM.gov opportunities API plus any portals that publish RSS, matches your keywords and NAICS codes, stores hits in SQLite and emails you a daily digest.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "SAM.gov API key (free, registration required)",
+    "An SMTP account or a transactional email API key for the digest",
+    "A machine or cheap VPS that can run a daily cron job",
+    "Willingness to hand-write a scraper per portal for anything outside SAM.gov"
+  ],
+  "whatYouLose": [
+    "Coverage of state, county, municipal, school and special district portals, which is the whole point",
+    "Humans who notice and repair scrapers when a portal redesigns or goes down",
+    "Bid documents and attachments pulled and normalized into one place",
+    "Award history and contact details for the buying agency",
+    "Any certainty that silence means no matching bids rather than a broken script"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the data itself, which is public by law, it is the cost of collecting it from thousands of hostile, inconsistent sources every single day.",
+  "whyPeopleStillPay": "Because public procurement data is technically open and practically scattered across thousands of incompatible portals, and because the downside of missing one notice is losing a contract you were qualified to win. A sales team cannot audit whether your homegrown scraper quietly stopped parsing the county site in March, so they pay someone whose entire job is that the feed keeps flowing. The subscription is cheap next to one lost bid, which is exactly the price math the category is built on.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The matcher is a weekend; the feed is a standing army. The moat is years of scraper maintenance across thousands of unstandardized government portals that nobody else wants to babysit.",
+  "prompt": "Build a local government bid monitor. No accounts, no hosted dashboard, no telemetry.\n\nStack: Python 3.12, SQLite, httpx, APScheduler for the daily run, Jinja2 for the email body. One repo, no frontend framework. Add a tiny Flask page on localhost:5000 to browse stored opportunities, nothing more.\n\nSources, in scope:\n1. SAM.gov Get Opportunities API, keyed from SAM_API_KEY in .env. Pull the last 2 days of notices on each run, paginate properly, respect rate limits.\n2. A generic RSS/Atom ingester driven by a feeds.yml file, so the user can add state or municipal procurement feeds that happen to publish one. Ship it with an empty list and a comment explaining the format.\n\nOut of scope, do not attempt: HTML scraping of arbitrary portals, PDF parsing, captcha solving, login-walled portals. Say so in the README instead of half-building it.\n\nMatching: a profiles.yml file with named profiles, each having keyword includes, keyword excludes, optional NAICS codes, optional set-aside codes and optional state filters. Match on title plus description, case-insensitive, word-boundary aware. Store a match score of how many include terms hit.\n\nStorage: SQLite table opportunities with source, external_id unique, title, agency, state, naics, posted_at, due_at, url, raw_json. Table matches linking opportunity to profile. Never insert duplicates; use upsert on external_id.\n\nDigest: on each daily run, email one HTML digest per profile with new matches only, grouped by due date, via SMTP creds in .env. If there are zero new matches, send a short \"0 new, N sources polled OK\" line so silence is never ambiguous. If a source errors, include the error in the digest. This matters more than the matching.\n\nCLI: init-db, poll (run once now), digest (resend today), test-sources (hit every source, print status and count).\n\nInclude .env.example, a README that is honest about coverage being federal-only out of the box, and pytest tests for the matcher and the dedupe logic using fixture JSON. Do not write tests that hit the network.",
+  "promptCurated": false
+}
