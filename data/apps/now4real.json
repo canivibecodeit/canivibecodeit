@@ -1,0 +1,51 @@
+{
+  "slug": "now4real",
+  "name": "Now4real",
+  "domain": "now4real.com",
+  "category": "community",
+  "subcategory": "on-site presence and page chat widget",
+  "tagline": "A drop-in widget that shows how many people are on a page right now and lets them chat about it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://now4real.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanics here are not exotic: a script tag opens a websocket, the server counts sockets per normalized URL, and messages fan out to everyone in that room. An agent can get that working end to end in a weekend, including the floating bubble, the chat panel, and a message log in SQLite. What you inherit is the operations: keeping a websocket server alive, surviving traffic spikes, serving the widget fast from a CDN, and dealing with the first person who pastes something vile into your public page chat. The social value also does not come from Now4real's network, it comes from your own concurrent traffic, so if your site is quiet the DIY version is exactly as empty as the paid one. Build it if you already run a server; skip it if a websocket process dying at 3am would ruin your week.",
+  "coreLoopDIY": "Counts live visitors per page over a websocket and gives them a shared chat room scoped to that URL, embedded with one script tag.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An always-on small VPS or container host, not a static host",
+    "A domain with TLS so wss connections are not blocked",
+    "Ability to add a script tag to every page you want covered",
+    "Enough concurrent traffic that a live count is not always 1"
+  ],
+  "whatYouLose": [
+    "Managed websocket capacity and a CDN edge for the widget script, so your bubble is as fast and reliable as your one box",
+    "Moderation tooling: profanity filters, bans, abuse reports, and the ability to nuke a thread from a phone",
+    "Polish details like presence heatmaps, per page stats, notification sounds, and mobile layout that already survived real users",
+    "Cross device consistency and the long tail of browser quirks in an embeddable widget",
+    "GDPR paperwork and cookie or consent handling someone else already thought about"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "Realtime presence is cheap to prototype and annoying to keep up. The paid product is mostly uptime plus a widget that does not break someone else's layout.",
+  "whyPeopleStillPay": "Because a chat widget on a public marketing site is a liability if it goes down or fills with spam, and nobody wants to be the person on call for their own comment box. Now4real is the sort of thing you buy to avoid owning a websocket server, not because the code is hard. If your site is a hobby project or an internal tool, self hosting is genuinely fine. If it is a business homepage, paying someone else to eat the 3am pager is a rational trade.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the moderation queue is the actual product.",
+  "prompt": "Build a self hosted \"who is here now\" presence and page chat widget that I can embed on my own sites with a single script tag.\n\nStack, no substitutions: Node 20, TypeScript, Express for HTTP, the ws library for websockets, better-sqlite3 for storage, plain vanilla JS and CSS for the embeddable widget (no framework, no build step for the widget beyond a single esbuild bundle step). One repo, npm scripts only.\n\nServer requirements:\n- WebSocket endpoint /live. Client sends a normalized page URL (strip hash, strip utm_* params, lowercase host) and gets joined to a room keyed by that URL.\n- Track live socket count per room. Broadcast count changes to the room, debounced to at most once per second.\n- Heartbeat ping every 25 seconds, drop sockets that miss two pongs, so counts do not drift upward forever.\n- Chat messages: max 500 chars, rate limit 1 message per 3 seconds per socket and 20 per minute per IP, in memory limiter is fine.\n- Persist messages in SQLite: id, room, nickname, body, ip_hash (sha256 of ip plus a salt from .env), created_at. On join, send the last 50 messages for that room.\n- Admin HTTP routes behind a bearer token from .env: GET /admin/rooms (rooms with live counts and message totals), DELETE /admin/messages/:id, POST /admin/bans with an ip_hash.\n- CORS and websocket origin check against an ALLOWED_ORIGINS allowlist in .env. Reject anything else.\n- Serve the bundled widget at /widget.js with long cache headers and a gzip response.\n\nWidget requirements:\n- Loaded via: script src=\"https://myhost/widget.js\" data-room-strategy=\"url\" defer.\n- Floating bubble bottom right showing the live count. Click opens a chat panel: message list, nickname field stored in localStorage, input with the char counter.\n- Shadow DOM so the host page CSS cannot touch it. Total gzipped size under 15kb.\n- Reconnect with exponential backoff, show a quiet \"reconnecting\" state, never throw into the host page console.\n- Respect prefers-reduced-motion and work down to 360px wide.\n\nIn scope: everything above, a demo page at /demo with two different URLs to prove room isolation, a Dockerfile, and a README with the deploy steps and the .env keys.\n\nOut of scope, do not build: user accounts, OAuth, email, billing, multi tenant dashboards, analytics charts, AI moderation, mobile apps, telemetry of any kind.\n\nSecrets: ADMIN_TOKEN, IP_SALT, ALLOWED_ORIGINS, PORT in .env with a committed .env.example. No secrets in code.\n\nFinish with a working npm run dev, npm run build, and one integration test that opens two sockets to the same room and asserts the count and message fanout.",
+  "promptCurated": false
+}
