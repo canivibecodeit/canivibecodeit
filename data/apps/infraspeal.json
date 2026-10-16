@@ -1,0 +1,51 @@
+{
+  "slug": "infraspeal",
+  "name": "Infraspeak",
+  "domain": "infraspeak.com",
+  "category": "project-management",
+  "subcategory": "maintenance management (CMMS)",
+  "tagline": "Maintenance and facility management platform for assets, work orders, and preventive schedules.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://new.infraspeak.com/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The conceptual core of a CMMS is boring in a good way: assets, locations, work orders, preventive maintenance schedules that spawn jobs on a calendar, and a log of what was done. An agent can produce that in a weekend as a local web app, and for one building or one small fleet it will genuinely work. What it will not produce is the part facility teams actually buy: a technician mobile app that works in a basement with no signal, QR asset tags scanned by people who refuse to read instructions, IoT and BMS sensor feeds, supplier and contract workflows, and audit-grade records you can hand to an inspector. If you are one person tracking your own equipment, build it. If you are coordinating contractors across sites, the DIY version becomes the thing nobody updates by month two.",
+  "coreLoopDIY": "A local asset register with work orders, recurring preventive maintenance rules that auto-generate scheduled jobs, and a maintenance history log per asset.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+ and SQLite",
+    "A machine or small VPS to keep the scheduler running",
+    "Printed QR codes if you want asset scanning"
+  ],
+  "whatYouLose": [
+    "Offline-capable technician mobile app, which is the whole point in plant rooms and basements",
+    "Sensor, BMS, and IoT integrations that open tickets before a human notices",
+    "Multi-user roles, contractor access, and approval chains",
+    "Audit trails and compliance reporting that survive an inspection",
+    "Supplier, parts inventory, and purchase order handling"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Years of asset history and failure records are the sticky part; nobody migrates a maintenance log twice.",
+  "whyPeopleStillPay": "Maintenance software is paid for by the person who gets blamed when a chiller dies or an inspector asks for records. That buyer wants a technician app that works without signal, sensor feeds that raise tickets automatically, contractor access that does not mean sharing a password, and exportable history that proves the quarterly checks happened. A self-built register covers the data model fine but not the field reality of ten people with phones and gloves, and it covers none of the liability.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The data model is a weekend; getting technicians to actually use it is the hard part, and that is not a code problem.",
+  "prompt": "Build a local-first maintenance management app (CMMS) for a single owner or small team.\n\nStack, no substitutions: Python 3.11, FastAPI, SQLite via SQLModel, Jinja2 templates, HTMX for interactivity, Pico.css for styling. No React, no build step, no accounts, no cloud services, no telemetry.\n\nData model:\n- Location: name, parent_location_id (self-referencing tree), notes.\n- Asset: name, asset_tag (unique short code), location_id, category, manufacturer, model, serial, install_date, status (active | down | retired), notes.\n- WorkOrder: asset_id, title, description, type (corrective | preventive | inspection), priority (low | normal | high), status (open | in_progress | done | cancelled), due_date, completed_at, assignee (plain text), labour_minutes, cost, resolution_notes.\n- PMSchedule: asset_id, title, checklist (newline-separated text), interval_days, last_generated_on, lead_time_days, active.\n- Attachment: work_order_id, filename, stored on local disk under ./uploads.\n\nBehaviour:\n- A scheduler (APScheduler, in-process) runs daily at 06:00 and also on startup: for each active PMSchedule, if today is within lead_time_days of the next due date (last_generated_on + interval_days), create a preventive WorkOrder with the checklist in the description and advance last_generated_on.\n- Dashboard page: overdue work orders, due in the next 7 days, assets with status down, and a count of open work orders by priority.\n- Asset detail page: full work order history, total cost, total labour minutes, and a Report Issue button that creates a corrective work order in one click.\n- Work order list with filters for status, type, priority, assignee, and location subtree.\n- Generate a printable PDF or HTML sheet of QR codes for all assets (qrcode library) linking to /a/{asset_tag}, which opens the asset page and a mobile-friendly Report Issue form.\n- CSV export of assets and of work orders.\n\nOut of scope: parts inventory, purchase orders, multi-tenant auth, contractor portals, sensor integrations, native mobile apps.\n\nSeed the database with 2 locations, 5 assets, 2 PM schedules, and a few historical work orders so the dashboard is not empty. Put any config in .env (PORT, DB_PATH, UPLOAD_DIR) with a .env.example committed. Include a README with run instructions and a one-command start script.",
+  "promptCurated": false
+}
