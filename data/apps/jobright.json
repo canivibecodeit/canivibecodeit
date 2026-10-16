@@ -1,0 +1,52 @@
+{
+  "slug": "jobright",
+  "name": "Jobright",
+  "domain": "jobright.ai",
+  "category": "career",
+  "subcategory": "AI job search and matching",
+  "tagline": "AI job matching, resume tailoring, and application tracking for job seekers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://jobright.ai/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The parts you actually touch are easy: paste a job description, have an LLM rewrite your resume bullets against it, score the fit, and log what you sent where. The hard part is the job feed. Jobright aggregates and freshly indexes postings across thousands of company boards and job platforms, and stale listings are the whole failure mode of DIY job search tools. You can get partial coverage from public job board APIs and a handful of ATS endpoints, which covers a surprising number of tech companies, but not the long tail. Build it if you want a tailoring and tracking cockpit; do not expect your scraper to keep up with a company that does this full time.",
+  "coreLoopDIY": "A local app where you paste or import job postings, get an LLM fit score plus a tailored resume and cover letter against your stored profile, and track every application in a pipeline board.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (OpenAI or Anthropic) in .env",
+    "Your resume as text or PDF to parse once",
+    "Optional: Greenhouse and Lever public board endpoints for a real job feed",
+    "Local Python and SQLite"
+  ],
+  "whatYouLose": [
+    "A large, continuously refreshed job index across many boards, which is the actual product",
+    "Recruiter contact discovery and outreach suggestions",
+    "Insider signals like posting freshness, applicant volume, and H1B or visa filters",
+    "One-click apply flows and browser extension autofill",
+    "A polished mobile experience and someone else maintaining the scrapers"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is the crawl: thousands of boards, deduped, deduped again, and kept fresh enough that a listing is still open when you apply.",
+  "whyPeopleStillPay": "Job searching is a stressful, time-boxed activity where nobody wants to also be maintaining a scraper. Paying means the feed is already there, deduped, filtered, and reasonably fresh, plus contact hints and autofill that shave real minutes off each application. A local build wins on resume tailoring quality and privacy, since your career history stays on your machine, but it loses the moment your job source goes stale or a board changes its markup. Most people churn out of these tools the week they get hired anyway, which makes a couple of months of subscription an easy trade against a weekend of building.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The tailoring engine is a weekend; the job index is a permanent maintenance job.",
+  "prompt": "Build a local job search cockpit called \"jobdesk\". Single user, runs on my laptop, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.12 with FastAPI and Uvicorn\n- SQLite via SQLModel\n- Server-rendered Jinja2 templates plus htmx and plain CSS, no build step\n- LLM calls through the Anthropic or OpenAI HTTP API, key from .env, model name in .env\n\nData model: Profile (one row: name, contact, raw resume text, structured skills, work history JSON), Job (title, company, location, url, description text, source, posted_at, status enum of saved/applied/screen/interview/offer/rejected, fit_score, fit_notes), Artifact (job_id, kind of resume/cover_letter, content markdown, created_at), Event (job_id, note, created_at).\n\nFeatures in scope:\n1. Onboarding page: upload a PDF or paste resume text, parse with pypdf, then one LLM call to extract structured skills and work history into the Profile row.\n2. Add job: paste a URL plus the job description text, or paste description alone. Store it. Do not try to render or scrape arbitrary sites beyond a simple fetch and readability-style text extraction; if fetch fails, fall back to the pasted text.\n3. Optional feed importer: a script that pulls open roles from Greenhouse and Lever public job board endpoints for a list of company slugs in companies.txt, dedupes on url, and inserts new Jobs. Be explicit in the README that this covers only companies using those two ATSs.\n4. Fit scoring: one LLM call per job returning a 0-100 score, three reasons for, three gaps, and suggested keywords. Cache the result on the Job row.\n5. Tailoring: generate a resume rewrite (bullets only, reordered and reworded from real history, no invented employers or dates) and a cover letter. Save as Artifacts, show a diff-ish side by side of original vs tailored bullets, allow regeneration with a freeform instruction.\n6. Kanban pipeline page grouped by status, drag or button to move, per-job timeline of Events.\n7. Dashboard: applications per week, response rate, average fit score of applied jobs, stale applications with no event in 14 days.\n8. Export: one command to dump everything to JSON and the artifacts to markdown files.\n\nOut of scope: multi-user, auth, autofill browser extension, recruiter contact lookup, emailing anyone, scraping LinkedIn or Indeed.\n\nHard rules: prompts live in prompts/ as editable text files, all LLM output is shown before it is saved, no hallucinated employment facts (the tailoring prompt must state this constraint), secrets only in .env with a .env.example committed. Ship a README with setup in under ten lines, a seed script with two fake jobs, and pytest coverage for the parser, the dedupe logic, and the status transitions.",
+  "promptCurated": false
+}
