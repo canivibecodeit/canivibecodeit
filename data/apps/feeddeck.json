@@ -1,0 +1,50 @@
+{
+  "slug": "feeddeck",
+  "name": "FeedDeck",
+  "domain": "feeddeck.app",
+  "category": "rss-research",
+  "subcategory": "columnar feed reader",
+  "tagline": "A TweetDeck-style column reader that mixes RSS, YouTube, Reddit, Mastodon, GitHub and X into one wall of feeds.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://feeddeck.app/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea here is layout, not data: columns side by side, each one polling a source, everything on one screen. RSS, Atom and JSON Feed cover most of what FeedDeck shows you, and YouTube, Reddit, GitHub, Mastodon and most podcasts all expose feeds or open JSON with no OAuth dance. An agent can produce a local column reader with persistent subscriptions, unread state and a background poller in one sitting, and it will feel close to the real thing on a desktop. What you will not get for free is X, which now costs money to read programmatically, plus the native mobile apps and cross-device sync. FeedDeck is also open source, so the honest comparison is less build-versus-buy and more self-host-versus-pay-someone-to-host.",
+  "coreLoopDIY": "Polls a list of feed URLs on a schedule, stores items in SQLite, and renders them as scrollable columns with unread counts and a read/unread toggle.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and a place to leave a process running",
+    "Feed URLs for each source you care about",
+    "Optional API tokens for anything without a public feed, in .env"
+  ],
+  "whatYouLose": [
+    "X/Twitter columns, which need a paid API tier or a scraper you will spend your weekend repairing",
+    "Native iOS and Android apps with push notifications",
+    "Sync, so your read state lives on whichever machine runs the server",
+    "Media handling niceties: inline video players, podcast playback, image galleries that do not look like 2004",
+    "Someone else noticing when a feed starts returning garbage"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The hosted version is mostly convenience plus the mobile clients; the source is public, which caps how much moat there can be.",
+  "whyPeopleStillPay": "Because the hosted tier is cheap, the mobile apps exist, and read state follows you between phone and laptop without you operating a server. If you read feeds in bed, that matters more than architecture purity. If you read feeds at a desk, your own column reader is genuinely fine and you get to decide what counts as a source.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the product is open source, so the only real question is whether you want to be the one restarting the poller.",
+  "prompt": "Build a local, single-user columnar feed reader called \"deck\". No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) for UI and API routes\n- SQLite via better-sqlite3, file at ./data/deck.db\n- rss-parser for RSS/Atom, plus native fetch for JSON Feed\n- Tailwind for styling\n- Runs with `npm run dev` on localhost only\n\nData model:\n- columns: id, title, source_url, source_type (rss | jsonfeed | youtube | reddit | github), position, refresh_minutes\n- items: id, column_id, guid (unique per column), title, url, author, summary_html, published_at, read_at\n\nFeatures that must work:\n- Horizontal scrolling deck of columns, each column a vertical scroll of items, newest first\n- Add a column from a single URL input: detect feed type, auto-discover /feed or /rss and link rel=alternate from an HTML page, resolve YouTube channel URLs and Reddit subreddit URLs to their feed endpoints\n- Reorder columns by drag, delete a column with confirm, edit title inline\n- Per-item: click to open in new tab and mark read, click the dot to toggle read, \"mark column read\" button, unread count in the column header\n- Background refresh: a single server-side interval that polls every column on its refresh_minutes, dedupes by guid, never deletes read history\n- Keyboard: j/k move within a column, h/l move between columns, o opens, m toggles read\n- Import and export OPML\n- Full-text search across stored items using SQLite FTS5\n\nExplicitly out of scope: X/Twitter, Mastodon timelines requiring auth, push notifications, mobile apps, multi-device sync, any login.\n\nPut nothing secret in code. If you add an optional token for a source, read it from .env and ship .env.example. Seed the DB with five real public feeds so the deck is not empty on first run. Write a README with setup in under ten lines and a short note on how to keep the poller alive outside dev mode.",
+  "promptCurated": false
+}
