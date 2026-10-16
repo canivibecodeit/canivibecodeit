@@ -1,0 +1,50 @@
+{
+  "slug": "html-pub",
+  "name": "HTML pub",
+  "domain": "htmlpub.com",
+  "category": "hosting",
+  "subcategory": "single-file HTML publishing",
+  "tagline": "Paste or upload an HTML file and get a shareable hosted URL for it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://htmlpub.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "The entire job here is: accept a blob of HTML, store it, serve it at a stable URL. That is a first-week web development exercise, and an agent will produce a working version complete with slugs, an edit page, and a delete button in one sitting. The paid version wins on convenience, not capability: zero setup, a domain you do not own, and a CDN that absorbs the one time your page gets linked somewhere busy. If you already have a VPS or a free static host, the DIY build costs you an evening and then costs nothing. If you do not, you are about to learn more about DNS and TLS than you wanted to.",
+  "coreLoopDIY": "Paste or upload an HTML file, get back a permanent short URL that serves it, with a simple dashboard to re-edit or delete your pages.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A server or small VPS you can point a domain at",
+    "A domain name, or acceptance of ugly IP-based URLs",
+    "Basic TLS setup, Caddy or a reverse proxy with automatic certificates"
+  ],
+  "whatYouLose": [
+    "CDN edge caching, your box is the CDN now",
+    "Automatic HTTPS and domain management you did not have to think about",
+    "Any abuse handling, you are the one answering when someone publishes phishing HTML on your host",
+    "Uptime that is not tied to whether you remembered to pay for the VPS",
+    "Polish: previews, asset bundling, versioning, whatever niceties the paid product shipped"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part is not serving HTML, it is serving it fast and cheap from everywhere without becoming a spam relay.",
+  "whyPeopleStillPay": "Because the build is easy and the operations are not. Hosting arbitrary user HTML means dealing with TLS renewal, bandwidth spikes, and the fact that free hosting for arbitrary pages attracts phishing kits within about a week. Paying a few dollars a month to make all of that someone else's pager is a reasonable trade, especially for people who just want to drop an AI-generated page somewhere and send a link.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "If you only ever publish your own pages, a static host plus a folder of files does the same thing for free.",
+  "prompt": "Build a self-hosted single-file HTML publishing service called \"pubbox\".\n\nStack, non negotiable: Node 20, Hono as the HTTP framework, SQLite via better-sqlite3, server-rendered HTML with no frontend framework, plain CSS in one stylesheet. No React, no build step, no bundler.\n\nData model, SQLite table \"pages\": id, slug (unique, 8 char base58, random), title, html (text), created_at, updated_at, view_count.\n\nRoutes:\n- GET / : an editor page with a title input, a large textarea for HTML, and a Publish button. Requires auth.\n- POST /publish : saves the HTML, returns a success page showing the public URL.\n- GET /p/:slug : serves the stored HTML verbatim with Content-Type text/html, increments view_count. No auth. This is the whole point, do not sanitize or wrap the HTML, just serve it.\n- GET /dashboard : lists all pages with title, slug, created date, view count, plus Edit and Delete links. Requires auth.\n- GET /edit/:slug and POST /edit/:slug : re-edit an existing page.\n- POST /delete/:slug : deletes it.\n\nAuth: single user. A bearer token read from ADMIN_TOKEN in .env, checked against a cookie set by a POST /login form that takes just the token. No user accounts, no signup, no email. Public page serving never checks auth.\n\nAlso include: file upload on the editor page (accept .html, read it into the textarea server side), a 1 MB size cap per page with a clear error, and a robots.txt that disallows /p/ so published pages do not get indexed by default.\n\nExplicitly out of scope: custom domains, multi-asset uploads, CSS/JS file hosting, versioning, analytics beyond the view counter, teams, billing.\n\nShip a .env.example with ADMIN_TOKEN and PORT, a README with run instructions, and a Caddyfile snippet for TLS in front of it. No telemetry, no external API calls, no CDN. Make it run with `npm install && node server.js` and create the SQLite file on first boot.",
+  "promptCurated": false
+}
