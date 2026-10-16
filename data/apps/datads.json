@@ -1,0 +1,52 @@
+{
+  "slug": "datads",
+  "name": "DatAds",
+  "domain": "datads.io",
+  "category": "analytics",
+  "subcategory": "ad creative analytics",
+  "tagline": "Creative analytics for paid social: pulls ad account data, tags creatives, and tells you which hooks and formats are actually spending well.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.datads.io/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The analysis itself is not exotic: spend, ROAS, hook rate and thumbstop by creative are all fields the Meta Marketing API hands you, and an LLM can tag creatives by format, angle and hook from the asset plus the ad copy. An agent can get you a local dashboard over your own ad accounts in a sitting, and for a single brand that covers most of the actual job. The gaps are the boring ones: getting a Meta app approved for ads_read, keeping OAuth tokens alive, surviving rate limits and the API's habit of renaming things, and repeating all of that for TikTok and Google. You also lose whatever cross-account benchmarks the vendor has accumulated, which is the part you genuinely cannot rebuild from one ad account. Worth building if you run one or two accounts and like SQL; worth paying for if you run thirty and bill clients for the deck.",
+  "coreLoopDIY": "Syncs your Meta ad account into SQLite nightly, tags each creative with an LLM, and serves a local dashboard ranking creatives, hooks and formats by spend and return.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Meta developer app with ads_read permission on your own ad account",
+    "A long-lived Meta system user token",
+    "An LLM API key for creative tagging",
+    "Python 3.11 and somewhere to run a nightly cron"
+  ],
+  "whatYouLose": [
+    "Cross-account benchmarks, so you only ever see what is working for you, not for the category",
+    "Multi-platform coverage: TikTok, Google and Snap each mean a second and third API integration",
+    "Managed API maintenance when Meta deprecates fields or changes insight breakdowns",
+    "Client-ready reporting, scheduled exports and anything an agency would put in front of a brand",
+    "Alerting on creative fatigue without you writing and tuning the thresholds yourself"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The real friction is Meta API access review and token hygiene, not the analytics. The benchmark corpus is a secondary moat that only matters to agencies comparing across accounts.",
+  "whyPeopleStillPay": "Because performance marketers are not the people who want to debug a Graph API pagination bug at 11pm before a Monday report. The value a tool like this sells is that the numbers are already there, already joined to the creative thumbnail, and already formatted into something you can screenshot into Slack. A self-built version gets the same insights but puts the maintenance of four shifting ad platform APIs on your calendar forever, and agencies in particular are buying the comparison across accounts, which no single-account build can produce.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the Meta app review is a week of waiting and a screen recording of your own tool.",
+  "prompt": "Build a local creative analytics tool for Meta (Facebook/Instagram) ads. Single brand, single user, runs on my machine.\n\nStack, no substitutions:\n- Python 3.11\n- requests for the Meta Marketing API (v21.0 or latest stable)\n- SQLite via sqlite3, file at ./data/datads.db\n- Streamlit for the dashboard\n- python-dotenv for config\n\nScope in:\n1. A sync script `sync.py` that pulls, for a date range given as CLI args:\n   - /act_{AD_ACCOUNT_ID}/ads with fields id, name, adset_id, campaign_id, creative{id,thumbnail_url,object_story_spec,asset_feed_spec}\n   - /act_{AD_ACCOUNT_ID}/insights at level=ad with fields spend, impressions, clicks, purchase_roas, actions, video_play_actions, video_p25/p50/p75/p100_watched_actions, date_start, date_stop\n   - Handle cursor pagination and HTTP 429/613 with exponential backoff.\n   - Upsert into tables: ads, creatives, insights_daily. Primary keys on (ad_id, date_start) for insights.\n2. A tagging script `tag.py` that, for each creative not yet tagged, sends the ad copy plus the thumbnail URL to an LLM (OpenAI, model from .env) and stores a JSON row: format (static/video/carousel), hook_type, angle, offer_present (bool), has_person (bool), one-sentence summary. Cache by creative_id, never re-tag.\n3. Derived metrics in SQL views: ROAS, CPA, CTR, hook_rate (3s views / impressions), hold_rate (p100 / 3s views), spend share.\n4. A Streamlit app `app.py` with: date range picker, a creative leaderboard table with thumbnails sorted by spend, filters by tag, and two rollup tables (performance by hook_type, performance by format) with spend-weighted averages.\n\nScope out: no multi-account support, no TikTok or Google, no user accounts, no hosting, no telemetry, no scheduled emails, no cross-account benchmarks.\n\nSecrets in .env: META_ACCESS_TOKEN, META_AD_ACCOUNT_ID, OPENAI_API_KEY, OPENAI_MODEL. Ship a .env.example and never commit real values.\n\nWrite a README with: how to create a Meta developer app, which permission (ads_read) to request, how to mint a long-lived system user token, and a one-line cron example for nightly sync plus tag. Include a `--dry-run` flag on sync that prints the request URLs and row counts without writing. Fail loudly with the Meta error code and message when the token is expired.",
+  "promptCurated": false
+}
