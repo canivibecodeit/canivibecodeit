@@ -1,0 +1,50 @@
+{
+  "slug": "analisis-tecnico",
+  "name": "Análisis Técnico",
+  "domain": "analisistecnico.com.ar",
+  "category": "finance-accounting",
+  "subcategory": "market data and charting",
+  "tagline": "Subscription technical analysis charts, indicators and signals for Argentine market tickers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://analisistecnico.com.ar/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The charting part is not the hard part: RSI, MACD, moving averages and Bollinger bands are a few hundred lines of pandas, and an agent will emit them correctly on the first try. The hard part is the data, specifically clean, adjusted, reliably updated prices for Argentine equities, CEDEARs and bonds, where free sources are thin, delayed and occasionally just wrong about splits and corporate actions. You can get a surprising distance with free delayed quotes for .BA tickers and build a personal dashboard that screens your own watchlist every evening, which covers the actual use case for most retail users. What you will not get is intraday data, a curated local instrument universe, or anyone to blame when a feed silently breaks for a week. Build it if you trade a dozen tickers you already know; keep paying if your universe is wide or your horizon is intraday.",
+  "coreLoopDIY": "Pulls daily OHLCV for a watchlist of tickers, computes standard indicators, and renders charts plus a simple signal table you check once a day.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A free or cheap price data source that actually covers your tickers",
+    "Tolerance for delayed, end-of-day data",
+    "A machine or small VPS to run the daily refresh"
+  ],
+  "whatYouLose": [
+    "Intraday and real time quotes, you are on end of day delay",
+    "Someone maintaining the local instrument universe: CEDEAR ratios, bond terms, ticker renames",
+    "Corporate action and split adjustment you can trust without checking",
+    "Any commentary, curated watchlists or published analysis that comes with a subscription",
+    "A support channel when the feed breaks mid week"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is local market plumbing, not math. Indicator formulas are public domain; a maintained, adjusted Argentine instrument database is not.",
+  "whyPeopleStillPay": "Because a chart is worthless if the series behind it is wrong, and verifying Argentine price series yourself is a recurring chore rather than a one time build. People pay for the assurance that the data refreshed this morning, that the CEDEAR ratio is current, and that someone else noticed when the exchange changed a ticker. For anyone treating this as a working tool rather than a hobby, a subscription is cheaper than the hours spent debugging a silent data gap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Indicators are free, data hygiene is not; budget your weekend for the second one.",
+  "prompt": "Build a local technical analysis dashboard for a personal watchlist of stock tickers. Empty folder, no accounts, no telemetry, no cloud.\n\nStack, non negotiable: Python 3.11, uv for dependencies, pandas, yfinance for price data, SQLite for the local cache, Plotly for charts, Streamlit for the UI. No React, no separate API server.\n\nData layer:\n- watchlist.yaml at the project root holds a list of tickers with an optional display name and a market suffix, for example GGAL.BA and AAPL.\n- A fetch module downloads daily OHLCV history per ticker with yfinance and upserts into a SQLite table prices(ticker, date, open, high, low, close, adj_close, volume) with a unique index on (ticker, date).\n- Incremental refresh: only request dates after the last stored date per ticker. Full backfill on first run, default ten years.\n- A data health check that flags, per ticker, the last stored date, any gap longer than five trading days, and any single day close move over 30 percent as a possible unadjusted split. Show these as warnings in the UI, do not silently fix them.\n\nIndicators, computed in pandas, no TA library:\n- SMA and EMA for configurable windows, RSI 14, MACD 12/26/9, Bollinger bands 20/2, ATR 14, 52 week high and low distance.\n- Write unit tests for RSI and MACD against a small hardcoded fixture series.\n\nUI, Streamlit, two pages:\n- Chart page: ticker selector, candlestick chart with volume subplot, toggles for each indicator overlay, date range selector.\n- Screener page: one row per watchlist ticker with last close, percent change, RSI, MACD histogram sign, price versus SMA200, and a plain text signal column built from rules defined in a single rules.py file so they are easy to edit.\n\nOps:\n- make refresh runs the fetch and prints a summary table.\n- make run starts Streamlit on localhost.\n- Any API keys go in .env read via python-dotenv, with .env.example committed and .env gitignored.\n\nExplicitly out of scope: intraday data, order execution, broker integration, backtesting, alerts, auth, multi user support. README must state plainly that data is end of day, delayed, unverified, and not investment advice.",
+  "promptCurated": false
+}
