@@ -1,0 +1,53 @@
+{
+  "slug": "agentmail",
+  "name": "AgentMail",
+  "domain": "agentmail.to",
+  "category": "dev-tools",
+  "subcategory": "email API for AI agents",
+  "tagline": "An email API that gives AI agents their own inboxes, with programmatic send, receive and webhooks.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.agentmail.to/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The API surface here is thin: create an inbox, send mail, receive mail, fire a webhook, expose threads to an agent. An agent can wire that up in a session on top of a transactional email provider plus a domain you own, and for one project it will work fine. What you cannot one-shot is deliverability: warmed IPs, SPF/DKIM/DMARC that actually pass, reputation management, and not getting your domain torched the first time an agent loops. If you need one inbox for one bot, build it. If you need hundreds of disposable agent inboxes that reliably land in other people's inboxes, that is an infrastructure problem, not a code problem.",
+  "coreLoopDIY": "A small service that provisions addresses on a subdomain you control, sends via a transactional provider, ingests inbound mail via webhook, and exposes threads over a simple REST API plus tool definitions your agent can call.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A domain you own, with DNS access for MX, SPF, DKIM and DMARC records",
+    "A transactional email provider with inbound parsing (Postmark, Resend, Mailgun or SES plus SNS)",
+    "A public HTTPS endpoint for inbound webhooks",
+    "Postgres or SQLite for threads and messages",
+    "Patience for deliverability debugging"
+  ],
+  "whatYouLose": [
+    "Deliverability as a service: warmed sending infrastructure and reputation you did not have to earn",
+    "Instant disposable inbox provisioning at scale without touching DNS again",
+    "Thread and reply-chain normalization that already handles the ugly real-world MIME cases",
+    "Attachment handling, spam filtering and bounce/complaint processing done for you",
+    "Someone else on the hook when a provider suspends you for agent-generated volume"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part is not the API, it is being a sender that mailbox providers tolerate at agent volumes.",
+  "whyPeopleStillPay": "Because email is a hostile protocol wearing a friendly mask. Sending is easy, landing is not, and inbound parsing has a long tail of encodings, forwarding quirks and broken clients that you will discover one at a time in production. Paying for an agent-native email layer buys warmed infrastructure, inbox provisioning without a DNS ritual per address, and a support channel when Gmail decides your subdomain is a spam farm. If your agent's whole job depends on email actually arriving, that is worth real money.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy and the deliverability is not, which is roughly the whole story here.",
+  "prompt": "Build a self-hosted email API for AI agents. Stack: TypeScript, Fastify, Postgres via Drizzle, Docker Compose for local Postgres. No frontend, no auth UI, no telemetry.\n\nScope:\n1. Inbox provisioning: POST /inboxes creates a record with a generated local part on a fixed domain from env (AGENT_MAIL_DOMAIN), e.g. tidy-otter-4821@agents.example.com. GET /inboxes lists them. DELETE /inboxes/:id soft deletes.\n2. Sending: POST /inboxes/:id/messages accepts to, cc, subject, text, html, inReplyTo. Send via Postmark using POSTMARK_SERVER_TOKEN from .env. Store the outbound message with its Message-ID.\n3. Receiving: POST /webhooks/inbound accepts Postmark inbound webhook JSON, verifies a shared secret in the URL query against INBOUND_SECRET, matches the recipient to an inbox, and stores the message with headers, text body, html body and attachment metadata.\n4. Threading: group messages by normalized subject plus References/In-Reply-To chain into a threads table. GET /inboxes/:id/threads and GET /threads/:id return messages in order.\n5. Agent tooling: expose GET /tools returning OpenAI-style function definitions for create_inbox, send_email, list_threads, read_thread, reply_to_thread. Implement reply_to_thread so it sets In-Reply-To and References correctly.\n6. API keys: single static bearer token from API_KEY in .env, checked by middleware on everything except the webhook route.\n\nExplicitly out of scope: spam filtering, attachment storage (metadata only), IMAP/SMTP servers, multi-tenant billing, a web dashboard.\n\nDeliverables: source, drizzle migrations, docker-compose.yml, .env.example, and a README with the exact DNS records needed (MX for the subdomain, SPF, DKIM, DMARC at p=none to start) plus a curl walkthrough that provisions an inbox, sends a mail, and simulates an inbound webhook with a sample payload. Include a seed script and vitest tests for the threading logic. Warn in the README that deliverability, not code, is the real work.",
+  "promptCurated": false
+}
