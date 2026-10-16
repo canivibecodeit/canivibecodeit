@@ -1,0 +1,52 @@
+{
+  "slug": "emby",
+  "name": "Emby",
+  "domain": "emby.media",
+  "category": "audio-video",
+  "subcategory": "media server",
+  "tagline": "Self-hosted media server that organizes and streams your movies, shows, and music to everything you own.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Emby Premiere",
+    "basis": "subscription, monthly or yearly or lifetime",
+    "unit": "flat",
+    "source": "https://emby.media/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop, scan a folder tree, pull metadata, show a pretty grid, stream the file to a browser, is a genuinely achievable one-shot build. What you cannot one-shot is the long tail: hardware accelerated transcoding for every client, subtitle burn-in, DLNA and Chromecast, live TV and DVR, and native apps on a Roku or an LG TV that your family actually uses. Direct play to a browser works fine; the moment a device cannot handle the codec you are reimplementing an ffmpeg pipeline with fallback logic, and that is where the real engineering lives. Also note Emby's base server is free and Premiere mostly unlocks the apps, hardware transcoding, and sync, which is exactly the part you would be rebuilding. Build it if your library is modern H.264/AAC and your clients are laptops; keep paying if the TV in the living room is involved.",
+  "coreLoopDIY": "Scans a media directory, fetches metadata and artwork from TMDB, and serves a browsable library with in-browser playback and resume positions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine that stays on with the media library mounted",
+    "TMDB API key in .env for metadata and artwork",
+    "ffmpeg and ffprobe installed for duration, thumbnails, and optional transcoding",
+    "Media files named in a way a parser can read, or patience"
+  ],
+  "whatYouLose": [
+    "Native apps on TVs, Roku, Fire Stick, Apple TV, and the phones your household already uses",
+    "Hardware accelerated transcoding, so anything your browser cannot direct play either stutters or dies",
+    "Live TV, DVR, and tuner support",
+    "Offline sync, multi-user profiles with real parental controls, and remote access that just works without you touching port forwarding",
+    "Fifteen years of filename edge cases, anime naming, multi-episode files, and metadata matching that someone else already solved"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "hardware",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the server, it is the twenty client apps and the transcoding matrix behind them.",
+  "whyPeopleStillPay": "People pay for Premiere because the free server already proved the concept and the paid tier removes the annoying parts: the apps on the devices in the living room, hardware transcoding so a 4K HEVC file plays on a phone over LTE, and remote access that does not require a lecture on NAT. A personal build covers one person watching on one laptop. Emby covers a household of people who will absolutely not learn a new interface, on hardware you do not control, with codecs you did not choose.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Jellyfin exists, is free, and is the honest answer if you were going to fork Emby anyway.",
+  "prompt": "Build a self-hosted personal media server, web only, no cloud and no accounts beyond a single local password.\n\nStack, no substitutions:\n- Node 20 with Fastify for the server\n- SQLite via better-sqlite3 for the library index\n- Plain TypeScript and server-rendered HTML with htmx, no React\n- ffmpeg and ffprobe invoked as child processes\n- Everything runs with: npm install, npm run scan, npm start\n\nIn scope:\n1. Config via .env: MEDIA_ROOT, TMDB_API_KEY, APP_PASSWORD, PORT. Never hardcode secrets.\n2. A scanner that walks MEDIA_ROOT recursively, finds video files by extension, and parses titles, years, and SxxExx patterns from filenames into movies and episodes.\n3. For each item, query TMDB for metadata and poster art, cache posters to disk under ./cache/art, and store title, overview, year, runtime, and art path in SQLite. Items with no match are kept as unmatched with the raw filename.\n4. ffprobe each file once for duration, container, video codec, audio codec, and store it.\n5. A library UI: poster grid, filter by movies or shows, search by title, a detail page per item, and a season/episode list for shows.\n6. Playback: HTML5 video tag with HTTP range requests served from the original file. Detect from the stored codec whether the browser can direct play. If it cannot, show an honest message saying transcoding is not supported rather than silently failing.\n7. Resume: store playback position per item in SQLite, write it every 10 seconds, resume on next play.\n8. Subtitle support limited to sidecar .srt and .vtt files next to the video, converted to WebVTT and served as track elements.\n9. Single-password cookie session login, nothing fancier.\n\nOut of scope, do not build: transcoding pipelines, Chromecast, DLNA, live TV, multi-user profiles, mobile or TV apps, remote access, and any telemetry.\n\nDeliver a README that states plainly what plays and what does not, and a seed script that creates a few fake files so the UI can be demoed without a real library.",
+  "promptCurated": false
+}
