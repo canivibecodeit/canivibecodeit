@@ -1,0 +1,51 @@
+{
+  "slug": "storybookai",
+  "name": "StoryBookAI",
+  "domain": "storybookg.com",
+  "category": "generative-media",
+  "subcategory": "AI illustrated children's books",
+  "tagline": "Generates personalized illustrated children's storybooks from a few details about the kid, with print and PDF output.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://storybookg.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is not exotic: an LLM writes an age-appropriate story broken into pages, an image model draws each page, a PDF library glues it together. An agent will get you a working version of that in an afternoon, and the text half will be genuinely good. The part that breaks is visual consistency: keeping the same child, the same dog, the same art style across sixteen spreads is fiddly reference-image and prompt-scaffolding work, and it is the entire reason a paid product feels finished and a DIY one feels like sixteen unrelated drawings. Physical printing and binding is a separate problem you will not solve yourself, you will either accept PDF-only or hand it to a print-on-demand API. Build it for one kid and one birthday and you will be happy; build it as a repeatable gift factory and you will keep fixing faces.",
+  "coreLoopDIY": "Takes a child's name, age, interests and a photo-derived character description, writes a paged story with an LLM, illustrates each page with a shared style and character reference, and exports a print-ready PDF.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key for the story text",
+    "An image generation API key that supports reference images or character consistency",
+    "A few dollars per book in image generation credits",
+    "A print-on-demand API account if you want a physical copy"
+  ],
+  "whatYouLose": [
+    "Character and style consistency that someone else already tuned across dozens of page prompts",
+    "Physical printing, binding and shipping",
+    "Safety and age-appropriateness guardrails on generated text and images, which matter more than usual here",
+    "Curated story templates and page layouts that actually look like a children's book instead of a slideshow",
+    "Reruns and regenerations without you paying attention to per-image cost"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is taste and consistency, not technology. Parents buying a keepsake are unusually unforgiving about a wonky face on page nine.",
+  "whyPeopleStillPay": "Because the product is a gift, and gifts are judged on finish. Nobody wants to spend a weekend debugging prompt scaffolding for a five year old's birthday, and nobody wants to hand over a book where the main character's hair changes color three times. Paying converts an open-ended tinkering project into a thing that arrives in the mail looking like a real book, which is the only output the recipient can see.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great one-off project, mediocre ongoing replacement. Budget your weekend for illustration consistency, not for the story.",
+  "prompt": "Build a local command line tool that generates a personalized illustrated children's storybook as a print-ready PDF.\n\nStack, no substitutions: TypeScript on Node 20, run with tsx. No web server, no database, no accounts, no telemetry. Output goes to ./out.\n\nInputs: a single JSON file ./book.json with fields childName, age, pronouns, interests (array of strings), sidekick (optional string), lesson (optional string), pageCount (default 12), artStyle (a short style description, default \"soft watercolor picture book, warm palette, thick outlines\").\n\nPipeline:\n1. Story pass: call an LLM (OpenAI Responses API, model configurable via env) with a strict JSON schema. Return a title, a one-paragraph character sheet for the child and the sidekick describing hair, clothing, colors and build in concrete visual terms, and exactly pageCount pages. Each page has text of 2 to 4 short sentences at the target reading age, plus an illustrationBrief.\n2. Illustration pass: for each page, build the image prompt as artStyle + character sheet + illustrationBrief + a fixed negative list (no text, no words, no letters in the image). Generate one 1024x1024 image per page. Run them with a concurrency limit of 3 and retry twice on failure.\n3. Consistency: generate page 1's image first, save it as ./out/ref.png, and pass it as a reference/edit input to every later page call so the character carries over. If the image API key does not support reference inputs, fall back to repeating the character sheet verbatim in every prompt and log a warning that consistency will drift.\n4. PDF pass: use pdf-lib to assemble a 8.5x8.5 inch square book. Cover page with title and illustration, then one spread per page with the image filling the top two thirds and the text set below in a large serif face. Embed a real TTF from ./fonts. Write ./out/book.pdf.\n\nAlso write every page image and the raw story JSON to ./out so a bad page can be regenerated alone: support `npm start -- --regen 7` to redo one page and rebuild the PDF.\n\nSecrets: OPENAI_API_KEY and IMAGE_API_KEY in .env, loaded with node's built-in env file support. Ship .env.example, never commit .env.\n\nExplicitly out of scope: physical printing, shipping, payments, a web UI, multi-user anything, photo upload and likeness matching. Print the total estimated API cost per run at the end.\n\nInclude a README with setup, a sample book.json, and one honest paragraph on where character consistency still breaks.",
+  "promptCurated": false
+}
