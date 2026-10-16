@@ -1,0 +1,52 @@
+{
+  "slug": "6sense",
+  "name": "6sense",
+  "domain": "6sense.com",
+  "category": "sales-outreach",
+  "subcategory": "ABM and buyer intent data",
+  "tagline": "Account-based revenue platform that scores accounts on third-party buyer intent signals and pushes them into CRM, ads, and outbound.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://6sense.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard is not the product. What customers pay for is a purchased view into what accounts are researching off your website: bidstream, publisher co-ops, review site traffic, resolved company identity at IP and cookie level. An agent can build you a scoring engine in an afternoon, but it will have nothing to score except your own first-party logs, which you already have. Add the enterprise plumbing on top: CRM and MAP bi-directional sync, ad platform audience push, attribution reporting a CRO will accept, and data processing agreements. This is a data licensing business wearing a SaaS interface.",
+  "coreLoopDIY": "Ingests your own web analytics and CRM exports, resolves visitors to companies where it can, and ranks accounts by a scoring rule set you define.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own web analytics or server logs with IP addresses",
+    "A CRM export with accounts, stages, and close dates",
+    "An IP-to-company enrichment source if you want firmographics, most of the good ones are paid",
+    "Willingness to score only accounts that already touched you"
+  ],
+  "whatYouLose": [
+    "Off-site intent: the whole point, keyword research happening on publisher and review sites you do not own",
+    "Identity resolution at scale, matching anonymous traffic to a specific company with usable accuracy",
+    "Bi-directional sync with Salesforce, HubSpot, Marketo, and Outreach that ops teams trust",
+    "Audience push into LinkedIn and display for coordinated ABM campaigns",
+    "Predictive models trained across many customers' pipelines, plus the reporting sales leadership already argues about"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "integrations"
+  ],
+  "moatNotes": "The data co-op is circular by design: more customers means more observed intent means better signal means more customers. You cannot bootstrap one side of that alone.",
+  "whyPeopleStillPay": "Because nobody buys 6sense for the scoring math, they buy it for the answer to \"which companies are in market right now and have never heard of us.\" That answer requires observing behavior on properties you do not own, which requires either buying bidstream and publisher data or running a co-op large enough that members' own traffic becomes the dataset. Both are capital and contract problems, not engineering problems. On top of that, revenue teams standardize on it: the account scores live in Salesforce fields, feed SLA rules, and get quoted in board decks, so ripping it out means renegotiating how the whole go-to-market org defines a good account.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build the scoreboard in a weekend; you cannot build the league. The moat is licensed and co-op intent data covering the internet you do not own, plus the CRM integrations that make the scores load-bearing.",
+  "prompt": "Build a local first-party account intent dashboard. This is a consolation build: it scores accounts that already touched your properties. It cannot see off-site intent, and it should not pretend to.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, plain CSS. No Node, no build step.\n- Single process, runs with: uvicorn app.main:app --reload\n- Everything local. No accounts, no telemetry, no outbound calls except the optional enrichment described below.\n\nData in, via CSV upload on a /import page:\n- pageviews.csv: timestamp, ip, path, referrer, utm_source, session_id\n- accounts.csv: account_id, company_name, domain, owner, stage, arr\n- contacts.csv (optional): email, account_id, title\n\nWhat to build:\n1. Import: parse CSVs into SQLite tables, idempotent on re-upload, show row counts and rejected rows with reasons.\n2. Resolution: map a pageview to an account by (a) email domain if a session has a form fill, (b) reverse DNS lookup of the IP, (c) an optional ip_to_company.csv the user drops in. Store confidence as high, medium, or low. Leave unresolved traffic unresolved and show the percentage, do not guess.\n3. Scoring: a rules file scoring.yml the user edits, with weighted rules over the last N days: pageview counts, high-value path matches (pricing, docs, demo), session recency, session breadth, distinct contacts. Recompute on demand.\n4. Dashboard at /: ranked table of accounts with score, score delta versus prior period, last touch, top paths viewed, CRM stage, owner. Sortable, filterable by stage and owner.\n5. Account detail page: raw session timeline, which rules fired and for how many points, so the score is auditable.\n6. Export: /export/csv of the ranked list, so it can be pasted into whatever CRM you actually use.\n\nExplicitly out of scope: third-party or bidstream intent data, ad audience push, CRM API sync, predictive ML, multi-user auth.\n\nSecrets, if any enrichment key is used, go in .env read via os.environ, with a .env.example committed and .env gitignored.\n\nInclude seed_demo.py that generates plausible fake CSVs so the dashboard is non-empty on first run, and a README stating plainly that this scores known traffic only.",
+  "promptCurated": false
+}
