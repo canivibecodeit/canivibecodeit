@@ -1,0 +1,52 @@
+{
+  "slug": "higgsfield-ai",
+  "name": "Higgsfield AI",
+  "domain": "higgsfield.ai",
+  "category": "ai-video",
+  "subcategory": "cinematic text/image to video generation",
+  "tagline": "Generative video tool built around cinematic camera moves and preset motion controls, driven by its own models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly subscription with generation credits",
+    "unit": "usage",
+    "source": "https://higgsfield.ai/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface here is thin on purpose: a prompt box, an image upload, a grid of camera moves and effect presets. That part is genuinely a one-shot build. The part you cannot build is the video model behind it, plus the GPU fleet that returns a clip in a couple of minutes instead of a couple of hours on your laptop. Open weights video models exist and are improving fast, but they need real VRAM, they need heavy tuning to stop producing melted faces, and none of them ship with the motion-control presets that are the entire selling point. You can absolutely replace the wrapper and the credit meter; you are still renting somebody else's inference either way.",
+  "coreLoopDIY": "A local shot-list and prompt-library app that queues text or image to video jobs against either a local ComfyUI graph or a hosted video API, then stores every render with its exact settings so you can iterate instead of re-guessing.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with 16GB+ VRAM for local generation, or an API key for a hosted video model",
+    "ComfyUI plus open video model weights if going local",
+    "Disk space, video renders pile up fast",
+    "Patience: local clips take minutes to tens of minutes each"
+  ],
+  "whatYouLose": [
+    "The actual model, which is the product; open weights are behind on motion coherence and faces",
+    "Fast turnaround from a warm GPU fleet instead of your one card thermal throttling",
+    "Curated camera move and effect presets that reliably do what their label says",
+    "Model updates every few weeks without you touching anything",
+    "Anything resembling a mobile or share-a-link workflow"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The preset library is the underrated half: encoding 'dolly zoom' into something a diffusion model obeys consistently is tuning work, not UI work.",
+  "whyPeopleStillPay": "Because the alternative is a weekend of ComfyUI dependency hell followed by a lifetime of eight minute renders that come out slightly wrong. People buying generative video are buying attempts per hour and a decent hit rate, and a subscription converts both into a flat number. The wrapper being simple is a feature of the business, not a weakness in it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the UI in an afternoon and it will sit there generating nothing. The moat is the trained video model and the GPU capacity to run it at conversational speed.",
+  "prompt": "Build a local generative video workbench called ShotDesk. Single user, runs on my machine, no accounts, no telemetry, no cloud database.\n\nStack, non negotiable: Python 3.11, FastAPI backend, SQLite via sqlite3 (no ORM), server rendered Jinja2 templates with a little vanilla JS for polling. No React, no Tailwind CDN, plain CSS in one file.\n\nCore model: a Project has many Shots. A Shot has a title, a text prompt, an optional reference image path, a camera move preset, a duration in seconds, a seed, and many Renders. A Render records the exact settings JSON used, the output video path, status (queued, running, done, failed), timing, and any error text.\n\nGeneration backends, pick at runtime from an env var BACKEND=comfy|fal|mock:\n- comfy: POST a workflow JSON to a local ComfyUI at COMFY_URL, poll its history endpoint, copy the resulting mp4 into ./renders.\n- fal: call a hosted video endpoint using FAL_KEY, download the result.\n- mock: write a 2 second colored placeholder mp4 with ffmpeg so the whole UI is testable with no GPU.\nPut backends in one module each behind a single generate(settings) -> path interface. All secrets in .env, loaded with python-dotenv, and ship a .env.example.\n\nQueue: one background worker thread, one job at a time, jobs survive restart because they live in SQLite. Never block a request on generation.\n\nCamera move presets: ship a presets.yaml with about fifteen named moves (dolly in, orbit left, crane up, handheld follow, whip pan, etc), each mapping to a prompt suffix and optional backend params. Editable by hand, reloaded on boot.\n\nUI, four pages: project list, shot list for a project, shot detail with the prompt editor and a render history grid of inline video players, and a settings page showing which backend is active. Every render card has a 'reroll' button that clones its settings with a new seed and a 'copy settings to new shot' button.\n\nIn scope: prompt versioning, side by side comparison of two renders of the same shot, export a project as a folder of mp4s plus a settings.json manifest, filter renders by preset.\n\nOut of scope, do not build: user auth, payments, model training, upscaling, audio, timeline editing, sharing links, Docker.\n\nInclude a README that states plainly that output quality is entirely the backend model's problem and that mock mode exists so I can build the workflow before I fight with GPU drivers.",
+  "promptCurated": false
+}
