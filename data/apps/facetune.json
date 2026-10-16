@@ -1,0 +1,51 @@
+{
+  "slug": "facetune",
+  "name": "Facetune",
+  "domain": "facetuneapp.com",
+  "category": "photo-editing",
+  "subcategory": "portrait retouching",
+  "tagline": "Mobile selfie and portrait editor for skin retouching, reshaping, teeth whitening and AI relighting.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.facetuneapp.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The mechanics are not mysterious: detect face landmarks, build a skin mask, run an edge-preserving blur, warp a mesh for reshaping, tint teeth and eyes. An agent can wire that up in a browser with MediaPipe and a canvas or WebGL pipeline, and for a single photo you will get results that are recognizably in the same family. Where it falls apart is everything after the first slider: the generative fills, relighting, background swaps and one-tap presets are trained models, not filters, and Facetune's real product is a touch UI tuned over a decade of people dragging a finger across their own jawline. You are also building a desktop web tool to replace a phone app that lives where the photos are. Fine for occasional cleanup, not fine if you edit selfies daily on a train.",
+  "coreLoopDIY": "Load a photo in the browser, auto-detect the face, and apply local retouch operations (skin smoothing, blemish patch, teeth and eye brightening, mesh-based reshaping) with sliders and an export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a modern browser with WebGL2",
+    "MediaPipe Face Landmarker model files served locally",
+    "no accounts or backend, everything runs client side"
+  ],
+  "whatYouLose": [
+    "The iOS/Android app, which is where selfies actually live",
+    "Generative features: relighting, background replacement, AI filters, patch-fill that invents plausible skin",
+    "Touch ergonomics, brush pressure, undo history and pinch-zoom that took years to get right",
+    "One-tap presets and looks that hide the sliders from people who do not want sliders",
+    "Batch consistency across a whole shoot, and any kind of cloud sync of edit history"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The retouch primitives are commodity math. The generative layer and the finger-on-glass feel are not.",
+  "whyPeopleStillPay": "Because the alternative is opening a laptop. Facetune is bought in the ten seconds before someone posts a photo, and in that moment a well-tuned mobile app with sensible defaults beats a self-hosted web tool with eleven sliders you have to remember the meaning of. The subscription is also buying the generative stuff, which is a model problem rather than a code problem, and no one is training a portrait relighting model over a weekend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Perfectly reasonable weekend build if you are editing a headshot once a quarter, and a bad trade if you are editing selfies daily.",
+  "prompt": "Build a local, offline portrait retouching web app. No backend, no accounts, no telemetry, no image uploads: everything runs in the browser.\n\nStack, non-negotiable: Vite + TypeScript + React, plain CSS modules, MediaPipe Tasks Vision (FaceLandmarker) for landmarks, and a WebGL2 shader pipeline via regl for the pixel work. Vendor the FaceLandmarker .task model into /public/models and load it from there so the app works with the network off.\n\nCore flow:\n1. Drag-and-drop or file-picker a JPEG/PNG. Draw it to a canvas at full resolution, with a fitted view and pinch/scroll zoom plus pan.\n2. Run FaceLandmarker once on load. Show a toggleable debug overlay of the landmark mesh.\n3. From the landmarks, build a skin mask: face oval minus eyes, brows, nostrils and lips, feathered at the edges. Cache it as a texture.\n4. Retouch operations, each a shader pass, each with a 0-100 slider, all composited in one render:\n   - Smooth skin: bilateral or guided filter restricted to the skin mask, with a high-frequency detail add-back so it does not look like plastic.\n   - Even tone: local contrast reduction plus slight saturation pull on the skin mask only.\n   - Whiten teeth: desaturate and lift luminance inside the inner-mouth landmark polygon.\n   - Brighten eyes: lift luminance and micro-sharpen inside the iris regions.\n   - Reshape: a triangle-mesh warp driven by a handful of landmark groups (jaw width, chin length, nose width, eye size). Implement as vertex displacement on a Delaunay mesh of the landmarks, not as a global lens distortion.\n5. Blemish tool: click to place a circular patch, sampled from a nearby clean skin offset, blended with a soft feathered edge. Store patches as a list so they are undoable.\n6. Undo/redo stack over all slider values and patches. Before/after press-and-hold compare. Reset button.\n7. Export: render at original resolution to a PNG or JPEG (quality slider) and trigger a download. Also a \"copy settings as JSON\" and \"paste settings\" pair so a look can be reused on another photo.\n\nExplicitly out of scope: any generative feature (background replacement, relighting, AI filters, hair or makeup synthesis), video, multi-face batch editing, cloud sync, sharing.\n\nDeliverables: working app on npm run dev, a README that states the app is fully offline and names the model file it needs, and an .env.example only if you genuinely add a configurable value (you probably will not, so skip it). Ship no secrets, make no network calls at runtime.",
+  "promptCurated": false
+}
