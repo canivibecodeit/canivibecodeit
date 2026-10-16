@@ -1,0 +1,53 @@
+{
+  "slug": "peec-ai",
+  "name": "Peec AI",
+  "domain": "peec.ai",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility tracking",
+  "tagline": "Tracks how often your brand shows up in AI assistant answers, and who gets mentioned instead.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://peec.ai/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of this product is a dashboard over a table of prompts, answers, and brand mentions, and yes, an agent can build that in a weekend. The part that matters is asking thousands of prompts across ChatGPT, Perplexity, Google AI Overviews and friends, repeatedly, from multiple countries, in the same surfaces real users see. That means either paid API calls at real volume or a permanent scraping arms race against products that actively do not want to be scraped. Your local version can hit official APIs and get a directionally useful answer about model knowledge, which is not the same as answer-surface visibility with browsing, personalization and regional variation. And the moment someone asks you for month-over-month trend or competitor share of voice, you need history you never collected.",
+  "coreLoopDIY": "Runs your own prompt list against a few LLM APIs on a schedule, stores every answer in SQLite, and reports brand and competitor mention counts plus cited domains over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API keys for at least two LLM providers with web search or grounding enabled",
+    "A budget for tokens, since useful sampling means repeating prompts many times",
+    "A machine or small VPS that can run a daily cron job for months",
+    "Patience for prompt lists, since the output is only as good as the questions you pick"
+  ],
+  "whatYouLose": [
+    "Coverage of the surfaces people actually use: the ChatGPT app, Perplexity's UI, Google AI Overviews, not just the API versions of those models",
+    "Geographic and locale sampling, which is where a lot of the interesting variance lives",
+    "Historical baseline, so no trend lines until you have been running for a quarter",
+    "Competitor sets, sentiment and citation analysis someone else already tuned",
+    "Somebody else absorbing the breakage every time a provider changes its output or blocks a scraper"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The dashboard is the cheap half. The expensive half is a crawling and sampling pipeline that keeps working after every provider ships a change.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Marketing teams are not paying for mention counting, they are paying for a number they can put in a deck every month without owning a scraping operation. Sampling AI answers properly is high volume, geographically distributed, and permanently adversarial: providers rate limit, rotate layouts, and personalize. A DIY build gives you a real signal about what models say when asked cleanly through an API, which is genuinely useful and much cheaper, but it will not tell you what a customer in Berlin saw in the ChatGPT app last Tuesday. If your whole company is one product in one market, the cheap version may be enough. If someone is being measured on the trend line, they will buy the trend line.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the sampling pipeline is not. The moat is distributed crawling of surfaces that fight back, plus the months of history you cannot backfill.",
+  "prompt": "Build a local AI search visibility tracker. Python 3.12, no framework beyond what is listed.\n\nStack, not negotiable:\n- httpx for API calls, SQLite via the stdlib sqlite3 module, Typer for the CLI, Jinja2 to render a single static HTML report.\n- Everything runs locally. No web server, no accounts, no telemetry, no cloud database.\n\nConfig:\n- config.toml holds: brand name, brand aliases, a list of competitor names, and a list of prompts (plain question strings).\n- .env holds OPENAI_API_KEY, ANTHROPIC_API_KEY, PERPLEXITY_API_KEY. Read with python-dotenv. Ship a .env.example. Providers with a missing key are skipped with a warning, not a crash.\n\nCore loop, command `track run`:\n- For each prompt, for each configured provider, ask the question N times (N from config, default 3, temperature left at provider default).\n- Enable web search or grounding where the provider supports it, and record whether it was on.\n- Store one row per answer: run id, timestamp, prompt, provider, model, raw answer text, token usage, latency.\n- Extract, per answer: whether the brand or any alias appears (case insensitive, word boundary), which competitors appear, the position in characters of the first brand mention, and every URL or domain cited in the answer text.\n- Retry on 429 and 5xx with exponential backoff. Never lose a completed answer because a later call failed: commit as you go.\n\nCommand `track report`:\n- Render report.html: brand mention rate overall and per provider, share of voice against competitors, mention rate per prompt sorted worst first, most cited domains, and a simple line chart of mention rate per run date using inline SVG. No CDN, no JS libraries.\n\nCommand `track answers --prompt` prints the stored raw answers for one prompt so a human can actually read them.\n\nExplicitly out of scope, and say so in the README:\n- Scraping the ChatGPT app, Perplexity's web UI, or Google AI Overviews. No headless browsers, no proxies.\n- Multi-user anything, auth, hosted dashboards, alerting.\n- Sentiment scoring and locale simulation.\n\nAlso write the README with a cost warning: prompts times providers times N times daily is how the bill grows, and a note that API answers are a proxy for, not a copy of, what users see in consumer AI apps. Include pytest tests for the mention extractor using fixed answer strings.",
+  "promptCurated": false
+}
