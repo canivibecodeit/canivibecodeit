@@ -1,0 +1,51 @@
+{
+  "slug": "tableplus",
+  "name": "TablePlus",
+  "domain": "tableplus.com",
+  "category": "databases",
+  "subcategory": "database GUI client",
+  "tagline": "Native desktop client for querying and editing SQL and NoSQL databases.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://tableplus.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. TablePlus sells perpetual licenses with a limited-updates window plus a feature-capped free tier.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Connecting to Postgres, running a query, and rendering rows in a grid is a two-hour build, and an agent will do it well. The hard part is everything around it: a dozen drivers that each lie differently about types, SSH tunnel and SSL cert handling, inline cell editing that generates correct UPDATE statements with the right primary key, safe transaction previews, schema browsing, and a UI that stays responsive on a million-row table. TablePlus is also genuinely fast in a way a browser grid is not, because it is native and because someone spent years on virtualized rendering and keyboard flow. A personal build is very reasonable if you use one or two database engines and mostly read. It becomes a project, not a weekend, the moment you want to edit production data and trust what it does.",
+  "coreLoopDIY": "A localhost web app that saves connection profiles, runs arbitrary SQL against Postgres and MySQL, and shows results in a sortable, virtualized grid with CSV export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ or Bun on your machine",
+    "A Postgres and/or MySQL instance you can reach",
+    "Credentials stored locally in a gitignored file, never committed"
+  ],
+  "whatYouLose": [
+    "Drivers beyond the two you implement: SQL Server, Oracle, SQLite, Redis, MongoDB, Snowflake, BigQuery",
+    "Safe inline editing with generated, previewable UPDATE and DELETE statements",
+    "SSH tunnels, SSL client certs, and the connection plumbing that makes remote databases work without fuss",
+    "Native speed and keyboard flow: multi-tab sessions, instant filters, snappy scroll on huge result sets",
+    "Schema diffing, import/export formats, query history across machines, and the general absence of papercuts"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is not the SQL, it is the long tail of drivers and the fact that it never feels slow.",
+  "whyPeopleStillPay": "Because a database client is a tool you touch forty times a day, and forty times a day is exactly where polish compounds. People pay a one-time license to stop thinking about whether their client will handle a weird enum type, time out on a tunnel, or choke on a 200k-row result. A homegrown grid is fine for your side project's Postgres; it is not fine when you are poking at something that matters and you need the edit to be correct. Also the price is a license, not a subscription, which removes most of the usual motivation to self-host.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Read-only query runner: one sitting. Trustworthy data editing: a different and much longer project.",
+  "prompt": "Build a local-only database client that runs on my machine. No cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Bun + Hono for the backend API, TypeScript\n- React + Vite + Tailwind for the frontend\n- Drivers: `pg` for Postgres and `mysql2` for MySQL, nothing else\n- TanStack Virtual for the result grid, CodeMirror 6 with SQL mode for the editor\n- Single `bun run dev` starts both; app lives at http://localhost:5173 and binds only to 127.0.0.1\n\nIn scope:\n- Connection profiles stored in `./connections.json` (gitignored). Fields: name, engine, host, port, database, user, password, ssl boolean. Passwords can be referenced as `env:VAR_NAME` and resolved from `.env` at connect time.\n- Sidebar listing profiles; clicking one connects and lazily loads schemas, tables, and views\n- Clicking a table opens a tab with `SELECT * FROM table LIMIT 500` already executed\n- SQL editor tab: Cmd+Enter runs the query, or runs only the selected text if there is a selection\n- Result grid: virtualized rows, column headers with detected types, click a cell to see the full value in a side panel, NULL rendered distinctly from empty string\n- Per-connection query history persisted in `./history.json`, searchable\n- Export current result set to CSV and JSON\n- Multiple query tabs, keyboard shortcuts for new tab and close tab\n- Show execution time and row count after each run\n\nOut of scope, do not build:\n- Inline cell editing, schema migrations, or any write UI. Writes happen only through SQL the user typed.\n- SSH tunnels, Kerberos, auth proxies\n- Any driver other than pg and mysql2\n- Auth, multi-user, or anything that listens on a public interface\n\nSafety:\n- Wrap every query in a configurable statement timeout, default 15 seconds\n- Add a per-connection `readOnly` flag; when true, reject statements that are not SELECT, SHOW, EXPLAIN, or WITH ... SELECT, and say so in the UI\n- Never log query text or credentials to disk beyond `history.json`\n\nDeliver a README with setup steps, a `.env.example`, and a seed script that spins up a Postgres container with a 100k-row table so the grid performance is actually testable.",
+  "promptCurated": false
+}
