@@ -1,0 +1,52 @@
+{
+  "slug": "twilio",
+  "name": "Twilio",
+  "domain": "twilio.com",
+  "category": "dev-tools",
+  "subcategory": "communications API (SMS, voice, verification)",
+  "tagline": "Programmable SMS, voice, and verification APIs backed by carrier interconnects in most of the world.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "pay as you go, per message, per minute, per phone number",
+    "unit": "usage",
+    "source": "https://twilio.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "Twilio is not software you are paying for, it is access to the phone network. The API surface is genuinely simple and an agent could clone the REST shape in an afternoon, but behind it sit carrier contracts, phone number inventory, SS7 and SIP interconnects, 10DLC and toll-free registration, STIR/SHAKEN attestation, and per-country sender ID rules. You cannot self-host any of that, and the one thing you could do locally, hanging an Android phone off your own number, gets you throttled or banned for A2P traffic fast. The honest consolation build is a thin provider-agnostic gateway so you are not writing Twilio SDK calls all over your codebase, plus a local sandbox so tests do not cost money. That saves you lock-in, not the bill.",
+  "coreLoopDIY": "A self-hosted send-message and send-code API that fronts whichever real carrier provider you rent, with a local fake transport for development and tests.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An account with at least one real SMS or voice provider, because someone has to touch the carriers",
+    "A rented phone number or alphanumeric sender ID, subject to local registration rules",
+    "A public HTTPS endpoint for delivery receipts and inbound webhooks",
+    "Somewhere to run a small always-on server"
+  ],
+  "whatYouLose": [
+    "Carrier interconnects and phone number inventory in 100+ countries",
+    "A2P 10DLC, toll-free verification, and sender ID registration handled for you",
+    "Voice: PSTN termination, SIP trunking, STIR/SHAKEN caller attestation",
+    "Deliverability engineering, route failover, and per-carrier throughput negotiation",
+    "Compliance paperwork, opt-out handling, and audit trails that survive a carrier complaint"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The API is the thin part. The expensive part is being a legally recognized party to the telephone network in dozens of jurisdictions at once.",
+  "whyPeopleStillPay": "Because there is no self-hosted version of the phone network. Even teams that resent the invoice keep paying, since the alternative is signing carrier agreements per country, registering campaigns, managing sender reputation, and absorbing the day a route silently stops delivering one-time passcodes to a quarter of your users. Twilio is expensive relative to raw wholesale SMS and cheap relative to becoming a telecom company. The realistic saving is not building it yourself, it is shopping providers per route and keeping your code portable enough to switch.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can absolutely rebuild the API shape and stop caring which vendor is behind it. The moat is carrier interconnects, phone number inventory, and the regulatory registration stack in every country you want to reach.",
+  "prompt": "Build a self-hosted, provider-agnostic messaging gateway. This is not a Twilio replacement, it is an abstraction layer so my app never imports a vendor SDK again.\n\nStack, no alternatives:\n- Node 20, TypeScript, Fastify, SQLite via better-sqlite3, Zod for validation, Vitest for tests\n- Single process, no Docker, no cloud services, no telemetry\n- Config from .env only, never commit secrets, ship .env.example\n\nCore API (JSON, bearer token auth from GATEWAY_API_KEY):\n- POST /v1/messages  body: to, body, optional from, optional idempotencyKey. Returns id and status.\n- GET  /v1/messages/:id  returns status history\n- POST /v1/verify/start  body: to, channel=sms. Generates a 6 digit code, hashes it, stores with 10 minute TTL and max 5 attempts.\n- POST /v1/verify/check  body: to, code. Returns approved or rejected.\n- POST /v1/webhooks/:provider  ingests delivery receipts and inbound messages, verifies the provider signature, updates status\n\nTransports, behind one interface send(to, from, body):\n- \"log\": writes to stdout and the DB, the default, used in dev and tests\n- \"http\": generic outbound POST to an SMS provider described entirely by env vars (URL, auth header, field mapping in JSON). Do not hardcode any vendor.\nSelect with TRANSPORT env var.\n\nMust also implement:\n- Outbound queue in SQLite with retry, exponential backoff, and a dead letter table\n- Per-destination rate limit and a global messages-per-second cap\n- Idempotency: same idempotencyKey returns the original message, never sends twice\n- E.164 normalization and rejection of anything that does not parse\n- STOP and UNSUBSCRIBE handling on inbound: mark the number opted out and block future sends to it, with a 403 and a clear error code\n- Structured request logs with message bodies redacted by default\n\nOut of scope, do not attempt: voice calls, MMS, phone number purchasing, carrier registration, a web dashboard.\n\nDeliver: src, migrations, tests covering idempotency, retry, opt-out blocking, and verify expiry, plus a README that states plainly that a real carrier provider is still required.",
+  "promptCurated": false
+}
