@@ -1,0 +1,51 @@
+{
+  "slug": "test-your-app",
+  "name": "Test Your App",
+  "domain": "testyourappnow.com",
+  "category": "dev-tools",
+  "subcategory": "browser testing and session replay",
+  "tagline": "Hosted browser testing: queue a run, watch your app in an emulated browser, get a replayable session recording back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://testyourappnow.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product, a dashboard with a run list and a replay player, is exactly the kind of thing an agent renders competently in an afternoon. The part that actually costs money is underneath: a job queue that hands work to real Chromium instances, rrweb or CDP instrumentation injected into a page you do not control, and streaming that back without the recording desyncing from the DOM. For one person testing their own app on their own machine, none of that needs to be distributed: Playwright plus a SQLite-backed queue plus an rrweb snapshot writer covers the core loop. What you cannot one-shot is the fleet, the browser and OS matrix, and the hundred edge cases where a page breaks the recorder. Call it a weekend, and expect the replay fidelity to be the part that keeps hurting.",
+  "coreLoopDIY": "Submit a URL and a script, a local worker runs it in headless Chromium with rrweb injected, and you get a timeline you can scrub back through.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and Playwright with Chromium downloaded",
+    "A machine willing to keep browsers open, ideally not your laptop on battery",
+    "Disk for recordings, traces and screenshots",
+    "Basic comfort with CDP concepts if replay fidelity matters to you"
+  ],
+  "whatYouLose": [
+    "Real browser and OS coverage: you get whatever Chromium your machine runs, not a matrix",
+    "Concurrency that survives a burst, since a local worker pool is one process away from falling over",
+    "Hardened rrweb handling for iframes, shadow DOM, canvas and cross-origin assets, which is where homegrown replay usually dies",
+    "Shareable hosted links for teammates or clients",
+    "Someone else's problem when Chromium updates and breaks the recorder"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The queue and the browser fleet are the product; the UI is the receipt.",
+  "whyPeopleStillPay": "Because running browsers is boring, expensive and constantly breaking, and nobody wants that job. A personal build is fine while you are testing one app at a time on one machine, but the moment you need ten parallel runs, a stable share link, or a recording that replays correctly on a page with canvas and a cross-origin iframe, you are maintaining infrastructure instead of shipping your app. Paying converts an ongoing maintenance burden into a line item.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a one-shot; the recorder is a long argument with the DOM.",
+  "prompt": "Build a local browser test runner with session replay. Single repo, no cloud, no accounts, no telemetry.\n\nStack, non negotiable:\n- TypeScript, Node 20, pnpm\n- Fastify for the HTTP API and to serve the UI\n- SQLite via better-sqlite3 for jobs and run metadata, WAL mode on\n- Playwright with Chromium for execution\n- rrweb (rrweb-snapshot + rrweb-player) for recording and replay\n- Plain server rendered HTML plus a little vanilla JS. No React, no build step for the UI.\n\nWhat to build:\n1. POST /runs accepts a JSON body: url, optional viewport (width, height), optional deviceScaleFactor, optional userAgent, optional steps array where each step is one of goto, click(selector), type(selector, text), wait(ms), assertVisible(selector). Insert a row into a jobs table with status queued.\n2. A worker inside the same process: a small polling loop that claims one queued job at a time with a transaction, respects a MAX_CONCURRENCY env var (default 2), and marks jobs running, passed, failed or errored.\n3. For each job: launch Chromium, apply viewport and UA, inject the rrweb record bundle via addInitScript so it survives navigation, push events into an in-page buffer, and flush that buffer to the Node side every 2 seconds through an exposed binding. Append events as newline delimited JSON to ./data/runs/{id}/events.ndjson.\n4. Also capture, per run: console messages, page errors, failed network requests, a final screenshot, and a Playwright trace zip.\n5. GET / lists runs with status, duration, url, and a link. GET /runs/:id shows the step results, console log, network failures, and an rrweb-player mounted on the events file streamed from GET /runs/:id/events.\n6. CLI: `pnpm run submit -- --url https://example.com --steps steps.json` posts to the local API so this is scriptable.\n\nExplicitly out of scope, do not build: auth, multi tenancy, public share links, billing, Firefox or WebKit, real device emulation beyond CDP viewport and UA overrides, video encoding, email or Slack notifications.\n\nHonesty requirements:\n- rrweb replay will break on cross origin iframes, canvas and some shadow DOM. Add a KNOWN_LIMITS.md saying so instead of pretending it works.\n- Put PORT, MAX_CONCURRENCY and DATA_DIR in .env with a committed .env.example. No other secrets needed.\n- Include a seed script that runs one job against example.com so I can verify replay works before trusting it.\n\nDeliver a README with exact commands: install, playwright install chromium, migrate, dev, seed.",
+  "promptCurated": false
+}
