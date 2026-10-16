@@ -1,0 +1,52 @@
+{
+  "slug": "crunchyroll",
+  "name": "Crunchyroll",
+  "domain": "crunchyroll.com",
+  "category": "audio-video",
+  "subcategory": "anime streaming",
+  "tagline": "Subscription streaming service for licensed anime, with simulcasts, subs and dubs, plus manga and a store.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per account, tiered by simultaneous streams",
+    "unit": "flat",
+    "source": "https://www.crunchyroll.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "Crunchyroll is not a video player, it is a licensing desk with a CDN attached. The software half is genuinely unremarkable: adaptive streaming, a subtitle renderer, a watchlist, a continue-watching row. The part you cannot type into an agent is the right to distribute several thousand shows an hour after they air in Japan, with translated subtitles in a dozen languages. A one-shot build gets you a nice player for files you already legally own, which is a different product with the same shape. If your goal is watching this season's simulcasts, no amount of code substitutes for the contracts.",
+  "coreLoopDIY": "A self-hosted media server and web player that indexes your own local anime files, parses episode and season numbering, renders external subtitle tracks, and tracks watch progress per profile.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine to run the server on, ideally always-on",
+    "Video files you actually own, the directory is not going to fill itself",
+    "ffmpeg for thumbnails and on-the-fly transcoding",
+    "Enough upstream bandwidth if you want to watch outside the house"
+  ],
+  "whatYouLose": [
+    "Legal access to licensed catalog, which is the entire product",
+    "Simulcasts within hours of the Japanese broadcast",
+    "Professional subtitles and dubs in multiple languages",
+    "Apps on TVs, consoles, phones, and tablets that just work",
+    "A CDN that does not stutter when someone else in the house streams"
+  ],
+  "moatTags": [
+    "content-rights",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "Content rights here are not just exclusivity, they are timing: the value peaks in the 48 hours after an episode airs, which is precisely the window nobody can replicate.",
+  "whyPeopleStillPay": "Because the alternative is either piracy or waiting for a disc release that may never come in your region. People pay Crunchyroll for a legal, immediate, translated pipeline from Japanese broadcast to their couch, plus apps on every screen they own. The subscription price is low enough that building anything to sit alongside it is a hobby project, not a replacement. The only people who genuinely churn are those who finished the three shows they cared about.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The player is a weekend; the catalog is a legal department. The moat is content rights plus simulcast timing, and no agent can negotiate with a Japanese production committee.",
+  "prompt": "Build a self-hosted personal anime library server and web player. Single Node.js project, TypeScript, Fastify for the API, SQLite via better-sqlite3, plain React with Vite for the frontend. No cloud services, no accounts on anyone else's servers, no telemetry.\n\nWhat it does:\n1. Reads a MEDIA_ROOT path from .env and recursively scans it for video files (mkv, mp4, avi).\n2. Parses filenames into series title, season, and episode number. Handle the common release patterns: \"Show Name - S01E04\", \"Show Name - 04\", \"[Group] Show Name - 04 [1080p]\". Put the parser in its own module with unit tests, because it is the only interesting logic here.\n3. Groups episodes into series, stores everything in SQLite: series, episodes, file paths, durations, watch progress.\n4. Extracts a poster frame and a few thumbnails per episode with ffmpeg, cached to disk. Reads duration and embedded subtitle track listings with ffprobe.\n5. Serves video over HTTP with proper Range request support so seeking works. Direct-play the file if the browser can handle it; otherwise remux or transcode on the fly with ffmpeg to fragmented mp4.\n6. Subtitles: serve embedded tracks by extracting to WebVTT on demand, and pick up sidecar .srt and .ass files next to the video. ASS styling can degrade to plain VTT, say so in the UI.\n7. Frontend: a grid of series posters, a series page listing episodes with watched state, and a player page. Player needs keyboard shortcuts (space, arrows, f, m), a subtitle track picker, remembered volume, and resume-from-position. Add a \"Continue watching\" row on the home page.\n8. Multiple viewer profiles, chosen by clicking a name on load. Progress is per profile. No passwords, this runs on your LAN.\n\nExplicitly out of scope: any catalog metadata scraping, any content acquisition, DRM, user registration, mobile native apps, chromecast.\n\nDeliver a working `npm run dev`, a `npm run scan` CLI that indexes the library, a README with the ffmpeg dependency called out, and a .env.example containing MEDIA_ROOT, PORT, and CACHE_DIR.",
+  "promptCurated": false
+}
