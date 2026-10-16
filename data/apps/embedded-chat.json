@@ -1,0 +1,51 @@
+{
+  "slug": "embedded-chat",
+  "name": "Embedded Chat",
+  "domain": "embedded-chat.com",
+  "category": "community",
+  "subcategory": "embeddable group chat widget",
+  "tagline": "A drop-in group chat widget you paste into your own site so visitors can talk to each other in real time.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://embedded-chat.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The chat itself is one of the most well trodden tutorials in software: a websocket server, a message table, a scrolling list, done in an afternoon. What you are actually buying is everything bolted around that loop: hosted sockets that stay up when 400 people pile in, moderation and ban tooling, spam and abuse filtering, presence, and a widget that renders politely inside somebody else's CSS. For a small site with a few dozen friendly users, a self-hosted version is genuinely fine and will cost you a few dollars of VPS. For anything public and anonymous, you will spend your second weekend writing a rate limiter and your third weekend deleting slurs by hand. Build it if the audience is known, pay if the audience is the internet.",
+  "coreLoopDIY": "Runs a websocket chat room with persisted history, nicknames, and a one line embed script you can drop into any page.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS, since websockets do not love serverless",
+    "A domain or subdomain with TLS so the widget can embed on https pages",
+    "Somewhere to put a SQLite file that survives restarts"
+  ],
+  "whatYouLose": [
+    "Hosted socket infrastructure that absorbs traffic spikes without you watching a dashboard",
+    "Moderation tooling: bans, mutes, word filters, reporting, audit trails",
+    "Abuse and spam defence, which is the real cost of any anonymous public chat",
+    "Mobile push and email notifications for messages you missed",
+    "Any AI layer: summaries, auto moderation, assistant replies in the room"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The hard part was never the chat loop, it is staying online and keeping the room habitable while you sleep.",
+  "whyPeopleStillPay": "Because a chat room is a liability as much as a feature. The moment it is public, it attracts spam bots, link farms and the kind of user who tests whether you built a word filter, and a hosted product has already fought that fight across thousands of sites. Add the operational reality that websockets need a process that never dies, and the fact that the widget has to look correct inside every badly written stylesheet on the web, and a few dollars a month starts looking cheaper than owning an uptime pager for a comment box.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Weekend one is the fun part, weekend two is the rate limiter. Budget for weekend two.",
+  "prompt": "Build a self-hosted embeddable group chat, single repo, no accounts and no third party services.\n\nStack, no substitutions:\n- Node 20, TypeScript, Express for HTTP, the ws package for websockets.\n- SQLite via better-sqlite3 for persistence, file path from DATA_PATH in .env.\n- No React. The widget is a single vanilla TS file bundled with esbuild into one small IIFE.\n\nServer:\n- POST-less API, state lives on the socket. Endpoints: GET /embed.js serving the bundled widget, GET /api/history?room=ID returning the last 100 messages, and a /ws websocket endpoint.\n- Messages table: id, room, nickname, body, created_at, ip_hash. Hash IPs with a salt from .env, never store raw IPs.\n- On connect the client sends {room, nickname}; server joins it to an in-memory room map and streams new messages to everyone in that room.\n- Rate limit: max 5 messages per 10 seconds per socket, max 1000 chars per message, reject and send an error frame rather than silently dropping.\n- Simple blocklist: words loaded from blocklist.txt at boot, matched messages are rejected with a reason.\n- Admin: if ADMIN_TOKEN from .env is passed as a query param on the socket, allow delete-message and ban-ip-hash frames.\n\nWidget:\n- Renders into a div with data-room and data-embedded-chat attributes, all styles inlined in a shadow root so the host page CSS cannot touch it.\n- Nickname prompt stored in localStorage, scrolling message list, textarea, enter to send, auto reconnect with backoff.\n- Shows a connection state pill and the current room member count.\n\nExplicitly out of scope: file uploads, threads, reactions, mobile push, email notifications, AI moderation, private DMs, OAuth.\n\nDeliver a README with the embed snippet to paste, a .env.example with DATA_PATH, IP_SALT, ADMIN_TOKEN and PORT, and a docker-compose.yml with a named volume for the database. Add a load test script using autocannon-style socket spam so I can see where it falls over before my users do.",
+  "promptCurated": false
+}
