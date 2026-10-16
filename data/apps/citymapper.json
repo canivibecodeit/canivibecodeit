@@ -1,0 +1,52 @@
+{
+  "slug": "citymapper",
+  "name": "Citymapper",
+  "domain": "citymapper.com",
+  "category": "travel",
+  "subcategory": "transit navigation",
+  "tagline": "Multimodal transit app that routes you across a city using live public transport, bikes, and walking.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://citymapper.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app you see is a thin shell over a very unthin pile of transit data. Citymapper ingests GTFS and realtime feeds from hundreds of agencies, cleans the garbage, reconciles stop IDs that change without warning, and then runs routing across walking, cycling, rail, bus, and ride hailing in one graph. You can absolutely build a personal transit router: OpenTripPlanner plus your city's GTFS feed gets you door to door directions in an afternoon. What you cannot one-shot is the per-city feed maintenance, the disruption handling, the departure accuracy, and the offline mobile experience you need while standing on a platform with no signal. For one city you ride every day, the consolation build is genuinely decent.",
+  "coreLoopDIY": "Runs OpenTripPlanner against your city's GTFS and GTFS-Realtime feeds behind a small web app that gives you door to door multimodal directions with live departure times.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your city's GTFS static feed and, ideally, a GTFS-Realtime endpoint",
+    "An OSM extract for your metro area for walking and cycling legs",
+    "Docker and roughly 4GB of RAM for the OpenTripPlanner graph build",
+    "A geocoder, Nominatim or Photon, for turning addresses into coordinates"
+  ],
+  "whatYouLose": [
+    "Coverage outside the one city you built a graph for",
+    "Realtime disruption alerts and rerouting when a line goes down",
+    "Native iOS and Android apps with offline maps, notifications, and a watch face",
+    "Ride hailing, scooter, and bikeshare dock availability stitched into the same results",
+    "The tuned walking speeds, transfer penalties, and 'which carriage to board' details that make the routes feel human"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The hard part is not routing, it is the hundreds of agency feeds and the humans who keep them from rotting.",
+  "whyPeopleStillPay": "Because transit routing only matters when you are somewhere unfamiliar, in a hurry, and probably underground. Citymapper is worth it precisely in the situations where your weekend build is useless: a city you have never been to, a feed you have never parsed, a line that just closed. Most people use it free anyway, so the paid tier was never really the question.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One city, one graph, one weekend is a real outcome, and it will be good. The moat is hundreds of messy agency feeds and the people paid to keep them from breaking.",
+  "prompt": "Build a self-hosted multimodal transit router for a single city. No accounts, no cloud services, no telemetry.\n\nStack, non negotiable:\n- OpenTripPlanner 2 running in Docker for the routing graph\n- A small Node 20 + TypeScript Express server as a façade over OTP's GraphQL API\n- Plain HTML + MapLibre GL JS for the frontend, no React, no build step\n- Photon (public instance by default, self-hosted optional) for geocoding\n- Everything orchestrated with a single docker-compose.yml\n\nWhat to build:\n1. A scripts/fetch-data.sh that downloads a GTFS zip from GTFS_URL and an OSM pbf extract from OSM_URL into ./data, both read from .env.\n2. A scripts/build-graph.sh that runs OTP's graph builder over ./data and writes graph.obj. Document the RAM requirement in the README.\n3. docker-compose.yml with two services: otp (serving the prebuilt graph on 8080) and app (the Express server on 3000, proxying to otp).\n4. The Express server exposes GET /api/geocode?q= and GET /api/plan?from=lat,lon&to=lat,lon&time=&modes=. It translates to OTP GraphQL and returns a flattened itinerary list: total duration, walk distance, legs with mode, route short name, headsign, departure and arrival times, and encoded polyline.\n5. The frontend: a map, two search boxes with autocomplete from /api/geocode, a mode toggle for TRANSIT / BICYCLE / WALK, a results list of up to 5 itineraries, and the selected itinerary drawn on the map with per-mode leg colors. Clicking a leg zooms to it.\n6. If GTFS_RT_TRIP_UPDATES_URL is set in .env, configure OTP to poll it and surface realtime delays in the leg output as a delaySeconds field, shown in the UI as '3 min late'.\n\nExplicitly out of scope: ride hailing, bikeshare dock availability, push notifications, offline maps, multiple cities, mobile apps, user accounts.\n\nDeliverables: working docker-compose up, a .env.example with GTFS_URL, OSM_URL and optional GTFS_RT_TRIP_UPDATES_URL, and a README that walks through fetching data, building the graph, and starting the stack. Include one worked example in the README using a real open GTFS feed.",
+  "promptCurated": false
+}
