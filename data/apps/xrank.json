@@ -1,0 +1,51 @@
+{
+  "slug": "xrank",
+  "name": "xRank",
+  "domain": "xrank.lol",
+  "category": "social-media",
+  "subcategory": "X account analytics and rankings",
+  "tagline": "Tracks X (Twitter) account stats and ranks accounts against each other on leaderboards.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://xrank.lol/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Half of this is a chart of your own numbers over time, and that half is genuinely a one-shot build: poll an API, write rows to SQLite, draw a line. The other half is the ranking, and a rank only means something if someone is holding the whole field of accounts and their history, which you are not. The real wall is access: X's API tiers are expensive and rate limited, and scraping is a maintenance treadmill you signed up for without reading. So you can replace the dashboard, you cannot replace the leaderboard. Build it if you only ever cared about your own line going up.",
+  "coreLoopDIY": "Polls the X API on a schedule for your handle plus a hand-picked list of rivals, stores daily snapshots in SQLite, and renders growth charts and a private mini-leaderboard.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An X API bearer token, and the honest acceptance that the free tier will not carry a daily poller",
+    "Node 20+ and a place to run a nightly cron (a cheap VPS, a home box, or a scheduled GitHub Action)",
+    "A hand-maintained list of handles you want to compare against"
+  ],
+  "whatYouLose": [
+    "Global percentile rank, which requires a corpus of accounts you will never assemble",
+    "All history from before the day you first ran your cron",
+    "Curated category leaderboards and the discovery of accounts you did not know to watch",
+    "Public shareable rank cards, which is most of why anyone posts about these tools",
+    "Someone else absorbing API costs, rate limit tuning, and endpoint churn"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "scale-infra"
+  ],
+  "moatNotes": "The dataset is the product. A ranking site's asset is the continuous crawl, not the code that sorts it.",
+  "whyPeopleStillPay": "Because ranking is inherently comparative and comparison needs a population. Paying gets you years of collected snapshots across thousands of accounts, plus a number you can screenshot that other people recognize, which is a social artifact and not a technical one. There is also the unglamorous part: keeping a crawler alive against X's shifting access rules and pricing is a standing operational cost, and outsourcing that for a small monthly fee is usually correct.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal build gets you your own trend line within an afternoon, which is probably the only number you check anyway. The leaderboard is the part you are actually renting.",
+  "prompt": "Build a local, single-user X (Twitter) account tracker and private mini-leaderboard.\n\nStack, no substitutions:\n- TypeScript on Node 20, Hono for the HTTP server\n- SQLite via better-sqlite3, file at ./data/xrank.db\n- Server-rendered HTML with a little inline JS, charts via Chart.js from a CDN\n- No React, no Next, no Tailwind build step, plain CSS in one file\n\nWhat it does:\n1. Reads X_BEARER_TOKEN from .env (use dotenv). Never hardcode secrets, commit .env.example only.\n2. Reads ./handles.json, an array of X handles: the first entry is \"me\", the rest are rivals.\n3. A command `npm run snapshot` calls the X API v2 users/by/username endpoint with user.fields=public_metrics for each handle and inserts one row per handle per run into a snapshots table (handle, followers, following, tweet_count, listed_count, fetched_at).\n4. Insert is idempotent per handle per UTC day: re-running the same day updates the row instead of duplicating it.\n5. Handle rate limits and non-200 responses gracefully: log, back off, continue to the next handle, never crash the run.\n6. `npm run serve` starts the web UI on localhost:8787 with two pages:\n   - Dashboard: your follower count, deltas for 1d / 7d / 30d, and a line chart of your history.\n   - Leaderboard: all tracked handles sorted by followers, with 7d growth and 7d growth as a percent.\n7. A `npm run backfill-csv` command that imports a CSV of handle,followers,date so historical numbers from elsewhere can be seeded.\n\nExplicitly out of scope: user accounts, auth, hosted deployment, telemetry, scraping HTML as an API fallback, posting or engagement features, email or push notifications, any global ranking across accounts you did not list yourself.\n\nDeliverables: package.json scripts, schema.sql applied on first boot, handles.json.example, .env.example, and a README with the one caveat stated plainly: this only knows the accounts you list and the history you collect from today forward. Include a sample crontab line for a nightly snapshot.",
+  "promptCurated": false
+}
