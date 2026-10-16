@@ -1,0 +1,52 @@
+{
+  "slug": "xquik",
+  "name": "Xquik",
+  "domain": "xquik.com",
+  "category": "dev-tools",
+  "subcategory": "X / Twitter data collection",
+  "tagline": "A paid monitoring and scraping service that pulls posts off X without you running your own proxy fleet.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://xquik.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Watching a few dozen accounts or keywords and dumping new posts into SQLite is a one-sitting build: X's own web GraphQL endpoints are readable with a borrowed session cookie, and an agent will happily wire the polling loop, dedupe and a webhook. What does not survive is scale. Millions of posts means account pools, residential proxy rotation, rate-limit accounting and someone repairing the extractor every time X changes a field name, and none of that is code you write once. So the personal version is real and useful, the industrial version is a job. Rate the gap by how many posts you actually need, not by how many you imagine needing.",
+  "coreLoopDIY": "Polls X's web endpoints on a schedule for a list of accounts and search terms, dedupes by post ID, stores everything in SQLite and fires a webhook on new hits.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11",
+    "An X account whose session cookies you are willing to burn",
+    "A box that stays on, or a cron host",
+    "Optional: one paid proxy if your home IP gets throttled",
+    "Tolerance for ToS ambiguity and periodic breakage"
+  ],
+  "whatYouLose": [
+    "Proxy and IP rotation, so your throughput ceiling is basically one IP and one account",
+    "Someone else fixing the scraper the morning X ships a change",
+    "Backfill depth: you get posts from the day you start, not history",
+    "Throughput for anything resembling millions of rows",
+    "Any pretense of being sanctioned by the platform, which is also true of the paid option"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the parsing, it is owning enough accounts and IPs that a ban is a rounding error, plus the willingness to keep patching.",
+  "whyPeopleStillPay": "Because the cat-and-mouse tax is continuous and boring. A personal scraper works until it does not, and the failure mode is silent: you notice three weeks later that your dataset stopped in March. Paying someone to absorb the account bans, proxy bills and selector churn is a rational trade the moment your collection matters more than your curiosity, and at a low one-time price the maths gets very easy. The counterweight is trust: you are betting a third party stays alive and honest about coverage, which for a small scraping shop is not a small bet.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Your one-IP scraper is fine for watching fifty accounts and useless for a research corpus. The moat is the account and proxy inventory, not the parser.",
+  "prompt": "Build a local X (Twitter) post collector called xwatch. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Python 3.11, httpx, SQLite via sqlite3, pydantic for config, typer for the CLI, APScheduler for the loop.\n- Single package `xwatch/`, no Docker, no web frontend.\n\nAuth and config:\n- Read X_AUTH_TOKEN, X_CSRF_TOKEN and optional HTTPS_PROXY from .env via python-dotenv. Ship .env.example, gitignore .env.\n- Targets live in targets.yml: a list of handles and a list of search queries, each with a poll interval in minutes.\n\nCore loop:\n- For each handle, call X's web GraphQL UserTweets endpoint with the session cookies and browser-ish headers; for each query, call SearchTimeline. Parse the entry list defensively: if a field is missing, log and skip, never crash the loop.\n- Normalise to a Post model: id, author_handle, author_id, created_at, text, lang, reply_count, repost_count, like_count, view_count, quoted_id, in_reply_to_id, media_urls (list), raw_json.\n- Insert into SQLite with `INSERT OR IGNORE` on id as primary key. Track per-target cursor and last_seen_id so polls stay incremental.\n- On HTTP 429, back off exponentially with jitter and record the rate limit reset from headers. On 401 or 403, stop that target and print a loud message that the session is dead.\n\nOutputs:\n- `xwatch run` starts the scheduler, `xwatch once` does a single pass, `xwatch export --format jsonl|csv` dumps the table, `xwatch stats` prints per-target counts and last success time.\n- Optional WEBHOOK_URL in .env: POST new posts as JSON, batched, with retries.\n\nExplicitly out of scope: proxy pools, account rotation, login flows, solving captchas, historical backfill, media downloading, any dashboard.\n\nWrite pytest tests against saved JSON fixtures for the parser, so the extractor can be repaired without live calls. README: how to grab cookies from a logged-in browser, that this is unofficial and will break, and that one IP plus one account is the throughput ceiling.",
+  "promptCurated": false
+}
