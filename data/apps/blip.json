@@ -1,0 +1,52 @@
+{
+  "slug": "blip",
+  "name": "Blip",
+  "domain": "blip.net",
+  "category": "productivity-utilities",
+  "subcategory": "peer-to-peer file transfer",
+  "tagline": "Send arbitrarily large files directly between your own machines and to other people, without uploading them to a cloud drive first.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://blip.net/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core idea, move a file from machine A to machine B without parking a copy in someone's bucket, is well-trodden ground and an agent can give you a working version fast. The hard parts are not the transfer, they are NAT traversal, relay fallback when hole punching fails, resumable transfers over flaky links, and clients on every OS including phones. A one-shot build gets you a pairing code, a direct connection when the network cooperates, and a sad timeout when it does not. If both ends are your own machines on networks you control, the DIY version is genuinely fine. If you want to send a 40 GB video to a stranger behind corporate NAT on their iPad, you want someone else's relays.",
+  "coreLoopDIY": "Generates a short pairing code on the sending machine, hole-punches or relays a direct encrypted connection to the receiving machine, and streams the file with resume support.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Go toolchain on every machine you want to transfer between",
+    "A cheap VPS with a public IP to run the rendezvous and relay fallback",
+    "Open outbound UDP, which some corporate networks will not give you",
+    "Willingness to run a binary on both ends instead of opening a browser tab"
+  ],
+  "whatYouLose": [
+    "Mobile clients, which is where most incoming file requests actually land",
+    "Reliable relay capacity when direct connection fails, you are now the relay operator",
+    "Polished transfer UI: progress, queueing, retries, drag and drop that nontechnical people can follow",
+    "A link you can send to someone who will not install anything",
+    "Background sync and always-on availability between your devices"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The relay network and the NAT traversal success rate are the product. Everything above that layer is a progress bar.",
+  "whyPeopleStillPay": "Because the failure mode of DIY file transfer is embarrassing in front of other people. Your own tool works great until the recipient is on hotel wifi, or on a phone, or simply will not install a binary from a friend, and then you fall back to a cloud drive anyway. Paid tools in this space are selling a high probability that the transfer just happens, across arbitrary networks and devices, without either side thinking about it. That probability is purchased with relay infrastructure and years of edge-case handling, not with clever code.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great for your own laptop-to-desktop life, awkward the moment a second human is involved.",
+  "prompt": "Build a peer-to-peer file transfer tool called \"hop\" as a single Go binary. No web app, no accounts, no telemetry.\n\nStack: Go 1.22+, standard library plus github.com/libp2p/go-libp2p for transport, NAT traversal and circuit relay. No other heavy dependencies.\n\nBehavior:\n- `hop send ./bigfile.mkv` prints a short human-readable pairing code (three dictionary words) and waits.\n- `hop recv three-word-code` connects to the sender and writes the file into the current directory.\n- Pairing code maps to the sender's libp2p peer ID via a rendezvous server; include `hop rendezvous` as a mode of the same binary so I can run it on my own VPS.\n- Rendezvous address and any shared secret come from .env, loaded with os.Getenv. Ship .env.example, never commit .env.\n- Attempt direct connection first via libp2p hole punching (DCUtR + AutoNAT). Fall back to circuit relay through my rendezvous host if direct fails. Print clearly which path was used.\n- Encrypt in transit with libp2p's built-in Noise. Derive an extra symmetric key from the pairing code so the relay host cannot read payloads.\n- Resume support: receiver sends the byte offset it already has, sender seeks and continues. Verify with a BLAKE3 or SHA-256 hash at the end and refuse to accept a mismatch.\n- Progress on stderr: bytes, percent, current rate, elapsed. Keep it a single rewriting line.\n- Support sending a directory by streaming it as a tar, decided by the sender, with the receiver unpacking into a named folder.\n\nExplicitly out of scope: mobile clients, browser receiving, download links for people without the binary, multi-recipient fanout, background sync, any GUI.\n\nDeliverables: main.go plus a small internal/ package layout, a Makefile with `make build` cross-compiling for darwin/arm64, linux/amd64 and windows/amd64, a README with the three commands and a one-paragraph note on how to run the rendezvous host, and table-driven tests for the chunking, resume offset and hash verification logic. Make the relay fallback path actually testable with a local rendezvous instance.",
+  "promptCurated": false
+}
