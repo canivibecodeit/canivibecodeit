@@ -1,0 +1,52 @@
+{
+  "slug": "expo",
+  "name": "Expo",
+  "domain": "expo.dev",
+  "category": "dev-tools",
+  "subcategory": "React Native build and release infrastructure",
+  "tagline": "Toolchain and hosted build, update, and store submission service for React Native apps.",
+  "priceMonthly": 99,
+  "pricing": {
+    "plan": "Production",
+    "basis": "monthly per organization plus metered usage",
+    "unit": "usage",
+    "source": "https://expo.dev/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Base subscription plus overages on build minutes and update bandwidth."
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Most of Expo is already free and open source: the SDK, the CLI, expo-updates, the config plugin system. What you pay for is EAS, which is a farm of macOS machines that compile your iOS app, a credential vault that handles provisioning profiles and signing keys without you crying, and a CDN that ships over-the-air updates to installed apps. An agent cannot one-shot a Mac build farm or an Apple Developer account. You can self-host the update server, and that part is genuinely a weekend, but the build and submit half needs hardware, Xcode, and store credentials no matter how good the code is. The honest consolation build is an OTA update server that speaks the expo-updates protocol, pointed at bundles you export yourself.",
+  "coreLoopDIY": "Runs a self-hosted expo-updates server that serves signed manifests and asset bundles to your installed app, so you can ship JS-only updates without EAS Update.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "An Apple Developer account and a Google Play developer account if you ever want to ship to stores",
+    "A Mac with Xcode for iOS builds, or self-hosted macOS CI",
+    "A code signing keypair for update manifests",
+    "Somewhere to host static assets, local disk or an S3 bucket"
+  ],
+  "whatYouLose": [
+    "Hosted iOS builds: no Mac, no ipa, and renting macOS CI is its own monthly bill",
+    "Managed credentials: you now babysit provisioning profiles, push keys, and keystores by hand",
+    "Store submission automation, build queues, and the dashboard your whole team reads",
+    "Rollouts, channels, and rollback UX for updates, which you will reimplement badly at least once",
+    "Support and a vendor to blame when an SDK upgrade breaks the native build"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The SDK being open source is the clever part: the free tier makes the paid infrastructure feel inevitable rather than extractive.",
+  "whyPeopleStillPay": "Because the alternative to EAS is owning the mobile release pipeline, and that pipeline is mostly Apple's rules plus a machine you have to keep on. Teams pay 99 dollars a month to not maintain a Mac mini in a closet, not learn fastlane, and not debug why a certificate expired at 2am before a launch. The update CDN is a nice-to-have; the signing and build orchestration is the thing nobody wants to own twice.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The update server is a weekend; the build farm is a purchase order. The moat is owning macOS hardware at scale plus the credential plumbing Apple forces on everyone.",
+  "prompt": "Build a self-hosted OTA update server for an Expo app, compatible with the expo-updates protocol.\n\nStack, no substitutions:\n- TypeScript, Node 20, Fastify\n- Local filesystem storage for update bundles under ./storage, with a STORAGE_DIR env var\n- No database. Directory layout is the source of truth.\n- No accounts, no telemetry, no cloud services\n\nWhat it does:\n1. Serve GET /api/manifest with headers expo-runtime-version, expo-platform, and expo-channel-name. Respond with a multipart/mixed response containing the manifest part, exactly as expo-updates expects, including id, createdAt, runtimeVersion, launchAsset, assets, and metadata.\n2. Sign the manifest with an RSA private key loaded from PRIVATE_KEY_PATH and emit the expo-signature header. Document how to put the matching public key in app.json under updates.codeSigningCertificate.\n3. Serve assets from GET /assets/:hash with correct content types and immutable cache headers.\n4. Provide a CLI, ./bin/publish.ts, that takes a directory produced by `npx expo export --platform all`, reads dist/metadata.json, copies assets into content-addressed storage, writes an update record into storage/updates/:runtimeVersion/:channel/:timestamp/, and prints the new update id.\n5. Support channels: production, staging, and anything else the caller names. Latest update in a channel wins.\n6. Provide ./bin/rollback.ts that marks the newest update in a channel as inactive so the previous one is served again.\n\nAlso build a tiny read-only status page at GET / listing channels, runtime versions, and the active update for each. Plain server-rendered HTML, no client framework.\n\nOut of scope, do not attempt: native builds, Xcode, fastlane, store submission, credential management, user auth, partial or differential updates, web dashboards with login.\n\nSecrets in .env: PORT, STORAGE_DIR, PRIVATE_KEY_PATH. Ship a .env.example.\n\nDeliver a README with the exact app.json updates block to point a real Expo app at this server, plus a curl example that fetches a manifest for ios on the production channel.\n\nWrite integration tests with node:test that publish a fixture export, fetch the manifest, verify the signature, and confirm rollback changes which update is served.",
+  "promptCurated": false
+}
