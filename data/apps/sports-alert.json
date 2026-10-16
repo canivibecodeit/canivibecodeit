@@ -1,0 +1,52 @@
+{
+  "slug": "sports-alert",
+  "name": "Sports Alert",
+  "domain": "sportsalert.ai",
+  "category": "monitoring",
+  "subcategory": "sports notifications",
+  "tagline": "An alerting service that pings you about your teams' games, scores, and in-game swings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sportsalert.ai/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The logic here is not hard: poll a scoreboard endpoint, diff the state against what you saw last time, fire a push notification when something crosses a rule you care about. An agent can write that in an afternoon and it will work for your three teams in one league. The part that is not free is the data: public endpoints are undocumented, rate-limited, and quietly reshaped, and real low-latency feeds across many leagues cost money and come with terms. So you get the alerts you personally want, and you lose breadth, sub-minute latency, and the guarantee that it still works next season.",
+  "coreLoopDIY": "Polls a public sports scoreboard API on a schedule, diffs game state against the last snapshot, and pushes a notification when your configured rules fire.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite",
+    "A sports data source: public league scoreboard JSON or an API key from a feed provider",
+    "A push channel: Telegram bot token or an ntfy topic",
+    "Something that stays awake to run the poller: a always-on box, a VPS, or a scheduled cloud job"
+  ],
+  "whatYouLose": [
+    "Multi-league, multi-sport coverage out of the box instead of the one league you wired up",
+    "Low latency: polling every 60 seconds means you hear about the buzzer beater after the group chat does",
+    "A real mobile app with proper push, notification grouping, and per-team mute",
+    "Someone else fixing it when a league changes its endpoint mid-season",
+    "Curated event types you did not think of: line moves, injury news, lineup drops, playoff scenarios"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the diffing logic, it is paid feed access plus the boring work of keeping fifty scrapers alive through schedule changes.",
+  "whyPeopleStillPay": "Because sports alerting is a latency and coverage product, not a features product. Nobody wants to babysit a cron job in October, and the moment your scraper silently 404s during a playoff run the whole thing is worth zero. Paying a few dollars a month so that someone else eats the feed contracts, the rate limits, and the 3am schema change is a rational trade for most people, especially anyone who follows more than one sport.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine weekend build if you follow exactly one league and tolerate a minute of lag.",
+  "prompt": "Build a personal sports alerting daemon. Stack: TypeScript on Node 20, SQLite via better-sqlite3, no framework, no web UI beyond one tiny status page.\n\nWhat it does:\n1. Reads config from config.yaml: a list of teams (league + team id or name), and a list of alert rules.\n2. Every 60 seconds, fetches the current scoreboard JSON for each configured league from a public endpoint. Put the endpoint URL patterns in src/providers/ so they are easy to swap when they break. Ship one provider implemented against the public ESPN scoreboard JSON (site.api.espn.com style paths) and define a Provider interface so another can be added.\n3. Normalizes every game into a Game record: gameId, league, startTime, status (pre, live, final), period/clock, homeTeam, awayTeam, homeScore, awayScore.\n4. Stores the latest snapshot per gameId in SQLite, and diffs the new snapshot against the stored one.\n5. Evaluates rules against the diff. Implement these rule types: game_starting (fires N minutes before startTime, configurable), score_change (any change), lead_change, close_game (margin under X in the final Y minutes of the final period), final_score, and upset (final where the team you follow beats a team flagged as favored in config, keep this dumb and config-driven).\n6. On a fired rule, sends a notification and records it in a sent_alerts table keyed by (gameId, ruleId, dedupeKey) so nothing sends twice, ever, even across restarts.\n\nNotifications: implement two senders behind one interface, Telegram (bot token + chat id) and ntfy (topic URL). Secrets in .env, loaded with node's built-in env file support or dotenv. Pick the sender via config.\n\nReliability requirements, do these properly:\n- Backoff and retry on fetch failure, cap at 5 tries, log and skip the cycle rather than crashing.\n- If a provider returns unparseable JSON, log the raw body to a file in ./debug and keep running.\n- Never poll a league that has no games in the next 12 hours; sleep it out to save requests.\n- A --once flag that runs a single cycle and exits, for cron users.\n- A --dry-run flag that prints notifications to stdout instead of sending.\n\nAlso build: a single GET / status page on localhost:8787 (node http, no express) showing tracked games, last poll time per league, and the last 20 alerts sent.\n\nOut of scope, do not build: user accounts, multi-tenant anything, a mobile app, betting odds, telemetry, Docker orchestration, or any paid API integration. One user, one machine.\n\nDeliver: README with setup steps, config.yaml.example, .env.example, npm scripts for dev/start/once, and vitest tests for the diff and rule engine using fixture JSON checked into ./fixtures.",
+  "promptCurated": false
+}
