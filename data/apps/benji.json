@@ -1,0 +1,51 @@
+{
+  "slug": "benji",
+  "name": "Benji",
+  "domain": "benji.so",
+  "category": "personal-finance",
+  "subcategory": "spend tracking and budgeting",
+  "tagline": "A consumer money app for tracking accounts, spending and recurring charges in one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://benji.so/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The dashboard part of a personal finance app is genuinely easy: import transactions, categorize them, show monthly totals, flag things that repeat every 30 days. An agent will get you there in a sitting, and your rules will beat any generic categorizer because you know what \"AMZN MKTP\" actually was. The part you cannot one-shot is the bank connection, which means Plaid or a competitor, an application process, per-connection fees and a lifetime of institutions breaking their OAuth flows. Downloading CSVs once a month works fine and costs nothing, it just requires you to be the kind of person who downloads CSVs once a month.",
+  "coreLoopDIY": "A local web app that ingests bank and card CSVs into SQLite, categorizes them with rules you write, and shows monthly spend plus detected recurring charges.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a local machine you trust with your transaction history",
+    "CSV exports from each bank or card you care about",
+    "optional: a Plaid developer account if you want real sync, plus patience"
+  ],
+  "whatYouLose": [
+    "Automatic bank sync, so your data is only as fresh as your last CSV download",
+    "A phone app that shows you a balance while you are standing in a store",
+    "Decent out of the box merchant naming and categorization, which is quietly a lot of curated data",
+    "Someone else worrying about credential storage, encryption and breach liability",
+    "Shared household views, alerts and any nudge that arrives when you are not already looking"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the charts, it is the aggregator contract, the merchant enrichment data and the security posture that makes people paste bank credentials at all.",
+  "whyPeopleStillPay": "Because the value of a money app is that it is already there when you open your phone, with clean merchant names and yesterday's transactions, without you doing anything. A local CSV dashboard delivers the same insight but demands a monthly chore, and personal finance tools die the moment they demand a chore. People pay a few dollars a month to outsource the ingestion problem and the discipline problem at once.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The charts are a weekend; the freshness is not. Bank aggregation plus merchant enrichment is what you are actually renting.",
+  "prompt": "Build a local-only personal finance tracker. No accounts, no cloud, no telemetry, no bank APIs.\n\nStack, not negotiable:\n- Next.js with the App Router, TypeScript, Tailwind\n- SQLite via better-sqlite3, file at ./data/money.db\n- Recharts for charts\n- Runs with `npm run dev` on localhost only\n\nData model:\n- accounts: id, name, type (checking, credit, savings)\n- transactions: id, account_id, date, description, raw_description, amount (negative = spend), category, is_transfer, import_hash (unique)\n- rules: id, pattern (case-insensitive substring or /regex/), category, priority\n\nFeatures, in scope:\n1. CSV import page: upload a file, pick the account, then map columns (date, description, amount) in a preview table. Support amount as one signed column or separate debit and credit columns. Dedupe on a hash of account + date + amount + raw_description.\n2. Rules engine: apply rules in priority order on import and on demand via a \"recategorize all\" button. Uncategorized transactions land in \"Uncategorized\".\n3. Transactions table: filter by month, account, category, and free text. Inline category edit. Editing a category offers \"also create a rule for this description\".\n4. Dashboard: current month spend by category (bar), spend over the last 12 months (line), net cash flow, top 10 merchants. Exclude rows flagged is_transfer from all spend math.\n5. Recurring detection: group by normalized description, flag groups with 3 or more charges at roughly 7, 14, 30 or 365 day intervals with similar amounts. List them with cadence, last charge and estimated annual cost.\n6. Seed a starter rules file (groceries, rent, utilities, transport, restaurants, subscriptions) that I can edit as JSON.\n\nOut of scope: Plaid or any aggregator, multi-user, budgets with rollover, investments, mobile app, auth.\n\nAny secrets go in .env with a committed .env.example. Add ./data to .gitignore. Ship a README with a two-command setup, the CSV formats you tested, and a note that the database is unencrypted plain SQLite on my disk.",
+  "promptCurated": false
+}
