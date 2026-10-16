@@ -1,0 +1,52 @@
+{
+  "slug": "sleep-cycle",
+  "name": "Sleep Cycle",
+  "domain": "sleepcycle.com",
+  "category": "wellness",
+  "subcategory": "sleep tracking and smart alarm",
+  "tagline": "Phone-based sleep tracker that listens and moves with you overnight, then wakes you during a light sleep window.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Premium",
+    "basis": "annual subscription, single user",
+    "unit": "flat",
+    "source": "https://sleepcycle.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is less magic than the marketing implies: sample the microphone and accelerometer overnight, score restlessness per minute, then fire the alarm at the quietest moment inside a 30 minute window before your deadline. An agent can build that in Expo in a weekend and it will genuinely work if you keep the phone plugged in with the app in the foreground. What you will not get is trustworthy sleep staging, because Sleep Cycle's phase curves are tuned against a very large private corpus of nights and their own audio classifiers. You also inherit mobile platform pain: background execution limits, alarms that must beat silent mode, and battery drain. Fine as a personal smart alarm, weak as a sleep science instrument.",
+  "coreLoopDIY": "Records mic loudness and accelerometer movement all night on-device, plots a restlessness curve, and rings the alarm at the lightest-looking minute inside your chosen wake window.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A phone you are willing to leave plugged in and unlocked overnight",
+    "Expo Go or a dev build, plus Xcode or Android Studio if you want a real installable app",
+    "Mic and motion permissions",
+    "Tolerance for one or two nights of alarm testing before you trust it"
+  ],
+  "whatYouLose": [
+    "Validated sleep stage estimates; yours is a restlessness heuristic with a nicer chart",
+    "Snore, cough and sleep talk detection with audio clips you can replay",
+    "Years of history, trends and comparisons against population baselines",
+    "Apple Health and Google Health Connect sync, wearable input, and the polished onboarding",
+    "Alarm reliability engineering: silent mode, Do Not Disturb, backgrounding, low battery edge cases"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The audio classifiers and staging curves are trained on an enormous pile of nights nobody else has. The alarm reliability work is unglamorous and much harder than the chart.",
+  "whyPeopleStillPay": "Because an alarm is a thing you have to trust before you fall asleep, and a weekend build does not earn that on night one. People also pay for the accumulated record: a year of graphs, snore clips, and trend lines that make the subscription feel like a diary you cannot regenerate. The DIY version is a perfectly good smart alarm, but it starts empty and it will occasionally fail to ring because iOS decided otherwise, which is the one bug that ends the experiment.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The smart alarm is a moving average with a good UI; the sleep staging is not.",
+  "prompt": "Build a personal sleep tracker and smart alarm as a single Expo React Native app (TypeScript, expo-router). Everything runs on-device. No accounts, no backend, no analytics, no telemetry.\n\nStack, no substitutions:\n- Expo SDK with expo-router, TypeScript\n- expo-av for microphone metering, expo-sensors (Accelerometer) for movement\n- expo-sqlite for storage, expo-keep-awake to hold the screen on\n- expo-notifications only for a fallback backup alarm\n- react-native-svg for charts\n\nCore loop:\n1. Home screen: pick a target wake time and a wake window in minutes (default 30). Big \"Start night\" button.\n2. Night mode screen: keep awake on, screen dimmed to near black, shows a clock and elapsed time. Every 30 seconds sample (a) mic metering peak dB via a low-quality recording session, (b) accelerometer magnitude variance over a 3 second burst. Write rows to SQLite: timestamp, dbPeak, motionScore.\n3. Compute a rolling restlessness score = normalized weighted sum of dbPeak and motionScore over a 10 minute window.\n4. Smart alarm: starting at (targetWake minus window), check every sample. Ring at the first local maximum of restlessness above a threshold, otherwise ring exactly at targetWake. Play a looping sound at full volume with the audio session configured to play even in silent mode; require a slide-to-dismiss gesture.\n5. Morning summary: time in bed, restlessness curve as an SVG area chart, longest quiet stretch, and a note field.\n6. History list of past nights, tap for that night's chart. Export all rows as CSV via expo-sharing.\n\nExplicitly out of scope: cloud sync, sleep stage labels (do not pretend to output REM or deep sleep, label the axis \"restlessness\"), snore classification, Health integrations, wearables, background execution when the app is killed.\n\nRequirements: handle permission denial gracefully, discard audio buffers immediately after reading the level so no recordings are ever persisted, and say so on the permissions screen. Any config in .env. Include a README with the calibration caveat: the threshold needs tuning over a few nights, and the phone must stay plugged in with the app open.",
+  "promptCurated": false
+}
