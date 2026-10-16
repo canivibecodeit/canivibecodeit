@@ -1,0 +1,51 @@
+{
+  "slug": "offprint",
+  "name": "Offprint",
+  "domain": "getoffprint.com",
+  "category": "read-it-later",
+  "subcategory": "e-reader digests",
+  "tagline": "Bundles newsletters and saved articles into a clean periodical you read on a Kindle or e-reader instead of a browser tab.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getoffprint.com/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Every piece of this is a solved problem with a library behind it: fetch feeds, pull newsletters out of a mailbox over IMAP, run the HTML through a readability extractor, write an EPUB, email it to your Kindle address on a schedule. None of it needs a network of other users, and the output is a file you own. The honest work is not the code, it is the long tail: sites that block scrapers, newsletters that are one giant table of images, and the day your send address silently stops being approved. A one-session build gets you a Sunday digest that lands on the device, which is the whole point of the product. You will spend more evenings than you expect tuning extraction for the four publications you actually read.",
+  "coreLoopDIY": "Pulls your RSS feeds and a dedicated newsletter mailbox on a cron, extracts readable article text, compiles one EPUB with a table of contents, and emails it to your e-reader.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A machine or small VPS that can run a cron job",
+    "An SMTP account for outbound delivery, added to your Kindle approved sender list",
+    "A dedicated email address with IMAP access for newsletter subscriptions",
+    "Your Kindle or e-reader send-to address"
+  ],
+  "whatYouLose": [
+    "A hosted ingest address you can subscribe with in one click, instead of babysitting your own mailbox",
+    "Deliverability that someone else fixes when Amazon changes the rules again",
+    "Extraction and typography that has already been beaten against thousands of messy publications",
+    "Cover pages, issue numbering, and layout polish that make the output feel like a magazine rather than a dump",
+    "Any recovery path when your VPS reboots and the digest just quietly stops arriving"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is taste plus a thousand extraction edge cases, not technology. That erodes fast once you only care about your own six feeds.",
+  "whyPeopleStillPay": "Because the failure mode of the DIY version is silence. A paid digest service either shows up in your library on Sunday morning or you complain and someone fixes it, whereas your own pipeline breaks on a cert error and you find out three weeks later when you notice you have not read anything. There is also real craft in making arbitrary web HTML look decent on e-ink, and most self-built EPUBs look like a wall of unstyled paragraphs with inline ads still in them.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is a Sunday afternoon; keeping it alive is a small ongoing hobby.",
+  "prompt": "Build a self-hosted \"personal periodical\" tool in an empty folder. No accounts, no cloud services, no telemetry.\n\nStack, no substitutions: TypeScript on Node 20, Fastify for a tiny local admin UI, better-sqlite3 for state, rss-parser for feeds, imapflow for newsletter ingest, @mozilla/readability plus jsdom for article extraction, epub-gen-memory to write the EPUB, nodemailer for delivery, node-cron for scheduling.\n\nIn scope:\n1. A sources table: RSS/Atom feed URLs, plus an IMAP mailbox config for newsletters. Seed it from a sources.json file.\n2. A poller that runs hourly, fetches new feed items, and fetches unread mail from the IMAP inbox. Store each item once, keyed by URL or message-id, so nothing is ever duplicated across issues.\n3. Extraction: for feed items with truncated content, fetch the article URL and run Readability. For newsletters, use the HTML body directly. Strip tracking pixels, share widgets, subscribe footers, and anything with \"unsubscribe\" in the link text. Downscale and inline images as base64 with a hard 400KB per image cap, drop images larger than that.\n4. A compiler that on a cron schedule (default Sunday 06:00 local, set in .env) takes all unsent items, sorts them by source then date, and writes one EPUB with a cover page showing the issue number and date range, a table of contents, and a per-article header line with source name and original URL.\n5. Delivery: email the EPUB as an attachment to KINDLE_ADDRESS via SMTP. Mark items sent only after the send resolves. Retry twice with backoff, then log a loud failure.\n6. A single admin page at localhost:8080: list sources, add/remove a source, show the pending item count, buttons for \"build issue now\" and \"send last issue again\", and the last 20 log lines.\n7. A stylesheet tuned for e-ink: serif body, generous line height, no color, no background images, page break before each article.\n\nOut of scope: mobile app, multi-user support, a hosted ingest address, web reader, highlights, sync back from the device.\n\nSecrets in .env only: IMAP_HOST, IMAP_USER, IMAP_PASS, SMTP_HOST, SMTP_USER, SMTP_PASS, KINDLE_ADDRESS, ISSUE_CRON. Ship .env.example.\n\nWrite a README that explains how to add the SMTP sender to the Kindle approved list, and note that this is the step most likely to break later. Include one vitest test that compiles a fixture of three saved articles into a valid EPUB without hitting the network.",
+  "promptCurated": false
+}
