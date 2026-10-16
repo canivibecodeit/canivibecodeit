@@ -1,0 +1,53 @@
+{
+  "slug": "pocketsflow",
+  "name": "Pocketsflow",
+  "domain": "pocketsflow.com",
+  "category": "creator-commerce",
+  "subcategory": "digital product checkout and payments",
+  "tagline": "Hosted storefront and checkout for selling digital products, subscriptions and courses, with the payment and tax plumbing handled for you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://pocketsflow.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Products in this space usually price as a cut of each transaction rather than a flat monthly fee.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible surface here is a product page, a checkout form and a downloads dashboard, and an agent will happily generate all of it before lunch. The part you cannot generate is being allowed to take strangers' money: acquiring a merchant account, passing risk review, handling chargebacks, calculating and remitting VAT and US sales tax in dozens of jurisdictions, and absorbing the fraud losses when someone tests stolen cards against your store. Merchant of record is the entire product, and it is a legal posture, not a feature. You can absolutely self-host a store that points at your own Stripe account, and for a small catalog in one tax regime that is genuinely fine. The moment you sell to the EU at any volume, the invoice you avoided paying reappears as an accountant.",
+  "coreLoopDIY": "A self-hosted storefront that lists your digital products, takes card payments through your own Stripe account, and emails buyers a signed expiring download link.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own Stripe account with payouts enabled",
+    "A domain and somewhere to host a small Node app",
+    "S3 or R2 bucket for the files you sell",
+    "Transactional email provider for receipts and download links",
+    "A plan for VAT and sales tax, meaning an accountant or Stripe Tax"
+  ],
+  "whatYouLose": [
+    "Merchant of record: tax registration, collection and remittance become your personal legal problem",
+    "Chargeback and fraud handling, including the part where a card network decides you are too risky",
+    "Subscription dunning, retries, proration and cancellation flows that took someone years to get right",
+    "Global payment methods beyond cards, plus local currency pricing",
+    "Affiliate tracking, coupon logic, abandoned cart recovery and the analytics that come free with a hosted platform"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "Payments companies are compliance companies wearing a checkout page. The code is the cheap part.",
+  "whyPeopleStillPay": "Because a percentage of revenue is a rounding error next to the cost of registering for VAT in the EU, filing quarterly in a handful of US states, and personally arguing with a bank about a chargeback on a 19 dollar ebook. Creators buy this to keep the tax authority's letters addressed to somebody else, and to have working subscription billing on day one instead of month three. The self-hosted version is real and it works, right up until the volume is high enough that the compliance you skipped starts to matter, which is exactly when you would have been happy to pay the fee anyway.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is a weekend, the checkout is an afternoon, the compliance is a career. The moat is merchant of record status: tax registrations, fraud liability and a bank willing to underwrite strangers selling files to strangers.",
+  "prompt": "Build a self-hosted digital product store called Shopfront. One repo, no accounts system for buyers.\n\nStack, no substitutions:\n- Next.js with the App Router, TypeScript, Tailwind.\n- SQLite via Drizzle ORM, file at ./data/shop.db.\n- Stripe for payments using the official node SDK.\n- Cloudflare R2 (S3-compatible) for product files, accessed with the AWS S3 client.\n- Resend for transactional email.\n- All secrets in .env.local: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, RESEND_API_KEY, ADMIN_PASSWORD, PUBLIC_URL. Commit .env.example only.\n\nIn scope:\n- Products table: slug, name, description in markdown, price in cents, currency, cover image URL, R2 object key, active flag.\n- Public pages: a storefront index listing active products, and a product page rendering the markdown with a Buy button.\n- Buy creates a Stripe Checkout Session in payment mode, one line item, collects buyer email, and redirects to Stripe.\n- A /api/stripe/webhook route that verifies the signature, handles checkout.session.completed, writes an Order row (product id, email, stripe session id, amount, created at), generates a download token, and emails the buyer a receipt with the download link.\n- Download route /d/[token]: validates the token, checks it is under 72 hours old and under 5 uses, then 302s to a presigned R2 URL valid for 5 minutes. Increment the use count. Show a plain expired page otherwise.\n- Admin at /admin behind a single password in an httpOnly cookie: create and edit products, upload files straight to R2 via a presigned PUT, list orders, resend a download email, revoke a token.\n- Seed script with two fake products. README with Stripe CLI instructions for testing the webhook locally.\n\nOut of scope, do not build:\n- Subscriptions, trials, dunning, proration.\n- Coupons, affiliates, upsells, cart.\n- Any tax calculation. Print a loud README warning that VAT and sales tax are the operator's legal responsibility and that enabling Stripe Tax is the minimum bar.\n- Telemetry, analytics scripts, third party fonts.\n\nMake it idempotent on webhook replay, keyed on the Stripe session id. Plain design, system font stack, no animation. Ship it running with npm run dev.",
+  "promptCurated": false
+}
