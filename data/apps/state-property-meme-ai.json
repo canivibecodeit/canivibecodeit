@@ -1,0 +1,52 @@
+{
+  "slug": "state-property-meme-ai",
+  "name": "State Property Meme AI",
+  "domain": "statepropertymeme.com",
+  "category": "ai-video",
+  "subcategory": "meme video generator",
+  "tagline": "Turns one photo of a person or pet into a six-scene State Property style reaction meme video with generated speech.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://statepropertymeme.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is not secret: one photo in, a fixed sequence of image-to-video shots out, a TTS track over the top, ffmpeg concatenating six clips into an MP4. An agent can wire that whole chain in a weekend, and the output will technically be a meme video. What it will not be on the first pass is funny, because the actual product is the scene choreography, the timing, the voice casting and the prompt tuning that keeps one face looking like the same face across six shots. You also cannot escape a hosted generative video API, so this is never truly self-hosted, and your per-render cost may land uncomfortably close to whatever they charge in credits. Build it if you want a reusable meme factory, not if you want one video.",
+  "coreLoopDIY": "Uploads a photo, runs it through a hosted image-to-video model across six scripted scenes, generates a voice track, and stitches everything into a downloadable MP4.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API key for a hosted image-to-video model, fal.ai or Replicate",
+    "A TTS API key, ElevenLabs or OpenAI",
+    "ffmpeg installed locally",
+    "Node 20 and a few dollars of render credits per video",
+    "Patience for prompt tuning so the face stays consistent across shots"
+  ],
+  "whatYouLose": [
+    "Scene scripts and comic timing that someone already iterated on",
+    "Face consistency tricks across six shots, which is the hardest unglamorous part",
+    "A sign-in and credit flow, so you are instead juggling raw API keys and surprise bills",
+    "Any moderation or consent gate, which matters a lot when the input is someone else's face",
+    "Mobile-friendly upload and preview; your local build will be a desktop toy"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The format itself rides on a recognisable film clip, which is a legal question the DIY version inherits without the licence or the plausible deniability.",
+  "whyPeopleStillPay": "Because the alternative is assembling three API accounts, debugging ffmpeg concat filters and burning ten renders learning that your prompt makes the subject's face drift into a stranger by scene four. The paid version is one upload and a wait. For a single meme that cost calculus is not close, and most people only ever want one meme.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A weekend of plumbing gets you the pipeline; the jokes are still your problem.",
+  "prompt": "Build a local-only meme video generator in an empty folder. No accounts, no telemetry, no hosting.\n\nStack, non-negotiable: Next.js 15 App Router, TypeScript, Tailwind, running locally with `npm run dev`. No database. Jobs and artifacts live on disk under ./workdir.\n\nFlow:\n1. A single page with a file input for one photo (jpg/png, max 10MB) and a text field for the subject's name.\n2. On submit, create a job id, save the upload to ./workdir/{id}/input.jpg, and kick off a server-side pipeline.\n3. The pipeline reads ./scenes.ts, a hand-editable array of exactly six scene objects, each with: an image-to-video prompt, a duration in seconds, and a line of dialogue.\n4. For each scene, call a hosted image-to-video model via the fal.ai HTTP API using the input photo as the conditioning image. Run the six calls with a concurrency limit of 2 and retry once on failure. Save each result to ./workdir/{id}/scene-N.mp4.\n5. For each scene's dialogue line, call the ElevenLabs text-to-speech HTTP API and save ./workdir/{id}/scene-N.mp3.\n6. Mux each scene's audio onto its video with ffmpeg, pad the shorter stream, then concat all six into ./workdir/{id}/final.mp4. Shell out to ffmpeg, do not use a wasm build.\n7. Poll a /api/jobs/{id} endpoint from the client and show per-scene status. When done, render an HTML5 video preview and a download link.\n\nRules:\n- FAL_KEY and ELEVENLABS_KEY come from .env.local. Ship .env.example. Never commit keys.\n- Write a cost estimate to the console before starting the job, based on per-scene constants in a config file.\n- If any scene fails twice, fail the whole job loudly with the provider error, do not silently stitch five scenes.\n- Explicitly out of scope: sign-in, payments, credits, queues, cloud storage, mobile layout, any likeness or consent checking.\n- README must state in one line that this calls paid third-party APIs and that generating videos of other people's faces is the user's legal problem.\n- Keep scenes.ts dumb and obvious so prompts can be rewritten without touching pipeline code.",
+  "promptCurated": false
+}
