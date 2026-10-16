@@ -1,0 +1,51 @@
+{
+  "slug": "youcal",
+  "name": "YouCal",
+  "domain": "youcal.app",
+  "category": "tasks-calendar",
+  "subcategory": "AI calendar capture",
+  "tagline": "An AI assistant that turns plain text, screenshots and forwarded messages into calendar events.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://youcal.app/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core trick here is a text-to-event parser wired into a calendar API, and an LLM does that on the first try with surprisingly few complaints. What you cannot one-shot is the surface it lives on: a real mobile app, an iOS share sheet, a keyboard extension, notifications that fire on time. You can dodge most of that by making a chat bot your input box, which is a genuinely fine trade for one person. The rest of the weekend goes to Google OAuth, timezones, and recurrence rules, which are all boring and all where the accuracy actually lives. Buildable, useful, and you will spend more time on the last 10 percent of date parsing than on everything else combined.",
+  "coreLoopDIY": "You message a bot with a screenshot or a sentence like 'dentist next Tuesday 3pm', it extracts structured event fields with an LLM and writes them to your Google Calendar after you confirm.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key with vision support for screenshots",
+    "A Google Cloud project with the Calendar API enabled and OAuth credentials",
+    "A Telegram bot token, or another chat surface you already use",
+    "Somewhere always-on to run it if you want it to work when your laptop is shut"
+  ],
+  "whatYouLose": [
+    "A polished mobile app, share sheet and keyboard extension: your DIY input is a chat thread",
+    "Tuned parsing for the ugly cases: multi-day travel, recurring rules, ambiguous years, forwarded email chains",
+    "Verified Google OAuth, so you either publish an app or click through the unverified-app warning forever",
+    "Calendar providers you did not personally wire up, plus contact and location enrichment",
+    "Someone else fixing it when a timezone edge case silently books your meeting at 3am"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is input surface and parse accuracy, not technology. Both are grindable, neither is defensible.",
+  "whyPeopleStillPay": "Because calendar capture only pays off if it is frictionless at the exact moment you see the date, which means it has to be one tap from wherever you are: a mail app, a screenshot, a group chat. Paying gets you that reach plus parsing that has already met every weird date format a real inbox produces. A personal build gets you 85 percent of the accuracy through one input channel you have to remember to use, which is enough for some people and quietly useless for everyone else.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The parser is the easy part; the hard part is being reachable in under two seconds.",
+  "prompt": "Build a self-hosted personal AI calendar capture bot. Empty folder, no scaffolding tools beyond what you install.\n\nStack, no substitutions:\n- TypeScript, Node 20, run with tsx in dev\n- Telegram Bot API via grammy as the only input surface\n- OpenAI API (vision-capable model) for extraction\n- Google Calendar API v3 via googleapis for writing events\n- SQLite via better-sqlite3 for tokens, message log, and created event ids\n- luxon for all date math, never Date arithmetic\n\nWhat it does:\n1. On /start, reply with a Google OAuth consent link, run a tiny local Express route to catch the callback, store the refresh token in SQLite.\n2. Accept a text message, a photo, or a forwarded message. Send the content plus the user's IANA timezone and the current local datetime to the model.\n3. Extract strict JSON: title, start, end, allDay, location, description, rrule or null, confidence. Validate with zod. If the model returns nothing usable, say so instead of guessing.\n4. Reply with a formatted preview and inline buttons: Confirm, Edit time, Discard. Only write to Calendar on Confirm.\n5. On Confirm, insert the event, store its id, and reply with the Calendar link. /undo deletes the last created event.\n\nRules:\n- Secrets in .env only: TELEGRAM_TOKEN, OPENAI_API_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, MY_TELEGRAM_USER_ID, DEFAULT_TZ.\n- Single user. Reject any Telegram id that is not MY_TELEGRAM_USER_ID. That is the whole auth model.\n- Resolve relative dates ('next Tuesday', 'tomorrow 9') in the user's timezone, and default duration to 60 minutes when no end is given.\n- No telemetry, no hosted database, no accounts beyond Google OAuth.\n\nOut of scope: web UI, mobile app, multi-user support, Outlook or CalDAV, attendee invites, meeting scheduling links.\n\nDeliver a README with Google Cloud setup steps, the exact OAuth scopes needed, and a five-case parsing test I can run with npm test.",
+  "promptCurated": false
+}
