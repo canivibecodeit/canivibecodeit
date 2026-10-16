@@ -1,0 +1,53 @@
+{
+  "slug": "life360",
+  "name": "Life360",
+  "domain": "life360.com",
+  "category": "security",
+  "subcategory": "family location sharing",
+  "tagline": "Family location sharing with geofence alerts, driving reports, crash detection and bundled emergency services.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per family",
+    "unit": "flat",
+    "source": "https://intl.life360.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The map is the easy part. An agent can hand you a self-hosted location server, a live family map, geofence enter/leave alerts and a history timeline in a weekend, and off-the-shelf reporting apps on each phone will feed it without you writing a line of Swift. The gap is everything that makes Life360 work when nobody is paying attention: reliable background location on iOS, battery behavior that does not get the app deleted, and the fact that the paid tiers are mostly insurance-shaped services, roadside assistance, crash response, phone reimbursement, which are not code at all. You can replicate where-is-everyone. You cannot replicate someone picking up the phone after a crash. Also worth noting the practical problem: every family member has to agree to run your thing.",
+  "coreLoopDIY": "A self-hosted server that ingests location pings from a standard tracker app on each phone, draws everyone on a live map, keeps a history timeline, and pushes alerts when someone enters or leaves a named place.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS with a domain and HTTPS",
+    "A location reporting app installed and configured on every family member's phone",
+    "A push notification channel such as ntfy or Pushover",
+    "Family members willing to trust a self-hosted endpoint with their location"
+  ],
+  "whatYouLose": [
+    "Background location that actually survives iOS power management and app refresh rules",
+    "Crash detection and the humans who call you after it fires",
+    "Roadside assistance, SOS dispatch and the stolen-phone reimbursement bundled into paid tiers",
+    "Driving scores and per-trip speed, hard braking and phone-usage analysis",
+    "One-tap onboarding for relatives who will never configure an MQTT endpoint",
+    "Place history and data retention that works without you babysitting a server"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "Battery-efficient background location is a genuinely hard engineering problem that Life360 has spent a decade tuning against two hostile mobile OSes.",
+  "whyPeopleStillPay": "Because the product is bought by one person and used by five, and the other four need it to be invisible. Life360 wins on the boring axis: it keeps reporting when the phone is asleep, it does not eat the battery enough to get uninstalled, and a teenager can be onboarded in ninety seconds. The paid tiers then layer on things that are not software, crash response, roadside help, reimbursements, which no self-hosted stack can offer at any price. A DIY map answers the same question, but only while everyone in the household stays cooperative and the server stays up.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The map is a weekend; the background location daemon is not.",
+  "prompt": "Build a self-hosted family location tracker called \"Where\" in an empty folder.\n\nStack, no substitutions: Node 20 with Express, better-sqlite3 for storage, server-rendered EJS pages, Leaflet with OpenStreetMap tiles for the map, plain CSS. No React, no build step, no cloud services.\n\nIngest:\n- POST /api/pub accepts OwnTracks HTTP-mode payloads (_type: location, with lat, lon, tst, batt, acc, tid).\n- Authenticate each device with a per-device token passed as a Bearer header; tokens live in SQLite and are created from an admin page.\n- Store every ping in a locations table: device_id, lat, lon, accuracy, battery, recorded_at.\n- Ignore pings with accuracy worse than 200 meters, but log them to a dropped counter.\n\nPages:\n- GET / : live map showing the most recent position for each device, colored markers, name and battery and relative timestamp in the popup. Auto-refresh every 30 seconds via fetch, no websockets.\n- GET /history/:device?date=YYYY-MM-DD : that device's polyline for one day plus a list of stops, where a stop is 10 or more minutes inside a 100 meter radius.\n- GET /admin : add or remove devices, mint tokens, define named places as a label plus lat, lon, radius in meters.\n\nAlerts:\n- On each ingested ping, compare against named places and detect enter and leave transitions with a 2 minute debounce so GPS jitter does not spam.\n- Send transitions to an ntfy topic read from NTFY_URL in .env. If NTFY_URL is unset, log to stdout instead and keep working.\n\nIn scope: single shared household password via HTTP basic auth read from .env, SQLite file at ./data/where.db, a /healthz route, and a seed script that inserts two fake devices with a day of plausible pings so the map is not empty on first run.\n\nOut of scope, do not attempt: native iOS or Android apps, crash detection, driving scores, SMS, user accounts, telemetry, analytics.\n\nDeliver: README with exact OwnTracks app settings (mode HTTP, URL, device ID, auth header), a .env.example, and npm scripts for seed and start. Secrets only in .env, never committed.",
+  "promptCurated": false
+}
