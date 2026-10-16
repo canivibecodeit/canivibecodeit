@@ -1,0 +1,51 @@
+{
+  "slug": "speakapp-ai",
+  "name": "SpeakApp AI",
+  "domain": "speakapp.com",
+  "category": "voice-ai",
+  "subcategory": "AI voice conversation",
+  "tagline": "An AI voice app: you talk, it transcribes, it answers, it talks back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://speakapp.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The voice loop itself is not the hard part anymore: mic capture, speech to text, an LLM turn, text to speech, repeat. An agent can wire that into a local web app in a session, and it will work well enough that you feel briefly invincible. What you will not get in one sitting is the part that makes voice products actually pleasant: sub-second turn taking, barge-in, echo cancellation on a phone speaker, and a native app that survives being backgrounded mid-sentence. Latency is the whole product in this category, and latency is an engineering grind, not a prompt. Build it if you want a private voice sandbox, keep paying if you want something that feels like a conversation instead of a walkie talkie.",
+  "coreLoopDIY": "A local browser app with push-to-talk that transcribes your speech, sends it to an LLM with conversation history, speaks the reply, and stores every turn in SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a browser with mic permission",
+    "API keys for a speech-to-text provider and a text-to-speech provider",
+    "An LLM API key",
+    "Willingness to accept two to four seconds of turnaround at first"
+  ],
+  "whatYouLose": [
+    "Real-time streaming latency and interruption handling; your version waits for you to stop talking, then thinks, then speaks",
+    "A native mobile app, background audio, and headset behavior that does not fall apart",
+    "Echo cancellation and noise handling tuned for actual rooms rather than a quiet desk",
+    "Whatever structured content, scoring, or persona tuning the paid product layers on top of the raw loop",
+    "Sync across devices, so your history lives on one machine"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "Nobody switches voice apps for features. They switch because one of them stops making them wait.",
+  "whyPeopleStillPay": "Voice is the interface where imperfection is unforgivable. A 300ms gap feels like conversation, a 1500ms gap feels like a bad phone line, and closing that gap involves streaming transcription, speculative generation, chunked audio playback, and a lot of unglamorous mobile audio work. Paid voice products spend their entire engineering budget there, plus the app store presence and the microphone permission handling that nobody wants to write twice. A local build gets you the concept and the privacy; the paid one gets you the feeling.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The loop is a weekend, the latency is a career. Build it to own your transcripts, not to beat the polish.",
+  "prompt": "Build a local voice conversation app called Talkbox. Single project, no accounts, no cloud deploy, no telemetry.\n\nStack, non-negotiable:\n- Vite + React + TypeScript for the front end\n- Node 20 + Express + TypeScript for the API\n- SQLite via better-sqlite3 for storage\n- No auth, no user table, single local user\n- All keys read from .env: OPENAI_API_KEY (used for transcription, chat, and speech)\n\nFront end:\n- One page. A big push-to-talk button: hold spacebar or press and hold the button to record, release to send.\n- Use MediaRecorder to capture mic audio as webm/opus. Show a live level meter while recording.\n- Chat transcript below the button: user turns and assistant turns, newest at the bottom, auto-scroll.\n- Each assistant turn plays audio automatically and has a replay button.\n- A settings drawer with: system prompt textarea, voice picker, and a temperature slider. Persist to SQLite.\n- Show the round-trip time in milliseconds under each assistant turn, split into transcribe / think / speak. This number is the point of the app.\n\nAPI:\n- POST /api/turn accepts the audio blob, transcribes it, appends to the conversation, calls the chat model with the stored system prompt and the last 20 turns, then synthesizes the reply to audio.\n- Stream the assistant text back with SSE as it generates, and start text-to-speech on the first complete sentence rather than waiting for the full reply. Serve audio chunks as they arrive.\n- Store every turn in SQLite: role, text, audio file path, duration, timing breakdown.\n- Save audio files to ./data/audio. Never delete them automatically.\n- GET /api/conversations and GET /api/export returning a JSON dump.\n\nExplicitly out of scope: mobile apps, barge-in and interruption, speaker diarization, wake words, on-device models, multi-user anything.\n\nDeliver a README with setup steps, a .env.example, and one npm script that runs API and front end together. Make it work with one command after npm install.",
+  "promptCurated": false
+}
