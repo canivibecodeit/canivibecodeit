@@ -1,0 +1,52 @@
+{
+  "slug": "formidable-openmed-ai",
+  "name": "Formidable OpenMed AI",
+  "domain": "formidable.care",
+  "category": "ai-assistant",
+  "subcategory": "clinical/medical AI",
+  "tagline": "An AI assistant pointed at medical and clinical questions rather than general chat.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://formidable.care/openmed",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The chat box is the easy part: you can wire a retrieval assistant over open medical literature in an afternoon and it will feel impressive for about ten minutes. What you cannot one-shot is a curated, licensed, version-controlled clinical corpus, the review process that decides which guideline wins when two disagree, and the paperwork that lets a clinician act on the output without personal liability. Anything touching real patient data drags in privacy regimes, audit logs, retention rules, and vendor agreements that a weekend project cannot fake. A personal build is fine as a study aid or a search shortcut over papers you already have, and that is the honest ceiling. Treat the DIY version as a reading tool, not a second opinion.",
+  "coreLoopDIY": "A local retrieval chat over medical PDFs and open guideline text you supply yourself, with citations and a loud disclaimer, for personal study only.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key, or a local model with enough context to be tolerable",
+    "Your own copies of the guidelines, textbooks, or papers you want indexed",
+    "Python 3.11 and about 2GB of disk for embeddings and the SQLite index",
+    "Acceptance that this is a reading aid and not clinical advice"
+  ],
+  "whatYouLose": [
+    "A curated corpus with known provenance and update dates, instead of whatever PDFs you happened to have",
+    "Any conflict resolution when two sources disagree, which is where clinical value actually lives",
+    "Privacy and compliance posture for anything resembling patient data",
+    "Whatever domain tuning, evaluation, and hallucination guardrails the vendor has built",
+    "Someone else's name on the output when it is wrong"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "Medicine is one of the few software markets where being sued is a normal operating cost, and pricing reflects who absorbs it.",
+  "whyPeopleStillPay": "Clinicians are not buying a language model, they are buying defensibility: a source they can name, a corpus with dates on it, a vendor agreement that survives a privacy review, and an audit trail when a decision gets questioned later. A personal RAG build gives you answers with no chain of custody, which is worthless the moment anyone asks where the answer came from. Add the fact that healthcare buyers move through procurement and security review rather than a credit card form, and the moat becomes less about the model and more about being an organisation someone can sign a contract with.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The retrieval chat is a weekend, the corpus and the liability are not. The moat is a licensed, dated, reviewed clinical source set plus the compliance paperwork that lets a professional act on it.",
+  "prompt": "Build a local-only medical reading assistant. Personal study tool, not a clinical product.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, plain HTML + htmx frontend served by FastAPI\n- SQLite for documents, chunks, and chat history\n- sqlite-vec for vector search, sentence-transformers all-MiniLM-L6-v2 for embeddings\n- pypdf for PDF text extraction\n- Any OpenAI-compatible chat endpoint, base URL and key read from .env\n\nWhat it does:\n1. `python ingest.py ./corpus` walks a folder of PDFs, txt, and markdown files, extracts text, chunks to roughly 800 tokens with 100 token overlap, embeds, and stores chunks with source filename, page number, and file mtime.\n2. A single-page web UI at localhost:8000 with a question box and an answer pane.\n3. On a question: embed it, pull the top 8 chunks by cosine similarity, send them to the chat model with a system prompt that forbids answering from anything outside the provided context and requires inline citations like [filename p.12].\n4. If retrieval scores are all below a threshold, reply \"not in your corpus\" instead of guessing.\n5. Render citations as clickable items that expand to show the exact retrieved chunk text, so every claim is checkable against the source.\n6. Store every question, answer, and the chunk IDs used in SQLite so past answers can be re-audited.\n7. Show a fixed banner: study aid, no patient data, not medical advice.\n\nExplicitly out of scope:\n- No patient records, no PHI fields, no EHR or FHIR integration, no file upload endpoint that accepts anything but local paths\n- No accounts, no telemetry, no hosting config, no diagnosis or dosing calculators\n- No bundled corpus, the user supplies their own documents\n\nDeliver: requirements.txt, .env.example, ingest.py, app.py, one templates/index.html, and a README with setup in under ten lines.",
+  "promptCurated": false
+}
