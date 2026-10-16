@@ -1,0 +1,53 @@
+{
+  "slug": "blog2video",
+  "name": "Blog2Video",
+  "domain": "blog2video.app",
+  "category": "ai-video",
+  "subcategory": "article to video repurposing",
+  "tagline": "Turns a blog post or article URL into a narrated short-form video with voiceover, captions and stock visuals.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://blog2video.app/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline is not mysterious: scrape the article, ask a model for a scene-by-scene script, synthesize a voiceover, pick visuals, burn captions, stitch with ffmpeg. An agent can get you a working CLI that spits out a watchable 1080p vertical video in a weekend, and the first output will look exactly like what it is. The gaps are all in the boring last 20 percent: forced-alignment captions that actually land on the syllable, visuals that match the sentence instead of vaguely gesturing at it, sane pacing, and a stock library you are legally allowed to publish from. You will also be renting a TTS voice and an LLM, so this is self-hosted in structure but not in dependency. Worth building if you publish weekly and want your own template; not worth it if you need it to look like an agency made it.",
+  "coreLoopDIY": "A CLI that takes an article URL, generates a scripted scene list, narrates it, pairs each scene with a licensed still or clip, and renders a captioned MP4 with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "an LLM API key for scripting",
+    "a TTS provider or a local model like Piper or Kokoro",
+    "a stock media API key (Pexels or similar) or your own image folder",
+    "optional Whisper for caption timing alignment"
+  ],
+  "whatYouLose": [
+    "Visual selection that actually matches the sentence instead of keyword-matching a beach photo",
+    "Caption timing and animation polish that reads as intentional rather than auto-generated",
+    "A vetted, publish-safe media library with clear licensing",
+    "Templates, aspect-ratio presets and brand kits that someone else already tuned",
+    "Direct publishing to TikTok, YouTube Shorts and LinkedIn without you writing the OAuth"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights",
+    "integrations"
+  ],
+  "moatNotes": "The moat here is taste plus licensing, not technology. Anyone can stitch frames; making the output not look like a 2019 slideshow is the product.",
+  "whyPeopleStillPay": "Because the output is the whole point and nobody grades you on your ffmpeg command. A paid tool ships with visual defaults, caption styling and pacing that someone iterated on across thousands of videos, plus a media library you will not get a takedown for. If you publish one video a month, paying is cheaper than the afternoon you will spend nudging subtitle offsets. If you publish daily and have an opinion about how your videos should look, the DIY version starts winning fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the taste is not. Budget your weekend for the visual template, not the pipeline.",
+  "prompt": "Build a local command line tool called article2video that turns an article URL into a narrated vertical MP4.\n\nStack, no substitutions: TypeScript on Node 20, tsx for running, commander for the CLI, ffmpeg via child_process (assume ffmpeg is on PATH). No web UI, no database, no accounts, no telemetry.\n\nPipeline, one module per step under src/steps:\n1. fetch: get the URL, extract title and main text with @mozilla/readability plus jsdom.\n2. script: call the OpenAI API (model gpt-4o-mini, key from OPENAI_API_KEY in .env via dotenv) and return strict JSON: an array of 8 to 14 scenes, each with narration (max 22 words), an onScreenText line (max 7 words), and 2 to 4 imageKeywords. Validate with zod and retry once on parse failure.\n3. voice: synthesize narration per scene to WAV using the OpenAI TTS endpoint. Cache by hash of the text in .cache/ so reruns are free.\n4. visuals: for each scene, search the Pexels API (PEXELS_API_KEY) for a portrait still matching imageKeywords, download to .cache/. If a local folder is passed with --media, sample from it instead and skip the API entirely.\n5. render: for each scene, build a 1080x1920 clip: image scaled and cropped to fill, a slow Ken Burns zoom via the zoompan filter, a dark gradient overlay at the bottom, onScreenText drawn with drawtext in a bundled bold font, duration equal to the narration audio length probed with ffprobe.\n6. captions: generate an SRT from the per-scene narration and audio durations, then burn it in with the subtitles filter, styled large and centered low.\n7. concat: concat the clips with the concat demuxer, mux the narration track, optional background music from --music at -22dB, write out/{slug}.mp4.\n\nRequirements: every step writes intermediate artifacts to a work/ directory so a failed run can resume with --from step. Print the ffmpeg command before running it. Exit with a clear message if ffmpeg or ffprobe is missing.\n\nIn scope: single URL in, one MP4 out, .env.example, README with install and one example command, a --dry-run that prints the script JSON and stops.\n\nOut of scope: publishing to social platforms, avatars or talking heads, multi-language dubbing, a queue, a server, tests beyond a single script-parsing unit test.",
+  "promptCurated": false
+}
