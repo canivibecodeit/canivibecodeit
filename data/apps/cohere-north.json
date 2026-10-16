@@ -1,0 +1,51 @@
+{
+  "slug": "cohere-north",
+  "name": "Cohere North",
+  "domain": "cohere.com",
+  "category": "ai-assistant",
+  "subcategory": "enterprise agent platform",
+  "tagline": "Cohere's secure enterprise AI agent platform that connects company models, data and tools into one assistant workspace.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://cohere.com/north",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "North is not an app you buy with a card, it is an enterprise platform sold with a deployment plan attached. The pitch is Cohere's own models running inside your VPC or on your own hardware, wired to your internal systems, with the audit and data residency story that a bank or a government department needs to sign off. You can absolutely build an agentic chat UI over your own files and tools in a session, and it will feel similar for one person. What you cannot build is the private model weights, the on-prem inference stack, or the procurement paperwork, which is most of what the money is for. For a single user with an API key, the consolation build is genuinely fine; for the buyer North targets, it is not even the same product.",
+  "coreLoopDIY": "A local web app that chats over your own documents and calls a small set of your own tools, with every request and tool call logged to SQLite.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (Cohere, OpenAI or Anthropic) in .env",
+    "Node 20+ and a local folder of documents to index",
+    "Willingness to write your own tool functions for anything beyond search"
+  ],
+  "whatYouLose": [
+    "Private or on-prem model hosting, so your data leaves the machine on every call",
+    "Prebuilt connectors to Sharepoint, Slack, Salesforce and the rest of the enterprise stack",
+    "SSO, role-based permissions and per-document access control",
+    "Audit trails and data residency guarantees an auditor will accept",
+    "Someone to call when the agent confidently does the wrong thing"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The models are Cohere's own, and a chunk of the value is simply that they can run where the customer's lawyers insist they run.",
+  "whyPeopleStillPay": "Nobody buys North because the chat box is clever. They buy it because a compliance officer needs the inference to happen on hardware they control, because IT does not want to maintain thirty connectors, and because a vendor contract transfers risk in a way a weekend project cannot. Individuals and small teams are not the buyer here, and for them a local RAG agent over their own files covers the actual day-to-day use at the cost of an API key.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The chat loop is a weekend, the deployment story is not. The moat is proprietary models that can be run inside a customer's own walls with paperwork to match.",
+  "prompt": "Build a local, single-user agentic assistant over my own documents. No accounts, no cloud backend, no telemetry.\n\nStack, non negotiable:\n- TypeScript, Next.js App Router, run with npm run dev on port 3000\n- SQLite via better-sqlite3, file at ./data/north.db, created on first run\n- Tailwind for styling, no component library\n- LLM calls go through one adapter module with a single provider: Cohere's chat API, key read from COHERE_API_KEY in .env.local. Document the swap point in a comment but do not build a provider menu.\n\nWhat it does:\n1. An ingest script, npm run ingest, that walks ./docs for .md, .txt and .pdf files, chunks them to roughly 800 tokens with overlap, embeds each chunk, and stores text plus vector plus file path in SQLite. Re-running it should upsert by file hash, not duplicate.\n2. A chat page with a message list and an input. On submit, retrieve the top 8 chunks by cosine similarity, build a prompt with them, stream the answer back, and render inline citations that link to the source file and chunk.\n3. A tool loop: define tools in a single tools.ts file with JSON schemas. Ship exactly three: search_docs, read_file (scoped to ./docs, reject path traversal), and run_sql (read only, against north.db). Let the model call them in a loop with a hard cap of 5 iterations per turn.\n4. An audit page at /audit listing every turn: timestamp, user message, tools called with arguments, token counts, latency. All of it from SQLite.\n\nExplicitly out of scope: authentication, multi-user, file uploads through the browser, vector databases, Docker, deployment, mobile.\n\nShip a README with setup in under ten lines, a .env.example, and three sample docs in ./docs so the thing answers a real question on first run. Cosine similarity in plain JS over the stored vectors is fine; do not add a vector store dependency.",
+  "promptCurated": false
+}
