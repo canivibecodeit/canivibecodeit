@@ -1,0 +1,53 @@
+{
+  "slug": "breezeway",
+  "name": "Breezeway",
+  "domain": "breezeway.com",
+  "category": "project-management",
+  "subcategory": "short-term rental property operations",
+  "tagline": "Turnover, cleaning and inspection coordination for short-term rental and property managers, with a field app for crews.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "typically quoted per property per month",
+    "unit": "custom",
+    "source": "https://breezeway.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is not exotic: read reservation calendars, spot the gap between checkout and next check-in, spawn a turnover task with a checklist, and give the cleaner a link that captures photos and a done timestamp. An agent can build that in a weekend against public iCal feeds from Airbnb, Vrbo or your PMS, and for one to five units it will genuinely work. What does not survive the one-shot is everything around the edges: deep two-way PMS integrations, an offline-tolerant native app that cleaners will actually open in a basement with no signal, automated guest messaging, and the inspection history that turns into evidence when a guest claims the place was filthy. If you manage other people's properties and owe them reports, the polish gap is the product. If you own the units yourself, the DIY version is mostly fine.",
+  "coreLoopDIY": "Pulls iCal reservation feeds per property, generates a dated turnover task with a photo checklist whenever there is a gap between bookings, and hands each cleaner a tokenized mobile web page to complete it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Public iCal export URLs from Airbnb, Vrbo or your PMS",
+    "A small always-on host with a public HTTPS URL so cleaner links work on phones",
+    "Local or S3-compatible storage for checklist photos",
+    "Node 20 and SQLite",
+    "Optional: a Twilio or email provider key if you want task notifications"
+  ],
+  "whatYouLose": [
+    "Two-way PMS integrations: iCal is read-only and lags, so last minute changes can be hours stale",
+    "A real offline-first native app; a PWA in a spotty-signal stairwell is not the same thing",
+    "Automated guest messaging and post-clean guest-ready notifications",
+    "Structured inspection history and owner-facing reports you can hand to a client or an insurer",
+    "Vendor management, time tracking and cleaner billing, plus somebody else being on call when it breaks mid-turnover"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The integration list with property management systems is the buying reason for professional managers; the field app being usable by a crew that did not choose it is the retention reason.",
+  "whyPeopleStillPay": "Because the software is not the hard part, the humans are. A professional manager is coordinating cleaners, inspectors and handymen who do not care about your homegrown tool, across properties booked through systems that all speak slightly different dialects. Paying per unit for something that syncs the PMS, works on a cheap Android phone, and produces a photo trail you can show an owner is cheaper than one bad turnover and one angry review. Self-hosting is defensible when the crew is you and your spouse, and gets expensive fast when it is eight subcontractors and forty units.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for owner-operators with a handful of units; the moment you have clients and subcontractors, the field app polish stops being optional.",
+  "prompt": "Build a self-hosted short-term rental turnover coordinator. Single Next.js 15 app (App Router, TypeScript), SQLite via Drizzle ORM, Tailwind for UI. No auth provider, no SaaS, no telemetry.\n\nData model:\n- properties: name, address, timezone, icalUrl, defaultChecklistId, cleaningDurationMinutes\n- reservations: propertyId, externalUid, checkIn, checkOut, guestLabel, source, lastSeenAt\n- checklists: name, items (JSON array of { label, requiresPhoto })\n- tasks: propertyId, reservationId (nullable), type (turnover | mid-stay | maintenance), dueDate, assigneeId, status (todo | in_progress | done | blocked), startedAt, completedAt, notes\n- taskItems: taskId, label, requiresPhoto, checkedAt, photoPath, note\n- assignees: name, phone, accessToken (random 32 chars)\n\nCore logic:\n- A sync job (route handler at /api/sync plus a node script runnable via cron) fetches each property's iCal feed, parses VEVENTs with node-ical, upserts reservations, and soft-deletes reservations that vanish from the feed.\n- After sync, generate one turnover task per checkout at that property's local date, using the property default checklist. Do not duplicate existing tasks for the same reservation. Flag tasks as same-day-tight when the next check-in is on the same date and show that badge loudly.\n\nUI:\n- /: week grid of properties by day showing checkouts, check-ins, tasks and status colors.\n- /tasks: filterable list, bulk assign to an assignee.\n- /properties and /checklists: plain CRUD.\n- /c/[accessToken]: mobile-first cleaner view, no login, lists that assignee's tasks for today and the next 3 days. Tapping a task shows the checklist, allows checking items, adding a note, and uploading photos via a file input with capture attribute. Photos go to ./uploads on disk, served through a route handler. Store completion timestamps. Make it a PWA with a service worker that caches the shell only; be explicit in the README that offline writes are NOT supported.\n\nIn scope: iCal read-only sync, task generation, checklists with photos, tokenized cleaner links, CSV export of completed tasks.\nOut of scope: PMS write-back, guest messaging, payroll, billing, native apps, multi-tenant accounts.\n\nSecrets and config in .env (DATABASE_URL, UPLOAD_DIR, APP_BASE_URL). Seed script with 2 properties, 1 checklist, 1 assignee and a fake iCal fixture so it runs offline. README: setup, cron line for sync, and a short honest list of what this does not do.",
+  "promptCurated": false
+}
