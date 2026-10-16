@@ -1,0 +1,51 @@
+{
+  "slug": "hugging-face",
+  "name": "Hugging Face",
+  "domain": "huggingface.co",
+  "category": "dev-tools",
+  "subcategory": "model and dataset hub",
+  "tagline": "Hosting, discovery, and demo infrastructure for open machine learning models and datasets.",
+  "priceMonthly": 9,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://huggingface.co/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build the software shape of Hugging Face in a weekend: a registry with model cards, versioned artifacts, a search page, and a local inference playground. What you cannot build is the thing people actually go there for, which is a million-plus models and datasets that other people uploaded, plus the gravity that makes the next one get uploaded there too. The free hosting for multi-gigabyte weights and the GPU-backed Spaces demos are real infrastructure spend, not a cron job. If your actual need is a private registry for your own fine-tunes, the DIY version is fine and genuinely useful. If your need is downloading somebody else's model at 2am, you are not replacing anything.",
+  "coreLoopDIY": "Runs a local model and dataset registry: upload versioned artifacts with checksums, write model cards in markdown, search and tag them, and load a local text model into a small inference playground.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine with enough disk for model weights",
+    "A GPU or patience if you want the inference playground to be usable",
+    "Object storage or a big local volume for artifacts"
+  ],
+  "whatYouLose": [
+    "The actual corpus: every open model and dataset other people published",
+    "Spaces, meaning free GPU-backed demos you did not have to deploy",
+    "Serverless inference endpoints and the hosted Inference API",
+    "The transformers ecosystem defaults, where from_pretrained just resolves to the Hub",
+    "Discovery, leaderboards, discussions, and the signal of who downloaded what"
+  ],
+  "moatTags": [
+    "network-effects",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "Every tutorial, paper, and library default points at the Hub, which makes the upload decision for most people before they make it.",
+  "whyPeopleStillPay": "Most individuals do not pay at all, which is the point: the free tier is the distribution strategy and the paid tiers fund it. People who do pay are buying private repos with sane storage limits, faster or dedicated inference, persistent GPU Spaces, and an org layer with SSO and audit trails. None of those are hard problems in isolation, but they sit next to the one registry that everyone already pulls from, so the marginal cost of using the paid tier is roughly zero friction and the cost of leaving is re-pointing an entire toolchain.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The registry is a weekend build; the registry nobody uses is worthless. The moat is that every from_pretrained call in every tutorial resolves to their domain.",
+  "prompt": "Build a self-hosted private model and dataset registry. Call it \"shelf\".\n\nStack, no substitutions:\n- Python 3.11, FastAPI, SQLite via SQLModel, Jinja2 templates, plain HTML plus a little HTMX. No React, no SPA.\n- Artifacts stored on a local filesystem path from ARTIFACT_DIR in .env. No S3, no cloud accounts.\n- Single process, run with uvicorn. Everything in one repo, no Docker required but include a Dockerfile.\n\nIn scope:\n- Repos, each with a type of model or dataset, a slug, a markdown model card, tags, and a license field.\n- Versioned uploads: POST a file or files to a repo, store under ARTIFACT_DIR/slug/version/, record size and sha256, never overwrite an existing version.\n- A CLI in the same repo: shelf push, shelf pull, shelf ls. Pull verifies the checksum and streams to disk with a progress bar.\n- Browse and search UI: list repos, filter by type and tag, full text search over name and card body using SQLite FTS5.\n- A repo detail page rendering the model card, the version table, and copy-paste pull commands.\n- An inference playground page that loads a local transformers text-generation model from a chosen repo version and streams tokens back. Guard it behind an ENABLE_PLAYGROUND flag, default off, and print a clear error if torch is not installed rather than crashing at import.\n- Single shared API token read from .env for writes. Reads are open on localhost.\n\nOut of scope, do not build:\n- User accounts, orgs, SSO, billing, email.\n- Anything that talks to huggingface.co or any external hub.\n- Hosted GPU demos, autoscaling, or queueing.\n- Git-LFS compatibility. Flat versioned uploads only.\n\nDeliver a README that states plainly: this is a private shelf for your own artifacts, it does not and will not mirror the public ecosystem. Include pytest coverage for checksum verification, duplicate version rejection, and the search endpoint. Put every secret in .env and commit a .env.example.",
+  "promptCurated": false
+}
