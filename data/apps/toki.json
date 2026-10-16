@@ -1,0 +1,51 @@
+{
+  "slug": "toki",
+  "name": "Toki",
+  "domain": "toki.com",
+  "category": "time-tracking",
+  "subcategory": "automatic activity tracking",
+  "tagline": "Time tracking that watches what you actually worked on and turns it into billable hours.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://toki.com/pricing",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Time tracking is one of the few paid categories where the hard part is discipline, not technology. The core loop is a timer, a window-title sampler, a rules file that maps 'Figma' to a client, and a SQLite table, all of which an agent can produce in a session. There is no network to join and no shared data to lose, because your own hours are the only data that matters. The gap is everything around the loop: a phone app, sync across two laptops, and the invoicing integrations that make hours turn into money without copy and paste. If you are a solo freelancer with one machine, the self-hosted version is genuinely fine.",
+  "coreLoopDIY": "Samples the active window on a timer, buckets it into projects using rules you write, and gives you a local dashboard plus a CSV of billable hours.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A machine you leave running while you work",
+    "OS accessibility or screen-recording permission for window titles",
+    "Python 3.11 and a browser",
+    "Willingness to hand-edit a rules file when the categorizer guesses wrong"
+  ],
+  "whatYouLose": [
+    "Mobile tracking and any hours logged away from the laptop",
+    "Sync across multiple machines, so a desktop plus laptop setup double-counts or loses time",
+    "Invoicing and project-tool integrations, so hours exit as CSV and land in a spreadsheet",
+    "Polished reports and the idle-detection edge cases someone else already debugged",
+    "Team views, if you ever stop being a team of one"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat in time tracking is boring plumbing: OS permission churn across versions, idle and meeting detection, and the dozen outbound connectors to accounting tools.",
+  "whyPeopleStillPay": "Because hours only matter once they become an invoice, and the paid tools own that last mile. A self-hosted tracker ends at a CSV; the commercial one ends at a client being billed, with rounding rules, rates per project, and an audit trail that holds up when someone disputes a line item. Add mobile, multi-device sync, and the fact that nobody wants to debug accessibility permissions after an OS update, and twelve dollars a month stops feeling like a scam.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Listed from a thin submission, so treat the category framing as provisional until the pricing page is verified; the build prompt holds for the automatic-tracking core either way.",
+  "prompt": "Build a local-first automatic time tracker. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, SQLite via the stdlib sqlite3 module, FastAPI for a local web UI, server-rendered Jinja2 templates with HTMX for interactions. No React, no ORM, no Docker.\n\nTwo processes, one repo:\n1. tracker.py: a daemon that samples the foreground application name and window title every 15 seconds. Implement platform detection: on macOS use AppKit via pyobjc, on Linux use xdotool or the equivalent shell call, on Windows use pywin32. If the platform is unsupported, exit with a clear message instead of guessing.\n2. web.py: a FastAPI app serving a dashboard on 127.0.0.1:8787.\n\nStorage: one SQLite file at ~/.toki/toki.db. Table samples(id, started_at, ended_at, app, title, project, billable). Collapse consecutive identical samples into a single span rather than writing a row every 15 seconds.\n\nCategorization: a rules.toml file in the repo root with ordered match rules, each with a substring or regex pattern on app or title, a project name, and a billable boolean. First match wins. Anything unmatched goes to project 'unsorted'. Reload rules.toml on change, no restart.\n\nIdle handling: if there is no input for 5 minutes, close the current span and record idle time separately. Do not bill idle.\n\nDashboard must show: today's spans as a timeline, totals per project for a chosen date range, a list of unsorted spans with a one-click 'assign to project' control that appends a rule to rules.toml, and a CSV export of billable hours per project per day.\n\nAlso ship: a manual start/stop timer for offline work like phone calls, and an edit view to retag or delete spans.\n\nOut of scope: mobile, sync, multi-user, invoicing, any outbound network call. The app must work with the network interface down.\n\nSecrets: none needed. If you add anything configurable, put it in .env and commit a .env.example.\n\nDeliver a README with the exact install, permission-granting, and launch steps for the detected platform, plus a launchd or systemd unit file to run the tracker at login. Include pytest tests for span collapsing, rule matching, and idle splitting.",
+  "promptCurated": false
+}
