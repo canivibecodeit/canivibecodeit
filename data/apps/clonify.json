@@ -1,0 +1,50 @@
+{
+  "slug": "clonify",
+  "name": "Clonify",
+  "domain": "clonify.com",
+  "category": "dev-tools",
+  "subcategory": "site cloning",
+  "tagline": "A cloning tool for existing web pages: pull a live page down into a copy you can edit and host yourself.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://clonify.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Public detail on this product is thin, so treat the specifics here as a sketch rather than a teardown. The underlying job, fetch a rendered page, save its assets, rewrite the links so it runs locally, is one of the oldest scripted tasks on the web and an agent can do it in an afternoon with Playwright and a few regexes. What you are paying a SaaS for is the last 10 percent: lazy-loaded assets, fonts behind CORS, CSS url() rewriting, srcset, and the pages that only assemble themselves after three seconds of JavaScript. Those are annoying but they are bugs, not moats. If the paid product also ships a visual editor and hosting, that part is real work and you should decide whether you actually wanted it.",
+  "coreLoopDIY": "A CLI that renders a URL in headless Chromium, saves every asset it requests, rewrites the references to local relative paths, and serves the result offline.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 or newer",
+    "Playwright with Chromium downloaded locally",
+    "Somewhere to put the output, local disk is fine",
+    "Clear legal footing on whatever you are copying"
+  ],
+  "whatYouLose": [
+    "Clean handling of JavaScript-heavy SPAs that build themselves after load, where a naive clone gets an empty shell",
+    "A visual editor on top of the clone, so all edits are you in a text file",
+    "Hosting and a URL, you are serving from localhost or wiring up your own static host",
+    "Someone else maintaining the asset-rewriting edge cases as the web adds new ones",
+    "Any pretense of legal cover, a hosted tool at least makes it someone else's terms of service"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is entirely in edge case coverage: fonts, srcset, CSS imports, and pages that need a scroll before they load. Real work, but the kind an agent grinds through with test URLs.",
+  "whyPeopleStillPay": "Because the first clone works and the fifth one silently drops half the stylesheet, and debugging someone else's build output is a miserable use of an evening. A paid tool has already eaten thousands of weird pages and knows that this CDN needs a referer header and that one lazy-loads on intersection. If cloning pages is a weekly part of your job, paying for the accumulated bug fixes is rational. If it is a twice-a-year thing, your own script plus a manual cleanup pass is genuinely fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "wget mirrored the static web thirty years ago; the only new part is that pages now need a browser to exist at all.",
+  "prompt": "Build a command line site cloner called \"clonelite\" in an empty folder.\n\nStack: Node 20, TypeScript, Playwright with Chromium, commander for CLI parsing, dotenv for config. No server framework, no accounts, no telemetry, no cloud calls beyond fetching the target site.\n\nBehavior:\n- `clonelite clone https://example.com --out ./site` opens the URL in headless Chromium, waits for network idle plus a configurable settle delay, scrolls to the bottom once to trigger lazy loading, then captures the fully rendered DOM.\n- Intercept every network response the page makes and write it under ./site preserving the URL path structure: html, css, js, images, fonts, json.\n- Rewrite references in saved HTML and CSS to relative local paths. Cover href, src, srcset, poster, inline style attributes, url() inside CSS, and @import.\n- Strip common tracking snippets: Google Analytics, GTM, Segment, Meta pixel, Hotjar. Print a list of what was removed.\n- `--depth 1` follows same-origin links found on the first page and repeats, capped at 50 pages total. Write a manifest.json mapping original URL to local file.\n- Save a full page screenshot as reference.png beside each cloned html file so you can eyeball drift.\n- `clonelite serve ./site` starts a static file server on port 4321 for offline viewing.\n\nOut of scope: a visual editor, deploying anywhere, pages behind a login, unminifying bundled JS, making any backend or form submission actually work.\n\nRules:\n- Read robots.txt and refuse by default, allow `--force` with a loud printed warning either way.\n- USER_AGENT and optional PROXY_URL live in .env, loaded with dotenv. Commit .env.example only.\n- Per-asset failures log and continue, never abort the crawl.\n- README with install steps, one worked example, and a short paragraph making clear that copying someone else's site is the user's legal and ethical call.",
+  "promptCurated": false
+}
