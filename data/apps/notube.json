@@ -1,0 +1,51 @@
+{
+  "slug": "notube",
+  "name": "Notube",
+  "domain": "notube.com",
+  "category": "audio-video",
+  "subcategory": "YouTube downloader / converter",
+  "tagline": "Web tool that grabs YouTube videos and converts them to MP4 or MP3 files.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://notube.com/",
+    "checkedOn": "2026-08-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "This category is a thin web wrapper around yt-dlp plus ffmpeg, and both are free, open source, and better maintained than any hosted frontend. A local build gives you higher quality output, no ads, no queue, no file size caps, and no waiting for someone else's server to finish transcoding. The only genuine engineering in the SaaS is running extraction at scale from IPs that YouTube has not blocked yet, which is a problem you do not have when you are the only user. Legality and terms of service are your problem either way, and self-hosting does not fix that. Verdict is yes on the build, with the caveat that you are signing up to update yt-dlp forever.",
+  "coreLoopDIY": "A local web page where you paste a URL, pick MP4 or MP3, and yt-dlp plus ffmpeg hand you back a file.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+ locally",
+    "yt-dlp installed and kept updated",
+    "ffmpeg on PATH",
+    "Enough disk for the output files"
+  ],
+  "whatYouLose": [
+    "Nothing to install: the hosted version works from a locked-down work laptop or a phone browser",
+    "Server-side bandwidth, so a 4K download does not eat your own connection twice",
+    "Someone else maintaining extractors when YouTube changes its player again",
+    "Zero-config: no Python, no PATH problems, no ffmpeg codec archaeology",
+    "Convenience of a mobile-friendly UI you did not have to build"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The real asset is a rotating pool of IPs and servers that have not been rate limited, not the interface.",
+  "whyPeopleStillPay": "Mostly friction and location. The people paying are not the people willing to install a Python package and debug ffmpeg, and they often want this on a device where installing anything is not an option. The hosted tools also absorb the bandwidth cost and the arms race against extraction blocking, which is a real ongoing job. If you are already comfortable in a terminal, you were never the customer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The download is a one-liner; the UI is the product. Build it once and you will never look at an ad-wrapped converter again.",
+  "prompt": "Build a local-only video and audio downloader web app in an empty folder.\n\nStack, no substitutions:\n- Python 3.11+ with FastAPI and uvicorn\n- yt-dlp as a Python library\n- ffmpeg invoked by yt-dlp for muxing and audio extraction\n- Plain server-rendered HTML with Jinja2 templates, a little vanilla JS for polling. No React, no build step, no Tailwind CDN.\n- SQLite via the stdlib sqlite3 module for the job list\n\nWhat it does:\n1. Single page with a URL input and two format choices: \"MP4 best quality\" and \"MP3 audio only\".\n2. POST /jobs creates a job row, returns a job id, and runs the download in a background task.\n3. GET /jobs/{id} returns JSON status: queued, running, done, error, plus percent complete and the output filename. Wire yt-dlp's progress_hooks to update the row.\n4. The page polls every second and shows a progress bar, then a download link to GET /files/{id} which streams the finished file with a proper Content-Disposition.\n5. GET / also lists the last 50 jobs with status and a delete button that removes the row and the file.\n\nyt-dlp config:\n- MP4: format \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\", merge_output_format mp4.\n- MP3: postprocessor FFmpegExtractAudio, preferredcodec mp3, preferredquality 192.\n- outtmpl into a ./downloads directory, filenames sanitized, prefixed with the job id so nothing collides.\n- Catch yt-dlp exceptions, store the message on the job row, show it in the UI. Do not swallow errors.\n\nExplicitly out of scope: user accounts, auth, cloud storage, telemetry, analytics, rate limiting, playlist support, subtitle burn-in, Docker.\n\nBind uvicorn to 127.0.0.1 only. No secrets are needed, but still create a .env and read PORT and DOWNLOAD_DIR from it with sensible defaults.\n\nDeliver: requirements.txt, main.py, templates/, static/, a .gitignore that excludes downloads/ and the SQLite file, and a README with the exact install steps including the note that ffmpeg must be on PATH and that yt-dlp should be upgraded regularly or extraction will break.",
+  "promptCurated": false
+}
