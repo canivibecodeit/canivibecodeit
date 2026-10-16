@@ -1,0 +1,52 @@
+{
+  "slug": "sendflow",
+  "name": "Sendflow",
+  "domain": "sendflow.pro",
+  "category": "sales-outreach",
+  "subcategory": "cold email sequences",
+  "tagline": "Email outreach tool for running sequenced campaigns from your own inboxes.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://sendflow.pro/",
+    "checkedOn": "2026-10-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core of an outreach tool is unglamorous: a contact list, a template with variables, a send schedule, and a rule that stops the sequence when someone replies. An agent will give you that over a weekend with SMTP out and IMAP in, and for a few hundred contacts a month it genuinely works. What it will not give you is deliverability, which is the entire product once volume goes up: inbox rotation, warmup, bounce and spam-complaint handling, domain reputation, and someone else's accumulated knowledge of what gets filtered. You also inherit the legal exposure of bulk unsolicited email, which is not a code problem. Build it if your list is small and warm; pay if landing in the primary tab is the job.",
+  "coreLoopDIY": "Imports a CSV of contacts, merges them into a multi-step email template, sends on a schedule through your own SMTP, and halts a contact's sequence the moment they reply.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A sending mailbox with SMTP and IMAP access (Google Workspace, Fastmail, or a transactional provider)",
+    "A sending domain with SPF, DKIM and DMARC configured",
+    "Node 20 and a machine or small VPS that can run a scheduler",
+    "Willingness to read up on CAN-SPAM / GDPR before you press send"
+  ],
+  "whatYouLose": [
+    "Deliverability engineering: warmup, inbox rotation, throttling, reputation monitoring",
+    "Bounce and spam-complaint feedback loops that keep your domain alive",
+    "CRM and lead-source integrations, so list hygiene becomes a manual CSV ritual",
+    "A shared team view of who already contacted whom, so colleagues double-tap the same prospect",
+    "Reply classification beyond 'a human replied', meaning no out-of-office or auto-reply filtering unless you write it"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The hard part sits outside the app: IP and domain reputation, feedback loops with mailbox providers, and the accumulated operational folklore of not getting filtered.",
+  "whyPeopleStillPay": "Because the sequencing logic is the cheap half. Paying buys the half you cannot write: pooled sending infrastructure, warmup networks, bounce handling wired into provider feedback loops, and a vendor whose whole business is noticing when Gmail changes its mind. A self-hosted sender that works beautifully at 50 emails a day can quietly torch your main domain at 500, and by the time you notice, your actual company email is going to spam too. That risk, not the UI, is what the subscription is insuring against.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for a founder nudging 200 warm contacts; stop and buy something the moment the list stops being warm.",
+  "prompt": "Build a local cold-email sequencer called \"flowsend\" in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Node 20, TypeScript, SQLite via better-sqlite3, nodemailer for sending, imapflow for reply detection, Fastify plus server-rendered EJS for a localhost UI on port 4321. No React, no ORM, no queue service.\n\nData model in SQLite: contacts (email, first_name, company, custom_json, status, unsubscribed_at), campaigns (name, from_name, from_email, daily_cap, timezone, send_window_start, send_window_end), steps (campaign_id, order, delay_days, subject, body_template), sends (contact_id, step_id, message_id, sent_at, status), replies (contact_id, detected_at, message_id).\n\nFeatures that are IN:\n- CSV import that maps columns to contact fields and dedupes on email.\n- Template rendering with {{first_name}} style variables and a fallback value syntax.\n- A scheduler using node-cron that runs every 10 minutes, picks contacts due for their next step, and respects daily_cap, send window, and a randomized 60 to 300 second gap between sends.\n- IMAP polling of the sending mailbox every 5 minutes. If an inbound message References or In-Reply-To matches a stored message_id, mark the contact replied and halt all remaining steps for that contact.\n- A one-click unsubscribe link with a signed token, served locally, plus List-Unsubscribe headers on every send.\n- Dry-run mode that writes rendered emails to ./outbox as .eml files instead of sending.\n- A dashboard showing per-campaign sent, replied, bounced, unsubscribed counts.\n\nFeatures that are OUT, do not build them: inbox warmup, inbox rotation, open and click tracking pixels, AI copy generation, CRM sync, multi-user auth.\n\nSecrets in .env only: SMTP_HOST, SMTP_USER, SMTP_PASS, IMAP_HOST, IMAP_USER, IMAP_PASS, UNSUB_SECRET. Ship .env.example, never commit .env.\n\nOn boot, print a warning if SPF, DKIM or DMARC cannot be resolved for the from_email domain via DNS lookup, and refuse to send above 50 messages per day until an explicit ACKNOWLEDGED_DELIVERABILITY_RISK=true flag is set in .env.\n\nREADME: setup in under 10 commands, a short section on why this will hurt your domain reputation if you scale it, and the exact legal fields (physical address, opt-out) you are expected to include in footers.",
+  "promptCurated": false
+}
