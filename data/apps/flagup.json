@@ -1,0 +1,51 @@
+{
+  "slug": "flagup",
+  "name": "Flagup",
+  "domain": "flagup.io",
+  "category": "dev-tools",
+  "subcategory": "feature flags",
+  "tagline": "Hosted feature flags and remote config for shipping code behind switches.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://flagup.io/",
+    "checkedOn": "2026-08-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A feature flag service is, at its core, a JSON document and a fast way to read it, which is why every engineer who has used one has thought about writing their own. A weekend build gets you flags, environments, percentage rollouts, a dashboard, and a tiny SDK for whatever language you actually use. The gaps show up under load and over time: low latency global edge delivery, streaming updates instead of polling, offline caching, audit logs, and SDKs for the six platforms you did not write. For a solo dev or one product, that is fine. For a team where a bad flag read means an outage, the hosted thing is buying you a reliability guarantee you are not going to reproduce in a weekend.",
+  "coreLoopDIY": "Define flags per environment with boolean, string, or percentage-rollout values, edit them in a small admin UI, and serve them to your app through a cached HTTP endpoint plus a thin client SDK.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a small server host or edge function platform",
+    "Postgres or SQLite for flag storage",
+    "a CDN or cache in front of the read endpoint if you care about latency"
+  ],
+  "whatYouLose": [
+    "Low latency global reads and streaming flag updates, so your app polls and lags",
+    "Official SDKs for mobile, server, and browser with sane offline defaults",
+    "Targeting rules richer than percentage buckets: attributes, segments, cohorts",
+    "Audit trails, approvals, and change history, which is what saves you after a bad flip",
+    "Experiment analysis, so a rollout is just a rollout and not a measurement"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The interesting engineering is not the flag, it is delivering a flag to a million clients in 20ms without ever returning the wrong default.",
+  "whyPeopleStillPay": "Feature flags sit in the hot path of production code, so their failure mode is your outage. People pay so that the flag read never blocks, never returns garbage, and works identically from a Node server, an iOS app, and a browser bundle without three separate homegrown clients. They also pay for the boring governance layer: who flipped what, when, and can we revert it in one click during an incident. A self-hosted version is genuinely fine until the day it is not, and that day is usually a Friday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Building the flag store is easy; building something you trust in the request path at 3am is the actual product.",
+  "prompt": "Build a self-hosted feature flag service in an empty folder.\n\nStack, no substitutions: TypeScript, Node with Fastify, SQLite via better-sqlite3, server-rendered HTML with plain templates and a little vanilla JS. No React, no ORM, no auth provider.\n\nData model:\n- projects (id, name)\n- environments (id, project_id, key: development/staging/production)\n- flags (id, project_id, key, description, type: boolean|string|number|json)\n- flag_values (flag_id, environment_id, enabled, default_value, rollout_percent, updated_at)\n- audit_log (id, flag_id, environment_id, actor, before_json, after_json, created_at)\n\nAdmin UI at /admin, protected by a single ADMIN_TOKEN from .env via cookie login:\n- list flags per project and environment\n- create, edit, archive a flag\n- toggle enabled, set default value, set rollout_percent 0-100\n- show the last 50 audit log entries per flag\n\nRead API:\n- GET /api/v1/:envKey/flags with header X-Api-Key matching an env-scoped SDK key from the DB\n- returns a full flag payload plus an ETag; honor If-None-Match with 304\n- GET /api/v1/:envKey/flags/:key/evaluate?userId=... returns the resolved value\n- rollout is deterministic: sha256(flagKey + \":\" + userId), take the first 4 bytes as an integer, modulo 100, compare to rollout_percent. Same user always gets the same bucket.\n- reads must never throw: on any internal error return the last known good payload from an in-process cache and log it\n\nAlso emit a tiny TypeScript client in /client that fetches the payload, caches it in memory, polls every 30 seconds with ETag, exposes getBool(key, userId, fallback) and getValue(key, userId, fallback), and always returns the caller fallback if nothing is loaded yet.\n\nIn scope: seed script creating one project, three environments, and three demo flags. A .env.example with ADMIN_TOKEN and PORT. A README with curl examples. Vitest tests covering bucket determinism, ETag 304 behavior, and fallback on a corrupt cache.\n\nOut of scope: multi-user accounts, RBAC, segments and attribute targeting, experiment stats, websockets or SSE streaming, mobile SDKs, telemetry of any kind, Docker orchestration beyond a single Dockerfile.\n\nRun with npm install and npm run dev. Do not add analytics or phone home.",
+  "promptCurated": false
+}
