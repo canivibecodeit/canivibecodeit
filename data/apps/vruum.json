@@ -1,0 +1,51 @@
+{
+  "slug": "vruum",
+  "name": "Vruum",
+  "domain": "vruum.ai",
+  "category": "ai-assistant",
+  "subcategory": "AI agent / automation",
+  "tagline": "An AI product branded on speed: an agent that chews through routine work for you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://vruum.ai/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Products in this shape are usually a model you do not own wrapped in a task loop, a few connectors, and a UI that hides the retries. The loop itself is genuinely a one-sitting build: an agent harness with tool calling, a job queue, and a local database is well-trodden ground for a coding agent now. What takes longer is everything around it: the connectors, the auth dances, the prompt tuning that stops the thing wandering off, and the quiet error handling that makes it feel reliable instead of flaky. Judge this one provisionally: the public surface here is thin enough that the verdict leans on the category rather than the specific product. If the value turns out to sit in proprietary data or a deep set of integrations rather than the loop, it moves to no.",
+  "coreLoopDIY": "A local agent harness that takes a task in plain language, plans it, calls your tools in a loop until done, and shows you the full trace.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a frontier model (OpenAI or Anthropic)",
+    "Node 20+ and a terminal",
+    "Willingness to write your own tool functions for anything you want automated",
+    "Your own API credentials for each service you connect"
+  ],
+  "whatYouLose": [
+    "Prebuilt connectors to the services you actually use, which is most of the real work",
+    "Prompt and tool tuning done against thousands of real runs, not your three test cases",
+    "Hosted execution, so nothing runs while your laptop is shut",
+    "Anything mobile, and any notion of sharing the setup with a teammate",
+    "Someone else absorbing model API bills and rate limits"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Agent loops are commodity. The non-commodity part is the hundred small decisions about when to stop, retry, or ask, plus every OAuth integration someone else already shipped.",
+  "whyPeopleStillPay": "Because the demo is not the hard part. Writing an agent that calls tools in a loop is a weekend; writing one that does not silently fail on the fourth step of a ten step task, against a service whose API changes, is a long slog of unglamorous fixes. People pay to skip that slog and to have the thing run on someone else's machine at 3am. If you only need it for one narrow workflow you understand well, your own build will probably beat it, because you can hardcode the parts a general product has to guess at.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Thin public detail on this one, so the verdict is category-level rather than product-level until someone verifies it.",
+  "prompt": "Build a local, single-user AI agent workspace. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: TypeScript, Hono for the HTTP server, SQLite via better-sqlite3, plain HTML plus htmx for the UI. No React, no ORM, no Docker. One process, started with `npm start`.\n\nWhat it does:\n1. A single page at / with a text box: describe a task in plain language and submit it.\n2. The server creates a run row in SQLite and executes an agent loop against the Anthropic Messages API (model from MODEL in .env, key from ANTHROPIC_API_KEY in .env). Never hardcode secrets. Ship a .env.example.\n3. The loop: send the task plus registered tool schemas, execute any tool calls the model requests, feed results back, repeat until the model returns a final answer or hits MAX_STEPS (default 12).\n4. Persist every step: role, message text, tool name, tool input, tool output, duration, token counts. The whole trace is the product, do not hide it.\n5. The run page streams steps to the browser with server-sent events and shows the full trace on reload.\n6. Tools live in src/tools/ as one file each, exporting a JSON schema plus a handler. Ship exactly four: read_file and write_file scoped to a ./workspace directory, http_get, and run_shell gated behind ALLOW_SHELL=true in .env.\n7. Any tool call that touches the filesystem outside ./workspace or hits a non-http(s) URL is refused with a clear error fed back to the model.\n8. Retry failed API calls three times with exponential backoff. Surface the failure in the trace instead of swallowing it.\n9. A /runs list page: task, status, step count, total tokens, created time.\n\nExplicitly out of scope: multi-user, auth, OAuth connectors, scheduled or background runs, mobile, any hosted deployment.\n\nWrite a README that states plainly which parts are real and which are stubs, and include a seed script that runs one example task end to end so I can confirm the loop works before writing my own tools.",
+  "promptCurated": false
+}
