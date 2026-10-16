@@ -1,0 +1,52 @@
+{
+  "slug": "blooio",
+  "name": "Blooio",
+  "domain": "blooio.com",
+  "category": "project-management",
+  "subcategory": "client portals",
+  "tagline": "A shared workspace for agencies and their clients: per-client portals with messaging, files, and task lists in one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://blooio.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The data model here is unglamorous: clients, projects, threads, files, tasks, permissions. An agent can scaffold that in a session and it will look right on your laptop. The pain starts the moment a second party has to log in: invite flows, password resets, email that actually lands, file storage that does not vanish, and a UI polished enough that a paying client does not lose trust in you. None of that is a moat, it is just a tail of work that is longer than the core. Build it if you have two or three clients and a server you already babysit; buy it if the portal is the face you show people who pay you.",
+  "coreLoopDIY": "Spins up a self-hosted, multi-tenant client portal where each client sees only their own projects, message thread, files, and task list.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A server or VPS with a real domain and TLS",
+    "Transactional email provider for invites and notifications (Postmark, Resend, or SES)",
+    "Disk or S3-compatible bucket for file uploads",
+    "Willingness to be the support desk when a client cannot log in"
+  ],
+  "whatYouLose": [
+    "Mobile apps and push notifications; your clients get a browser tab",
+    "Email deliverability that does not land invites in spam",
+    "White-labeling, custom domains per client, and the small polish that makes a portal feel like a product",
+    "Granular roles and audit trails when a client asks who deleted what",
+    "Someone else's uptime, backups, and file storage guarantees"
+  ],
+  "moatTags": [
+    "collaboration",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The lock-in is social, not technical: once clients have learned where to click and their history lives there, moving is a conversation with every account you have.",
+  "whyPeopleStillPay": "Because the software is not the deliverable, the impression is. A client portal is customer-facing infrastructure for a business that bills people, so an afternoon of downtime or a bounced invite email costs more than a subscription. Paying also outsources the boring half: onboarding flows, permissions, notification digests, file handling, and the phone call when someone's login breaks. Self-hosting is entirely reasonable for a freelancer with a handful of clients and much less reasonable once the portal is how thirty accounts talk to you.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine weekend build for a solo operator, worse trade the more clients you have.",
+  "prompt": "Build a self-hosted client portal for a small agency. One codebase, no SaaS dependencies except email.\n\nStack, no substitutions:\n- Next.js (App Router, TypeScript) with Tailwind CSS\n- SQLite via Prisma, file at ./data/app.db\n- Auth: passwordless magic links, signed tokens, httpOnly session cookies. No third-party auth provider.\n- Email: nodemailer with SMTP credentials from .env. In dev, if SMTP vars are missing, print the magic link to the console.\n- File uploads: local disk at ./data/uploads, served only through an authorized route handler. No public bucket.\n\nData model: Org (single, the agency), User (role: staff | client), Client (a company), Project (belongs to Client), Message (threaded per Project, author, body markdown, attachments), File (per Project, uploader, size, mime), Task (per Project, title, assignee, due date, done flag), Invite (email, client, token, expiry).\n\nAuthorization is the point: a client user can only ever read or write rows scoped to their own Client. Enforce it in a single server-side helper that every query goes through, not in the UI. Write tests for exactly that: a client user attempting to read another client's project must 404.\n\nScreens:\n- Staff: list of clients, client detail with projects, invite a client user by email, per-project message thread, file list, task list.\n- Client: single dashboard showing only their projects, thread, files, tasks. No admin surface, no client switcher.\n- Shared: markdown message composer with drag-and-drop attachments, task checkboxes that update optimistically.\n\nNotifications: on new message or new file, email the other side once, batched with a 5 minute debounce via a simple in-process queue. No digests, no per-user preferences.\n\nOut of scope, do not build: billing, invoices, e-signatures, white-label domains, mobile apps, real-time websockets (poll every 20 seconds), SSO, analytics, telemetry of any kind.\n\nDeliver: schema, migrations, seed script creating one agency user and one demo client with sample data, a README with .env.example (SESSION_SECRET, SMTP_*, APP_URL), and a single `npm run dev` that works on a clean checkout.",
+  "promptCurated": false
+}
