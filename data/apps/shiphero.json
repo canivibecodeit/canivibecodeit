@@ -1,0 +1,52 @@
+{
+  "slug": "shiphero",
+  "name": "ShipHero",
+  "domain": "shiphero.com",
+  "category": "commerce",
+  "subcategory": "warehouse management / 3PL fulfillment",
+  "tagline": "Warehouse management and fulfillment software for ecommerce brands and third party logistics providers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://shiphero.com/",
+    "checkedOn": "2026-10-16",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "ShipHero is a warehouse management system: inventory across bins and locations, pick and pack workflows on handheld scanners, multi-channel order ingestion, and carrier rate shopping with live label purchase. An agent can absolutely generate an inventory table, a picking screen, and a barcode scan handler in one session, and that part is genuinely fun. What it cannot generate is negotiated carrier accounts, certified label generation for UPS, FedEx and USPS, Shopify and Amazon order sync that survives their API churn, and the operational edge cases that show up at 2am when a wave of 400 orders has three short picks. If you are a single person shipping ten orders a day from a spare room, a DIY build plus ShipStation-style manual labels is plausible. If a warehouse of people depends on it, every bug is a mis-shipped package and a chargeback.",
+  "coreLoopDIY": "A local warehouse app that tracks SKUs by bin location, accepts scanned barcodes to build pick lists from open orders, and marks orders packed with a manually entered tracking number.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "A machine or small server to run it on",
+    "A barcode scanner that acts as a keyboard, or a phone camera",
+    "Manual CSV import of orders, or an API key per sales channel you want to sync",
+    "Carrier accounts and a separate label tool if you actually need to ship"
+  ],
+  "whatYouLose": [
+    "Native carrier integrations with rate shopping and compliant label generation",
+    "Pre-built Shopify, Amazon, eBay and Walmart order and inventory sync that is maintained for you",
+    "Mobile scanner apps that work offline on warehouse hardware",
+    "Multi-warehouse allocation, kitting, returns and cycle count workflows that are already debugged",
+    "Someone to call when the picking screen goes down mid-shift"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "scale-infra"
+  ],
+  "moatNotes": "The carrier and marketplace integration surface is the product. Everything visible in the UI is the cheap part.",
+  "whyPeopleStillPay": "Because warehouse software fails in expensive, physical ways. A bad inventory count means overselling, a bad label means a package in the wrong state, a slow pick screen means paid staff standing still. ShipHero is paid for the hundred integrations nobody wants to maintain and for the fact that someone else owns the pager. Brands also stay because migrating a live warehouse mid-season is not a thing a sane operations lead does.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pick screen is a weekend; the carrier and marketplace plumbing is not. The moat is the maintained integration layer plus the switching cost of ripping out software a live warehouse runs on.",
+  "prompt": "Build a local-first warehouse inventory and picking app for a one-person ecommerce operation. No cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Next.js with the app router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, file at ./data/warehouse.db, schema applied on boot.\n- No auth. Single trusted user on a LAN.\n\nData model:\n- products: id, sku, name, barcode, unit_cost.\n- locations: id, code (like A-01-3), type (pick | reserve).\n- inventory: product_id, location_id, qty. Unique on the pair.\n- orders: id, external_id, channel, customer_name, address_blob, status (open | picking | packed | shipped | cancelled), created_at.\n- order_items: order_id, product_id, qty, qty_picked.\n- movements: append-only log of every quantity change with reason and timestamp.\n\nFeatures in scope:\n1. Products page: create, edit, search by sku or barcode.\n2. Locations page: create bins, see what is in each.\n3. Receiving screen: scan or type a barcode, pick a location, enter qty, writes inventory and a movement row.\n4. Order import: paste or upload CSV with external_id, sku, qty, customer, address. Dedupe on external_id.\n5. Pick wave: select open orders, generate a pick list sorted by location code, one line per product per bin.\n6. Pick screen optimized for a barcode scanner acting as a keyboard: big text, shows next bin and sku, scanning the barcode confirms the pick and advances, button for short pick which flags the line and continues.\n7. Pack screen: per order, confirm all items picked, paste a tracking number manually, mark shipped, decrement inventory via movements.\n8. Reports: on-hand by sku, negative or zero stock warnings, movement history filterable by sku and date.\n\nExplicitly out of scope, do not fake these:\n- Carrier APIs and label printing. The pack screen takes a manually entered tracking number only.\n- Shopify, Amazon or any marketplace sync. CSV import only.\n- Multi-warehouse allocation, kitting, returns, cycle counting.\n- Mobile native app. The pick screen is a responsive web page.\n\nRequirements:\n- Every inventory change goes through a single helper that writes a movements row in the same transaction. No direct inventory writes elsewhere.\n- Seed script with 20 products, 30 bins and 10 fake orders so the app is usable immediately.\n- README covering setup, how to point a USB scanner at the pick screen, and how to back up the sqlite file.\n- Any config in .env. No secrets committed.",
+  "promptCurated": false
+}
