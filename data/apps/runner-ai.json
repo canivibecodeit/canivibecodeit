@@ -1,0 +1,52 @@
+{
+  "slug": "runner-ai",
+  "name": "Runner AI",
+  "domain": "runnerai.com",
+  "category": "ai-assistant",
+  "subcategory": "autonomous task agent",
+  "tagline": "An AI agent product that takes a natural language instruction and runs the multi-step work for you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://runnerai.com/",
+    "checkedOn": "2026-08-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The shape of this category is well understood: an LLM in a loop, a set of tools, a browser or shell it can drive, and a log of what it did. A coding agent will hand you that in a session, and for narrow repeatable tasks your version will work fine. What it will not hand you is the boring 80 percent: retries that actually recover, sane handling of logins and two-factor prompts, cost ceilings, and the judgment to stop instead of confidently doing the wrong thing twice. You also inherit a hard dependency on somebody's model API, so this is not self-contained in any meaningful sense. Build it if you want a scriptable agent for your own five workflows, not if you want something you would trust unattended.",
+  "coreLoopDIY": "A local CLI that takes a plain-English task, drives a real browser through an LLM tool-use loop, and writes a step-by-step transcript you can audit.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key with a real spend limit set",
+    "Node 20+ and Playwright browsers installed locally",
+    "Patience for prompt tuning, the first ten runs will be bad",
+    "Your own credentials in .env for any site the agent touches"
+  ],
+  "whatYouLose": [
+    "Reliability engineering: the failure modes are endless and yours will hit all of them",
+    "Any hosted schedule or trigger, your agent only runs when your laptop is awake",
+    "Prebuilt integrations and auth flows for common services",
+    "Guardrails and approval UX that stop an agent mid-mistake",
+    "Someone else eating the token bill and tuning the model choice for you"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Nobody in this space owns the model. The differentiation is harness quality, tool coverage, and how gracefully the thing fails.",
+  "whyPeopleStillPay": "Because an agent that works 70 percent of the time is worse than no agent, and closing that last 30 percent is unglamorous full-time work. Paid products absorb the retry logic, the browser fingerprinting fights, the session storage, the scheduling, and the model churn every few months. They also give you a place to click cancel when the agent starts filling in the wrong form. A local loop is genuinely useful for tasks you supervise; it stops being useful the moment you want to walk away from the screen.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The demo will feel like magic and the eleventh run will feel like debugging someone else's intern.",
+  "prompt": "Build a local, single-user AI task runner as a CLI. No web UI, no accounts, no telemetry, no cloud.\n\nStack, non-negotiable: TypeScript, Node 20, Playwright (Chromium, headed by default), Anthropic Messages API with tool use, better-sqlite3 for run history, commander for the CLI. No frameworks beyond that.\n\nCommands:\n- `runner do \"task text\"` : start a new run\n- `runner runs` : list past runs with status, step count, token cost\n- `runner show <id>` : print the full transcript of a run\n- `runner replay <id>` : re-run the same task text\n\nCore loop: send the task plus current page state to the model, receive a tool call, execute it, append the result, repeat until the model returns a final answer or the step cap (default 30) is hit.\n\nTools to expose: navigate(url), click(selector_or_text), type(selector, text), read_page() returning trimmed visible text plus a numbered list of interactive elements, screenshot() returning a base64 image, wait(ms), run_shell(cmd), finish(summary).\n\nSafety, implement properly, do not stub:\n- A confirm gate: any run_shell call, any click on text matching /delete|pay|submit|buy|send/i, and any navigation off the allowlist prompts the user in the terminal for y/n.\n- ALLOWED_DOMAINS in .env, comma separated. Navigation outside it requires confirmation.\n- A hard USD cost ceiling per run from .env; abort with a clear message when exceeded.\n- Persist a browser profile directory so logins survive between runs. Never write credentials into the SQLite DB or the transcript; redact anything typed into a field whose selector or label matches /pass|token|secret|otp|code/i.\n\nWrite every step to SQLite: run id, timestamp, tool name, arguments, truncated result, tokens in/out. Save screenshots to ./runs/<id>/ as PNGs and reference them in the transcript.\n\nSecrets in .env only: ANTHROPIC_API_KEY, ALLOWED_DOMAINS, MAX_RUN_USD, MAX_STEPS. Ship .env.example.\n\nOut of scope, do not build: scheduling, multi-user support, a hosted dashboard, CAPTCHA solving, proxy rotation, any attempt to evade bot detection.\n\nDeliver a README with install steps, one worked example task, and a blunt Limitations section listing what will break.",
+  "promptCurated": false
+}
