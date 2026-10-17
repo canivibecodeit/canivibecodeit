@@ -1,0 +1,50 @@
+{
+  "slug": "revtrack",
+  "name": "RevTrack",
+  "domain": "getrevtrack.com",
+  "category": "finance-accounting",
+  "subcategory": "revenue dashboards",
+  "tagline": "A revenue tracking dashboard that pulls payment data into MRR, churn and growth charts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getrevtrack.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Revenue dashboards are thin wrappers around someone else's API, and the someone else is usually your own Stripe account. The actual work is arithmetic: group charges by month, net out refunds, divide, draw a line. An agent can wire the Stripe SDK to a local SQLite cache and render MRR, new vs churned revenue, and a customer list in a single sitting, and it will be more accurate than a generic tool because you get to define what counts as churn for your product. What you do not get for free is multi-source consolidation: App Store, Paddle, Lemon Squeezy and PayPal each have their own ugly reconciliation story. If you bill through one processor, this is a weekend afternoon and you own the numbers.",
+  "coreLoopDIY": "Syncs charges, subscriptions and refunds from your payment processor into a local database and renders MRR, churn, LTV and growth charts on a single dashboard page.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A Stripe (or similar) account with a read-only restricted API key",
+    "Node 20+ and a place to run it, local or a cheap VPS",
+    "Willingness to define your own churn and MRR rules once"
+  ],
+  "whatYouLose": [
+    "Multi-processor consolidation, App Store and Play Store revenue especially",
+    "Mobile app and push notifications for the daily revenue ping",
+    "Someone else maintaining the integration when the payments API changes",
+    "Benchmarks and cohort views that come pre-built and tuned",
+    "Shareable read-only dashboards for cofounders or investors"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is breadth of payment sources, not the math. One processor, no moat.",
+  "whyPeopleStillPay": "Because they bill through four places and reconciling App Store proceeds against Stripe invoices against a reseller statement is genuinely tedious, recurring work that nobody wants to own. There is also the nice-dashboard tax: paying a small monthly fee to never again wonder whether your MRR query is wrong is a reasonable trade for a founder whose time is better spent on the product. If you are single-processor and comfortable in SQL, that logic stops applying fast.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Revenue math is a SQL query with good typography on top.",
+  "prompt": "Build a self-hosted revenue dashboard for a single Stripe account. Empty folder, no scaffolding questions, make the choices yourself.\n\nStack: Next.js 15 App Router with TypeScript, Tailwind, better-sqlite3 for local storage, the official stripe Node SDK, and Recharts for charts. No auth provider, no hosted database, no telemetry, no analytics scripts.\n\nSecrets: read STRIPE_SECRET_KEY from .env.local. Write a .env.example. Never commit real keys. Assume a restricted read-only key.\n\nSync job: a script at scripts/sync.ts that pages through Stripe charges, refunds, customers, subscriptions and subscription items, and upserts them into data/revtrack.db. Make it idempotent and resumable by storing the last synced timestamp per resource. Running it twice must not double count. Support a --full flag to re-pull everything.\n\nMetrics layer: pure functions in lib/metrics.ts over the SQLite data, unit tested with vitest. Compute monthly MRR normalized to a monthly amount regardless of billing interval, new MRR, expansion, contraction, churned MRR, net revenue after refunds, active subscriber count, average revenue per account, and trailing 12 month revenue. Handle multiple currencies by converting nothing: group by currency and show them separately rather than faking a rate.\n\nUI: one dashboard route. Top row of stat cards with current MRR, net revenue this month, active subscribers, churn rate. Below that an MRR-over-time area chart, a monthly net revenue bar chart, and a table of the 50 largest customers by lifetime value with a search box. Date range selector for 3, 6, 12 and all months. Dark, dense, no marketing copy, numbers formatted with proper currency symbols.\n\nExplicitly out of scope: user accounts, multi-tenant anything, email reports, non-Stripe processors, forecasting, cohort retention grids.\n\nDeliver a README with setup in four commands, a note that the DB file is gitignored, and a one-paragraph explanation of exactly how MRR and churn are defined in the code so the definitions can be argued with later.",
+  "promptCurated": false
+}
