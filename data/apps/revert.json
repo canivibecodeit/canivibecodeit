@@ -1,0 +1,53 @@
+{
+  "slug": "revert",
+  "name": "Revert Finance",
+  "domain": "revert.finance",
+  "category": "personal-finance",
+  "subcategory": "DeFi liquidity position analytics",
+  "tagline": "Analytics and automation for Uniswap style concentrated liquidity positions: fees earned, impermanent loss, APR, and auto-compounding.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://revert.finance/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. The analytics side has historically been free with automation products taking a cut of compounded fees rather than a flat subscription.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The analytics half of this reads on public data: your positions live on chain, the pool math is documented, and nobody is gatekeeping the numbers. An agent can absolutely build you a local dashboard that pulls your position NFTs, computes uncollected fees, fee APR, and loss versus just holding the two tokens. Where it falls apart is everything around the edges: accurate historical price series for IL backtests, multi-chain and multi-DEX coverage, range simulation, and the automation products, which are audited contracts plus a keeper network you do not want to recreate with your own money inside. So you get the read-only view in a weekend and you keep paying, or keep approving, for anything that touches your funds automatically.",
+  "coreLoopDIY": "A local dashboard that reads your Uniswap v3 position NFTs on chain, then shows uncollected fees, fee APR, current range status, and value versus a plain hold of the same two tokens.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a terminal",
+    "An RPC endpoint with archive-ish history, Alchemy or Infura free tier is fine",
+    "Your wallet addresses, read-only, no private keys anywhere",
+    "A token price source, CoinGecko free tier works",
+    "Patience for Uniswap v3 tick and fee growth math, which is where the bugs live"
+  ],
+  "whatYouLose": [
+    "Multi-chain and multi-protocol coverage out of the box, your build will know exactly one deployment on one chain until you expand it",
+    "Trustworthy historical price and pool data, which is what makes IL and backtest numbers meaningful instead of decorative",
+    "Auto-compounding and auto-exit, which require deployed contracts, keepers, and gas management, not a cron job on your laptop",
+    "Range simulation and strategy backtesting, the actual reason people open the site before they open a position",
+    "Someone else catching the edge cases when a pool migrates, a token rebases, or fee growth accounting goes sideways"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The chain data is public, the indexing and the historical price reconstruction are not cheap. And nobody approves a token spend to a contract they built on Saturday.",
+  "whyPeopleStillPay": "Because the read-only numbers are the easy part and the expensive part is everything that acts on them. Compounding fees by hand means watching ranges, paying gas at bad moments, and remembering to do it, which is exactly the chore people outsource. On top of that, a position dashboard is only as good as its historical data, and reconstructing clean pool and price history across chains is an infrastructure bill, not a weekend. A self-built viewer is genuinely useful for the handful of positions you actually own; it is not a substitute for automation you trust with live capital.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the viewer, rent the automation. Letting an agent write contracts that hold your liquidity is a genre of story that ends badly.",
+  "prompt": "Build a local, read-only dashboard for my Uniswap v3 liquidity positions on Ethereum mainnet.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript, run locally only\n- viem for all on-chain reads\n- better-sqlite3 for a local snapshot table\n- Tailwind for layout, keep it plain, no component library\n\nWhat it does:\n1. Read WALLET_ADDRESSES (comma separated) and RPC_URL from .env. No private keys, no wallet connect, no signing, ever.\n2. For each address, query the Uniswap v3 NonfungiblePositionManager for owned position NFTs: enumerate via balanceOf plus tokenOfOwnerByIndex, then positions(tokenId).\n3. For each position, resolve the pool via the factory, read slot0, feeGrowthGlobal0X128/1X128, and the tick data needed to compute uncollected fees. Implement the fee growth inside the range math properly and write unit tests for it against two known positions.\n4. Compute and display per position: token pair and fee tier, lower/upper price bounds in human units, current price, in-range or out-of-range, token amounts at current tick, uncollected fees in both tokens, and USD value using CoinGecko spot prices (cache responses to SQLite, respect the free tier).\n5. Compute fee APR since the last snapshot, not since position open. Be explicit in the UI that it is snapshot based.\n6. A \"hold instead\" comparison: current position value plus fees versus holding the initial token amounts, where initial amounts come from a user-edited positions.json I fill in by hand. Do not pretend to reconstruct mint history from logs.\n7. A `npm run snapshot` script that writes one row per position per run so APR has something to compare against. I will cron it myself.\n\nExplicitly out of scope: any write transaction, auto-compounding, other chains, other DEXes, backtesting, range simulation, accounts, telemetry, deployment.\n\nDeliverables: working app, README with the exact .env keys, the fee math tests, and a clearly labeled section in the README listing which numbers are approximations and why.",
+  "promptCurated": false
+}
