@@ -1,0 +1,52 @@
+{
+  "slug": "wrenchtime",
+  "name": "Wrenchtime",
+  "domain": "wrenchtimeapp.com",
+  "category": "time-tracking",
+  "subcategory": "shop and maintenance labor tracking",
+  "tagline": "Job clock and labor time tracking built around wrench time for mechanics and maintenance crews.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://wrenchtimeapp.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "At its core this is a stopwatch attached to a job record, and a coding agent will give you that in an afternoon: jobs, techs, start/stop, a wrench time percentage, a weekly report. The hard part was never the timer, it is getting a greasy-handed person to actually hit start on a phone in a loud bay, then reconciling that against work orders and payroll. A personal or one-shop version is genuinely fine if you are the only one using it or you trust your crew to tap buttons. The moment you need offline mobile, multi-site rollups, or a handoff into a real maintenance or shop management system, the DIY version starts leaking. Public detail on this product is thin, so treat the verdict as directional rather than a teardown.",
+  "coreLoopDIY": "A local web app where you pick a job and a tech, start and stop a timer, tag the interval as wrench time or waiting, and get a per-job and per-week breakdown you can export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+",
+    "A machine or cheap VPS to run it on",
+    "A phone browser for the shop floor, ideally on the same network",
+    "Someone willing to enforce the clock-in habit"
+  ],
+  "whatYouLose": [
+    "A real mobile app that survives bad shop wifi and works offline",
+    "Multi-tech, multi-site rollups and manager dashboards that someone else maintains",
+    "Integrations into work order, parts, or payroll systems",
+    "Audit-safe time records if anyone ever disputes labor hours",
+    "Whatever benchmarking or canned reporting the paid product ships with"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "Labor time data gets ugly to migrate once payroll and job costing depend on it, and the integrations into shop or CMMS systems are the part nobody wants to rebuild.",
+  "whyPeopleStillPay": "Because the product is not the timer, it is the discipline around the timer. Paying means someone else owns the mobile app that works in a dead zone, the reports a plant manager will actually read, and the record you can point at when a customer argues about billed hours. A shop owner replacing this with a self-hosted side project also becomes the person who gets called when the clock stops mid-shift, and that call always arrives at the worst time.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The timer is trivial; the behavior change is not. Budget your effort accordingly.",
+  "prompt": "Build a self-hosted labor time tracker for a small repair shop or maintenance crew. Call it Wrenchclock.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind. SQLite via better-sqlite3, file at ./data/wrenchclock.db, migrations run on boot.\n- No auth provider, no cloud, no telemetry, no analytics. Single shared instance on a LAN.\n- One env var in .env: APP_PIN, a shared numeric PIN checked by middleware and stored in a signed cookie. That is the entire security model, say so in the README.\n\nData model:\n- techs: id, name, active.\n- jobs: id, title, customer, vehicle_or_asset, status (open/closed), created_at.\n- entries: id, job_id, tech_id, started_at, ended_at nullable, kind (wrench | waiting | parts | travel), note.\n\nScreens:\n- /clock: the only screen that matters. Big touch targets. Pick tech, pick job, pick kind, one huge Start/Stop button. Show the running timer and today's total for that tech. Must be usable one-handed on a phone browser.\n- /jobs: list and create jobs, open a job to see all entries, total hours, and wrench time percentage (wrench minutes divided by all logged minutes).\n- /reports: date range picker, per-tech and per-job totals, wrench time percentage, CSV export.\n- /admin: add and deactivate techs, close jobs, manually edit or insert an entry with a required reason note.\n\nRules:\n- A tech can only have one open entry; starting a new one auto-stops the previous and logs that it was auto-stopped.\n- Never delete entries, soft-delete with a voided flag so edits stay visible in the job view.\n- Durations computed from timestamps, never stored as totals.\n\nOut of scope, do not build: invoicing, parts inventory, payroll export, native apps, offline sync, multi-tenant accounts, charts beyond simple bars.\n\nSeed the database with three techs and four jobs so the UI is not empty. Include a README with setup, the PIN caveat, and a one-line SQLite backup command.",
+  "promptCurated": false
+}
