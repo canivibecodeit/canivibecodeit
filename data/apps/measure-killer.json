@@ -1,0 +1,51 @@
+{
+  "slug": "measure-killer",
+  "name": "Measure Killer",
+  "domain": "measurekiller.com",
+  "category": "dev-tools",
+  "subcategory": "Power BI model cleanup",
+  "tagline": "External tool for Power BI that finds unused measures, columns and tables across reports, semantic models and whole tenants.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://measurekiller.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. There is a free tier limited to single local files, with paid tiers for Service and tenant-wide analysis.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core trick here is a dependency graph: read the model metadata, read the report definition, see which measures and columns nothing points at. Since Power BI projects save the semantic model as plain TMDL text and the report as JSON, a competent agent can parse both and produce a credible dead object report in one sitting, including the transitive case where a measure is only used by another measure. Where it falls apart is everything past one local file: scanning dozens of workspaces through the Service APIs, hitting XMLA endpoints on Premium capacity, catching references from Excel workbooks, dataflows and paginated reports, and running as a registered external tool inside Power BI Desktop. DAX reference resolution is also deceptively nasty, with bare measure names, variables, and calculation groups all waiting to make your regex look stupid. One model, one afternoon: fine. A 400 report estate you are about to refactor: pay someone.",
+  "coreLoopDIY": "Parse a local .pbip project's TMDL model and report JSON, build a reference graph, and list every measure, column and table that nothing reaches.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Power BI projects (.pbip) save format, since binary .pbix models are not practically parseable",
+    "Python 3.11",
+    "A model small enough that false negatives in DAX parsing are cheap to spot by eye"
+  ],
+  "whatYouLose": [
+    "Tenant and workspace wide scanning through the Power BI Service APIs and XMLA endpoints",
+    "Registered external tool integration, so no launching it from Power BI Desktop and removing objects in place",
+    "Coverage of non report consumers: Excel workbooks, dataflows, paginated reports, downstream datasets",
+    "A DAX parser that has already been shouted at by thousands of weird real models, including calculation groups and field parameters",
+    "Column storage size and memory stats that tell you which dead columns are actually worth killing"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The defensible part is not the graph, it is every Power BI API, format change and DAX edge case they have absorbed since the tool shipped.",
+  "whyPeopleStillPay": "Because the people who buy this are not cleaning one file, they are staring at an inherited estate of hundreds of reports and a semantic model nobody dares touch, and the entire value is being able to delete things without breaking production. That confidence comes from coverage: every consumer of a field, across every workspace, including the ones that are not reports. A local script that reads one project folder gets you a useful list and a rough sense of the rot, but it cannot tell you that a column you were about to drop is pulled by one Excel pivot in finance. The license is cheap next to one broken executive dashboard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The single file version is a genuinely satisfying afternoon build. The paid version is selling coverage and nerve, not graph theory.",
+  "prompt": "Build a Python 3.11 CLI called \"deadweight\" that finds unused measures, columns and tables in a Power BI semantic model.\nInput: one local Power BI project folder (.pbip) containing a TMDL semantic model folder and a report folder. Nothing else. No cloud, no tenant scanning, no accounts.\nParse the TMDL files (model.tmdl, tables/*.tmdl) with a small hand written indentation aware parser: extract tables, columns, hierarchies, relationships, RLS roles, and the DAX expression of every measure and calculated column.\nParse the report definition JSON (report.json, or definition/pages/**/visual.json depending on the format version) and collect every field reference: visual projections, filters, slicers, conditional formatting, tooltips, bookmarks, drillthrough, page level and report level filters.\nBuild a dependency graph: report reference, then measure, then other measures and columns, then calculated columns and calculated tables, then base columns, then tables. Resolve DAX references with a pass over 'Table'[Column] patterns and bare [Measure] names.\nWhen a bare measure name is ambiguous or unresolvable, record it as a warning in the output. Never guess silently.\nMark an object as used if it is reachable from any report reference, any RLS role expression, or any relationship endpoint. Everything unreachable is dead.\nOutput a single self contained report.html with three sortable tables: unused measures, unused columns, unused tables. Each row shows object name, parent table, and the reason it was flagged.\nAlso emit dead_objects.json for scripting, and print a one line summary to stdout.\nAdd a --delete-plan flag that writes a plain text plan listing exactly which TMDL files and line ranges would be removed. The tool must never modify the project files.\nStack: Python 3.11, stdlib plus jinja2 for the HTML template. No database, no web server, no telemetry.\nExplicitly out of scope: Power BI Service workspace scanning, XMLA endpoints, dataflows, paginated reports, Excel workbook consumers, usage statistics, external tool registration, multi user anything.\nInclude tests/ with one fixture project: three tables, six measures where two are referenced only by another measure and two are referenced nowhere, plus one column used only inside a calculated column. Tests must prove the transitive case resolves correctly.\nFail loudly with a clear message if the input path is a .pbix file, telling the user to save as a Power BI project first.\nWrite a README with the exact run command and an honest section titled \"what this misses\" listing every out of scope item above.\nNo secrets are needed. If config is ever added, read it from .env and ship a .env.example.",
+  "promptCurated": false
+}
