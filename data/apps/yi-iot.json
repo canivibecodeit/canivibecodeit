@@ -1,0 +1,53 @@
+{
+  "slug": "yi-iot",
+  "name": "YI IoT",
+  "domain": "kamicloud.net",
+  "category": "home",
+  "subcategory": "security cameras",
+  "tagline": "Companion app for YI and Kami cameras: live view, motion alerts, and cloud clip storage.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://kamihome.prod.kamicloud.net/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "YI IoT is not really an app, it is the only door into cameras you already bought. Stock firmware on these cameras talks to the vendor cloud over a proprietary P2P protocol, with no RTSP, no ONVIF, and no documented local API, so there is nothing for your own code to connect to. You can absolutely build a better viewer and recorder than this app, but only after you flash community firmware like yi-hack, which voids whatever warranty you have and bricks a device if you pick the wrong build. The push notification path also runs through the vendor's servers and mobile app, which you cannot reimplement for an unmodified camera. The honest version of this build starts with hardware you control, not with software.",
+  "coreLoopDIY": "A self-hosted NVR that pulls RTSP from cameras you have unlocked, serves live view in a browser, records motion clips to disk, and pings you on your phone.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Cameras that actually expose RTSP or ONVIF, which on YI hardware means flashing community firmware first",
+    "An always-on machine or mini PC on the same LAN",
+    "Local disk for clips, plus a retention policy so it does not fill up",
+    "A VPN or Tailscale if you want remote viewing without opening ports",
+    "ntfy, Telegram, or similar for push alerts"
+  ],
+  "whatYouLose": [
+    "Zero-config pairing: scan a QR, camera works, no firmware flashing",
+    "Remote viewing through NAT without you running a VPN or tunnel",
+    "Vendor cloud clip storage that survives a thief taking the recorder",
+    "Camera-side features baked into stock firmware: two-way audio, pan and tilt control, siren, AI person detection",
+    "Any firmware updates or support once you flash, plus a real chance of bricking the camera"
+  ],
+  "moatTags": [
+    "hardware",
+    "switching-costs",
+    "scale-infra"
+  ],
+  "moatNotes": "The lock is in the camera's firmware, not in the app's code. The app is mediocre and that does not matter.",
+  "whyPeopleStillPay": "People pay because the cameras are cheap and the app is the only thing that talks to them. The cloud subscription exists to cover the one case local recording cannot: someone walks off with the box holding your footage. Nobody chooses YI IoT, they choose a forty dollar camera and inherit the app, and switching means buying different hardware or soldering curiosity into a weekend of firmware flashing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The viewer is a weekend build; the camera is not. The moat is firmware that only speaks to one cloud, sold at a price that makes replacing the hardware the cheapest escape.",
+  "prompt": "Build a self-hosted NVR for IP cameras on my LAN. Single Docker Compose project, no accounts, no vendor cloud.\n\nStack, no substitutions:\n- go2rtc as the stream broker (RTSP in, WebRTC and HLS out)\n- Python 3.12 + FastAPI for the app server\n- SQLite via sqlite3 stdlib for clip metadata, no ORM\n- Plain HTML + htmx + vanilla JS for the UI, no build step\n- ffmpeg for recording and thumbnails\n\nScope that is IN:\n- cameras.yaml defines each camera: name, rtsp_url, enabled\n- Dashboard grid of live views, click one for fullscreen low-latency WebRTC\n- Continuous segment recording per camera: 60 second mp4 chunks into /data/recordings/{camera}/{date}/\n- Motion detection by frame differencing on a downscaled substream, OpenCV headless, per-camera sensitivity and ignore-mask rectangles in cameras.yaml\n- On motion: write an event row, cut a clip covering 5 seconds before to 15 seconds after, generate a jpg thumbnail, POST to an ntfy topic from .env\n- Events page: filter by camera and date, thumbnail list, inline clip playback, delete\n- Retention job: delete recordings older than RETENTION_DAYS, and stop recording if free disk drops under a floor\n- /healthz with per-camera last-frame timestamps\n\nScope that is OUT: user accounts, multi-tenant anything, person or object detection models, two-way audio, PTZ control, port forwarding. Remote access is assumed to be Tailscale or a VPN, document that in the README and do not build it.\n\nSecrets and config in .env: NTFY_URL, RETENTION_DAYS, DATA_DIR, camera credentials interpolated into cameras.yaml.\n\nDeliver docker-compose.yml, Dockerfile, the app, a cameras.yaml.example, and a README that states plainly that stock YI and Kami firmware does not expose RTSP and that this only works against cameras already running yi-hack or any ONVIF camera.",
+  "promptCurated": false
+}
