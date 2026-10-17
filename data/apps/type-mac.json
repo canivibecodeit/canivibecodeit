@@ -1,0 +1,51 @@
+{
+  "slug": "type-mac",
+  "name": "Type Mac",
+  "domain": "typemac.com",
+  "category": "productivity-utilities",
+  "subcategory": "inline translation for macOS",
+  "tagline": "A macOS utility for translating and rewriting text in place, wherever you are typing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://typemac.com/blog/best-translation-app-macbook/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is small: capture a global hotkey, grab the selected text, send it to a translation model, put the result back. An agent can write that in a session, and a menu bar app with a hotkey and an API key covers most of what a personal user actually does with it. The gaps are all macOS gaps rather than product gaps: Accessibility permissions, per-app clipboard quirks, apps that refuse synthetic paste events, and the fact that an unsigned local build will nag you forever. You also inherit someone else's translation engine, so the quality ceiling is whichever API key you paste into .env. Buildable, usable, slightly held together with tape.",
+  "coreLoopDIY": "A macOS menu bar app that, on a global hotkey, grabs the current text selection, translates or rewrites it through an API, and pastes the result back in place.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS with Xcode command line tools",
+    "An API key for a translation or LLM provider",
+    "Accessibility and Input Monitoring permissions granted to the local build",
+    "Comfort running an unsigned app you built yourself"
+  ],
+  "whatYouLose": [
+    "Code signing and notarization, so you are the one clicking through Gatekeeper warnings",
+    "Reliable behaviour in apps that block synthetic keystrokes or guard their text fields",
+    "A tuned prompt and glossary setup that someone else already iterated on",
+    "Updates when macOS changes Accessibility or clipboard behaviour, which it does",
+    "Offline or on-device translation unless you go hunting for a local model"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The defensibility of a Mac text utility is almost entirely in the hundred small compatibility fixes you never think about until your paste lands in the wrong window.",
+  "whyPeopleStillPay": "Because the last ten percent of a system-wide text utility is where all the time goes. Grabbing a selection via a simulated copy works in TextEdit and fails in whatever Electron app your team lives in, and debugging that is not fun on a Saturday. Paid utilities also arrive signed, notarized, and already aware of which apps need a delay before the paste. If you translate text ten times a day, a one-time fee beats maintaining your own Accessibility permission dance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The hotkey is easy, the paste is the part that will make you swear.",
+  "prompt": "Build a macOS menu bar utility called Inline that translates or rewrites selected text in place.\n\nStack, no substitutions:\n- Swift 5.9+, SwiftUI for the menu bar UI, built with Swift Package Manager into a .app bundle via a small build script.\n- Carbon RegisterEventHotKey for the global shortcut. Do not use a third party hotkey library.\n- URLSession for API calls. No other dependencies.\n\nBehaviour:\n- Runs as an LSUIElement agent app, menu bar icon only, no Dock icon, no window on launch.\n- Default hotkey Control+Option+T. On press: save the current pasteboard, send Command+C via CGEvent, wait 120ms, read the pasteboard, call the translation API, replace the pasteboard with the result, send Command+V, then restore the original pasteboard after 300ms.\n- Menu bar menu lists target languages read from config, plus a Rewrite action that uses a plain English cleanup prompt, plus Quit.\n- If the pasteboard is unchanged after the copy, show a notification saying no selection was captured and abort. Do not paste anything.\n\nConfig and secrets:\n- Read OPENAI_API_KEY from a .env file next to the binary and from the environment. Ship .env.example only.\n- Target languages and the hotkey live in a config.json created on first run with sane defaults.\n\nExplicitly out of scope: accounts, telemetry, cloud sync, auto update, code signing, an inline overlay UI, iOS.\n\nAlso produce:\n- A build.sh that compiles and assembles Inline.app with a correct Info.plist including LSUIElement.\n- A README covering how to grant Accessibility and Input Monitoring permissions, and a short list of known-bad apps where synthetic paste fails.\n- A debug mode flag that logs each step of the copy, call, paste sequence to stderr with timings.",
+  "promptCurated": false
+}
