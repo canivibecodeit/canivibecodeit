@@ -1,0 +1,52 @@
+{
+  "slug": "llmrefs",
+  "name": "LLMRefs",
+  "domain": "llmrefs.com",
+  "category": "seo-marketing",
+  "subcategory": "AI search visibility tracking",
+  "tagline": "Tracks how often your brand gets mentioned and cited in answers from ChatGPT, Perplexity, Gemini and other AI search surfaces.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://llmrefs.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanic here is not complicated: pick a list of prompts a buyer might type, fire them at model APIs on a schedule, check whether your brand shows up and whether it gets linked, store the results, draw a chart. An agent will build that in a sitting and it will tell you something real on day one. The gaps are the surfaces: the public ChatGPT and Google AI Overviews experiences are not the same as a raw API call, and getting at them means scraping, proxies, and a maintenance habit you will not keep. You also lose the cross-account aggregate view, which is the part that lets a vendor say your visibility moved relative to everyone else rather than just relative to last Tuesday. Build it if you have one brand and twenty prompts; buy it if you are reporting this to someone who wants a number they can trust.",
+  "coreLoopDIY": "Runs your prompt list against several model APIs on a schedule, parses answers for brand mentions and cited domains, and charts mention rate and citation share over time.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API keys for OpenAI, Anthropic and Perplexity (or whichever models you care about)",
+    "a small budget for tokens, since every prompt gets rerun every cycle",
+    "a machine or cheap VPS that can run a scheduled job",
+    "your own list of prompts worth tracking, which is the actual hard part"
+  ],
+  "whatYouLose": [
+    "Coverage of the consumer surfaces: Google AI Overviews, ChatGPT with browsing and search-grounded answers behave differently from plain API calls",
+    "Benchmark context, no sense of whether your mention rate is good or terrible for your category",
+    "Competitor tracking that someone else maintains, you now own the entity list and all its spelling variants",
+    "Entity resolution that handles brand aliases, misspellings and the other company with your name",
+    "Shareable reports, alerts and the general polish that makes a weekly number feel like a product"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The longitudinal corpus is the asset. A dashboard that started collecting last week cannot tell you what changed in March.",
+  "whyPeopleStillPay": "Because the number has to be defensible to someone other than you. A marketing lead presenting AI search visibility to a board wants a consistent methodology, a comparison set, and a history that predates the panic that caused the question. Running your own prompt harness gives you a directionally useful signal, but it also makes you the methodology, which means every awkward result turns into an argument about your script. That, plus the ongoing cost and tedium of keeping scrapers alive against surfaces that change monthly, is what the subscription actually buys.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The tracker is a sitting; the time series is not, and you cannot backfill it.",
+  "prompt": "Build a local AI search visibility tracker. No accounts, no cloud, no telemetry.\n\nStack, no substitutions: TypeScript, Next.js app router for the dashboard, better-sqlite3 for storage, node-cron for scheduling, Recharts for graphs. Everything runs on one machine with `npm run dev`.\n\nConfig lives in prompts.yaml at the repo root: a brand name, a list of brand aliases, a list of competitor names, a list of tracked domains, and a list of prompt strings (e.g. \"best project management tool for small agencies\").\n\nSecrets in .env: OPENAI_API_KEY, ANTHROPIC_API_KEY, PERPLEXITY_API_KEY. Skip any provider whose key is missing instead of crashing.\n\nCore job (runnable as `npm run collect`, and on a cron schedule of once per day):\n- for each prompt, for each configured provider, send the prompt and store the full raw answer text plus any returned citation URLs\n- detect brand mentions case-insensitively against the brand name and its aliases, same for each competitor\n- extract all URLs and bare domains from the answer and record which tracked domains appear\n- record position of first mention as a character offset, as a crude proxy for prominence\n- write one row per prompt x provider x run into SQLite, never overwrite history\n\nDashboard pages:\n- overview: mention rate and citation rate over time, brand vs competitors, filterable by provider\n- prompts table: every tracked prompt with latest mention status per provider, click through to the stored raw answers\n- runs: raw log of collection runs with token cost estimates\n\nExplicitly out of scope: scraping the ChatGPT web app, Google AI Overviews, or any surface without an API; auth; multi-tenant anything; sending email.\n\nSeed the database with two example prompts so the dashboard is not empty on first run. Write a README that states plainly that API answers differ from what users see in consumer AI products, and that the numbers are directional.",
+  "promptCurated": false
+}
