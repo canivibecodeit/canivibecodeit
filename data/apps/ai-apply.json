@@ -1,0 +1,51 @@
+{
+  "slug": "ai-apply",
+  "name": "AI Apply",
+  "domain": "aiapply.co",
+  "category": "career",
+  "subcategory": "job application automation",
+  "tagline": "AI that writes tailored resumes and cover letters and auto-fills job applications at volume.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://aiapply.co/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The writing half of this is a solved problem: feed your resume plus a job description to a model and ask for a tailored resume and cover letter, and you get output in the same league. A local script with a jobs table, a prompt template and a PDF renderer covers the part that actually matters, which is sending good documents fast. The gap is the auto-apply layer: browser automation against hundreds of differently broken application forms, Workday and Greenhouse quirks, logins, captchas, and resume parsers that choke on your layout. That is not a one-shot build, it is an ongoing maintenance burden, and it breaks quietly when a portal changes a field name. Build the drafting pipeline, keep clicking Submit yourself, and you keep most of the value.",
+  "coreLoopDIY": "A local CLI that takes your master resume and a pasted job description, generates a tailored resume and cover letter as PDFs, and logs every application in a SQLite tracker.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "an LLM API key in .env",
+    "Node or Python runtime",
+    "a master resume in structured form (YAML or JSON)",
+    "headless browser if you attempt any form filling"
+  ],
+  "whatYouLose": [
+    "One-click auto-apply across job boards and ATS portals",
+    "Maintained selectors and workarounds for Workday, Greenhouse, Lever and friends",
+    "Browser extension that fills forms wherever you are",
+    "Interview question prep, mock interviews and the other bundled extras",
+    "Someone else absorbing the breakage when a portal redesigns"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is grunt work: keeping hundreds of fragile form integrations alive. Nobody enjoys maintaining that, which is exactly why it is worth money.",
+  "whyPeopleStillPay": "Job hunting is miserable and time-sensitive, and people paying for this are not optimizing for elegance, they are optimizing for applications sent per hour while employed and exhausted. The drafting is commodity, but the extension that fills the fortieth Workday form of the week without you reading another dropdown is genuinely worth a month's subscription during a search. Most users also only need it for six to ten weeks, which makes the build-versus-buy math lean hard toward buy.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the writer, skip the robot. The clicking is where the money is.",
+  "prompt": "Build a local job application toolkit called \"applykit\". No accounts, no cloud, no telemetry.\n\nStack: Python 3.11, Typer for the CLI, SQLite via sqlite3 (no ORM), Jinja2 for document templates, WeasyPrint for PDF output, the OpenAI Python SDK for generation. Nothing else.\n\nData model:\n- resume.yaml at the project root holds the master resume: contact block, summary, a list of roles (company, title, dates, bullets), skills, education.\n- SQLite file applykit.db with one table: applications(id, company, role, url, jd_text, status, resume_path, letter_path, created_at, notes).\n\nCommands:\n1. applykit add --company --role --url, reads the job description from stdin or a file, inserts a row with status \"draft\".\n2. applykit tailor ID: loads resume.yaml plus the stored jd_text, calls the model twice: once to reorder and rewrite resume bullets so the most relevant experience leads and the JD's actual vocabulary appears where it is truthful, once to draft a 200 word cover letter. Hard rule in the system prompt: never invent employers, titles, dates, degrees or metrics not present in resume.yaml. Render both through Jinja2 to clean single-column ATS-friendly HTML, then to PDF in out/ID/. Update the row.\n3. applykit status ID --set applied|interview|rejected|offer, with an optional note.\n4. applykit list: table of all applications with status and age in days.\n5. applykit diff ID: prints which resume bullets were changed versus the master, so you can sanity check before sending.\n\nRules:\n- OPENAI_API_KEY in .env, loaded with python-dotenv. Ship .env.example, gitignore .env.\n- Model name in one constant at the top of one file.\n- PDFs must be plain: no columns, no icons, no tables, no graphics. One font family.\n- Every model call logs its prompt and response to out/ID/trace.jsonl.\n\nExplicitly out of scope: browser automation, auto-submitting applications, job board scraping, any browser extension, any web UI.\n\nInclude a README with setup in under ten lines and one worked example using a fake job description.\n",
+  "promptCurated": false
+}
