@@ -1,0 +1,53 @@
+{
+  "slug": "twitch",
+  "name": "Twitch",
+  "domain": "twitch.tv",
+  "category": "audio-video",
+  "subcategory": "live streaming",
+  "tagline": "Live video streaming platform with chat, subscriptions, and a creator payout economy.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Turbo",
+    "basis": "monthly per user",
+    "unit": "flat",
+    "source": "https://twitch.tv/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "The technical part of Twitch is genuinely a weekend project: RTMP ingest, HLS transcode, a WebSocket chat room, done. None of that is what Twitch sells. What it sells is millions of concurrent viewers who show up because other viewers are there, a discovery surface that sends strangers to your channel, and a payments and payout system that moves subscription money to creators in dozens of countries. A personal stream server gives you a URL you text to friends, which is a fine thing to own and a completely different product. If you want an audience, you cannot build one in an empty folder.",
+  "coreLoopDIY": "Self-hosted RTMP ingest from OBS, transcoded to HLS, played back in a browser page with a live chat sidebar.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A VPS with real upload bandwidth, or a home box plus port forwarding",
+    "OBS or similar on the streaming machine",
+    "Docker and docker compose",
+    "A domain and TLS cert if you want it to work outside your LAN",
+    "Significant egress budget if more than a handful of people watch"
+  ],
+  "whatYouLose": [
+    "Discovery: nobody finds your stream unless you personally send them the link",
+    "Subscriptions, bits, ads, and the payout plumbing that turns viewers into income",
+    "Global CDN edge delivery, so viewer count is capped by your server's uplink",
+    "Mobile apps, clips, VOD archiving, raids, emotes, mod tools, and the moderation stack",
+    "Scale resilience: a surprise 500 viewers takes the box down instead of being a good day"
+  ],
+  "moatTags": [
+    "network-effects",
+    "scale-infra",
+    "marketplace-liquidity"
+  ],
+  "moatNotes": "Two-sided: creators go where viewers are, viewers go where creators are, and the payout rails make leaving expensive for anyone earning real money.",
+  "whyPeopleStillPay": "Viewers pay for Turbo and subscriptions because the money goes to a specific person they want to support, which is a social act and not a feature you can self-host. Creators stay because the platform delivers an audience they did not have to acquire, handles payments in currencies they have never heard of, and absorbs the bandwidth cost of a stream going unexpectedly viral. A personal server inverts every one of those: you pay the egress, you recruit the audience, you invoice nobody. The streaming tech has been commodity for a decade; the reason that fact never dented Twitch is that the tech was never the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The stream server is a weekend; the audience is not. The moat is two-sided network effects plus the payout rails that make a successful creator unable to afford to leave.",
+  "prompt": "Build a self-hosted live streaming server for one person streaming to a handful of friends. Stack: docker compose, MediaMTX for RTMP ingest and HLS output, a small Node 20 + Express server for the web page and chat, hls.js for playback, plain HTML and CSS, no framework, no build step.\n\nIn scope:\n- docker-compose.yml with two services: mediamtx (RTMP in on 1935, HLS out on 8888) and web (the Express app on 3000).\n- MediaMTX configured for one stream path named 'live', protected by a publish key read from STREAM_KEY in .env. Low-latency HLS on, 2 second segments.\n- A single page at / with a video element playing the HLS url via hls.js, an offline placeholder when the stream is down, a live viewer count, and a chat panel on the right.\n- Chat over a WebSocket on the Express server using the 'ws' package. Users pick a display name on join, stored in localStorage. Keep the last 100 messages in memory and replay them to new joiners. No database, no accounts, no persistence across restarts.\n- Rate limit chat to 1 message per second per connection and cap messages at 300 characters. Escape all user input before rendering.\n- A /health endpoint returning whether MediaMTX currently has a publisher on the 'live' path, polled from its API.\n- An optional ROOM_PASSWORD in .env: if set, the page requires it before connecting to chat or loading the video.\n- README with the exact OBS settings to paste: server url, stream key, recommended bitrate, and a warning that each viewer costs you real upload bandwidth.\n\nOut of scope, do not build: VOD recording, clips, user accounts, payments, subscriptions, emotes, moderation tools, mobile apps, multi-channel support, transcoding ladders, any CDN integration, any analytics or telemetry.\n\nAll secrets in .env with a committed .env.example. Everything must run with 'docker compose up' and nothing else.",
+  "promptCurated": false
+}
