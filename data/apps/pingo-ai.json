@@ -1,0 +1,53 @@
+{
+  "slug": "pingo-ai",
+  "name": "Pingo AI",
+  "domain": "pingo.ai",
+  "category": "education",
+  "subcategory": "AI language speaking practice",
+  "tagline": "AI voice tutor for practicing conversation in a new language.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://pingo.ai/",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is not magic: record audio, transcribe it, feed it to a chat model with a roleplay persona and a correction instruction, speak the reply back. An agent can wire that in a single sitting with off the shelf speech to text and text to speech, and the result is genuinely usable for practicing conversation. Where it falls apart is everything around the loop: sub second latency, a phone app you actually open on the bus, pronunciation scoring that means anything, and a curriculum that knows what you already learned. Progress tracking and spaced review are the part that keeps people coming back, and that is a weekend of work you will keep paying for in maintenance. Build it if you want a talking practice partner, not if you want a course.",
+  "coreLoopDIY": "A local web app that records your speech, transcribes it, replies as an AI conversation partner in your target language with gentle corrections, and speaks the reply out loud while logging vocabulary and session history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a modern browser with microphone access",
+    "An LLM API key, or a local model if you tolerate latency",
+    "Speech to text: hosted Whisper API or local whisper.cpp",
+    "Text to speech with decent target language voices",
+    "Headphones, unless you enjoy the model hearing itself"
+  ],
+  "whatYouLose": [
+    "Mobile app, push notifications, and the streak nagging that actually makes you practice",
+    "Latency tuning: a hosted product has spent real effort getting round trips under a second",
+    "Pronunciation and fluency scoring beyond \"the transcript looked roughly right\"",
+    "A structured curriculum and spaced repetition tied to your actual mistakes",
+    "Polished voices and scenario writing across many languages and levels"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "content-rights"
+  ],
+  "moatNotes": "Realtime voice is a latency and UX problem more than a model problem, and your learning history is the thing you do not want to abandon halfway through A2.",
+  "whyPeopleStillPay": "Because the friction budget for language practice is tiny. If opening your practice partner takes more than one tap, you stop, and a localhost tab you have to start by hand loses to doing nothing. Paid apps also carry the boring scaffolding: level assessment, scenario libraries, review queues, and a voice pipeline that responds fast enough to feel like a conversation instead of a walkie talkie. The DIY version wins on cost and on being able to talk about whatever you want, but it does not win on being there at 7am.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The conversation is the easy part; the reason to open the app tomorrow is the hard part.",
+  "prompt": "Build a local AI language speaking partner as a single Next.js 15 app with the App Router and TypeScript. No accounts, no cloud database, no telemetry.\n\nStack, non negotiable: Next.js 15, TypeScript, Tailwind for styling, SQLite via better-sqlite3 stored at ./data/app.db, all API keys read from .env.local and never committed. Write a .env.example.\n\nCore loop, one page:\n1. Setup panel: target language, level (A1 to C1), and a scenario picked from a small local JSON file of 12 scenarios (cafe, doctor, apartment viewing, job interview, small talk, etc).\n2. Press and hold a button, or hit space, to record from the microphone using MediaRecorder. Show a live level meter so the user knows it is listening.\n3. POST the audio blob to /api/transcribe, which calls a speech to text API (OpenAI Whisper endpoint) and returns text.\n4. POST the transcript plus conversation history to /api/reply, which calls a chat model with a system prompt that: stays in the target language at the chosen level, plays the scenario role, keeps replies under 3 sentences, and returns strict JSON with fields reply, translation, and corrections (array of {wrong, right, why}).\n5. POST reply text to /api/speak for text to speech, return audio, autoplay it.\n6. Render the exchange as a chat transcript. Translations hidden behind a tap. Corrections shown in a side panel, not inline, so the flow is not interrupted.\n\nPersistence: store sessions, turns, and every correction in SQLite. Add a /review page listing the 50 most recent corrections and any word the user got wrong more than once, sorted by frequency. Simple, no spaced repetition algorithm.\n\nExplicitly out of scope: mobile app, streaming or realtime audio sockets, pronunciation scoring, user auth, multi user support, payments, deployment config.\n\nQuality bar: streaming text replies so the transcript appears while the audio is being generated, keyboard shortcut for record, graceful error text when a key is missing, and a README with setup in under ten lines. Run it with npm run dev and have it work on first try.",
+  "promptCurated": false
+}
