@@ -1,0 +1,52 @@
+{
+  "slug": "creatomate",
+  "name": "Creatomate",
+  "domain": "creatomate.com",
+  "category": "audio-video",
+  "subcategory": "templated video rendering API",
+  "tagline": "API and no-code automations that turn JSON data into rendered videos and images from reusable templates.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://creatomate.com/",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Plans are credit/render based, so real cost depends on volume and resolution.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core idea, data goes in and a rendered MP4 comes out of a template, is squarely inside what a coding agent can do with Remotion or raw FFmpeg. A single session gets you a template as code, a JSON payload, and a render endpoint that writes files to disk, which covers the common case of one recurring video format with swapped text, images, and clips. What you do not get in a session is the visual template editor, the queue that renders a hundred variants in parallel without melting your laptop, or the Zapier and Make wiring that makes this a business workflow instead of a script. Font handling, aspect ratio variants, and audio ducking are the parts that quietly eat the weekend. Worth building if you have one or two templates and modest volume, not worth it if non-developers need to edit the templates.",
+  "coreLoopDIY": "Renders a code-defined video template into an MP4 from a JSON payload of text, images, and clips, exposed over a local HTTP endpoint.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20+ and FFmpeg installed locally",
+    "Chromium available for Remotion rendering",
+    "A machine you are willing to pin at 100% CPU for minutes at a time",
+    "Licensed fonts and stock assets if your templates use them"
+  ],
+  "whatYouLose": [
+    "The visual template editor, so every template change is a code change",
+    "Managed render capacity: parallel and burst rendering becomes your CPU problem",
+    "Prebuilt Zapier, Make, Airtable and webhook plumbing",
+    "Hosted output URLs, CDN delivery, and retention of finished files",
+    "Battle-tested handling of codecs, fonts, emoji, and weird aspect ratios"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "Rendering video is cheap once; rendering it reliably, in parallel, at unpredictable volume, is the actual product.",
+  "whyPeopleStillPay": "Because the render is the easy part and the operations are not. Teams pay so that a marketing person can edit a template without a pull request, so that a thousand personalized videos generated on the first of the month do not require capacity planning, and so that a finished file arrives at a URL that something else can consume. If your volume is small and you are the only one touching templates, most of that value is overhead you can skip.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine DIY target for one or two fixed formats; the moment a non-coder needs to move a text box, you are rebuilding an editor.",
+  "prompt": "Build a local templated video rendering service in an empty folder. No accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- TypeScript, Node 20+\n- Remotion for composing templates as React components\n- @remotion/renderer for headless rendering\n- Express for the HTTP layer\n- Zod for payload validation\n- FFmpeg assumed present on PATH\n\nBuild this:\n1. Two example Remotion compositions: \"promo-vertical\" (1080x1920) and \"promo-wide\" (1920x1080). Each takes props: headline, subhead, backgroundImage (local path or URL), optional videoClip, optional musicTrack, brandColor, durationInSeconds.\n2. A template registry mapping template id to composition id, dimensions, fps, and a Zod schema for its props.\n3. POST /render accepting { templateId, props, outputName }. Validate against the registry schema, enqueue the job, return 202 with a jobId.\n4. An in-process job queue with a concurrency cap read from RENDER_CONCURRENCY in .env, default 1. Jobs run sequentially by default because rendering pins the CPU.\n5. GET /jobs/:id returning status (queued, rendering, done, failed), progress percent, and the output file path or the error message.\n6. GET /output/:file serving finished MP4s from ./output with correct content type.\n7. A CLI: `npm run render -- --template promo-vertical --props ./examples/promo.json` that renders synchronously and prints the output path.\n8. Bundle fonts into ./assets/fonts and load them explicitly in the compositions. Do not rely on system fonts.\n\nOut of scope, do not build: a visual template editor, user auth, S3 uploads, webhooks to third parties, AI generation of copy or images.\n\nDeliver: package.json scripts (dev, render, remotion studio), .env.example with PORT and RENDER_CONCURRENCY, an examples/ folder with two working JSON payloads, and a README that shows curl commands for POST /render and GET /jobs/:id plus a note on how long a 15 second render actually takes on a laptop. Verify by rendering both example payloads end to end and confirming the MP4s play.",
+  "promptCurated": false
+}
