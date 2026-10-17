@@ -1,0 +1,52 @@
+{
+  "slug": "jonas-software",
+  "name": "Jonas Club Software",
+  "domain": "jonasclub.com",
+  "category": "finance-accounting",
+  "subcategory": "private club management suite",
+  "tagline": "All-in-one management software for private clubs: membership billing, point of sale, accounting, tee sheets and member portals.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.jonasclub.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Club software of this type is quoted per club, usually with implementation fees.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This is not an app, it is the operating system of a country club: member accounts, dues cycles, food and beverage minimums, pro shop and restaurant POS, banquets, tee times, a general ledger a real auditor will look at, and a member-facing portal. An agent can absolutely build you a members-and-charges ledger in an afternoon, and it will feel great until the first month-end statement run for 1,400 members with prorated dues, credit book balances and unused minimum rollovers. The parts that cost money here are card-present payments, PCI scope, accounting that survives an audit, and the POS terminals behind the bar. There is also nothing personal to replace: nobody runs a private club for themselves. The only honest DIY version is a small internal ledger for a tiny organization that currently lives in a spreadsheet.",
+  "coreLoopDIY": "A local single-club ledger that tracks members, recurring dues, ad hoc charges and payments, then generates monthly statements as PDFs.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "Your own chart of accounts, or willingness to invent one",
+    "Someone who understands your dues rules well enough to encode them",
+    "A real accountant if any of this touches tax filings"
+  ],
+  "whatYouLose": [
+    "Card-present POS at the bar, restaurant and pro shop, including the hardware and the PCI scope that comes with it",
+    "Payment processing and stored card handling, so you are back to collecting checks",
+    "A general ledger, AP, inventory and payroll hooks that an auditor and your accountant both accept",
+    "Tee sheets, court booking, banquets, dining reservations and the member mobile app",
+    "Support at 7pm on a Friday when the POS stops taking charges mid-service"
+  ],
+  "moatTags": [
+    "switching-costs",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "Clubs migrate this software roughly once a decade, and the migration is a board-level project with consultants. That is not a product people churn out of casually.",
+  "whyPeopleStillPay": "Because the buyer is a club general manager whose actual problem is that dues, dining charges, minimums and the GL all have to agree at month end, in front of a board, with card payments handled by someone else's compliance perimeter. The software is mediocre by consumer standards and everyone knows it, but it is wired into POS terminals, payment processors, accounting workflows and a decade of member history. Replacing it is a project, not a purchase, which is exactly why the renewal gets signed.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A member ledger is a weekend; a club's books, bar and board are not. The moat is card-present payments, audit-grade accounting and the fact that nobody switches this without a consultant.",
+  "prompt": "Build a local-only club member ledger for a small organization. No cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Next.js 14 App Router with TypeScript, Tailwind, running on localhost only\n- SQLite via better-sqlite3, file at ./data/club.db, schema created on first run\n- PDF generation with pdfkit, written to ./out/statements/\n- No auth, no multi-tenancy, no external APIs, no payment processing\n\nData model:\n- members: id, number, name, email, join_date, class (full, social, junior), status (active, resigned, suspended)\n- dues_plans: id, name, amount_cents, interval (monthly, quarterly, annual), minimum_cents (food and beverage minimum, 0 if none)\n- member_plans: member_id, dues_plan_id, start_date, end_date nullable\n- charges: id, member_id, date, description, amount_cents, category (dues, dining, pro_shop, event, fee, credit), counts_toward_minimum boolean\n- payments: id, member_id, date, amount_cents, method (check, cash, transfer), memo\n- statements: id, member_id, period_start, period_end, opening_cents, charges_cents, payments_cents, closing_cents, pdf_path\n\nFeatures, in scope:\n- CRUD screens for members, dues plans and plan assignments\n- Manual charge and payment entry, plus CSV import for charges with a column mapping step\n- A \"run billing\" action for a chosen month: posts dues for every active member on a plan, prorating by join or resignation date within that month\n- Minimum shortfall posting: if a member's minimum-eligible charges for the period fall below their minimum, post a single shortfall charge for the difference, labeled clearly\n- Statement run: per member, compute opening balance from all prior activity, list the period's charges and payments, write a PDF, record the statement row\n- An aging view: current, 30, 60, 90 plus, sorted by balance descending\n- A CSV export of balances\n\nExplicitly out of scope, do not build:\n- Card payments, stored cards, anything touching PCI\n- Point of sale, inventory, payroll, tee sheets, reservations, a member portal\n- Email sending; statements land as files and a human attaches them\n\nRules:\n- All money in integer cents, never floats. Every balance is derived from charges and payments, never stored as a mutable field.\n- Billing runs are idempotent: re-running a month must not double-post, enforce with a unique key on (member_id, period, category).\n- Seed 25 fake members across all three classes with a few months of history so the aging view and statements are testable on first run.\n- Include a README with setup, a one-command start, where the DB and PDFs live, and a blunt note that this is a bookkeeping aid and not an audited accounting system.",
+  "promptCurated": false
+}
