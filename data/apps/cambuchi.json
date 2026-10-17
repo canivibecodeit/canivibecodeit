@@ -1,0 +1,52 @@
+{
+  "slug": "cambuchi",
+  "name": "Higgsfield AI",
+  "domain": "higgsfield.ai",
+  "category": "ai-video",
+  "subcategory": "generative video, camera motion control",
+  "tagline": "Generative video tool built around cinematic camera moves and shot presets, with paid credit tiers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://higgsfield.ai/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product here is a video diffusion model plus a fleet of GPUs, and neither of those falls out of a coding agent in an afternoon. You can absolutely build the wrapper: prompt box, shot presets, a queue, a gallery, and it will be fine. What you cannot build is the model that renders a believable dolly-in on a face, or the capacity to render it in ninety seconds instead of forty minutes on your one consumer GPU. Open weights video models exist and are getting good, but as of now they still trail the hosted stuff on motion coherence and faces, and running them well is a hardware problem, not a software one. The honest DIY version is a local rig that renders worse clips, slower, for free.",
+  "coreLoopDIY": "A local web app that queues text or image prompts against an open-weights video model with reusable camera-move prompt presets and saves the results to a browsable gallery.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "an NVIDIA GPU with 16GB+ VRAM, or a rented cloud GPU",
+    "open-weights video model checkpoints downloaded locally",
+    "Python 3.11 and a lot of disk space for checkpoints and outputs",
+    "patience: minutes per clip, not seconds"
+  ],
+  "whatYouLose": [
+    "Model quality: hosted video models still handle faces, hands and sustained motion better than what you can run at home",
+    "Speed: a hosted render takes a minute, your local one takes many, and you cannot run ten in parallel",
+    "The curated camera-move presets that are tuned against their specific model and actually do what they say",
+    "Upgrades: they swap in a better model every few months and you keep whatever you downloaded",
+    "Anything social: shared feeds, templates other people made, trend chasing"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The preset library is the visible product; the model weights and the GPU fleet are the actual one.",
+  "whyPeopleStillPay": "Because renting someone else's GPU by the clip is genuinely cheaper than owning hardware that can do this, and because the preset-driven workflow removes the part where you spend two hours learning what a video model does and does not understand about camera language. People paying for this mostly want ten usable seconds for an ad or a post, today, and the gap between a hosted render and a local one is still the difference between usable and unusable. The DIY build is interesting if you want to learn video diffusion. It is not interesting if you want a clip by Friday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is a weekend; the thing the UI is pointed at is not. The moat is model weights you cannot download and a GPU fleet you cannot afford.",
+  "prompt": "Build a local generative video studio called \"ShotQueue\". Single machine, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, FastAPI backend, SQLite via sqlite3 (no ORM), plain HTML + htmx + a single CSS file for the frontend. Inference via the diffusers library.\n\nModel: use an open-weights text-to-video / image-to-video model loaded from a local checkpoint directory. Read MODEL_PATH from .env. Do not hardcode a Hugging Face token anywhere; read HF_TOKEN from .env if a download is needed. Write a loader module that is the only place touching diffusers, so the model can be swapped by changing one file.\n\nFeatures that are in scope:\n- A job queue: submit prompt, optional init image upload, seed, frame count, steps. Jobs are rows in SQLite with status queued/running/done/failed.\n- A single background worker process that pulls one job at a time. Never load the model twice. Keep it resident between jobs.\n- A camera preset table: name plus a prompt fragment, for example \"dolly in\", \"crane up\", \"handheld whip pan\". Ship twelve seeded presets. Selecting one appends its fragment to the prompt and records which preset was used.\n- A gallery page: thumbnail grid of finished clips, each showing prompt, seed, preset and render time. Click to play the mp4 inline. A \"rerun with new seed\" button.\n- Output as mp4 via imageio-ffmpeg into ./outputs, metadata JSON sidecar per clip.\n- Live queue page that polls job status with htmx every two seconds.\n\nExplicitly out of scope: user accounts, multi-GPU scheduling, upscaling, audio, video editing, sharing, payment, any hosted inference API.\n\nDeliverables: app.py, worker.py, model.py, db.py, templates/, static/, .env.example, requirements.txt, and a README that states the VRAM floor and the expected seconds-per-clip on a 4090 so nobody is surprised. Create and migrate the SQLite schema on first run. If no GPU is present, start normally and fail individual jobs with a clear error instead of crashing at import.",
+  "promptCurated": false
+}
