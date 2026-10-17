@@ -1,0 +1,53 @@
+{
+  "slug": "soundsource",
+  "name": "SoundSource",
+  "domain": "rogueamoeba.com",
+  "category": "audio",
+  "subcategory": "macOS audio routing and per-app volume",
+  "tagline": "Menu bar app for macOS that sets volume, output device, and audio effects per application.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "One-time license",
+    "basis": "one-time purchase per user, paid major upgrades",
+    "unit": "one-time",
+    "source": "https://rogueamoeba.com/soundsource/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Sold as a one-time license rather than a subscription.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of SoundSource is a menu bar panel with sliders and dropdowns, which an agent can absolutely draw. The part that matters is ACE, Rogue Amoeba's audio capture engine: a signed, notarized low-level macOS audio component that hooks individual applications so you can mute Safari, boost Zoom, and drop an EQ on Spotify only. macOS ships no public API for per-app output routing, so a one-shot build cannot get there; the honest DIY ceiling is global device switching plus a BlackHole loopback with an effects chain, which means one app at a time and a lot of manual Audio MIDI Setup fiddling. You also inherit the maintenance tax: every macOS release moves CoreAudio around, and ACE is the thing that keeps absorbing the hit. Build the menu bar device switcher if you only want hotkeys for headphones vs speakers; buy SoundSource if you want per-app anything.",
+  "coreLoopDIY": "A Swift menu bar app that lists CoreAudio output devices, switches the system default with a hotkey, exposes per-device volume, and routes one chosen app through a BlackHole loopback with an Audio Unit effects chain.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "macOS with Xcode and a Swift toolchain",
+    "BlackHole or another virtual audio device installed for the loopback trick",
+    "Manual Audio MIDI Setup work to create aggregate and multi-output devices",
+    "Accessibility or input monitoring permission if you want global hotkeys",
+    "A paid Apple Developer account if you ever want a real system audio extension, which is out of scope here"
+  ],
+  "whatYouLose": [
+    "Per-application volume and routing, the actual headline feature, because there is no public API for it",
+    "System-wide and per-app Audio Unit effects without manually rebuilding loopback devices",
+    "Magic Boost, Super Volume and the other DSP conveniences that make quiet laptop speakers usable",
+    "Clean capture of app audio for recording, which is the same ACE plumbing",
+    "Someone else fixing your audio stack the week a new macOS breaks CoreAudio"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the UI, it is a signed audio component that survives OS updates and a two-decade reputation for not wrecking your sound.",
+  "whyPeopleStillPay": "Because audio plumbing on macOS is the kind of problem where a half-working solution is worse than none: you join a call, nobody can hear you, and you spend ten minutes in Audio MIDI Setup instead of talking. SoundSource is a one-time purchase that makes per-app volume, routing and effects into three clicks and then stays out of the way, and Rogue Amoeba has been shipping updates through every macOS audio rewrite since forever. A weekend menu bar app gets you device switching with a hotkey, which is genuinely nice, and then stops exactly where the interesting part begins.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The sliders are a weekend; the thing underneath the sliders is not. The moat is a signed low-level audio engine that Apple gives you no API for, plus twenty years of surviving macOS audio rewrites without breaking anyone's sound.",
+  "prompt": "Build a macOS menu bar utility called \"QuietSwitch\" in Swift with SwiftUI and AppKit, no Electron, no web stack.\nTarget macOS 14 or newer. Use Xcode project layout, Swift Package Manager for any dependency.\n\nScope that is IN:\n- Menu bar extra with an icon and a popover panel.\n- Enumerate all CoreAudio output devices and input devices via AudioObjectGetPropertyData on kAudioHardwarePropertyDevices.\n- Show the current system default output, let the user click any device to make it the default output, same for input.\n- Per-device volume slider and mute toggle using kAudioDevicePropertyVolumeScalar and kAudioDevicePropertyMute, with graceful handling of devices that do not expose volume.\n- Listen for device add and remove notifications so the list stays live.\n- Global hotkeys to cycle the default output device and to toggle mute, registered with the Carbon RegisterEventHotKey API or a thin wrapper, with a preferences pane to set them.\n- Launch at login via SMAppService.\n- An \"Effects\" tab: if a virtual device named BlackHole is present, let the user pick it as system output, then run an AVAudioEngine graph that reads from BlackHole as input, applies a 10 band EQ and an optional limiter via AVAudioUnitEQ, and writes to a chosen physical output device. Persist EQ presets as JSON in Application Support.\n- Clear in-app text explaining that this is one global chain, not per-app, and the manual Audio MIDI Setup steps needed.\n\nScope that is OUT, do not fake these:\n- Per-application volume or per-application routing. There is no public macOS API for it. Do not pretend, do not shell out to anything, do not claim it works.\n- Any audio HAL plugin, system extension, kernel extension or code signing beyond local development.\n- Accounts, cloud sync, analytics, telemetry, update servers.\n\nRules:\n- No secrets needed; if you add any config, read it from .env or a plist, never hardcode.\n- Handle the case where BlackHole is absent by disabling the Effects tab with an explanation and a link to install it.\n- Ship a README with build steps, the Audio MIDI Setup walkthrough, and a blunt \"known limitations\" section that states the per-app gap first.\n- Write it so a cold `xcodebuild` in this folder produces a runnable .app.",
+  "promptCurated": false
+}
