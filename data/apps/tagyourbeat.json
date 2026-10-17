@@ -1,0 +1,51 @@
+{
+  "slug": "tagyourbeat",
+  "name": "TagYourBeat",
+  "domain": "tagyourbeat.com",
+  "category": "ai-audio",
+  "subcategory": "producer tags and vocal drops",
+  "tagline": "Browser tool that generates producer tags, those shouted vocal drops on beats, using AI voices plus an FX chain and WAV export.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://tagyourbeat.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The audio half of this is honestly a solid browser app: persona voices, an FX chain, preset stacking, clean WAV export. An agent can rebuild the signal path in a weekend because Web Audio already ships convolution reverb, delay, distortion, filters and offline rendering, and WAV encoding is forty lines of PCM writing. What it cannot conjure is the voice itself, so your build is a thin client on top of a hosted TTS API with your own key and your own per-character bill. You also inherit the unglamorous part: making a text-to-speech read sound like someone actually yelling into an SM7B rather than reading a weather report, which is where the preset tuning and persona curation live. Fine for a producer who wants one tag and will accept tweaking a gain stage, annoying if you wanted twenty variations by Tuesday.",
+  "coreLoopDIY": "Type a tag phrase, pick a voice and a preset, hear it processed through a Web Audio FX chain in the browser, and download a 24-bit or 16-bit WAV.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A TTS API key (ElevenLabs, OpenAI, or similar) in .env, with your own usage billing",
+    "Any modern browser for Web Audio and OfflineAudioContext",
+    "An impulse response file or a generated noise IR for the reverb",
+    "Patience for preset tuning: the default TTS output will sound flat and polite"
+  ],
+  "whatYouLose": [
+    "A curated persona library someone already auditioned so you don't have to",
+    "Presets tuned by ear against real mixes instead of by guessing gain values",
+    "Instant variations: your version regenerates one take at a time against an API",
+    "Any licensing clarity about commercial use of synthetic voices, which you now own as a problem",
+    "Mobile friendliness, since hand-rolled Web Audio apps tend to break on iOS autoplay rules"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat is preset taste and voice curation, not code. Both are copyable with enough listening sessions, which is exactly why this lands at kinda rather than no.",
+  "whyPeopleStillPay": "Because a producer tag is a ten minute problem that happens once per artist identity, and nobody wants to spend a weekend learning convolution reverb to solve it. The pricing is small, the output is immediate, and the presets mean you get something usable on the first try instead of after forty attempts at making a synthetic voice sound aggressive. Self-hosting makes sense if you plan to generate tags constantly, for clients or for a label, where the API cost beats subscription cost and you want the voices in your own pipeline.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The DSP is free in the browser; the voice is a metered API call, and that is the whole dependency.",
+  "prompt": "Build a local-first producer tag generator as a single-page web app. No accounts, no database, no telemetry, no deploy step.\n\nStack, non-negotiable: Vite + React + TypeScript, plain CSS, Web Audio API. A tiny Node/Express dev server only to proxy the TTS API so the key never reaches the browser.\n\nFlow:\n1. Text input for the tag phrase, max 80 characters.\n2. Voice picker with 4 to 6 voice IDs read from a config file.\n3. POST the phrase to /api/tts on the local server, which calls the ElevenLabs text-to-speech endpoint using ELEVENLABS_API_KEY from .env and returns audio/mpeg bytes. If the key is missing, fall back to window.speechSynthesis recorded via MediaRecorder and label it clearly as low quality.\n4. Decode the returned audio into an AudioBuffer and keep it in memory as the dry source.\n\nFX chain, built once as a reusable graph and re-created for offline render: pitch shift via detune on an AudioBufferSourceNode, a BiquadFilter (high-pass and low-pass pair), a WaveShaper for saturation with a tanh curve, a DynamicsCompressor, a DelayNode with feedback gain, and a ConvolverNode fed by a procedurally generated decaying-noise impulse response (no external IR file). Add a stutter effect implemented by slicing the buffer and re-triggering it on a fixed grid.\n\nEach node gets a slider. Ship 5 named presets as JSON: Clean, Radio, Hall, Chopped, Destroyed. Clicking a preset sets all sliders.\n\nExport: re-render the exact graph through an OfflineAudioContext, then encode the result to a 44.1kHz 16-bit PCM WAV by hand (RIFF header plus interleaved samples) and trigger a download. No MP3, no ffmpeg.\n\nExplicitly out of scope: user accounts, saved projects beyond localStorage, voice cloning, stem separation, hosting.\n\nWrite a README with setup steps, the .env.example, and one blunt paragraph on the fact that synthetic voice licensing for commercial release is the user's problem to check.",
+  "promptCurated": false
+}
