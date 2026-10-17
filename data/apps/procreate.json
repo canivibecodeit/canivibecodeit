@@ -1,0 +1,51 @@
+{
+  "slug": "procreate",
+  "name": "Procreate",
+  "domain": "procreate.com",
+  "category": "design",
+  "subcategory": "digital painting and illustration",
+  "tagline": "Raster painting and illustration app for iPad, built around Apple Pencil input and a custom brush engine.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Procreate for iPad",
+    "basis": "one-time App Store purchase",
+    "unit": "one-time",
+    "source": "https://procreate.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Sold as a one-time purchase, not a subscription, so there is no monthly figure.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "An agent can absolutely give you a canvas, layers, a pressure-sensitive brush and a PNG export in one session. What it cannot give you is a brush engine that feels right: wet mixing, taper, grain, tilt response, blend modes that match what artists expect, and the sub-frame input latency that makes a stroke feel like ink instead of lag. Procreate's value is thousands of small decisions in the rendering pipeline plus a brush library people have spent years tuning and trading. The cross-platform angle is real, but it is also already answered by Krita and Clip Studio, which have had decades of head start and still do not feel like Procreate. A one-shot build here produces a sketchpad, which is fine, as long as you know that is what you asked for.",
+  "coreLoopDIY": "A local desktop painting app with a GPU canvas, pressure and tilt aware brushes, layers with blend modes, undo history, and PNG/PSD-ish export.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "A stylus with pressure and tilt reporting (Wacom, XP-Pen, Surface Pen, Apple Pencil via a tablet-mode browser)",
+    "A machine with working WebGL2 or wgpu drivers",
+    "Patience for color space and premultiplied alpha bugs"
+  ],
+  "whatYouLose": [
+    "The brush engine: wet mixing, grain, taper, dual-texture brushes, and the 200+ tuned presets",
+    "Input latency work, including prediction and smoothing that makes strokes feel attached to the pen",
+    "Apple Pencil specifics: hover, squeeze, double-tap, and the iPad-as-drawing-surface ergonomics",
+    "Animation Assist, time-lapse recording, QuickShape, selection and transform tools that actually behave",
+    "File interop that other artists and clients expect, and years of community brush packs"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "hardware",
+    "brand-trust"
+  ],
+  "moatNotes": "The hardware tag is not about Procreate making hardware, it is about being welded to one stylus and one tablet and optimizing for exactly that, which is also why there is no Windows build.",
+  "whyPeopleStillPay": "Because it is a one-time purchase around the cost of lunch for software people use professionally for years, and because the stroke feels correct. Artists will tolerate a lot of missing features, but they will not tolerate a brush that lags or smears wrong, and that is the single hardest thing to clone. The competition on desktop is not Procreate, it is Krita and Clip Studio, both free or cheap, both more featured, and people still buy an iPad to use Procreate instead.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the UI in an afternoon and the brush engine never. The moat is a decade of latency and blending work tuned to exactly one stylus on exactly one tablet.",
+  "prompt": "Build a local desktop painting app called \"Inkwell\". Not a Procreate clone, an honest sketchpad.\n\nStack, no substitutions:\n- Tauri 2 shell, Rust backend, TypeScript frontend, Vite, no framework beyond vanilla TS modules.\n- Rendering: WebGL2 in a single canvas. All compositing on the GPU. No 2D canvas fallback.\n- State in plain TS objects, no Redux, no React.\n\nCore loop that must work:\n- Pointer Events only. Read pressure, tiltX, tiltY, pointerType. Ignore mouse smoothing hacks, but do apply Catmull-Rom interpolation between samples so slow strokes are not polygons.\n- Brush = stamped texture quads along the interpolated path, spacing as a fraction of brush size, with pressure mapping size and opacity via editable response curves.\n- Three brushes shipped: hard round, soft airbrush, and a grainy pencil using a tiling noise texture multiplied into alpha.\n- Layers: add, delete, reorder, rename, per-layer opacity, visibility, and blend modes normal, multiply, screen, add. Each layer is its own framebuffer texture.\n- Stroke-level undo/redo, 50 steps, by snapshotting the active layer texture before each stroke. Keep snapshots in GPU memory with a byte budget and spill the oldest to disk.\n- Canvas sizes up to 4096x4096. Pan and zoom with space-drag and ctrl-wheel, rotate with two-finger or alt-drag.\n- Save/load a .inkwell file: a zip of PNG layers plus a JSON manifest. Export flattened PNG.\n\nExplicitly out of scope, do not build:\n- Accounts, cloud sync, telemetry, auto-update, any network calls at all.\n- Animation, text tools, vector shapes, selections, transform, filters.\n- PSD import or export.\n\nDeliverables: working `npm run tauri dev`, a README with the brush response curve math explained, and a `BRUSHES.md` describing the stamp format so new brushes are JSON plus a PNG. No .env needed because there are no secrets and no services.\nIf input latency feels bad, log per-frame pointer-to-paint time to the console behind a debug flag rather than guessing.",
+  "promptCurated": false
+}
