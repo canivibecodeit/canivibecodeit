@@ -1,0 +1,50 @@
+{
+  "slug": "answerdojo",
+  "name": "AnswerDojo",
+  "domain": "answerdojo.com",
+  "category": "education",
+  "subcategory": "question practice and answer coaching",
+  "tagline": "Drill practice questions and get AI feedback on your written answers.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://answerdojo.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanic here is not complicated: show a question, take a typed answer, score it against a rubric, schedule the weak ones to come back. An agent will give you that loop plus a SQLite store and a spaced repetition queue in one sitting, and an LLM call does the grading well enough for personal use. What you do not get is the question bank, which is the part that took someone a long time to write, tag, and calibrate. You can have a model generate questions instead, but model-generated questions drift toward the generic and you will not notice the drift until you are practicing the wrong things. Build it if you already have material to drill; pay if you want a curated set and someone else's opinion about what matters.",
+  "coreLoopDIY": "A local web app that serves questions from your own bank, grades your typed answers against a rubric with an LLM, and re-queues the weak ones on a spaced repetition schedule.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key for grading and hint generation",
+    "Your own question bank, imported as JSON or Markdown, or generated and then hand-checked",
+    "Node 20+ and a willingness to run it on localhost"
+  ],
+  "whatYouLose": [
+    "A curated, tagged question corpus you did not have to write",
+    "Rubrics calibrated against a lot of real answers rather than whatever the model improvises",
+    "Mobile access, unless you host it and accept a plain responsive page",
+    "Progress benchmarking against anyone other than your past self",
+    "Any sense that the questions resemble what an actual exam or interviewer asks"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "Content is the whole product in this category. Grading is a prompt, the question set is editorial labor.",
+  "whyPeopleStillPay": "Because writing two hundred good practice questions with defensible answers is a worse job than paying for them. The software half of this is a weekend of pleasant work; the content half is months of unpleasant work, and a self-built version quietly fails when your model invents questions that sound plausible and test nothing. People paying for a drill tool are buying a curriculum and a calibration they cannot audit themselves, plus the small discipline benefit of having spent money.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The drill loop is a one-sitting build, the question bank is not, and the question bank is the product.",
+  "prompt": "Build a local practice-question trainer. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Next.js 15 App Router, TypeScript, Tailwind.\n- SQLite via better-sqlite3, file at ./data/dojo.db, migrations run on boot.\n- Anthropic API for grading, key from .env as ANTHROPIC_API_KEY. Never hardcode it.\n\nData model:\n- question: id, topic, difficulty, prompt_text, reference_answer, rubric (JSON array of criteria), source.\n- attempt: id, question_id, answer_text, score (0-5), criterion_scores JSON, feedback, created_at.\n- schedule: question_id, ease, interval_days, due_at.\n\nFeatures that are in:\n- Import questions from a questions/*.json folder on startup, upsert by id. Ship three example files so the app is usable immediately.\n- A /drill page that pulls the next due question (fall back to least-practiced), shows the prompt, gives a plain textarea, and submits.\n- Grading: one Anthropic call that receives the question, reference answer, rubric, and the user's answer, and returns strict JSON with per-criterion scores, a total 0-5, and two sentences of feedback. Validate with zod, retry once on malformed JSON.\n- After grading, show the score, the feedback, and the reference answer side by side with the user's answer.\n- SM-2 style scheduling: score 4-5 lengthens the interval, 0-2 resets it to one day.\n- A /stats page: attempts per day, average score per topic, the ten weakest questions.\n- A /questions page to add or edit a question by hand, including its rubric.\n\nOut of scope, do not build:\n- Auth, multiplayer, leaderboards, payments, question generation by LLM, mobile apps, email reminders.\n\nDeliver a README with setup in four commands and a sample questions JSON schema. Keep it to one process, npm run dev.",
+  "promptCurated": false
+}
