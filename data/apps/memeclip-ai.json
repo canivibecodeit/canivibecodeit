@@ -1,0 +1,52 @@
+{
+  "slug": "memeclip-ai",
+  "name": "MemeClip AI",
+  "domain": "memeclipai.com",
+  "category": "ai-video",
+  "subcategory": "meme and short-form clip generator",
+  "tagline": "Upload a photo, pick a trending meme template, get a short AI video of the subject dancing or acting it out.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://memeclipai.com/",
+    "checkedOn": "2026-10-17",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Products in this category are typically credit packs or a credit-capped subscription.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is a template picker plus a queue plus a video model, and you do not own the video model. An agent can build the whole shell in a weekend: upload, crop, choose a motion reference, call a hosted image-to-video endpoint, burn captions and audio with ffmpeg, show a gallery. What you cannot one-shot is the part that makes the output funny, which is a maintained library of templates that match whatever sound is trending this week, plus the prompt and seed tuning that keeps limbs attached to bodies. Expect your first ten clips to look like cursed taffy until you tune it. Costs are also real: every generation is a paid API call, so a personal copy is cheaper only if you make a few clips a month, not a few hundred.",
+  "coreLoopDIY": "A local web app that takes a photo plus a chosen motion template, calls a hosted image-to-video model, then composites audio and captions into a vertical clip you can download.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted image-to-video model (fal, Replicate, or similar) with a funded balance",
+    "ffmpeg installed locally",
+    "Your own audio files, since you cannot legally bundle the trending ones",
+    "Patience for 30 to 120 second generation times and a nontrivial reject rate"
+  ],
+  "whatYouLose": [
+    "The curated, rights-cleared template library that tracks what is actually trending right now",
+    "Prompt and parameter presets that someone already tuned so full-body motion does not melt",
+    "A mobile-friendly flow that works from a phone camera roll without you babysitting a dev server",
+    "Fast queues and retries when the upstream model is overloaded",
+    "Any guarantee about the licensing of the audio and templates you attach yourself"
+  ],
+  "moatTags": [
+    "content-rights",
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The motion generation is almost certainly rented from the same model vendors you can rent from. The durable part is the template and audio catalog plus the tuning that turns a raw model into reliably watchable output.",
+  "whyPeopleStillPay": "Because the job is not \"generate a video\", it is \"generate a video that looks like the thing people are posting today\". That requires someone watching trends, cutting templates, clearing or sourcing the audio, and re-tuning prompts every time a model version ships. A personal build gives you the pipeline but leaves you as your own content curator, and most people who want a meme clip want it in ninety seconds on their phone, not after a weekend of ffmpeg flags and a cloud bill.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is a thin shell around someone else's video model, which is also roughly what the product is, minus the taste.",
+  "prompt": "Build a local-only web app called \"clipforge\" that turns a photo plus a motion template into a short vertical meme video.\n\nStack, no substitutions: Next.js 15 App Router with TypeScript, Tailwind for styling, better-sqlite3 for local persistence, and the fal.ai JS client for image-to-video generation. ffmpeg is invoked as a local subprocess. No auth, no accounts, no telemetry, no hosted database. Single user on localhost.\n\nSecrets: read FAL_KEY from .env.local. Write a .env.example. Never hardcode keys, and fail with a clear message if the key is missing.\n\nCore flow:\n1. Upload page: drop a JPG or PNG, show a square-to-9:16 crop preview, save the original to ./storage/uploads.\n2. Template picker: read templates from ./templates/*.json. Each template file has id, label, motionPrompt, durationSeconds, and optional audioFile pointing at ./templates/audio. Ship exactly four example templates with generic motion prompts, for example a simple full-body dance, a walk toward camera, a shrug, a point-at-text pose. Do not bundle any copyrighted audio; ship one silent placeholder and document how to add your own.\n3. On submit, insert a job row in SQLite with status queued, then call fal image-to-video with the photo and motionPrompt. Poll for completion server-side and update status to running, done, or failed with the error text.\n4. On completion, download the mp4 to ./storage/clips, then run one ffmpeg pass that scales and pads to 1080x1920, overlays an optional top caption and bottom caption using drawtext, and mixes in the template audio if present.\n5. Gallery page: grid of finished clips with inline playback, the template used, cost-unknown placeholder, and download and delete buttons.\n\nIn scope: retry a failed job, a settings page to set default caption font and output directory, and a seeded SQLite schema created on first run.\n\nOut of scope, do not build: user accounts, cloud storage, trend scraping, any scraping or re-hosting of third-party template videos, payment handling, social publishing, mobile app.\n\nWrite a README that states plainly that every generation costs money at the model vendor, that output quality depends entirely on the motion prompt, and that the user is responsible for the rights to any audio or likeness they feed it. Include npm scripts for dev and for a one-command ffmpeg check.",
+  "promptCurated": false
+}
