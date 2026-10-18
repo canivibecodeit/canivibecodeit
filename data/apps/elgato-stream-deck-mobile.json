@@ -1,0 +1,52 @@
+{
+  "slug": "elgato-stream-deck-mobile",
+  "name": "Elgato Stream Deck Mobile",
+  "domain": "elgato.com",
+  "category": "automation",
+  "subcategory": "macro pad / control surface",
+  "tagline": "Turns your phone or tablet into a virtual Stream Deck that fires macros, scene switches and app actions on your computer.",
+  "priceMonthly": 2.99,
+  "pricing": {
+    "plan": "Stream Deck Mobile subscription",
+    "basis": "monthly per device, annual option cheaper",
+    "unit": "flat",
+    "source": "https://help.elgato.com/hc/en-us/articles/16786832942221-Elgato-Stream-Deck-Mobile-2-0-Getting-Started",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Strip away the branding and this is a grid of buttons on a touchscreen talking to a small daemon on your desktop over the local network. A coding agent can produce that in one sitting: a Node service, a websocket, a phone-sized web grid you add to your home screen, and action handlers that send keystrokes, run shell commands or hit the OBS websocket. The hard part of Stream Deck was never the surface, it was the desktop software and its plugin catalog, and that desktop software is free. What you are actually paying for here is the convenience of not building the surface yourself, which is exactly the kind of thing a one-shot build eats. The honest caveat is that your version will be a web app with a pairing token, not a polished store app that just works on a new phone in thirty seconds.",
+  "coreLoopDIY": "A local Node daemon exposes a phone-friendly button grid over your LAN and executes mapped keystrokes, shell commands and OBS scene switches when you tap.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A computer that stays on and runs the daemon, Node 20 or newer",
+    "Phone and desktop on the same local network",
+    "OS-level automation permissions, Accessibility on macOS, nothing special on Windows or X11",
+    "OBS with obs-websocket enabled if you want scene control"
+  ],
+  "whatYouLose": [
+    "The plugin catalog: hundreds of prebuilt integrations for Twitch, Spotify, Philips Hue, Zoom, Discord and the rest, which you now reimplement one by one",
+    "Live button states and dynamic icons that reflect what the controlled app is actually doing",
+    "Profiles that auto-switch based on the focused application",
+    "A native app with push-grade reliability, background wake and no browser chrome",
+    "Shared config with Elgato's physical hardware if you also own a real deck"
+  ],
+  "moatTags": [
+    "integrations",
+    "hardware",
+    "execution-polish"
+  ],
+  "moatNotes": "The subscription rides on the free desktop software and its plugin ecosystem. The mobile app alone has almost no moat; the ecosystem behind it has a real one.",
+  "whyPeopleStillPay": "Because it is a few dollars a month and it already works with everything they use. The second you want a button that mutes Discord, shows your current Spotify track, flips an OBS scene and dims a Hue bulb, you are either installing four plugins or writing four integrations, and most people would rather tap install. The DIY build wins for a fixed set of personal macros you define once and rarely change, and loses the moment you want the surface to be aware of the apps it controls.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The paid part is the touchscreen, not the brains, and a touchscreen is a web page.",
+  "prompt": "Build a self-hosted phone-as-macro-pad for my desktop. Empty folder, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Node 20, TypeScript, Express for static files, the ws package for the socket, nut.js for synthetic keyboard and mouse input, obs-websocket-js for OBS. Plain HTML, CSS and vanilla JS for the client, no framework, no bundler.\n\nWhat to build:\n1. A daemon that reads deck.json at startup: a list of pages, each with a grid size and an array of buttons. Each button has a label, an optional icon filename from ./icons, a color, and an action.\n2. Supported action types, exactly these: \"keys\" (send a hotkey combo, e.g. ctrl+shift+m), \"text\" (type a string), \"shell\" (run a command via child_process with the command taken only from deck.json, never from the client), \"obs-scene\" (switch scene), \"obs-mute\" (toggle an input mute), \"multi\" (run an ordered list of the above with optional delays).\n3. An HTTP server bound to 0.0.0.0 on port 8731 serving a touch-first button grid sized for phones: big tap targets, no zoom, no scroll, dark background, visible page tabs along the bottom.\n4. A websocket channel for taps. First message from the client must be a pairing token read from .env (DECK_TOKEN). Reject and close any socket that does not present it. Rate limit to 10 actions per second.\n5. Print a QR code to the terminal on boot pointing at http://LAN_IP:8731/?token=... so pairing is one scan.\n6. A web app manifest and apple-touch-icon so the page installs to the home screen and opens fullscreen.\n7. Hot reload deck.json on file change and push the new layout to connected clients.\n\nSecrets in .env: DECK_TOKEN, OBS_URL, OBS_PASSWORD. Ship .env.example, never a real .env.\n\nExplicitly out of scope: native iOS or Android apps, any cloud relay or account system, dynamic button state from controlled apps, a plugin SDK, Elgato hardware support, multi-user anything.\n\nShip a README with: how to grant macOS Accessibility permission, how to enable obs-websocket, a sample deck.json with eight buttons across two pages, and a note that this is LAN-only by design and should not be exposed to the internet.",
+  "promptCurated": false
+}
