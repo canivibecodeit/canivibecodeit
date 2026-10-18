@@ -1,0 +1,53 @@
+{
+  "slug": "audiox",
+  "name": "AudioX",
+  "domain": "audiox.app",
+  "category": "ai-audio",
+  "subcategory": "text-to-audio generation",
+  "tagline": "Generative audio tool that turns text (and other inputs) into music and sound effects.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://audiox.app/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is a text box, an upload field, and a waveform player, and an agent will happily rebuild all three before lunch. What it cannot rebuild is the generative model doing the actual work, or the GPUs that make a thirty second clip arrive in thirty seconds instead of eight minutes on your laptop. You can get genuinely close with open weights: Stable Audio Open and MusicGen will produce usable loops, ambience, and sound effects, and for a lot of hobby use that is enough. What you will notice is the gap in prompt adherence, vocal and musical coherence, and the ability to condition on video or reference audio, which is exactly the part that is hard. Build the local version if you like owning your stack, not because it will match the hosted output.",
+  "coreLoopDIY": "A local web app that takes a text prompt plus a duration and generates an audio clip with an open diffusion or autoregressive audio model, then lets you preview, re-roll, and download it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A GPU with at least 12GB VRAM, or patience and a rented cloud GPU",
+    "Python 3.11, PyTorch, diffusers or audiocraft",
+    "A Hugging Face token to accept model licenses",
+    "ffmpeg on PATH",
+    "Disk space for multi-gigabyte model weights"
+  ],
+  "whatYouLose": [
+    "Output quality: open audio weights are clearly behind hosted frontier models on prompt adherence and musicality",
+    "Speed: seconds on their infra, minutes on consumer hardware",
+    "Multimodal conditioning such as video-to-audio or reference audio, which open checkpoints handle poorly or not at all",
+    "Commercial licensing clarity on the model weights you are using",
+    "Anything resembling a polished editor, stem splitting, or long-form coherent tracks"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The UI is a commodity. The checkpoint and the GPU fleet behind it are not, and neither ships with your clone.",
+  "whyPeopleStillPay": "Because generative audio is one of the few categories where the hosted version is not just more convenient, it is measurably better. People pay to type a sentence and get something usable on the first or second try, without downloading 10GB of weights, debugging CUDA versions, or discovering that the open model renders everything as a lo-fi hum. The subscription is renting someone else's research budget and someone else's GPUs, and for occasional use that is honestly cheaper than the electricity plus the afternoon.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The app around the model is a weekend; the model is not. The moat is the checkpoint plus the GPU fleet that makes it feel instant.",
+  "prompt": "Build a local, single-user text-to-audio generation studio. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI backend, Uvicorn.\n- Model: stabilityai/stable-audio-open-1.0 via the diffusers StableAudioPipeline, running on CUDA with float16, falling back to CPU with a loud warning that generation will take minutes.\n- Frontend: one server-rendered HTML page with vanilla JS and plain CSS. No React, no build step.\n- SQLite via sqlite3 for the generation history. No ORM.\n- ffmpeg shelled out for format conversion.\n\nWhat it does:\n- A form with: prompt (text), negative prompt (optional), duration in seconds (1 to 47), steps, CFG scale, and seed (blank means random).\n- POST /generate runs the pipeline, writes a WAV to ./outputs/{id}.wav, converts to MP3 with ffmpeg, and inserts a row into SQLite with prompt, params, seed, duration, filename, and created_at.\n- The page lists past generations newest first with an inline HTML5 audio player, the exact params used, a download link, and a \"re-roll\" button that refills the form with those params and a fresh seed.\n- Load the pipeline once at startup into a module-level global. Do not reload per request.\n- Queue generations with a single asyncio lock so two requests cannot fight over the GPU. Show a simple \"generating...\" state via polling GET /status/{id}.\n\nExplicitly out of scope: user auth, multi-user, stems, music editing, video or audio conditioning, long-form stitching, payment, Docker.\n\nSecrets: HF_TOKEN in .env, loaded with python-dotenv. Commit a .env.example, gitignore .env, ./outputs, and the model cache.\n\nDeliver requirements.txt, a README with the exact commands to install, accept the model license, and run, plus an honest note in the README that output quality is below hosted commercial audio models and that the weights carry their own license terms.",
+  "promptCurated": false
+}
