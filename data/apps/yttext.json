@@ -1,0 +1,51 @@
+{
+  "slug": "yttext",
+  "name": "YTText",
+  "domain": "yttext.com",
+  "category": "audio-video",
+  "subcategory": "transcription and subtitles",
+  "tagline": "Pulls transcripts out of public videos and uploaded media, then makes them searchable and exportable as TXT, SRT, or VTT.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://yttext.com/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Every piece of this has a mature open source equivalent that an agent can wire together in an afternoon. yt-dlp already fetches existing YouTube captions in seconds, and faster-whisper handles anything without captions, including your own uploads. Time-coded SRT and VTT output is a formatting function, not a feature, and phrase search over a few thousand transcript segments is one SQLite FTS table. The only real friction is compute: transcribing a two hour lecture on a laptop CPU is slow, and you are the one waiting. If you process more than a handful of videos a month and do not want a queue on your own machine, paying is a defensible laziness tax rather than a moat.",
+  "coreLoopDIY": "Takes a video URL or an uploaded file, grabs existing captions or runs local Whisper, stores time-coded segments in SQLite with full text search, and exports TXT, SRT, or VTT.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and ffmpeg installed locally",
+    "yt-dlp, which occasionally breaks when YouTube changes things",
+    "Enough CPU patience, or a GPU, for Whisper on long files",
+    "Optional OpenAI or Anthropic API key if you want the summaries"
+  ],
+  "whatYouLose": [
+    "Hosted compute: long files transcribe on your hardware, at your hardware's speed",
+    "A queue that survives you closing the laptop",
+    "Polished editing of transcripts with click-to-seek playback, which is fiddly to get right",
+    "Whatever caption-fetch maintenance the vendor does when platforms change their endpoints",
+    "Mobile and sharing: your build is a thing on localhost"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The hard part is not transcription, it is making a two hour file feel instant and keeping the extractors alive as platforms shift.",
+  "whyPeopleStillPay": "Because the local version is a weekend of upkeep forever. yt-dlp and friends need periodic bumps, Whisper models eat memory, and the first time you feed in a three hour podcast you learn what your fan sounds like. A hosted service absorbs all of that and hands back an SRT in a minute, which is worth a few dollars to anyone who does this as a chore rather than a hobby.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Transcription stopped being a product category the day Whisper shipped open weights; what is left is convenience, and convenience is still worth money to some people.",
+  "prompt": "Build a local transcript workbench. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.11, FastAPI, SQLite via sqlite3 stdlib, yt-dlp, faster-whisper, ffmpeg on PATH, and a single server-rendered HTML page with vanilla JS. No React, no Docker, no ORM.\n\nFunctionality:\n1. POST /ingest accepts either a video URL or an uploaded audio/video file.\n2. For URLs, first try yt-dlp to download existing subtitles (manual preferred, auto as fallback) and parse them into segments. If none exist, download audio only to a temp file.\n3. For uploaded files and caption-less URLs, extract audio with ffmpeg to 16kHz mono wav and transcribe with faster-whisper using the \"base\" model by default, model name configurable in .env.\n4. Store each source in a sources table (id, title, origin_url, duration, created_at, status) and each segment in a segments table (source_id, idx, start_ms, end_ms, text).\n5. Create an FTS5 virtual table over segment text. GET /search?q= returns matching segments with their source title and a start timestamp, ranked by bm25.\n6. GET /export/{source_id}?format=txt|srt|vtt returns a correctly formatted file. Get the SRT comma vs VTT dot decimal separator right, and write real WEBVTT headers.\n7. Allow one free-text note per source, stored in the sources table and editable from the UI.\n8. Run ingestion in a background thread with a simple in-process job queue. The UI polls status every 2 seconds and shows a progress line.\n\nUI: one page. Paste box plus file picker at the top, list of sources below, click a source to see its segments with timestamps, a search box that searches across everything, and export buttons per source.\n\nOut of scope: AI summaries, speaker diarization, translation, multi-user anything, authentication, deployment.\n\nSecrets and config go in .env, read with python-dotenv. Ship a README with the exact commands to install ffmpeg and run the server, and a seed script that ingests one short public domain video so the thing is demonstrably working on first run.",
+  "promptCurated": false
+}
