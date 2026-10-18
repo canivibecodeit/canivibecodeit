@@ -1,0 +1,51 @@
+{
+  "slug": "shiplatch",
+  "name": "Shiplatch",
+  "domain": "shiplatch.com",
+  "category": "dev-tools",
+  "subcategory": "release gating / feature flags",
+  "tagline": "A hosted release-gating service: flip features on and off per environment without shipping a new build.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://shiplatch.com/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of any flag service is embarrassingly simple: a key, a value, a rule, and an endpoint that answers fast. An agent can hand you a flag store, an admin UI, and a JSON eval endpoint in an afternoon, and for one app on one server that is genuinely the whole product. What you will not get in one shot is the boring half: SDKs for every language you use, local caching so an outage does not take your app down with it, streaming updates instead of polling, and an audit trail you trust during an incident. This is a low-confidence read, since the public details here are thin and the category is crowded. Build it if flags are a personal convenience, pay if flags are load-bearing in production.",
+  "coreLoopDIY": "A self-hosted flag store with a web admin, per-environment overrides, and a cached JSON evaluation endpoint your app reads at boot and on an interval.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A server or container host you already run",
+    "SQLite or Postgres",
+    "A willingness to write your own client wrapper per language"
+  ],
+  "whatYouLose": [
+    "Official SDKs with sane defaults for caching, retries, and offline fallback",
+    "Low-latency edge delivery, your self-hosted endpoint is exactly as fast and available as your one box",
+    "Streaming or webhook flag updates instead of polling",
+    "Audit logs, approvals, and who-flipped-what during a postmortem",
+    "Percentage rollouts and targeting rules that have been debugged by someone other than you"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the flag model, it is the promise that flag evaluation never becomes the thing that breaks.",
+  "whyPeopleStillPay": "Flags sit in the hot path of every request, so the failure mode of a homegrown service is not a mildly broken dashboard, it is your app hanging on a fetch during a deploy. Paid services sell cached SDKs, multi-region delivery, and the default behavior of failing open with the last known values, all of which are easy to describe and tedious to get right. On top of that, teams want to see who turned something on at 2am and be able to hand that log to someone else. Solo developers with one app and one server mostly do not need any of it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Flags are a weekend project right up until the moment they are in front of production traffic.",
+  "prompt": "Build a self-hosted feature flag and release gating service. Single app, no external SaaS, no telemetry, no accounts beyond one admin login.\n\nStack, non negotiable: Node 20, Fastify, TypeScript, SQLite via better-sqlite3, server rendered admin UI with plain EJS templates and a little vanilla JS. No React, no ORM, no auth library.\n\nData model:\n- projects: id, name\n- environments: id, project_id, key (dev, staging, prod)\n- flags: id, project_id, key, description, type (boolean or string or number), default_value, archived\n- flag_values: flag_id, environment_id, enabled, value, rollout_percent (0-100), targets (JSON array of user ids or emails)\n- audit_log: id, ts, actor, flag_key, environment, before, after\n\nEndpoints:\n- GET /api/v1/:projectKey/:envKey/flags returns a flat JSON map of flag key to resolved value, with ETag support and Cache-Control\n- POST /api/v1/:projectKey/:envKey/evaluate takes a JSON context ({ userId, email, attributes }) and returns resolved values, applying targets first, then rollout_percent via a stable hash of flagKey plus userId, then enabled, then default\n- SDK keys per environment, passed as a Bearer token, stored hashed in SQLite\n\nAdmin UI at /admin, protected by a single ADMIN_PASSWORD from .env with a signed cookie session: list projects, list flags per environment, toggle enabled, set value, set rollout percent, edit targets, archive flags, and view the audit log. Every write appends to audit_log.\n\nAlso ship a tiny TypeScript client in /client that fetches the flag map at startup, caches it in memory, refreshes on an interval, and on any fetch failure keeps serving the last known good values rather than throwing. Write a test that proves the failure path returns stale values instead of erroring, and a test that proves rollout bucketing is stable for the same user across calls.\n\nSecrets in .env: ADMIN_PASSWORD, COOKIE_SECRET, DB_PATH, PORT. Include a Dockerfile, a seed script that creates one project with dev and prod plus three example flags, and a README with curl examples.\n\nOut of scope: multi user accounts, SSO, streaming updates, edge replication, scheduled rollouts, experiment analytics.",
+  "promptCurated": false
+}
