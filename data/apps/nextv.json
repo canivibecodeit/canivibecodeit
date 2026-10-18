@@ -1,0 +1,51 @@
+{
+  "slug": "nextv",
+  "name": "Nextv+",
+  "domain": "play.google.com",
+  "category": "audio-video",
+  "subcategory": "IPTV player",
+  "tagline": "An Android IPTV player that takes your M3U or Xtream Codes login and turns it into a channel guide with live TV, movies and series.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://play.google.com/store/apps/details?id=com.dcsapp.iptv",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "An IPTV player owns none of the content: you bring the playlist, you bring the subscription, the app just parses and plays. The parsing part is genuinely small, M3U is a text format, Xtream Codes is a handful of JSON endpoints, XMLTV is one big XML file. The hard part is everything after the stream URL: MPEG-TS and HLS quirks, audio track and subtitle selection, instant channel switching, and a remote-control UI that works from a couch on Android TV. A desktop version that wraps mpv in a local guide is a one-sitting build and will honestly cover the laptop use case. An actual TV-grade Android app with D-pad navigation and buffer tuning is a different project, and that gap is the whole reason people pay a few dollars once.",
+  "coreLoopDIY": "Parses your M3U or Xtream Codes account into a searchable channel and VOD list with EPG data, then hands the stream URL to mpv for playback.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Your own IPTV subscription: M3U URL or Xtream Codes host, username and password",
+    "mpv installed and on PATH",
+    "Node 20+",
+    "An XMLTV EPG URL if your provider offers one"
+  ],
+  "whatYouLose": [
+    "Android TV and phone builds, including D-pad focus handling and a real remote-control UX",
+    "Tuned buffering and instant channel zapping, your build will stall on flaky streams",
+    "Playback of awkward codecs and audio tracks that a mature ExoPlayer setup handles quietly",
+    "Catch-up, recording, multi-profile and parental controls",
+    "Provider quirk coverage: hundreds of panel variants that the app has already been bug-reported against"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is playback reliability and couch UX, not content. Nobody switches players because of features, they switch because theirs stutters.",
+  "whyPeopleStillPay": "It is almost certainly a one-time or trivially cheap purchase, and the thing it buys is a player that already works on the device plugged into the TV. Writing an M3U parser is an evening. Making video not stutter on a cheap Android box, with a UI you can drive with five buttons in the dark, is months of other people's bug reports. Most people who could build this still install the app and get on with watching.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Bring your own playlist; this directory has opinions about code, not about where your streams come from.",
+  "prompt": "Build a local IPTV guide and launcher called \"deskiptv\". Runs on my own machine, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Node 20 + TypeScript, Express for a tiny local server on port 7788\n- better-sqlite3 for the channel, VOD and EPG cache\n- Plain HTML/CSS/vanilla JS frontend served by Express, no framework, no build step beyond tsc\n- Playback: spawn `mpv` via child_process with the stream URL. Do not attempt in-browser video.\n\nIn scope:\n1. Config from .env: M3U_URL, or XTREAM_HOST + XTREAM_USER + XTREAM_PASS, plus optional EPG_URL. Secrets only in .env, never committed, ship .env.example.\n2. Ingest: parse extended M3U (#EXTINF attributes: tvg-id, tvg-logo, group-title) OR call the Xtream Codes player_api.php endpoints (get_live_categories, get_live_streams, get_vod_streams, get_series) and normalise both into the same SQLite tables.\n3. EPG: download and parse XMLTV from EPG_URL, store programmes keyed by channel tvg-id, prune anything older than 24h.\n4. UI: left column of groups, center list of channels with logo and current programme title plus a now/next progress bar, a search box that filters across channels and VOD by substring. Arrow keys and Enter must work for navigation, since this gets used from across a room.\n5. Clicking or Enter on a channel POSTs to /play, server spawns mpv with sane flags (--cache=yes, --cache-secs=20, --title set to the channel name). One mpv at a time: kill the previous process first.\n6. A \"refresh playlist\" button that re-ingests and reports how many channels appeared or vanished.\n7. Favourites: star a channel, stored in SQLite, pinned group at the top.\n\nOut of scope, do not build:\n- Any mobile or Android TV client\n- Recording, catch-up, timeshift, transcoding\n- Multi-user, profiles, parental controls\n- Bundling or proxying any stream source\n\nDeliver: npm install, npm run ingest, npm run dev. README with the .env setup and a one-paragraph note that streams come from the user's own provider.",
+  "promptCurated": false
+}
