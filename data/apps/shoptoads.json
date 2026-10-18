@@ -1,0 +1,50 @@
+{
+  "slug": "shoptoads",
+  "name": "ShopToAds",
+  "domain": "shoptoads.com",
+  "category": "ai-image",
+  "subcategory": "ad creative generation",
+  "tagline": "Turns a product photo or product URL into static ad concepts with visuals, headlines and calls to action.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://shoptoads.com/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The whole pipeline is three well understood steps: scrape a product page for title, price and images, ask a language model for angles and headlines, then composite text over the product shot at ad sizes. None of those steps need anyone's proprietary anything, and the image models doing the heavy lifting are the same ones you can call directly. What you are actually paying for is a tuned prompt library, sane layout templates and the fact that someone already fought with background removal. A coding agent can get you to usable output in a session, and the output will look roughly as good as your templates do.",
+  "coreLoopDIY": "Paste a product URL or upload a photo, scrape or read the product details, generate a handful of headline plus CTA concepts with an LLM, and render each one onto the product image at standard ad sizes for download.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key with vision support",
+    "An image generation or background removal API if you want synthetic scenes rather than the original photo",
+    "Node 20+ and local disk for rendered output"
+  ],
+  "whatYouLose": [
+    "Prompt tuning: their headline angles are probably better than your first draft, because they have seen more bad output than you have",
+    "Layout taste, your composites will look like a developer made them until you spend real time on the templates",
+    "Background removal and relighting that does not leave a halo around the product",
+    "Clean handling of weird ecommerce pages: lazy loaded galleries, JS-only product data, bot blocking",
+    "Any kind of format preset library for ad platform specs you have not thought about yet"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The defensible part is the template and prompt library, which is craft rather than infrastructure. Craft is copyable, just not in the first hour.",
+  "whyPeopleStillPay": "Because the gap between \"it generates something\" and \"I would actually run this as an ad\" is all layout and copy judgment, and that is the part a one-shot build does worst. If you are shipping creative for dozens of SKUs a week, a tool that already knows what a scroll-stopping product ad looks like is worth more than your own slightly crooked canvas renderer. If you have five products and a design eye, the DIY version is fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scraper will be the thing that breaks, not the AI.",
+  "prompt": "Build a local web app called adforge that turns an ecommerce product into static ad concepts.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, sharp for image compositing, cheerio for HTML parsing. No database, no auth, no telemetry, no hosted deployment. Everything runs with `npm run dev` on localhost and writes output to ./out.\n\nSecrets: read OPENAI_API_KEY from .env.local. Commit a .env.example. Never hardcode keys.\n\nFlow:\n1. One page with two inputs: a product URL field and a file upload for a product image. Either is enough.\n2. If a URL is given, fetch it server side with a normal browser User-Agent, parse with cheerio, and extract title, description, price and the largest og:image or JSON-LD Product image. Prefer JSON-LD when present. If extraction fails, say so plainly and let the user fill the fields by hand instead of guessing.\n3. Send the product details plus the image to the OpenAI responses API with vision and ask for exactly 5 ad concepts, each with: angle, headline (max 7 words), subhead (max 14 words), CTA (max 4 words), and a one-line note on who it targets. Enforce the shape with a JSON schema.\n4. Render each concept with sharp: composite the product image onto a solid or two-tone background and overlay the text using SVG text layers. Ship three sizes: 1080x1080, 1080x1350, 1200x628. Autoscale font size to fit, do not let text overflow.\n5. Show all renders in a grid with a download button per image and a \"download all as zip\" button.\n\nIn scope: URL scraping, vision-informed copy, deterministic SVG-over-image compositing, local file output.\nOut of scope: background removal, generative background scenes, ad platform publishing, accounts, saved projects, billing.\n\nInclude three hardcoded layout templates (centered-hero, left-text-right-product, bottom-bar) selectable per render. Keep them in one templates.ts file with the geometry as plain numbers so they are easy to tweak.\n\nREADME: setup in under 10 lines, plus an honest section titled \"what this does badly\" listing scraper fragility and layout naivety.",
+  "promptCurated": false
+}
