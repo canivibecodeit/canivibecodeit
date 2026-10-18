@@ -1,0 +1,52 @@
+{
+  "slug": "photo-mechanic",
+  "name": "Photo Mechanic",
+  "domain": "camerabits.com",
+  "category": "photo-editing",
+  "subcategory": "culling, ingest and IPTC metadata",
+  "tagline": "A very fast photo browser for culling, renaming, captioning and shipping images off a card.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "perpetual license, paid upgrades",
+    "unit": "one-time",
+    "source": "https://home.camerabits.com/",
+    "checkedOn": "2026-10-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Photo Mechanic is not an editor, it is a card-to-deadline conveyor belt: pull the embedded JPEG out of every RAW, show it instantly, tag, rename, caption, upload. An agent can rebuild the honest core of that in a weekend, because exiftool already knows how to yank embedded previews and write XMP sidecars, and star ratings are just a keyboard handler. What you will not reproduce in one sitting is the thing people actually buy, which is the feel of flicking through 3,000 frames with zero perceptible lag on a hotel wifi deadline. Metadata templates with variables, code replacements, structured ingest from two cards at once and FTP delivery are all individually simple and collectively a lot of fiddly surface. Build it if you cull a few hundred frames a week; buy it if a late filing costs you the gig.",
+  "coreLoopDIY": "A local app that scans a folder of RAWs, extracts and caches each file's embedded JPEG preview for instant display, and lets you rate, color-tag, caption and rename frames with ratings written to XMP sidecars.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "exiftool installed locally",
+    "Python 3.11+ and a modern browser",
+    "disk space for a preview cache",
+    "optional: an FTP or SFTP target for delivery"
+  ],
+  "whatYouLose": [
+    "Genuine speed at scale: decades of tuning on preview decoding, caching and prefetch that a weekend build will not match on a 4,000 frame take",
+    "Breadth of camera support, including RAW formats from bodies released last month",
+    "Metadata templates with variables and code replacements, the thing sports and news shooters actually live in",
+    "Structured ingest: simultaneous multi-card copy, verified backups to two destinations, incremental renaming schemes",
+    "Live FTP/IPTC delivery profiles that newsrooms and wire services expect to just work"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is latency and muscle memory. Nobody switches culling tools mid-season.",
+  "whyPeopleStillPay": "Because the alternative to Photo Mechanic is not a slower tool, it is missing the filing window. Working photographers pay once for a program that has never, in their experience, stalled on a card full of 60 megapixel frames, and that writes caption metadata in exactly the shape the wire desk ingests. A personal build can match the features on paper and still feel like wading, and the moment it hiccups during an actual job the experiment is over. The license cost is rounding error against one assignment.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The feature list is a weekend; the responsiveness is not.",
+  "prompt": "Build a local desktop-style photo culling app called \"Cull\" that runs in a browser against a local backend. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11 + FastAPI backend, served with uvicorn.\n- Frontend: a single static HTML file with vanilla JS and CSS. No React, no build step.\n- exiftool invoked as a subprocess for all metadata and preview extraction. Assume it is on PATH; fail loudly with install instructions if not.\n- SQLite for the index and ratings cache.\n\nCore loop:\n1. POST /scan with an absolute folder path. Walk it for RAW and JPEG files (.cr2 .cr3 .nef .arw .raf .orf .dng .jpg .jpeg).\n2. For each file, use exiftool to extract the largest embedded preview to a cache dir under ~/.cull/cache/ keyed by file hash. Do this in a background worker pool, processing files in sorted order so the first screenful is ready fast. Report progress via GET /scan/status.\n3. Serve previews at GET /preview/{id}. Frontend shows a filmstrip of thumbnails plus one large loupe view.\n4. Keyboard first: arrow keys or J/K to move, 1-5 sets star rating, 6-9 sets a color class, 0 clears, Space toggles full-screen loupe, X marks for delete, Enter opens the caption field.\n5. Prefetch the next and previous 10 previews into memory so navigation feels instant. This is the whole point of the app; measure it and keep single-frame advance under 100ms on cached files.\n6. Ratings, color classes and captions persist to SQLite immediately and are written through to XMP sidecar files via exiftool (Rating, Label, IPTC Caption-Abstract, By-line, Copyright).\n7. Filter bar: show only rated, only picks, only a given color, or all.\n8. POST /export copies selected frames to a destination folder with a rename pattern string supporting {date} {seq} {orig} {camera}.\n\nExplicitly out of scope: RAW demosaicing, editing, sliders, publishing, FTP, multi-card ingest, mobile.\n\nAny config (default folders, photographer name for IPTC) goes in .env read via python-dotenv. Ship a README with exact run commands and a short note on which RAW formats were actually tested.",
+  "promptCurated": false
+}
