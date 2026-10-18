@@ -1,0 +1,52 @@
+{
+  "slug": "level-rmm",
+  "name": "Level RMM",
+  "domain": "level.io",
+  "category": "monitoring",
+  "subcategory": "remote monitoring and management",
+  "tagline": "Agent-based remote monitoring, scripting and remote access for fleets of Windows, macOS and Linux machines.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per device",
+    "unit": "per-seat",
+    "source": "https://level.io/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If your fleet is five machines you personally own, an agent-plus-dashboard build gets you most of the daily value: heartbeats, hardware and software inventory, disk and memory alerts, and running a script on everything at once. The parts that do not survive one session are the ones RMM vendors spend years on: a signed installer that survives Windows updates, unattended remote desktop through NAT, auto-updating agents, and patch management that actually knows what Patch Tuesday broke. For personal use you can cheat around most of that with Tailscale and SSH, which is what homelab people already do. For anyone managing other people's machines for money, the multi-tenant separation, audit trail and the fact that a vendor answers the phone are the product. Call it a weekend for a real personal version, and never call it an RMM in front of a paying client.",
+  "coreLoopDIY": "A self-hosted control server plus a small cross-platform agent that heartbeats, reports inventory and metrics, raises threshold alerts, and runs ad hoc or scheduled scripts on selected machines.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on server or VPS for the control plane",
+    "Python 3.11 and admin rights on every endpoint you want to manage",
+    "Tailscale, WireGuard or any VPN if you also want interactive shell access",
+    "An SMTP account or ntfy/Discord webhook for alerts"
+  ],
+  "whatYouLose": [
+    "Unattended remote desktop through NAT, including the relay infrastructure that makes it work on hotel wifi",
+    "Signed, auto-updating agent installers that do not get eaten by Windows Defender or macOS Gatekeeper",
+    "Real patch management: OS and third-party app updates with rollback and reporting",
+    "A curated script library and alert thresholds tuned by people who manage thousands of endpoints",
+    "Multi-tenant client separation, audit logs and PSA/ticketing integrations you need the moment this is a job"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The hard engineering is not the dashboard, it is a tiny privileged agent that never dies, never breaks the machine, and reaches home through whatever network it lands on.",
+  "whyPeopleStillPay": "MSPs do not buy RMM for the metric graphs, they buy it so one technician can support a few hundred machines across a dozen customers without touching any of them physically. That means agent reliability on hardware you have never seen, remote access that works when the user cannot describe their own network, patch reporting you can show a client, and a vendor who is liable when an agent push bricks a fleet. A self-hosted build gives you observability; it does not give you any of that liability transfer. Below roughly ten machines that trade is fine, above it the per-device fee is cheaper than your weekend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project for your own machines, malpractice for someone else's.",
+  "prompt": "Build a self-hosted mini-RMM for a small personal fleet of machines. Empty folder, no accounts, no cloud services, no telemetry.\n\nStack, non-negotiable:\n- Server: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates with htmx for the UI. uvicorn to run it.\n- Agent: a single-file Python script using only the standard library plus psutil. Must run on Windows, macOS and Linux.\n- Auth: one shared enrollment token and per-agent tokens, all read from .env. Include .env.example, never commit secrets.\n\nAgent behavior:\n- On first run, POST to /api/enroll with the enrollment token, hostname, OS, CPU count and total RAM. Store the returned agent id and token in a local state file.\n- Every 60 seconds, POST a heartbeat to /api/checkin with CPU percent, memory percent, per-disk free space, uptime, logged-in user and pending reboot flag where detectable.\n- In the same response, receive a list of queued jobs. Execute each as a shell command (cmd on Windows, sh elsewhere) with a 300 second timeout and POST stdout, stderr and exit code back to /api/jobs/{id}/result.\n- Collect installed software inventory once per day: winget or registry on Windows, system_profiler or brew list on macOS, dpkg or rpm on Linux. Best effort, never crash.\n\nServer behavior:\n- Tables: agents, checkins, jobs, alerts, inventory.\n- Dashboard page: one row per agent with last seen, color coded offline if no checkin in 5 minutes, current CPU, memory and lowest disk free.\n- Agent detail page: 24 hour sparkline-ish table of checkins, installed software list, job history.\n- Script runner: a textarea plus checkboxes to pick agents, queues the same command as a job for each. Show results inline as they come back.\n- Scheduled jobs: a simple cron-ish table (command, cron expression, target agents) evaluated by a background task.\n- Alert rules per agent or global: disk free below X percent, memory above Y percent, offline longer than Z minutes. On fire, POST to a webhook URL from .env and record it in alerts. Deduplicate so each condition fires once until it clears.\n\nExplicitly out of scope, do not attempt: remote desktop or screen sharing, NAT traversal, agent auto-update, OS patch management, multi-tenancy, mobile apps. Assume all machines can reach the server over a VPN or LAN.\n\nDeliverables: server/, agent/agent.py, schema.sql, .env.example, and a README with exact install commands for all three operating systems plus a seeded demo agent so the dashboard is not empty on first run.",
+  "promptCurated": false
+}
