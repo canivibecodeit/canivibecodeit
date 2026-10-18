@@ -1,0 +1,51 @@
+{
+  "slug": "denoise-pro",
+  "name": "denoise.pro",
+  "domain": "denoise.pro",
+  "category": "ai-audio",
+  "subcategory": "noise and hum removal",
+  "tagline": "Upload a noisy recording, get back a cleaner one, no DAW required.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://denoise.pro/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Speech denoising is one of the few AI problems where the open weights are genuinely competitive with the paid product. DeepFilterNet and similar models run on CPU, in real time, with a pip install and no API key. An agent can wire a drag-and-drop page to a local inference call and ffmpeg in a single sitting, and the output will be in the same ballpark for ordinary room tone, fan hum, and street noise. Where the hosted tool wins is the long tail: clipping, heavy reverb, overlapping speakers, and the sensible defaults that stop you from gating your own consonants off. If your use case is 'my Zoom recording has an air conditioner in it', the local build is finished work, not a compromise.",
+  "coreLoopDIY": "Drop an audio or video file into a local web page, run an open speech-enhancement model over it, and download the cleaned file at the original format and length.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and pip",
+    "ffmpeg on PATH",
+    "A few hundred MB of model weights downloaded on first run",
+    "Enough CPU patience, or a GPU if you want long files to finish fast"
+  ],
+  "whatYouLose": [
+    "Tuned presets for specific problems: hum, hiss, reverb, mouth noise, each handled differently",
+    "Processing that does not pin your laptop fan for the length of a podcast episode",
+    "A/B preview scrubbing so you can hear exactly what the model ate",
+    "Graceful handling of edge cases like clipped input, music beds, and multiple speakers",
+    "Working from a phone or someone else's machine without installing anything"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The model gap is real but narrow for plain speech, and it closes a little every time a new open checkpoint drops.",
+  "whyPeopleStillPay": "Because denoising is an errand, not a hobby. Someone with a recording due in twenty minutes does not want to resolve a torch dependency, and the hosted version has already made the ten judgment calls about aggressiveness, high-pass, and gain that separate 'clean' from 'underwater'. Paid tools also tend to survive the ugly inputs: phone recordings with clipping, interviews with cross-talk, rooms with slap echo. The local build handles the easy 80 percent perfectly and then makes you think about it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare cases where the open model is the product and the SaaS is the UI around it.",
+  "prompt": "Build a local, single-user audio denoiser that runs entirely on my machine. No accounts, no cloud calls, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn.\n- DeepFilterNet (pip install deepfilternet) for speech enhancement. Download weights on first run and cache them under ./models.\n- ffmpeg via subprocess for all format conversion and muxing. Assume ffmpeg is on PATH and fail loudly with a clear message if it is not.\n- Frontend is one server-rendered HTML page with vanilla JS. No React, no build step, no npm.\n\nWhat it does:\n- Drag and drop one or more files (wav, mp3, m4a, flac, mp4, mov) onto the page.\n- For each file: extract audio to 48kHz mono wav with ffmpeg, run DeepFilterNet enhancement, then write the result back at the original sample rate and container. For video inputs, remux the cleaned audio over the untouched video stream.\n- Expose one knob: a 0 to 100 'strength' slider that blends the enhanced signal with the original (dry/wet mix), defaulting to 85. Do not add more knobs.\n- Show per-file progress and a finished state with two inline audio players, original and cleaned, so I can A/B the result.\n- Write outputs to ./out as 'originalname.denoised.ext'. Never overwrite inputs.\n\nExplicitly out of scope: user auth, job queues, databases, Docker, hosting, multi-user anything, waveform editing, transcription, loudness mastering.\n\nOther requirements:\n- Process files sequentially in a background thread, not all at once, and keep the UI responsive via a polling status endpoint.\n- Config in .env: PORT, OUT_DIR, MODEL_DIR. Ship a .env.example. No secrets are needed because nothing leaves the machine.\n- README with exact install commands, the ffmpeg prerequisite, expected first-run model download size, and a rough seconds-per-minute-of-audio benchmark on CPU.\n- Clean up temp wavs after each job.",
+  "promptCurated": false
+}
