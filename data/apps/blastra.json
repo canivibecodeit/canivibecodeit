@@ -1,0 +1,52 @@
+{
+  "slug": "blastra",
+  "name": "Blastra",
+  "domain": "blastra.io",
+  "category": "sales-outreach",
+  "subcategory": "outbound email sequencing",
+  "tagline": "Outbound email platform for running multi step sequences from connected mailboxes.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://blastra.io/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible machinery here is a scheduler, a template engine and a reply watcher, and an agent will write all three in an afternoon. Hooking one mailbox up through the Gmail API and drip sending with throttles and stop-on-reply is genuinely a solved weekend problem. What does not come out of the box is everything that keeps the mail landing in an inbox: warmup, mailbox rotation, bounce and complaint handling, placement reporting, and the slow accumulation of sender reputation you only notice when you lose it. A personal build is fine for a few dozen hand picked contacts a week and actively dangerous as a volume tool, because the thing you burn is your own domain. Treat the DIY version as a sequencer, not as a sending platform.",
+  "coreLoopDIY": "Imports a contact CSV, sends a throttled personalized multi step sequence from your own mailbox, and stops a thread the moment someone replies.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local SQLite file",
+    "A Google Cloud project with Gmail API OAuth credentials, or SMTP and IMAP credentials for your provider",
+    "A sending domain with SPF, DKIM and DMARC already configured",
+    "Willingness to risk the reputation of that domain"
+  ],
+  "whatYouLose": [
+    "Mailbox warmup and the shared pools that make it work",
+    "Inbox placement and spam folder reporting, so you are sending blind",
+    "Automatic bounce, complaint and suppression handling across campaigns",
+    "Multi mailbox rotation and sending limit management for anything above hobby volume",
+    "CRM and lead source connections, plus the shared inbox where a team actually handles replies"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Deliverability is not a feature, it is an operations practice with a feedback loop. Buying it is mostly buying someone else's monitoring.",
+  "whyPeopleStillPay": "Because the expensive part of outbound is not the sending loop, it is knowing whether the mail arrived, and that answer comes from seed lists, provider feedback loops and a vendor watching thousands of domains at once. People also pay to keep replies, notes and sequence state in one place a team can share, and to have someone to ask when a domain suddenly goes quiet. The DIY sequencer gives you control and a cheap bill, then hands you the entire deliverability problem with no instruments.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for twenty thoughtful emails a day, not two thousand careless ones.",
+  "prompt": "Build a local cold outreach sequencer. No cloud, no accounts, no telemetry.\n\nStack, non negotiable: TypeScript on Node 20, SQLite via better-sqlite3, a small Fastify server with server rendered HTML and plain CSS for the dashboard, and a CLI entrypoint for the send worker. No React, no ORM, no queue service.\n\nIn scope:\n1. CSV import of contacts: email, first_name, company, plus arbitrary extra columns stored as JSON. Dedupe on email. Reject obviously invalid addresses.\n2. Sequence definition in a single YAML file: ordered steps, each with a delay in days, a subject template and a body template. Use simple {{first_name}} style merge fields and fail loudly on a missing field rather than sending an empty gap.\n3. Sending through the Gmail API with OAuth2. Store the refresh token in .env, never in the repo. Each step after the first must be sent as a reply in the same thread, so persist the Gmail thread and message ids.\n4. A send worker invoked by cron or a loop: respects a per day cap, a per hour cap, randomized jitter between sends, and a quiet hours window from the config.\n5. Reply detection: poll the mailbox for replies on tracked threads and mark a contact as stopped. Also stop on bounce by watching for delivery failure messages.\n6. Unsubscribe: append a plain mailto unsubscribe line to every body, and a suppression table that is checked before every single send.\n7. Dashboard at localhost: contacts with current step and status, a log of every send attempt with timestamps, and counts of sent, replied, bounced, suppressed.\n\nOut of scope, do not build: open and click tracking pixels, mailbox warmup, multi account rotation, AI copy generation, CRM sync, a hosted deployment.\n\nSecrets live in .env, with a committed .env.example. Write a README that states plainly that this tool has no deliverability monitoring and that the user is risking their own sending domain. Include a dry run mode that prints rendered emails to stdout instead of sending, and make dry run the default.",
+  "promptCurated": false
+}
