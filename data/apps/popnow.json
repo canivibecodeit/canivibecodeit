@@ -1,0 +1,52 @@
+{
+  "slug": "popnow",
+  "name": "PopNow",
+  "domain": "popnow.ai",
+  "category": "generative-media",
+  "subcategory": "multi-model AI media studio",
+  "tagline": "A pay-per-run front end for hosted image, video and music models, with one-tap photo-to-video effect presets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://popnow.ai/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software here is a router: pick a model, fill a template prompt, show the cost, run it, keep the output in a gallery. An agent can rebuild that in a session on top of fal.ai or Replicate, and the 160 effects are mostly prompt presets plus a reference image, which is a JSON file you can grow yourself. What you cannot rebuild is model access: the good video and music models are rented, not run, so your DIY version is a thinner skin over the same bill. Call it kinda because the app survives the clone but the dependency does not go away, and a handful of marquee models are only licensed to specific aggregators.",
+  "coreLoopDIY": "A local web app that lists hosted models with their per-run price, applies a library of effect presets to an uploaded photo or prompt, submits the job, polls for the result and files it in a searchable gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "a fal.ai or Replicate API key with billing attached",
+    "Node 20 and a browser",
+    "somewhere to put output files, local disk is fine",
+    "patience for per-model input schemas, they are all slightly different"
+  ],
+  "whatYouLose": [
+    "Curated effect presets that someone already tuned against each model, instead of your own trial and error",
+    "Mobile apps, which is where one-tap photo-to-video actually gets used",
+    "Access to models that are exclusive to a given aggregator or not on any public API at all",
+    "A price estimate that matches the actual invoice, since you now eat raw provider pricing plus failed runs",
+    "Any queue management or retry logic beyond what you bother to write"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The moat is plumbing to many model vendors plus the taste to wrap each one in a preset that reliably works. Neither is hard, both are tedious, and the tedium is the product.",
+  "whyPeopleStillPay": "Because nobody wants to debug a video model's input schema at 11pm. Paying per run with the price shown up front removes the two things people hate about raw APIs: surprise bills and reading docs. The effect library is also real work, a preset that turns a selfie into a specific animated look is tuned, not guessed, and reproducing fifty of those yourself is a project, not an afternoon. If you only generate a few clips a month, the markup is cheaper than your evening.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Clone the router, rent the same models, save the markup and lose the presets.",
+  "prompt": "Build a local, single-user AI media studio called \"runbench\" in an empty folder. No accounts, no cloud deploy, no telemetry.\n\nStack, no substitutions: Next.js 15 App Router with TypeScript, Tailwind, SQLite via better-sqlite3, and fal.ai as the only model provider (@fal-ai/client). Run with `npm run dev` on port 3000.\n\nSecrets: FAL_KEY in .env.local, read server-side only. Commit a .env.example. Never send the key to the browser.\n\nData model in SQLite: models (id, slug, kind: image|video|audio, fal_endpoint, price_per_run_usd, input_schema_json), presets (id, model_id, name, prompt_template, needs_image, default_params_json), runs (id, model_id, preset_id, prompt, input_image_path, status, output_path, cost_usd, error, created_at).\n\nSeed models.json and presets.json as checked-in files, not hardcoded in code. Seed with 6 models across image, video and audio using real fal endpoint slugs, and 12 presets whose prompt_template uses {{subject}} style placeholders. Make it obvious how to add more by editing JSON and rerunning `npm run seed`.\n\nUI, three pages:\n1. / : grid of presets with kind filter, each card shows the preset name, the model it runs on and \"$X.XX per run\" from the model price. Clicking opens a run drawer with a prompt box, optional image upload, and a confirm button labeled with the exact cost.\n2. /runs : reverse-chronological list of every run with status, thumbnail or audio player, cost, and total spend this month summed from the runs table.\n3. /models : editable table of price_per_run_usd so prices stay honest when fal changes them.\n\nServer behavior: POST /api/run inserts a queued row, submits to fal with the preset's merged params, polls until done, downloads the output to ./output/{run_id}.{ext}, and updates the row. On failure store the error text and still keep the row. Serve outputs through a route handler, not the public folder.\n\nIn scope: upload to fal storage for image inputs, a running cost total, re-run a past run with one click.\nOut of scope: auth, payments, multi-user, queues beyond in-process polling, mobile app, video editing, any provider other than fal.\n\nREADME: how to get a FAL_KEY, how to add a model, and a clear line saying prices in models.json are user-maintained and may drift from fal's actual billing.",
+  "promptCurated": false
+}
