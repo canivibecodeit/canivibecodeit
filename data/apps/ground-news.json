@@ -1,0 +1,52 @@
+{
+  "slug": "ground-news",
+  "name": "Ground News",
+  "domain": "ground.news",
+  "category": "rss-research",
+  "subcategory": "news aggregation and bias comparison",
+  "tagline": "News aggregator that clusters the same story across outlets and labels each source by political lean, factuality, and ownership.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://ground.news/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is a list of stories with colored bars, which an agent can clone before lunch. The product is not the interface: it is tens of thousands of sources ingested continuously, clustered into the same story, then cross-referenced against third-party bias and factuality ratings and ownership records. You can rig up RSS plus embeddings and get rough clusters for the hundred feeds you personally care about, which is genuinely useful and genuinely not the same thing. Blindspot detection in particular only works if your source list is broad enough to notice an absence, and your hand-picked feed list is not. The bias labels themselves are licensed data you cannot regenerate by vibes.",
+  "coreLoopDIY": "Pulls a few hundred RSS feeds into SQLite, clusters same-day articles by embedding similarity, and shows each cluster with the lean of the outlets covering it based on a bias map you maintain yourself.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An OpenAI or local embedding model for story clustering",
+    "A hand-maintained YAML file mapping each feed to a lean and factuality label",
+    "RSS or Atom feeds for every source you want, many paywalled outlets give you headlines only",
+    "A cron job or scheduler so the index stays fresh"
+  ],
+  "whatYouLose": [
+    "Breadth: Ground News ingests orders of magnitude more sources than you will ever curate, which is the whole basis for spotting coverage gaps",
+    "Licensed bias and factuality ratings from established raters, rather than your own guesses about each outlet",
+    "Ownership and funding data attached to each source",
+    "Mobile apps, push alerts, and a browser extension that annotates articles in place",
+    "Full-text summaries of how left and right framed the same story"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "content-rights",
+    "scale-infra"
+  ],
+  "moatNotes": "The bias and factuality labels come from outside raters under license. You are allowed to have an opinion about an outlet, you are not allowed to hand yourself a defensible dataset of them.",
+  "whyPeopleStillPay": "Because the value shows up exactly when you are not looking for it. A personal aggregator tells you about the stories in the feeds you chose, which is the trap it was supposed to get you out of. Ground News is paying people to watch outlets you would never subscribe to, so it can tell you when one half of the press is quietly ignoring something. That is a staffing and licensing cost, not a code cost, and no amount of clever clustering on your end substitutes for it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The clustering UI is a weekend; the source universe is not. The moat is continuous ingestion at a scale that makes absence measurable, plus licensed bias ratings you cannot reproduce.",
+  "prompt": "Build a local news comparison reader called \"Groundling\". Single Node 20 project, TypeScript, SQLite via better-sqlite3, Fastify serving server-rendered HTML with a little htmx. No React, no cloud, no accounts, no telemetry.\n\nData model in SQLite:\n- sources: id, name, feed_url, lean (left | lean-left | center | lean-right | right | unknown), factuality (high | mixed | low | unknown), country\n- articles: id, source_id, title, url, summary, published_at, embedding (BLOB), cluster_id\n- clusters: id, label, first_seen, last_seen\n\nSources live in sources.yaml at the repo root, hand edited, with the lean and factuality fields filled in by me. Ship a seed file of about 40 well-known English-language feeds with lean set to unknown and a comment telling me to fill it in myself and that these are my labels, not anyone's rating system.\n\nIngest command: npm run ingest. Fetches every feed with a 10s timeout, parses with rss-parser, upserts articles by URL, skips anything older than 72 hours. Embed each new title plus summary with OpenAI text-embedding-3-small, key from OPENAI_API_KEY in .env, batch 100 at a time, store the vector as a Float32Array blob.\n\nClustering: greedy single-pass over the last 72 hours of articles ordered by published_at. Cosine similarity above 0.82 joins an existing cluster, otherwise starts a new one. Brute force is fine, this is a few thousand rows. Cluster label is the title of its earliest article.\n\nWeb UI at localhost:3000:\n- Home: clusters from the last 24 hours, sorted by number of distinct sources, each row showing the label, source count, and a horizontal bar of colored segments by lean\n- Cluster page: every article in the cluster grouped under left, center, right, unknown, with outlet name, headline, and link\n- A \"thin coverage\" filter: clusters where one lean bucket holds more than 70 percent of the sources, which is the closest honest version of a blindspot feed given how few feeds I track\n\nExplicitly out of scope: mobile apps, push notifications, paywall bypass, full article text, LLM-written framing summaries, and any claim that these lean labels are objective.\n\nInclude a README with setup, .env.example with OPENAI_API_KEY, and a sample crontab line to run ingest hourly.",
+  "promptCurated": false
+}
