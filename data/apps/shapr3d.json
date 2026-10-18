@@ -1,0 +1,52 @@
+{
+  "slug": "shapr3d",
+  "name": "Shapr3D",
+  "domain": "shapr3d.com",
+  "category": "design",
+  "subcategory": "CAD modeling",
+  "tagline": "Touch and pencil driven solid CAD for iPad, Mac and Windows, built on a commercial geometry kernel.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.shapr3d.com/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interface is the part that looks copyable, and the interface is not the product. Underneath is a commercial B-rep solid modeling kernel doing boolean operations, filleting and NURBS surface intersection on degenerate geometry without exploding, which is the kind of code measured in engineer-decades, not in sessions. An agent can absolutely give you a browser modeler with sketches, extrudes and booleans in an afternoon, and it will feel fine until the first fillet on a non-trivial edge loop fails silently or your STEP export comes back as garbage in someone else's CAD. Add that the real workflow lives on an iPad with a Pencil, with pressure, palm rejection and sixty frames per second on a model with thousands of faces, and the gap stops being about features. Build the toy if you want to learn geometry. Do not expect to make parts with it.",
+  "coreLoopDIY": "A local browser CAD toy: draw constrained-ish 2D sketches on a plane, extrude or revolve them into solids, boolean them together, and export STL or STEP.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Node and a modern browser",
+    "opencascade.js WASM build, which is a large download and awkward to bundle",
+    "Willingness to read B-rep API docs written for C++ engineers",
+    "No iPad: this is desktop pointer only"
+  ],
+  "whatYouLose": [
+    "A battle-tested kernel: your fillets, chamfers and shells will fail on geometry that Shapr3D handles without comment",
+    "The iPad and Apple Pencil workflow, which is the actual reason most people bought it",
+    "Reliable STEP and Parasolid interchange with the rest of the CAD world, including supplier models and injection molders",
+    "Dimensioned 2D drawings, section views and anything you would hand to a machinist",
+    "Cloud sync, version history and working on the same file across three operating systems"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The licensed solid modeling kernel is the real asset, and nobody is reimplementing robust NURBS intersection as a side project.",
+  "whyPeopleStillPay": "Because CAD is one of the few categories where correctness is non-negotiable and almost impossible to fake. A note-taking app that glitches is annoying; a modeler that produces a solid with a self-intersecting face produces a part that cannot be manufactured, and you find out after paying for machining. People pay Shapr3D for a kernel that says no instead of quietly producing nonsense, for export files that open correctly in whatever the shop runs, and for a tablet interface that makes 3D modeling feel less like fighting a mouse. None of those three things are weekend problems.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The sketch-and-extrude UI is a weekend build; the thing it sits on is not. The moat is a licensed commercial geometry kernel plus the decade of interchange and interface work that makes its output trustworthy to a machine shop.",
+  "prompt": "Build a local browser CAD toy. No accounts, no cloud, no telemetry. Everything runs on localhost and saves to the filesystem.\n\nStack, non-negotiable: Vite, TypeScript, Three.js for display, opencascade.js (the WASM build of the OpenCascade B-rep kernel) for all actual geometry. Do not hand-roll CSG on meshes. Three.js only renders triangulated output from the kernel.\n\nIn scope:\n- A single viewport with orbit, pan and zoom, plus a small axis gizmo.\n- Three fixed datum planes (XY, YZ, ZX). Pick one to sketch on.\n- Sketch mode: lines, rectangles, circles, arcs. Snapping to endpoints and to the origin. Numeric entry for dimensions in a side panel. No constraint solver, snapping and typed numbers only, and say so in the UI.\n- Close a sketch into a face, then extrude (blind distance, both directions) or revolve about a selected sketch line.\n- Boolean union, subtract and intersect between any two solids in the feature tree.\n- A linear feature tree in a sidebar. Click an item to select, delete the tail, nothing fancy. No real parametric rebuild: deleting mid-tree is disallowed.\n- Fillet and chamfer on a single selected edge, by radius or distance. Wrap every kernel call in try/catch and surface failures as a plain message: 'kernel refused this operation'. Do not pretend it worked.\n- Export: STL (binary) and STEP, both via the kernel's writers.\n- Save and load the document as JSON describing the feature list, not the resulting solid. Reload re-executes the tree.\n\nOut of scope, do not attempt: a constraint solver, assemblies, 2D drawings, sheet metal, surfacing, touch or stylus input, undo beyond a simple feature-tree pop, multi-user anything.\n\nPractical notes: opencascade.js is a large WASM payload, so load it lazily behind a progress indicator and keep all kernel calls in a web worker so the UI does not freeze on meshing. Triangulation tolerance should be a settable number in the sidebar with a sane default.\n\nWrite a README that states plainly which operations are fragile and that this is not suitable for parts anyone intends to manufacture.",
+  "promptCurated": false
+}
