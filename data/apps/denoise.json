@@ -1,0 +1,51 @@
+{
+  "slug": "denoise",
+  "name": "Denoise",
+  "domain": "denoise.pro",
+  "category": "ai-audio",
+  "subcategory": "noise removal and audio cleanup",
+  "tagline": "Upload a recording, get back a version without the hum, hiss, room, and background chatter.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://denoise.pro/",
+    "checkedOn": "2026-10-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Speech denoising is one of the few AI categories where the open models are genuinely competitive with the paid ones. DeepFilterNet and RNNoise run on a laptop CPU, ship as pip installs, and clean up hum, hiss, fans, and room tone well enough that most people cannot tell which output came from where. An agent can wrap that in a drag-and-drop page with ffmpeg doing audio extraction and remuxing for video files, plus an A/B player and a dry/wet mix slider, in a single sitting. Where the hosted product earns its money is the stuff around the model: speed on long files, video handling that does not desync, and not having to think about Python. The core value survives the move to local, which is the whole test.",
+  "coreLoopDIY": "A local web page where you drop audio or video files and get denoised versions back, with an A/B player and a wet/dry slider, powered by DeepFilterNet and ffmpeg.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and pip",
+    "ffmpeg on PATH",
+    "A few GB of disk for model weights",
+    "CPU is fine, GPU makes long files faster"
+  ],
+  "whatYouLose": [
+    "Tuned model selection per noise type; you get one model and a slider instead of something that picks for you",
+    "Fast turnaround on hour-long files without thinking about chunking or a GPU",
+    "Any mobile or browser-only path; this lives on one machine",
+    "Extras like loudness normalization, de-essing, or de-reverb unless you wire them in yourself",
+    "Someone else's problem when a weird codec or a 32-bit float WAV blows up the pipeline"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The model gap here is real but narrow, and it closes every time a new open speech enhancement checkpoint drops.",
+  "whyPeopleStillPay": "Because the alternative involves Python, model weights, and ffmpeg flags, and most people cleaning up a podcast or an interview want the file back in ninety seconds, not a working environment. Paid denoisers also quietly handle the long tail: video containers, odd sample rates, stereo files where only one channel is bad, batch jobs. If you denoise two files a year, pay. If you denoise two files a week, the local build pays for itself the first month.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare cases where the open model is the same class of thing as the paid model, and the product is mostly the upload button.",
+  "prompt": "Build a local audio denoising tool. No accounts, no cloud, no telemetry, everything runs on this machine.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, uvicorn\n- DeepFilterNet (pip install deepfilternet) as the denoising engine\n- ffmpeg via subprocess for all format handling\n- Frontend: one server-rendered HTML page with vanilla JS, no build step, no framework\n- SQLite for the job queue, nothing fancier\n\nWhat it does:\n1. Serve a page at / with a drag-and-drop zone that accepts wav, mp3, m4a, flac, mp4, mov, mkv.\n2. On drop, write the file to ./uploads, insert a job row, return a job id, and start processing in a background worker (single worker, serial, that is fine).\n3. For video inputs: extract the audio track with ffmpeg to 48kHz mono wav, denoise it, then remux the cleaned audio back into a copy of the original video with -c:v copy so the video is never re-encoded. Verify duration matches within 50ms and fail loudly if it does not.\n4. For audio inputs: resample to 48kHz with ffmpeg, denoise, then convert back to the original container and sample rate.\n5. Run files longer than 60 seconds in 30 second chunks with 0.5 second overlap and crossfade the seams, so memory stays flat on long recordings.\n6. Write results to ./output. Poll job status from the page every second and show a progress percentage.\n\nThe player, this is the important part:\n- When a job finishes, show an A/B player with one play/pause control and a toggle that switches between original and denoised at the same playback position, no restart.\n- A wet/dry slider from 0 to 100 that mixes original and denoised. Do the mix client side with two audio elements and gain nodes via Web Audio API so it is instant.\n- A download button that renders the current mix server side at the chosen wet/dry ratio using ffmpeg amix with weights.\n\nAlso include:\n- A CLI entrypoint: python -m denoise path/to/file --wet 80 for batch use without the browser.\n- A simple waveform render (peaks only, no spectrogram) above the player so users can see where the noise was.\n\nExplicitly out of scope: de-reverb, de-essing, loudness normalization, speaker separation, multi-user anything, auth, hosting.\n\nPut MODEL_NAME and OUTPUT_DIR in .env with a .env.example committed. Write a README with the exact ffmpeg version assumption and a one-line install check that fails early if ffmpeg is missing.",
+  "promptCurated": false
+}
