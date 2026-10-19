@@ -1,0 +1,53 @@
+{
+  "slug": "revenue-cat",
+  "name": "RevenueCat",
+  "domain": "revenuecat.com",
+  "category": "dev-tools",
+  "subcategory": "in-app purchase and subscription infrastructure",
+  "tagline": "Hosted receipt validation, entitlement state and subscription analytics for mobile in-app purchases.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "percent of monthly tracked revenue, free tier below a revenue threshold",
+    "unit": "usage",
+    "source": "https://www.revenuecat.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core job is smaller than it looks: take a signed transaction from StoreKit 2, verify it against Apple's certificate chain, write an entitlement row, and answer 'is this user subscribed'. An agent can scaffold that in a sitting, and for one iOS app with one subscription tier it will probably work. The pain starts at the second platform and the renewal state machine: Google Play RTDN via Pub/Sub, grace periods, billing retry, refunds and chargebacks, upgrades and proration, family sharing, sandbox vs production, and Apple quietly revising the Server API again next spring. This is also the one subsystem where a bug either gives away your product for free or locks out paying customers, so 'mostly works' is a worse outcome than usual. Build it if you own the app and like maintaining it; do not build it to save a percentage point while shipping something else.",
+  "coreLoopDIY": "A self-hosted service that verifies App Store and Play Store purchase receipts, ingests store notifications, and exposes a single entitlement check endpoint for your app.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Apple Developer account with App Store Server API key and issuer ID",
+    "Google Play service account with Pub/Sub topic for real-time developer notifications",
+    "A publicly reachable HTTPS server for store notification webhooks",
+    "Postgres or equivalent for the subscriber ledger",
+    "Willingness to re-read Apple and Google docs every time they change"
+  ],
+  "whatYouLose": [
+    "Cross-platform entitlement sync, so a user who subscribed on iOS and signs in on Android is your problem",
+    "Subscription analytics: cohorts, churn, trial conversion, MRR movement charts you get for free today",
+    "Remote paywall config and A/B testing without an app store release",
+    "Prebuilt integrations that forward subscription events to Mixpanel, Slack, Stripe and friends",
+    "Someone else being on call when Apple ships a breaking change to the Server API"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is maintenance of two hostile, mutating vendor APIs plus the fact that your historical subscriber ledger is the hardest data in your stack to migrate.",
+  "whyPeopleStillPay": "Because IAP is a tax you pay in either money or attention, and most indie teams would rather pay money. The percentage looks offensive on a spreadsheet and reasonable the first time a renewal edge case silently stops granting entitlements. The sticky part is not the validation code, it is the accumulated subscriber state: once two years of transaction history and entitlement decisions live there, moving means reconciling every active subscriber against two stores without any of them noticing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The receipt validator is a weekend; the renewal state machine is a permanent part-time job.",
+  "prompt": "Build a self-hosted in-app purchase entitlement service for a single mobile app.\n\nStack, no substitutions: TypeScript, Node 22, Hono for HTTP, Postgres with Drizzle ORM, Docker Compose for local Postgres. Vitest for tests. No frontend framework; a single server-rendered admin page is fine.\n\nIn scope:\n1. Apple: use the official app-store-server-library to verify StoreKit 2 signed transactions (JWS) against Apple root certificates. Endpoint POST /v1/receipts/apple takes an app user id and a signed transaction, verifies it, upserts the subscription, returns current entitlements.\n2. Apple: endpoint POST /v1/webhooks/apple for App Store Server Notifications V2. Verify the signed payload, then handle at minimum SUBSCRIBED, DID_RENEW, DID_FAIL_TO_RENEW (with and without grace period), EXPIRED, REFUND, DID_CHANGE_RENEWAL_STATUS.\n3. Google Play: endpoint POST /v1/receipts/google that calls purchases.subscriptionsv2.get with a service account, plus POST /v1/webhooks/google that accepts a Pub/Sub push message carrying a real-time developer notification. Handle purchase, renewal, cancel, revoke, grace period, on hold.\n4. Data model: app_users, purchases (raw store payload kept verbatim), subscriptions (product id, store, original transaction id, period start/end, state, auto renew flag), entitlements (named entitlement mapped to product ids).\n5. GET /v1/entitlements/:appUserId returns active entitlements computed from stored subscription state, never by calling the stores at request time. Cheap and fast; the app calls this on launch.\n6. Idempotency everywhere: store notifications arrive out of order and more than once, key on original transaction id plus notification uuid.\n7. A /admin page behind a shared secret listing users, their subscriptions, and the last 50 webhook events with their raw payloads.\n8. A sandbox mode flag so Apple sandbox and production transactions are stored and resolved separately, never mixed.\n\nOut of scope, do not build: paywall UI, A/B testing, analytics dashboards, charts, web or Stripe billing, multi-tenant accounts, any telemetry.\n\nSecrets in .env only: APPLE_ISSUER_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY, APPLE_BUNDLE_ID, GOOGLE_SERVICE_ACCOUNT_JSON, GOOGLE_PACKAGE_NAME, ADMIN_SECRET, DATABASE_URL. Ship a .env.example.\n\nWrite tests with recorded fixture payloads for every notification type listed above, including a refund after renewal and a grace period that expires. Then write a README that states plainly which store edge cases are not handled yet: family sharing, upgrades and proration, promotional offers, and price change consent.",
+  "promptCurated": false
+}
