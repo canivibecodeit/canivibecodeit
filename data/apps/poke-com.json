@@ -1,0 +1,51 @@
+{
+  "slug": "poke-com",
+  "name": "Poke",
+  "domain": "poke.com",
+  "category": "ai-assistant",
+  "subcategory": "messaging-based personal agent",
+  "tagline": "An AI assistant you text like a person, which reads your email and calendar and does small jobs for you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://poke.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The idea is not exotic: a chat surface, an LLM with tool calls, and OAuth into Gmail and Google Calendar. An agent can wire that up in a weekend and you will get something that genuinely triages mail, drafts replies, and books things from a text message. What you will not get in one session is the part that makes Poke feel like a product: the messaging channel people actually live in, proactive messages that fire at the right moment without being annoying, and prompt tuning that survives a week of real use. Your version will be chattier, slower, and more wrong, and it will quietly break when a refresh token expires. Still, for one person with one inbox, the replacement is real.",
+  "coreLoopDIY": "A Telegram bot backed by an LLM with tool access to your Gmail and Google Calendar, plus a scheduler for reminders and a morning digest.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Telegram bot token",
+    "Google Cloud OAuth client with Gmail and Calendar scopes",
+    "An LLM API key",
+    "An always-on host or home server for the scheduler"
+  ],
+  "whatYouLose": [
+    "Native iMessage and WhatsApp delivery; you get Telegram or a web chat instead",
+    "Proactive nudges that are timed well rather than timed stupidly",
+    "Prompt and tool tuning that holds up past the demo week",
+    "A maintained integration surface beyond mail and calendar",
+    "Someone else keeping OAuth tokens alive when Google rotates them"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The hard part is not the agent loop, it is the messaging channel and the judgment about when to speak unprompted.",
+  "whyPeopleStillPay": "Because an assistant that lives in the same app as your friends gets used, and one that lives in a tab you forgot to open does not. Paying also buys you out of the OAuth consent screens, the token refresh failures, and the uncomfortable afternoon where your personal agent emails the wrong person. The underlying capability is commoditized; the delivery and the restraint are not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A weekend gets you the brain; the body is a Telegram window nobody checks.",
+  "prompt": "Build a personal messaging-based AI assistant that runs on my own machine. No accounts, no hosted dashboard, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, SQLite via SQLModel, APScheduler for timed jobs.\n- Telegram Bot API for the chat surface, long polling so no public webhook is needed.\n- An LLM with tool calling, model and key read from .env.\n- Google API Python client for Gmail and Google Calendar.\n\nIn scope:\n- A single-user bot. Hardcode my Telegram user ID in .env and ignore messages from anyone else.\n- One-time OAuth flow: a local script that opens the Google consent screen and stores the refresh token in SQLite, with scopes for gmail.modify and calendar.\n- An agent loop with these tools: list_unread_mail, read_message, draft_reply, send_reply, archive, search_mail, list_events, create_event, move_event, set_reminder, list_reminders, cancel_reminder.\n- Any action that sends mail or writes to the calendar must ask me to confirm in chat first, with an inline Yes/No button. Reads never ask.\n- Conversation memory: last 30 turns per chat, stored in SQLite, trimmed by token budget.\n- A reminder table driven by APScheduler, which pushes a Telegram message when due and survives restart by reloading jobs from the database.\n- One scheduled daily digest at a configurable hour: unread count, the three messages the model judges most important with one-line summaries, and today's events.\n- Structured logging of every tool call and its arguments to a local file, so I can see what it actually did.\n\nOut of scope: iMessage or WhatsApp, multi-user support, voice, any integration beyond Gmail and Calendar, a web UI beyond a /health endpoint.\n\nSecrets in .env, .env.example committed, real .env gitignored. Write a README with the exact setup order: create bot, run oauth script, run server. Include pytest coverage for the reminder scheduler and the confirmation gate, with the LLM and Google clients mocked.",
+  "promptCurated": false
+}
