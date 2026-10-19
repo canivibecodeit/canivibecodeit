@@ -1,0 +1,50 @@
+{
+  "slug": "ef-core-migration-analyzer",
+  "name": "Atlas",
+  "domain": "atlasgo.io",
+  "category": "dev-tools",
+  "subcategory": "schema migrations and linting",
+  "tagline": "Schema-as-code migration tooling that diffs, lints and gates database changes, including EF Core migration analysis in CI.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://atlasgo.io/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If all you want is the narrow thing in the name, a tool that reads your EF Core migrations and yells about destructive or lock-heavy changes before they reach production, an agent can build that in one sitting. The rule set that matters is small and well known: dropped columns and tables, narrowing type changes, adding NOT NULL without a default, non-concurrent index creation, renames that EF models as drop plus add. Where the DIY version falls over is everything Atlas does around that: a real multi-dialect diff engine, declarative desired-state schemas, drift detection against live databases, and a migration directory it can plan and rewrite for you. So you get the analyzer, not the platform. Build it if linting is the actual pain; buy it if you want schema-as-code as a workflow.",
+  "coreLoopDIY": "Parses your EF Core migration files and the SQL script EF generates from them, applies a configurable rule set for destructive and lock-heavy operations, and fails the build with a readable report.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A .NET 8 SDK and an existing EF Core project with a migrations folder",
+    "dotnet-ef CLI installed if you want SQL-level rules as well as C# AST rules",
+    "Optionally a throwaway database for script generation"
+  ],
+  "whatYouLose": [
+    "The multi-dialect diff engine: Atlas computes real schema deltas across Postgres, MySQL, SQLite and more, your linter only reads what EF already wrote",
+    "Declarative schema-as-code, where the desired state is the source of truth and migrations are generated for you",
+    "Drift detection against live databases and a cloud registry of applied migration state",
+    "Maintained rule coverage for dialect-specific locking behaviour, which is the part people get wrong",
+    "Support, docs and someone else's problem when a rule is a false positive"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The hard part is not the rules, it is a correct schema diff engine per dialect plus the operational knowledge of which DDL takes which lock.",
+  "whyPeopleStillPay": "Because the linter is the cheap half. Teams buy Atlas when they want to stop writing migrations by hand entirely: define the schema, let the tool plan the change, verify it against policy, and track what is actually applied where. A homegrown analyzer covers the review step and nothing downstream of it, and the moment you need Postgres plus MySQL plus a staging drift check, you are maintaining a product instead of a script.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A destructive-change linter for EF migrations is a genuinely good one-sitting build; schema-as-code is not.",
+  "prompt": "Build a command line tool called efmigrate-lint that analyzes Entity Framework Core migrations for risky database changes.\n\nStack, no alternatives: C# on .NET 8, a single console project, Microsoft.CodeAnalysis.CSharp (Roslyn) for parsing, System.CommandLine for args, YamlDotNet for config. No web UI, no database of its own, no telemetry, no accounts.\n\nInputs:\n1. A path to an EF Core project or a Migrations folder. Parse every *.cs migration file with Roslyn and extract the operations called inside the Up and Down methods of each Migration subclass: DropColumn, DropTable, DropIndex, RenameColumn, RenameTable, AlterColumn, AddColumn, CreateIndex, Sql.\n2. Optional: a path to a raw .sql file produced by `dotnet ef migrations script --idempotent`. If given, also scan it with regex rules for DDL the C# API hides inside Sql() calls.\n\nRules to implement, each with an id, severity (error, warning, info), message and the file plus line it came from:\n- EFL001 DropColumn or DropTable in Up, data loss\n- EFL002 AlterColumn that sets nullable false without a defaultValue or defaultValueSql\n- EFL003 AlterColumn that narrows a type or reduces maxLength\n- EFL004 RenameColumn or RenameTable, breaks deployed app versions during rolling deploys\n- EFL005 CreateIndex on Postgres without CONCURRENTLY detected in the generated SQL\n- EFL006 AddColumn with a non-null default on a table, flag as potential table rewrite\n- EFL007 Raw Sql() call, cannot be analyzed, needs human review\n- EFL008 Empty or missing Down method, no rollback path\n\nConfig: an optional .efmigrate-lint.yml that can disable rules, override severity, set a baseline list of already-accepted migration ids, and pick the dialect (postgres, mysql, sqlserver, sqlite).\n\nOutput: default human readable report grouped by migration, plus --format json and --format github (GitHub Actions annotation lines). Exit code 1 if any error-severity finding is outside the baseline, 0 otherwise.\n\nExplicitly out of scope: connecting to any database, computing schema diffs, generating or rewriting migrations, drift detection.\n\nInclude a README with install and CI usage, a sample GitHub Actions workflow, and xUnit tests covering at least one fixture migration per rule. Any secrets go in .env, but the tool should need none.",
+  "promptCurated": false
+}
