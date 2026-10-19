@@ -1,0 +1,50 @@
+{
+  "slug": "scanfile",
+  "name": "Scanfile",
+  "domain": "scanfile.online",
+  "category": "localization",
+  "subcategory": "document and subtitle translation",
+  "tagline": "Browser tool that translates PDF, EPUB, PPT/PPTX and SRT/VTT/ASS subtitle files, paid by usage credits rather than subscription.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "prepaid usage credits",
+    "unit": "usage",
+    "source": "https://scanfile.online/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit packs, no monthly tier observed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Two different problems wear the same coat here. Subtitle translation is a parsing exercise: read cues, translate the text, write the cues back, and an agent nails that in an afternoon with timing intact. Document translation with layout preserved is the hard half, because PDFs have no structure to respect, text expansion in German or Finnish blows past the box it came from, and PPTX shapes and EPUB markup each need their own careful rewrite. A DIY build gets you clean subtitles and readable reflowed text documents; it does not get you a page that looks like the original. If your real need is subtitles or rough-but-faithful reading copies, build it; if you need a translated deck you can present on Monday, pay someone.",
+  "coreLoopDIY": "A local CLI that extracts text from SRT/VTT/ASS, EPUB, PPTX and PDF files, translates each chunk through an LLM or MT API with glossary and tone settings, and writes back a translated file in the same format.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a local terminal",
+    "An API key for an LLM or machine translation service, billed per token or character",
+    "Patience with PDF layout: reflowed output, not pixel-matched pages",
+    "Fonts installed locally that cover the target script if you want CJK or Cyrillic output"
+  ],
+  "whatYouLose": [
+    "Layout fidelity on PDFs: your build reflows text into a new document instead of fitting translations into the original page geometry",
+    "Browser convenience, drag a file in from any machine with no Python environment",
+    "Batch handling of large books without you babysitting rate limits and retries",
+    "Whatever glossary and prompt tuning the hosted service has accumulated across real documents",
+    "Scanned pages entirely, since a text-extraction pipeline has nothing to extract from an image"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible part is the unglamorous layout work: font substitution, text expansion, shape resizing, right-to-left handling. Translation quality itself is rented from the same models you would rent.",
+  "whyPeopleStillPay": "Because the last 15 percent of a translated document is the part nobody wants to build. Getting the words into another language is now commodity; getting them back into a PPTX without overflowing every text box, or into a PDF where the table still reads as a table, is weeks of fiddly edge cases. Pay-per-use credits also match how this need actually arrives, one book or one deck at a time, with nothing to cancel afterwards.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Subtitles are the easy win and the honest reason to build this yourself; documents are where you find out what layout engineering costs.",
+  "prompt": "Build a local command line document translator in Python 3.11. No web UI, no accounts, no telemetry, no cloud storage.\n\nStack: Python 3.11, typer for the CLI, httpx for API calls, pysubs2 for subtitles, ebooklib plus beautifulsoup4 for EPUB, python-pptx for decks, pymupdf for PDF text extraction, reportlab for PDF output. Use uv for dependency management.\n\nCommand: `translate FILE --to de --from auto --out OUTPUT`\n\nFormat handling, all four required:\n1. SRT/VTT/ASS via pysubs2: translate only the text of each cue, never touch timings, never merge or split cues, preserve styling tags and line breaks inside a cue.\n2. EPUB via ebooklib: walk each XHTML document, translate text nodes only, leave tags, hrefs, ids, images and the spine untouched, rewrite the OPF language field.\n3. PPTX via python-pptx: translate text in every shape, table cell and speaker note; keep runs intact so bold and color survive; if translated text is longer than the source, enable autofit shrink on the shape rather than letting it overflow silently.\n4. PDF via pymupdf: extract text blocks in reading order, translate, then render a NEW reflowed PDF with reportlab. Do not attempt to overlay text onto the original page. Print a clear warning that PDF output is a reading copy, not a layout-preserving replica. If a page has no extractable text, log it as skipped and say it is likely a scan.\n\nTranslation layer: one function `translate_batch(texts, source, target, glossary)` calling the OpenAI chat API, key read from .env as OPENAI_API_KEY via python-dotenv. Batch segments into chunks under roughly 2000 tokens, send them as a numbered JSON list, require a JSON list back of the same length, and retry once on a length mismatch before failing loudly. Support an optional --glossary flag pointing at a CSV of source,target term pairs that gets injected into the system prompt as non-negotiable terminology.\n\nCache every translated segment in a local SQLite file keyed by hash of source text plus target language, so re-running a failed book does not pay twice.\n\nOut of scope: OCR, audio or video transcription, layout-preserving PDF, DOCX, a web server, any hosted deployment.\n\nInclude a README with install steps and one worked example per format, and pytest tests that round-trip a small fixture of each of the four formats using a stubbed translate_batch that just uppercases the input.",
+  "promptCurated": false
+}
