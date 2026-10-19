@@ -1,0 +1,52 @@
+{
+  "slug": "diafa-pms",
+  "name": "Diafa PMS",
+  "domain": "diafapms.com",
+  "category": "scheduling",
+  "subcategory": "hotel property management",
+  "tagline": "A hotel property management system for front desk, reservations, housekeeping and billing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://diafapms.com/dz/en",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible part of a PMS, a room grid, a reservation form, a folio that adds up, is genuinely a weekend build, and that is the trap. What you actually buy is live two way inventory sync with Booking.com, Expedia and the rest, plus invoicing that satisfies local tax rules and whatever guest registration the authorities expect. OTA connectivity is not an open API you point an agent at: it is partner certification, contracts and ongoing breakage maintenance. Add housekeeping staff hitting the same data from phones at 7am and a receptionist who cannot be told the database is locked, and the self hosted version becomes a second job. Build the grid for a four room guesthouse you distribute yourself; do not build it for anything with a channel manager line item.",
+  "coreLoopDIY": "A local reservation grid with guest records, folios and printable invoices, kept in sync with OTA calendars by one way iCal import and export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine that stays on",
+    "iCal export URLs from whatever listing sites you use",
+    "A printer or PDF viewer for invoices",
+    "Someone to run nightly backups of the SQLite file"
+  ],
+  "whatYouLose": [
+    "Real channel management: iCal polls every few hours, so double bookings are a question of when, not if",
+    "Invoicing that matches local fiscal and tax formatting requirements out of the box",
+    "Guest registration and reporting obligations handled for you",
+    "Multi user front desk and housekeeping access with roles, audit trail and no file lock drama",
+    "Someone to call when checkout is backed up and the system is wrong"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "OTA connectivity is gated by certification and contracts, not by HTTP. That gate is the product.",
+  "whyPeopleStillPay": "Because a hotel's revenue arrives through channels it does not control, and the one job a PMS has is to stop two guests being sold the same room on two different sites. That job is made of maintained integrations, not code you write once. Layer on invoices that have to look a specific way for the tax authority, staff who need their own logins, and the fact that nobody at a front desk can debug anything, and the monthly fee stops looking like software rent and starts looking like insurance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The room grid is a weekend; the distribution and the paperwork are not. The moat is certified OTA connectivity plus invoicing that a tax inspector will accept.",
+  "prompt": "Build a local-first property management tool for a very small guesthouse, 4 to 12 rooms, single operator.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/pms.db, schema in migrations run on boot\n- No auth, no cloud, no telemetry, no analytics. It runs on localhost only.\n\nData model: rooms (name, type, base rate, capacity), guests (name, phone, email, id document number, notes), reservations (room, guest, check-in date, check-out date, rate, status: tentative | confirmed | in-house | checked-out | cancelled, source label), folio_items (reservation, description, qty, unit price, date), payments (reservation, amount, method, date).\n\nBuild these screens:\n1. Calendar grid: rooms as rows, 30 days as columns, reservation blocks spanning nights, click an empty cell to create, drag not required. Overlapping bookings on the same room must be rejected at the database layer and surfaced as a clear error.\n2. Reservation detail: guest info, dates, rate, folio items, payments, running balance, status buttons for check-in and check-out.\n3. Guest list with search by name or phone.\n4. Invoice view for a reservation: line items, totals, payments, balance, print-friendly CSS. No tax logic beyond a single configurable percentage rate in .env.\n5. Today view: arrivals, departures, in-house, and a housekeeping checklist per room that resets daily.\n\nOTA sync, honest version:\n- Store one or more iCal feed URLs per room. A manual \"Sync now\" button and a cron-style script fetch each feed and create blocked-out reservations with source set to the feed label.\n- Export one iCal feed per room over localhost so other systems can read your direct bookings.\n- Put a visible warning in the UI: iCal is pull-based and lagging, it does not prevent double bookings in real time.\n\nAlso ship: a CSV export of reservations and folio items, and a `npm run backup` script that copies the SQLite file to ./backups with a timestamp.\n\nOut of scope, do not attempt: payment processing, channel manager APIs, tax-authority compliant invoice numbering, multi-user roles, mobile apps, email sending.\n\nFinish with a README: how to run it, where the database lives, how to restore a backup, and a short list of what this does not do.",
+  "promptCurated": false
+}
