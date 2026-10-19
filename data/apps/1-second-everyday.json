@@ -1,0 +1,50 @@
+{
+  "slug": "1-second-everyday",
+  "name": "1 Second Everyday",
+  "domain": "1se.co",
+  "category": "audio-video",
+  "subcategory": "video journaling",
+  "tagline": "Mobile video diary that stitches one second of each day into a running montage.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://1se.co/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The actual stitching is a solved problem: ffmpeg can trim a second out of every clip in a dated folder and concatenate them in order, and an agent will write that in an afternoon. What you cannot one-shot is the part that makes the product work, which is a polished phone app that nags you at 9pm, lets you scrub to the right second with your thumb, and quietly backs up years of raw footage. A desktop script means you have to manually offload video from your phone forever, and the odds you keep doing that past month three are poor. Build it if you already have a camera roll habit and a NAS. Otherwise the habit loop is the whole product.",
+  "coreLoopDIY": "Scans a folder of dated video files, lets you pick the one-second slice for each day in a local browser UI, and renders a single stitched montage for any date range.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "A way to get video off your phone regularly, iCloud folder, Syncthing, or a cable",
+    "Disk space for raw footage, this grows fast"
+  ],
+  "whatYouLose": [
+    "The mobile app: in-the-moment capture, thumb-scrub trimming, daily reminders",
+    "Cloud backup, so your five-year montage lives and dies with one drive",
+    "Cross-device sync and the ability to view old years on a phone",
+    "Automatic handling of mixed codecs, orientations, HDR, and 60fps clips that ffmpeg concat hates",
+    "Any chance you keep the habit without a push notification"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "Years of archived footage inside one app is a very real lock-in, and the trimming UI is more fiddly than it looks.",
+  "whyPeopleStillPay": "People pay because the hard part was never the video editing, it was showing up every day for three years. The app exists on the phone that is already in your hand, it reminds you, and the trim takes four seconds. A local script asks you to transfer footage, open a terminal, and remember. Add the fact that a long-running archive is the one file you really do not want to lose, and a few dollars a month for someone else's backups starts looking reasonable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The renderer is a weekend; the habit is not.",
+  "prompt": "Build a local video diary tool called \"onesec\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, Flask for a local-only web UI on 127.0.0.1\n- ffmpeg and ffprobe via subprocess, assume they are on PATH\n- SQLite via sqlite3 stdlib for metadata, no ORM\n- Plain HTML templates plus vanilla JS, no build step, no npm\n\nBehaviour:\n1. On start, scan a VIDEO_DIR from .env recursively for mp4, mov, m4v files.\n2. For each file, read the creation date from ffprobe metadata, falling back to file mtime, and assign it to a calendar day. Store path, date, duration, width, height, rotation in SQLite.\n3. Serve a calendar grid view, one cell per day of the selected year. Days with footage are clickable, days without are dimmed.\n4. Clicking a day opens a trim view: HTML5 video element, a scrub bar, and a \"set start\" button that records a start timestamp. The selected slice is always exactly 1.0 seconds from that start. Save start_seconds per day in SQLite. One pick per day, overwritable.\n5. A \"Render\" button takes a date range and produces a single mp4: for each day with a pick, extract the 1 second slice with ffmpeg, normalise every slice to 1080x1920 portrait, 30fps, h264, yuv420p, with a silent aac track so concat never fails, then concat with the concat demuxer.\n6. Write renders to OUTPUT_DIR with a timestamped filename. Stream ffmpeg progress to the page via a simple polling endpoint, no websockets.\n\nExplicitly out of scope: mobile apps, push notifications, cloud sync, user accounts, captions, music beds, sharing links.\n\nInclude: .env.example with VIDEO_DIR and OUTPUT_DIR, a README with the exact run commands, and a CLI fallback `python -m onesec render --from 2026-01-01 --to 2026-12-31` that renders without the UI. Handle missing ffmpeg with a clear error instead of a traceback.",
+  "promptCurated": false
+}
