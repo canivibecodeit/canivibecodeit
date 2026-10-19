@@ -1,0 +1,52 @@
+{
+  "slug": "lifepowr",
+  "name": "Lifepowr",
+  "domain": "lifepowr.com",
+  "category": "home",
+  "subcategory": "home energy management",
+  "tagline": "Software that optimizes home energy: batteries, EV charging and solar, against dynamic electricity prices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://lifepowr.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The logic at the center of this is genuinely simple: pull tomorrow's day-ahead prices, look at your battery state of charge and your expected solar, then decide when to charge, when to discharge and when to sit still. An agent can write that optimizer and a dashboard for it in an afternoon, and plenty of Home Assistant users already run something like it. What an agent cannot write is a working, certified control path into your specific inverter, battery and wallbox, which is where all the real pain lives. Vendor APIs are undocumented, rate limited, locked behind cloud accounts, or simply absent, and a bad write command to a battery is not a bug you shrug at. Build it if your hardware already speaks Modbus or has a Home Assistant integration; otherwise you are doing firmware archaeology, not app building.",
+  "coreLoopDIY": "Fetches day-ahead electricity prices, reads your battery and solar state from Home Assistant, and writes a charge/discharge schedule each day with a small local dashboard showing what it decided and why.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Home Assistant, or direct Modbus/local API access to your inverter and battery",
+    "An ENTSO-E (or equivalent) day-ahead price API key for your bidding zone",
+    "Hardware that actually permits external charge/discharge control",
+    "Willingness to test control commands carefully before trusting them unattended"
+  ],
+  "whatYouLose": [
+    "Tested integrations across dozens of inverter, battery and wallbox brands, including the ones with hostile APIs",
+    "Correct handling of local grid tariffs, capacity peaks and metering rules, which differ per country and per operator",
+    "Any route into flexibility or balancing markets, where aggregation across many homes is the whole point",
+    "Someone to call when the battery stops responding and your house is on the expensive tariff",
+    "A maintained mobile app, push alerts and firmware updates you did not have to read about"
+  ],
+  "moatTags": [
+    "hardware",
+    "integrations",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The optimizer is arithmetic. The moat is a long tail of hardware handshakes plus per-country grid rules, and both change under you.",
+  "whyPeopleStillPay": "Because the value is not the scheduling math, it is the guarantee that the command reaches the battery and does not void anything. People who buy a home battery have already spent five figures and would like the control software to be someone else's responsibility, ideally someone who has seen their exact inverter model fail in their exact way. Add tariff structures that vary by region and change by legislation, plus the possibility of earning money through aggregated flexibility, and a personal script starts looking like a hobby rather than a replacement.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Most of this is a solved hobbyist problem right up until your inverter refuses to take orders.",
+  "prompt": "Build a local home energy optimizer that runs on a Raspberry Pi or any always-on Linux box.\n\nStack: Python 3.11, FastAPI, APScheduler, SQLite, Jinja2 templates with plain HTML and a little vanilla JS for charts. No React, no cloud, no accounts, no telemetry.\n\nWhat it does:\n1. Every day at 14:00 local time, fetch tomorrow's day-ahead electricity prices from the ENTSO-E Transparency API for a bidding zone set in .env. Cache the response in SQLite.\n2. Read current state from Home Assistant via its REST API: battery state of charge, battery power, solar production, house consumption. Entity IDs come from a config.yaml the user fills in.\n3. Fetch a solar forecast for tomorrow from the Forecast.Solar public API using lat, lon, declination, azimuth and kWp from .env.\n4. Run a simple greedy optimizer over tomorrow's hourly prices: charge during the cheapest hours when forecast solar will not already fill the battery, discharge during the most expensive hours, respect min and max state of charge, max charge and discharge power, and a round-trip efficiency factor. All limits live in config.yaml.\n5. Write the resulting hourly plan to SQLite, then each hour push the target mode to Home Assistant by calling a service name given in config.yaml. Support a DRY_RUN=true flag in .env that logs intended commands instead of sending them, and default it to true.\n6. Serve a single dashboard page: tomorrow's price curve, the planned charge and discharge blocks, solar forecast, current state of charge, and a plain-language log line per decision such as \"charging 02:00 to 05:00, price 4.1 cents, forecast solar insufficient\".\n7. Log every command and every API failure to a decisions table, shown on a second page.\n\nOut of scope: user accounts, multi-site support, mobile app, push notifications, direct Modbus or vendor cloud integrations, any market or flexibility bidding, EV charging logic.\n\nSecrets in .env: ENTSOE_TOKEN, HA_URL, HA_TOKEN, plus the location values. Ship .env.example, a config.example.yaml, a docker-compose.yml, and a README that states clearly that control commands can damage hardware or void warranties and that DRY_RUN should be verified for several days first.",
+  "promptCurated": false
+}
