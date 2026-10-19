@@ -1,0 +1,51 @@
+{
+  "slug": "internet-download-manager-logo-internet-download-manager",
+  "name": "Internet Download Manager",
+  "domain": "internetdownloadmanager.com",
+  "category": "productivity-utilities",
+  "subcategory": "download accelerator",
+  "tagline": "Windows download manager that splits files into parallel connections, resumes broken transfers, and grabs media straight out of the browser.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.internetdownloadmanager.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. IDM sells perpetual and term licenses rather than a monthly subscription, so a monthly figure does not really exist.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The engine part is genuinely easy: ranged HTTP requests, N parallel segments, a sidecar file for resume state, a queue. An agent can produce that in an afternoon, and honestly aria2 plus yt-dlp already does most of what IDM's core does, for free. What you cannot one-shot is the reason people actually installed IDM: it sits inside the browser, intercepts every download click, and sniffs media streams off pages so you never think about it again. Rebuilding that means a Manifest V3 extension, a native messaging host or a local server, and endless breakage as browsers tighten download interception. The download is a weekend; the invisible hijack of every click is the product.",
+  "coreLoopDIY": "A local CLI plus tiny daemon that takes a URL, splits it into parallel ranged chunks, resumes on failure, and optionally hands media pages to yt-dlp.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.12 and a terminal",
+    "A browser you are willing to load an unpacked extension into",
+    "Patience with servers that refuse Range requests"
+  ],
+  "whatYouLose": [
+    "Browser integration that silently captures every download without you pasting URLs",
+    "Media sniffing on arbitrary pages, including the sites where plain yt-dlp fails",
+    "Windows shell integration: right click menus, file association, explorer niceties",
+    "Scheduling, dial-up-era bandwidth shaping, and the queue UI that survived twenty years of refinement",
+    "Someone else keeping up with browser policy changes that break download interception"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not technical, it is twenty-five years of being the thing that already works on your machine and the browser plumbing nobody wants to maintain.",
+  "whyPeopleStillPay": "Because it is a cheap one-time license for software that has been quietly doing the same job since dial-up, and because the alternative is wiring together aria2, yt-dlp, a browser extension and a shell handler yourself. Most IDM users do not want a download engine, they want to click a link and have a window appear. That last mile, the capture, the queue, the right click menu, is exactly the part that is tedious rather than interesting, which is why it keeps getting paid for.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The engine is a commodity and has been for years; the browser hook is the actual product.",
+  "prompt": "Build a local, single-user download manager in Python 3.12. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12, httpx for HTTP, SQLite via sqlite3 for the queue, Typer for the CLI, Rich for progress output.\n- One package directory `grab/`, plus `pyproject.toml` and a `README.md`.\n- No web framework beyond a tiny stdlib http.server daemon on 127.0.0.1 for browser handoff.\n\nIn scope:\n1. `grab add URL [--out PATH] [--connections N]`: HEAD the URL, check Accept-Ranges and Content-Length, split into N segments (default 8), download them concurrently with httpx, write into one preallocated sparse file.\n2. Resume: keep a `FILE.grabpart.json` sidecar with per-segment byte offsets, flushed every few seconds. On restart, continue from recorded offsets. If the server lacks Range support, fall back to a single stream and say so plainly.\n3. `grab list`, `grab pause ID`, `grab resume ID`, `grab rm ID`, backed by SQLite with states queued, running, paused, done, failed.\n4. Global concurrency cap and optional `--limit-rate` throttle implemented with a simple token bucket.\n5. Retry with exponential backoff on 5xx and connection resets. Verify final size against Content-Length and warn on mismatch.\n6. `grab media URL`: shell out to yt-dlp if it is on PATH, stream its progress through, do not reimplement extractors.\n7. `grab serve`: loopback-only HTTP endpoint accepting POST /add with JSON {url, filename, headers} so a browser extension can hand downloads over. Reject any request not from 127.0.0.1.\n8. A minimal unpacked Manifest V3 Chrome extension in `extension/` that uses chrome.downloads.onDeterminingFilename, cancels the browser download, and POSTs the URL plus cookies-relevant headers to the daemon. Document clearly that this is best effort and will break on some sites.\n\nOut of scope, do not build: a GUI, Windows shell integration, site-specific media extractors, scheduling across reboots, DRM-protected streams, anything touching a remote server.\n\nConfig in `.env` (download directory, default connections, rate limit), loaded with os.environ, no secrets committed. Ship a README that states honestly which parts are fragile.",
+  "promptCurated": false
+}
