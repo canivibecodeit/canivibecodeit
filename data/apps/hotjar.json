@@ -1,0 +1,52 @@
+{
+  "slug": "hotjar",
+  "name": "Hotjar",
+  "domain": "contentsquare.com",
+  "category": "analytics",
+  "subcategory": "session replay and heatmaps",
+  "tagline": "Session recordings, click and scroll heatmaps, and on-site surveys for websites.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://contentsquare.com/hotjar/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The hard part of Hotjar is not the idea, it is the recording fidelity and the storage bill. An agent can wire up rrweb plus a small ingest API and give you real session replays and click heatmaps for one site in a sitting, and that covers most of what a solo operator actually looks at. Where it falls apart is volume: thousands of sessions a day means event compression, retention policies, and a bucket that costs money. You also inherit the unglamorous work Hotjar already did, PII masking, consent gating, iframe and shadow DOM edge cases, and not tanking Core Web Vitals on client sites. Fine for your own product, not fine as an agency tool.",
+  "coreLoopDIY": "A tracker snippet records DOM mutations and clicks with rrweb, ships them to a self-hosted ingest API, and a local dashboard replays sessions and renders click and scroll heatmaps per page.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A site you control, so you can inject a script tag",
+    "Node runtime and a database (SQLite is fine to start)",
+    "Object storage or disk space for session event blobs",
+    "A privacy and consent story if real users are involved"
+  ],
+  "whatYouLose": [
+    "Battle-tested PII masking and consent integrations, which is a legal problem, not a feature gap",
+    "Replay fidelity across old browsers, cross-origin iframes, canvas, and custom fonts",
+    "Survey and feedback widget tooling, plus response analysis",
+    "Funnels, filters, and segments that make thousands of recordings navigable instead of a pile",
+    "Cheap retention: storing and serving months of replay is the actual product cost"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Replay is an infra product disguised as an analytics product. The storage and streaming cost is the business.",
+  "whyPeopleStillPay": "Because nobody wants to own the uptime of their own recording pipeline, and because the paid tiers bundle the parts that are boring to build: masking defaults, consent handling, retention controls, and filters that turn 8,000 recordings into the six you should watch. If you have one site and modest traffic, a self-hosted replay stack genuinely replaces it. If you have clients, SLAs, or a privacy officer, the invoice is cheaper than the explanation.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Replay is the rare analytics feature where the open source library is excellent and the hosting is the whole cost.",
+  "prompt": "Build a self-hosted session replay and heatmap tool for a single website. No accounts, no cloud services, no telemetry.\n\nStack, non-negotiable: Node 20 with Fastify for the API, SQLite via better-sqlite3 for metadata, plain files on disk for event blobs, and a Vite + React dashboard. TypeScript throughout. pnpm.\n\nDeliver three things:\n1. tracker/: a small browser script, under 20KB gzipped on top of rrweb, that records with rrweb, buffers events, and POSTs batches to /ingest every 5 seconds and on pagehide via sendBeacon. It must mask all inputs by default (rrweb maskAllInputs), honor a data-consent attribute on the script tag, and do nothing if navigator.doNotTrack is 1.\n2. server/: Fastify with POST /ingest (sessionId, pageUrl, viewport, events), writing events as gzipped NDJSON to data/sessions/, and a sessions row in SQLite with duration, page count, click count, user agent, and first seen time. Add GET /sessions with pagination and filters by path and min duration, GET /sessions/:id/events streaming the blob back, and GET /heatmap?path= returning click coordinates normalized to a percentage of viewport width plus scroll depth buckets.\n3. dashboard/: a session list table, a replay page using rrweb-player, and a heatmap page that renders click density as a canvas overlay on top of a user-supplied screenshot of that path.\n\nIn scope: cookie-free session id in sessionStorage, a retention script that deletes sessions older than N days, Dockerfile, and a seed script that generates fake sessions so the UI is not empty.\n\nOut of scope, do not build: surveys, feedback widgets, funnels, A/B testing, multi-site tenancy, auth, and any hosted storage. INGEST_TOKEN and RETENTION_DAYS go in .env with a .env.example.\n\nWrite a README that states plainly how much disk 1,000 sessions consumes and warns that masking defaults are not a substitute for a consent review.",
+  "promptCurated": false
+}
