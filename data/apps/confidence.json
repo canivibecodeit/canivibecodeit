@@ -1,0 +1,51 @@
+{
+  "slug": "confidence",
+  "name": "Confidence",
+  "domain": "confidence.spotify.com",
+  "category": "dev-tools",
+  "subcategory": "feature flags and experimentation",
+  "tagline": "Spotify's feature flagging and A/B experimentation platform, with flag rollouts and statistical analysis in one place.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://confidence.spotify.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The flagging half is genuinely a one-sitting build: a table of flags, deterministic hash bucketing on a user id, a JSON evaluation endpoint, done. The experimentation half is where it gets honest: assignment is easy, trustworthy readouts are not, and a hand-rolled z-test over your own exposure logs will happily tell you a 3 percent lift is real when it isn't. Confidence also assumes a metrics pipeline already exists on the other side, so a personal version means you are also building the event warehouse. For a solo project or a small product where you mostly want kill switches and percentage rollouts, the DIY version is fine and the SDKs are OpenFeature-shaped anyway, so you are not locking yourself anywhere. For anything where someone will make a budget decision off the result, you want a stats engine you didn't write on a Saturday.",
+  "coreLoopDIY": "A self-hosted flag service that evaluates targeting rules per user, buckets users deterministically into variants, logs exposures, and runs a basic frequentist readout against your own event table.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and SQLite, or any Postgres you already run",
+    "A place to send exposure and conversion events, even if it's the same database",
+    "Your app wired to call the evaluation endpoint and cache results"
+  ],
+  "whatYouLose": [
+    "Sequential testing, CUPED variance reduction, and the other statistics that stop you from peeking yourself into a false positive",
+    "Metric definitions and guardrail metrics maintained by people who do this full time",
+    "Managed SDKs across languages with sane local caching and offline fallbacks",
+    "Anyone to blame when a readout is wrong, which matters more than it sounds",
+    "Scale: edge evaluation at low latency for millions of users is not the weekend part"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The flag store is trivial; the moat is the analysis layer and the pipeline feeding it. OpenFeature compatibility deliberately keeps switching costs low, which is to their credit and your advantage.",
+  "whyPeopleStillPay": "Because the expensive failure mode in experimentation is not downtime, it is a confidently wrong number. Teams pay for a stats engine they can point at in a meeting, metric definitions that don't drift between squads, and SDKs that fail closed when the network blips. A personal build covers the rollout use case completely and the measurement use case only if nobody is relying on the answer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the flags, borrow the statistics.",
+  "prompt": "Build a self-hosted feature flag and experiment assignment service for a single developer or small team.\n\nStack, no substitutions:\n- Node 20, TypeScript, Fastify for the HTTP API\n- SQLite via better-sqlite3, file at ./data/flags.db, migrations as plain SQL in ./migrations\n- A minimal server-rendered admin UI using Fastify templates and plain HTML plus a little vanilla JS. No React, no build step for the UI.\n- vitest for tests\n\nIn scope:\n- Flags table: key, description, enabled, default variant, JSON list of variants with weights, JSON targeting rules\n- Targeting rules evaluated in order: match on attributes passed by the caller (equals, in, contains, semver gte), first match wins, else percentage rollout, else default variant\n- Deterministic bucketing: sha256 of flagKey + \":\" + targetingKey, take first 8 hex chars, map to 0..9999, assign by cumulative weight. Same user always gets the same variant.\n- POST /evaluate taking { targetingKey, attributes } and returning all flags resolved, plus POST /evaluate/:key for one flag. Response shape should mirror OpenFeature: value, variant, reason.\n- Exposure logging: every evaluation writes flagKey, variant, targetingKey, timestamp to an exposures table. Batch writes, do not block the response.\n- POST /events taking { targetingKey, name, value } into an events table, for conversion tracking\n- GET /report/:flagKey returning, per variant, exposure count, converting users, conversion rate, and a two-proportion z-test p-value against the control variant. Print a loud warning in the response when any variant has fewer than 1000 exposures or when the test has been queried more than once, because peeking inflates false positives.\n- Admin UI: list flags, create and edit a flag with its variants and rules, toggle enabled, view the report\n- Static bearer token from .env for the admin UI and write endpoints; /evaluate takes a separate read-only client key\n- Seed script creating two example flags, one boolean kill switch and one three-variant experiment\n\nOut of scope, do not build:\n- User accounts, signup, teams, roles\n- Any cloud service, telemetry, or outbound network calls\n- Sequential testing, Bayesian analysis, CUPED. The report is deliberately naive and must say so in the UI.\n- Client SDKs beyond a single typed fetch wrapper in ./client\n\nSecrets in .env: ADMIN_TOKEN, CLIENT_KEY. Ship a .env.example, a README with curl examples for evaluate and events, and tests covering bucketing stability, rule precedence, and the z-test math.",
+  "promptCurated": false
+}
