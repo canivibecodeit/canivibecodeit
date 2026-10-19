@@ -1,0 +1,52 @@
+{
+  "slug": "video-gen-now",
+  "name": "Video Gen Now",
+  "domain": "videogennow.com",
+  "category": "ai-video",
+  "subcategory": "text-to-video generation",
+  "tagline": "Web app that turns text prompts and stills into short AI-generated video clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://videogennow.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app you can build in a session is the front end: a prompt box, a job queue, a gallery of finished mp4s, and a cost counter. What you cannot build is the thing doing the actual work, because text-to-video means renting someone's diffusion model and someone's GPUs by the second. So a personal replacement is honest about being a wrapper: your own UI over fal.ai or Replicate, paying raw model prices instead of a resold subscription. That is often cheaper if you generate occasionally and much worse if you wanted the templates, stock assets, and avatar presets that these sites bundle on top. Call it replacing the markup, not replacing the model.",
+  "coreLoopDIY": "Submit a prompt or image, poll a hosted video model, and store the finished clip in a local gallery with a running spend tally.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API key for a hosted video model provider such as fal.ai or Replicate",
+    "A payment method, since generation is billed per second of output",
+    "Local disk for rendered mp4 files",
+    "Node 20, plus ffmpeg if you want to stitch or trim clips"
+  ],
+  "whatYouLose": [
+    "Curated templates and prompt presets that make bad prompts look intentional",
+    "Any bundled stock footage, music, avatars, or voiceover layer",
+    "Fast failure recovery: hosted queues retry and refund, your cron job sulks",
+    "Mobile access and sharing links, unless you host it somewhere real",
+    "Predictable monthly cost, replaced by per-second billing you have to watch"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "Nobody in this category owns a model moat they trained themselves; the real moat is the GPU bill and the editing layer wrapped around someone else's weights.",
+  "whyPeopleStillPay": "Because a flat monthly number is easier to approve than a metered API key, and because the paid product has already made the boring decisions: aspect ratios, durations, which model handles which style, what to do when a job fails at minute four. If you generate video twice a month, your own wrapper on raw API pricing wins. If you generate daily and care about templates, captions, and consistency across clips, you are paying for someone to maintain all of that while the underlying models change every eight weeks.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is an afternoon; the model is a rental either way. You are deciding whether to pay a reseller or the GPU provider directly.",
+  "prompt": "Build a local text-to-video studio as a single Next.js 15 app (App Router, TypeScript, Tailwind). No auth, no accounts, no telemetry, runs on localhost.\n\nStack, no substitutions:\n- Next.js 15 + TypeScript + Tailwind\n- SQLite via better-sqlite3 for job records\n- fal.ai HTTP API as the video model provider, key in .env as FAL_KEY\n- Generated mp4 files written to ./output and served from the app\n\nFeatures that are in scope:\n1. A single page with a prompt textarea, optional image upload for image-to-video, and selects for model, duration, and aspect ratio. Model list lives in one config file (lib/models.ts) with id, label, price per second, and whether it accepts an input image.\n2. POST /api/jobs creates a job row (prompt, model, params, status=queued, created_at) and submits it to fal.ai asynchronously, storing the provider request id.\n3. A background poller: a route /api/poll that checks all non-terminal jobs, updates status, downloads finished videos to ./output/{job_id}.mp4, and records duration and estimated cost. Call it from the client every 5 seconds while any job is pending.\n4. A gallery grid of completed jobs: inline video player, prompt shown underneath, copy-prompt button, re-run button, delete button that removes row and file.\n5. A spend tally in the header: total estimated cost this month, computed from duration times model price per second. Show it in red past a SPEND_LIMIT_USD value from .env and block new submissions over it.\n6. Error handling that is actually visible: failed jobs stay in the list with the provider error message, not a silent disappearance.\n\nOut of scope, do not build: user accounts, cloud storage, templates library, stock footage, voiceover, captions, timeline editing, payment handling, deployment config.\n\nWrite .env.example with FAL_KEY and SPEND_LIMIT_USD. Write a README with setup in under ten lines and one honest paragraph stating that all generation cost is passed straight through to the provider. Seed nothing. Make it run with npm install and npm run dev.",
+  "promptCurated": false
+}
