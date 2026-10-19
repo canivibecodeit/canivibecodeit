@@ -1,0 +1,52 @@
+{
+  "slug": "superdisplay",
+  "name": "SuperDisplay",
+  "domain": "superdisplay.app",
+  "category": "productivity-utilities",
+  "subcategory": "second screen / tablet as external display",
+  "tagline": "Turns an Android tablet into a real second monitor for a Windows PC over USB or Wi-Fi, with pen and touch input.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://superdisplay.app/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This looks like a screen sharing app and is actually a display driver. The hard part is a signed Windows indirect display driver that makes the OS believe a second monitor exists, with correct resolution, scaling, hotplug and sleep behavior, then a capture and encode pipeline that holds latency low enough that dragging a window does not feel like a video call. An agent can absolutely build you a LAN mirror in a browser tab, and it will work, and it will feel wrong the first time you try to draw on it. Driver signing alone puts a real one-shot out of reach: unsigned drivers need test signing mode or a kernel policy you probably do not want on your daily machine. The consolation build is useful for glanceable panels, Slack, docs, logs, not for pen work.",
+  "coreLoopDIY": "Creates a virtual second display on Windows, captures it, streams H.264 to a browser on the tablet over LAN, and injects touch events back as mouse input.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Windows 11 PC with a GPU that supports hardware H.264 encode",
+    "An existing open source indirect display driver (IddSampleDriver or similar) plus test signing mode enabled, or you only get mirroring of an existing screen",
+    "ffmpeg on PATH",
+    "Tablet and PC on the same LAN, ideally wired or 5 GHz",
+    "Comfort with Windows driver install, certificates and the occasional blue screen"
+  ],
+  "whatYouLose": [
+    "Sub-20ms latency: a browser MSE pipeline lands in the hundreds of milliseconds and pen input feels detached",
+    "Pressure sensitivity and palm rejection for stylus work",
+    "USB transport, so you are hostage to Wi-Fi quality and battery drain",
+    "Correct DPI, rotation, hotplug and resume-from-sleep behavior, the stuff you only notice when it breaks",
+    "A signed driver that installs on a normal machine without disabling security features"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not an algorithm, it is a thousand small correctness fixes in a layer of Windows that nobody enjoys working in.",
+  "whyPeopleStillPay": "Because the alternative is a real external monitor or a bad experience, and the price of this thing is somewhere between a coffee and a cheap lunch. People pay to not care about the driver signing, the codec negotiation, the DPI math and the tablet going to sleep mid-session. That is the entire value proposition, and it is a fair one.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A browser mirror over LAN gets you most of the pixels and none of the feel. The moat is the signed indirect display driver and a millisecond budget that makes a tablet behave like glass instead of a video stream.",
+  "prompt": "Build a LAN second-screen tool for Windows 11 called \"panelcast\". Two parts in one repo: a C# .NET 8 console host that runs on the PC, and a single static HTML page served by that host that the tablet opens in Chrome.\n\nStack, no alternatives: C# .NET 8, Vortice.Windows for DXGI Desktop Duplication, ffmpeg invoked as a child process for H.264 encoding, ASP.NET Core minimal API with a WebSocket endpoint, vanilla JS plus Media Source Extensions on the client. No Electron, no React, no cloud, no accounts, no telemetry.\n\nHost behavior:\n1. Enumerate displays on startup and let the user pick one by index with a --display flag, default 0. Print the list and exit if --list is passed.\n2. Capture the chosen display with Desktop Duplication at up to 60 fps, skipping frames when nothing changed.\n3. Pipe raw BGRA frames to ffmpeg: h264_nvenc if available, fall back to libx264 with preset ultrafast and tune zerolatency, output fragmented MP4 to stdout with movflags frag_keyframe+empty_moov+default_base_moof and a short GOP.\n4. Push each fMP4 fragment to connected WebSocket clients as a binary message. Drop fragments for clients whose send buffer is backed up rather than queueing.\n5. Accept JSON input messages on the same socket: {type:\"move\",x,y}, {type:\"down\",button}, {type:\"up\",button}, {type:\"scroll\",dy}. x and y are 0..1 normalized to the captured display. Inject them with SendInput via P/Invoke, mapping to absolute virtual desktop coordinates for the correct monitor. Gate all input injection behind a --input flag that defaults to off.\n6. Bind to 0.0.0.0 on a port from .env (PORT), require a shared token from .env (ACCESS_TOKEN) as a query param on the WebSocket and on the page. Read .env with no dependency beyond a 20 line parser. Ship .env.example, never a real secret.\n\nClient page: full screen black, canvas-free, a single video element fed by MSE, pointer events forwarded as the messages above, a tap-to-fullscreen prompt, and a visible latency estimate based on fragment arrival timing. Nothing else.\n\nExplicitly out of scope, do not attempt: writing or installing a display driver, code signing, stylus pressure, USB transport, audio, multi-monitor cloning, auto-discovery. If the user wants an actual extra desktop rather than a mirror of an existing one, the README tells them to install a third party indirect display driver separately and then point --display at it.\n\nDeliverables: README with exact run commands, .env.example, and a honest LIMITATIONS section that states measured latency is roughly 150 to 400 ms and that this is not suitable for drawing.",
+  "promptCurated": false
+}
