@@ -1,0 +1,53 @@
+{
+  "slug": "tapo-tplink",
+  "name": "Tapo (TP-Link)",
+  "domain": "tapo.com",
+  "category": "home",
+  "subcategory": "smart home cameras and plugs",
+  "tagline": "TP-Link's smart home app for its Tapo cameras, plugs, bulbs and sensors, with a paid Tapo Care cloud video tier.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Tapo Care",
+    "basis": "monthly per camera",
+    "unit": "usage",
+    "source": "https://www.tapo.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app itself is free, so the thing you would actually be replacing is Tapo Care: cloud clip storage, longer retention, and the smarter motion detection tiers. That part is genuinely replaceable, because most Tapo cameras expose a local RTSP stream and the plugs and bulbs speak a documented-enough local protocol that community Python libraries already wrap. A coding agent can give you a local recorder, a motion-triggered clip archive, and a one-page control dashboard in a weekend. What it cannot give you is the hardware, the onboarding flow, or reliable push notifications on your phone when you are three timezones away. You end up owning the recordings and renting nothing, at the cost of running a box that has to stay up.",
+  "coreLoopDIY": "Pulls RTSP from your Tapo cameras onto local disk with motion-triggered clip segments and a retention policy, plus a web dashboard that toggles plugs and bulbs over the local network.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Tapo cameras with the RTSP camera account enabled via the official app",
+    "Tapo account email and password for local device auth, in .env",
+    "A machine that stays on: NAS, mini PC, or Raspberry Pi 4 or better",
+    "ffmpeg and enough disk for your retention window",
+    "Devices and server on the same LAN, plus a VPN or Tailscale if you want remote access"
+  ],
+  "whatYouLose": [
+    "Mobile push notifications that actually arrive, with the OS-level reliability the native app gets",
+    "Offsite copies: if the camera or your recorder walks out the door, the footage goes with it",
+    "The person, pet, vehicle and package detection models in the higher Care tiers",
+    "Device pairing, firmware updates and warranty support, all of which still route through the official app",
+    "Hands-off remote viewing: you now maintain a VPN or tunnel instead of tapping an icon"
+  ],
+  "moatTags": [
+    "hardware",
+    "scale-infra",
+    "proprietary-models"
+  ],
+  "moatNotes": "The lock-in is the camera on the wall, not the software. TP-Link sells hardware cheap and rents you the storage behind it, which is a fine business and a very replaceable one if you own a disk.",
+  "whyPeopleStillPay": "Because a few dollars a month per camera is less annoying than keeping an NVR alive, and because offsite storage is the entire point of a security camera. A local recorder that dies silently on a Tuesday is worse than no recorder, and the failure mode is only discovered when you need the footage. Tapo Care also carries the notification pipeline, which is the hardest thing on this list to self-host well: Apple and Google push delivery through a hobby backend is a tarpit. People who already run Home Assistant will never pay for this; people who do not, happily will.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Replacing the subscription is a weekend; replacing the camera is a shopping trip.",
+  "prompt": "Build a local NVR and control panel for TP-Link Tapo devices. Single Python service, no cloud, no accounts, no telemetry.\n\nStack, non-negotiable:\n- Python 3.12, FastAPI, Uvicorn\n- SQLite via sqlite3 for the clip index and device list\n- ffmpeg subprocesses for RTSP capture and clip segmentation\n- pytapo for camera control and motion events, python-kasa for plugs and bulbs\n- Jinja2 templates with htmx and plain CSS for the UI, no build step, no npm\n\nWhat it does:\n1. Reads devices from config.yaml: name, ip, type (camera | plug | bulb).\n2. For each camera, runs a persistent ffmpeg process pulling rtsp://IP:554/stream1 and writing 60-second segments to ./recordings/DEVICE/YYYY-MM-DD/.\n3. Polls each camera's motion detection events via pytapo every few seconds; when motion fires, marks the overlapping segments as events in SQLite with a timestamp and duration.\n4. Enforces retention: a background task deletes segments older than RETENTION_DAYS unless flagged as an event, and deletes event clips older than EVENT_RETENTION_DAYS. Both from .env.\n5. Web UI at /: a card per device. Cameras show a thumbnail (ffmpeg single-frame grab, cached 10s) and a link to the clip browser. Plugs and bulbs show an on/off toggle and, for bulbs, a brightness slider. Toggles are htmx POSTs that call python-kasa and swap the card.\n6. /clips/{device} lists days, then events for a day, with inline HTML5 video playback served by range-capable StaticFiles.\n7. /healthz returns per-camera ffmpeg process status and free disk bytes, so you can point an uptime check at it.\n\nExplicitly out of scope: mobile apps, push notifications, device onboarding or pairing, firmware updates, cloud upload, person or object detection, multi-user auth.\n\nSecrets: TAPO_EMAIL, TAPO_PASSWORD, RTSP_USER, RTSP_PASS, RETENTION_DAYS, EVENT_RETENTION_DAYS in .env, loaded with python-dotenv. Ship .env.example, never a real .env.\n\nDeliver: app.py, recorder.py, devices.py, templates/, config.yaml.example, requirements.txt, a systemd unit file, and a README that says plainly that RTSP requires enabling the camera account in the official Tapo app first, and that this service must only be exposed over a VPN.",
+  "promptCurated": false
+}
