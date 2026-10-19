@@ -1,0 +1,49 @@
+{
+  "slug": "wappalyzer",
+  "name": "Wappalyzer",
+  "domain": "wappalyzer.com",
+  "category": "dev-tools",
+  "subcategory": "tech stack detection",
+  "tagline": "Identifies the technologies a website runs on, plus reverse lookups for lists of sites using a given tool.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.wappalyzer.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Detecting what one site is built with is pattern matching: response headers, cookie names, meta generator tags, script URLs, global JS variables. An agent can build a working CLI that nails the obvious stuff, Shopify, WordPress, Next.js, Cloudflare, Google Analytics, in a single sitting. What you cannot build is the fingerprint corpus for several thousand technologies, kept current as every vendor renames its script bundle. And the actual product people pay for is the inverse query, give me every site using Klaviyo with over 50k monthly visits, which requires a crawl of the web you are not doing on a laptop.",
+  "coreLoopDIY": "Fetches a URL in a headless browser and matches headers, cookies, HTML, script URLs and window globals against a local JSON ruleset to print a detected stack.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a Playwright browser download",
+    "You write and maintain your own fingerprint rules"
+  ],
+  "whatYouLose": [
+    "Reverse lookup: lists of every site using a given technology",
+    "A maintained fingerprint set covering thousands of technologies, including version detection",
+    "One-click browser extension instead of a terminal command",
+    "Company and contact enrichment attached to each detected site",
+    "Bulk API that answers reliably for tens of thousands of domains"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "The fingerprints were open source for years, which is exactly why the index, not the rules, is the business now.",
+  "whyPeopleStillPay": "Almost nobody pays Wappalyzer to look up one site, the free extension did that forever. They pay for the direction of the query reversed: sales teams want every Shopify store that just added a review widget, competitive researchers want the market share curve for a framework, and that answer only exists if someone crawls and re-crawls millions of domains and keeps the fingerprints from rotting. That is a data pipeline with an ongoing bill, not a weekend script. If your actual need is curiosity about a handful of sites, you never needed the paid tier anyway.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the lookup, skip the lookup-in-reverse. The first is forty fingerprints in a JSON file, the second is a continuously refreshed crawl of the web.",
+  "prompt": "Build a CLI tool called stackcheck that detects which technologies a website runs on.\n\nStack, no substitutions:\n- Node 20, TypeScript, tsx for running source directly\n- Playwright (chromium) for page loading so client-rendered sites are covered\n- commander for the CLI, no web UI, no server\n\nBehavior:\n- `npx tsx src/index.ts https://example.com` loads the page, waits for networkidle, and collects evidence\n- Evidence sources: HTTP response headers of the main document, set-cookie names, raw HTML, all script src URLs, all link href URLs, meta name=generator, and a page.evaluate() pass that lists interesting window globals\n- Match that evidence against rules in data/fingerprints.json\n- Each rule: { name, category, website, patterns: { headers?, cookies?, html?, scriptSrc?, meta?, js? } } where every pattern value is a regex string\n- Support version capture with a \\;version:\\1 style suffix on a pattern, like Wappalyzer does\n- Output a grouped table: category, technology, version if found, and which signal matched. `--json` prints machine-readable output instead\n- `--all-urls file.txt` reads one URL per line and runs them with a concurrency of 3\n\nSeed data/fingerprints.json with at least 40 real rules covering: WordPress, Shopify, Wix, Webflow, Squarespace, Next.js, Nuxt, React, Vue, Svelte, Angular, jQuery, Tailwind, Bootstrap, Cloudflare, Fastly, Vercel, Netlify, Nginx, Apache, Google Analytics, GA4, Google Tag Manager, Plausible, Fathom, Hotjar, Segment, Intercom, Zendesk, HubSpot, Klaviyo, Mailchimp, Stripe, PayPal, Sentry, Algolia, Cloudinary, Varnish, Laravel, Django, Rails, Express.\n\nExplicitly out of scope: reverse lookup, crawling, any hosted index, any database, any API key, telemetry, accounts.\n\nInclude a README with one example run, and a note that fingerprints go stale and are the user's job to maintain. No .env needed since nothing authenticates.",
+  "promptCurated": false
+}
