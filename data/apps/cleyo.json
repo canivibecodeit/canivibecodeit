@@ -1,0 +1,53 @@
+{
+  "slug": "cleyo",
+  "name": "Cleyo",
+  "domain": "cleyo.io",
+  "category": "sales-outreach",
+  "subcategory": "recruitment lead generation",
+  "tagline": "Finds companies showing hiring signals, hands recruiters verified contacts, and runs the outreach sequences.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.cleyo.io/",
+    "checkedOn": "2026-09-06",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is a filtered list of companies and a sequence builder, which is genuinely a weekend of work. The part that matters is the corpus underneath: millions of company records watched over time, contact data with emails that actually deliver, and a hiring-pressure signal that has to be right often enough that recruiters trust it. You can scrape job boards yourself and get a thin version of the signal for a niche you already understand, but you cannot bootstrap verified contact coverage or sender reputation in a session. Add outreach compliance and ATS integration and the gap gets wider, not narrower. Build the signal scraper for your own patch; buy the database if you need volume.",
+  "coreLoopDIY": "Scrapes job postings for a list of target companies on a schedule, scores hiring intensity from posting volume and recency, and shows you which companies heated up this week.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python or Node runtime and a local Postgres or SQLite file",
+    "A job board or careers page source you can legally scrape, or a jobs API key",
+    "A seed list of companies you care about",
+    "Optional: an SMTP account and your own warmed sending domain if you want to send anything",
+    "Patience for scraper breakage every few weeks"
+  ],
+  "whatYouLose": [
+    "Verified email coverage at scale: you get names from LinkedIn guesses and a high bounce rate",
+    "Deliverability infrastructure: warmed domains, inbox rotation, bounce and spam handling",
+    "A hiring-pressure score calibrated against outcomes rather than your own hunch",
+    "GDPR and do-not-contact handling, suppression lists, and the audit trail behind them",
+    "Loxo and CRM sync, so everything you find stays in a local table nobody else can see"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Contact data decays constantly, so the moat is not the dataset, it is the refresh pipeline that keeps it from rotting.",
+  "whyPeopleStillPay": "Recruiters are not paying for a list, they are paying to skip the part where they find out their list was wrong. A 30 percent bounce rate does not just waste time, it burns the sending domain and quietly kills every campaign after it. The score matters for the same reason: guessing which companies are actually hiring hard is the whole job, and a vendor that has watched millions of companies over years has a better prior than your job board scraper does. Add the compliance paperwork and the ATS integration and the subscription is cheaper than the maintenance.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the database is not. The moat is years of scraping, enrichment and sender reputation, none of which exists in an empty folder.",
+  "prompt": "Build a local hiring-signal tracker for recruitment lead generation. Single Python service, no cloud accounts, no telemetry.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, SQLite via SQLModel\n- Jinja2 templates plus a little HTMX for the table filters, no frontend framework\n- APScheduler for the scheduled scrape\n- httpx and selectolax for fetching and parsing\n- Secrets in .env, loaded with python-dotenv, and a .env.example checked in\n\nData model:\n- Company: id, name, domain, careers_url, industry, size_bucket, notes\n- JobPosting: id, company_id, title, location, posted_at, first_seen_at, last_seen_at, source_url, is_open\n- Signal: id, company_id, week_start, open_count, new_count, closed_count, score, score_reason\n\nWhat it does:\n1. Reads a seed CSV at data/companies.csv with columns name, domain, careers_url. Provide 5 example rows.\n2. Scrapes each careers_url on a daily schedule. Support two adapters only: Greenhouse boards JSON and Lever postings JSON, both keyed off the URL pattern. Everything else logs \"unsupported source\" and is skipped. Do not attempt generic HTML scraping.\n3. Diffs each scrape against the last: marks new postings, marks vanished postings is_open false, and never deletes history.\n4. Computes a weekly hiring-pressure score per company from open count, new postings in the last 14 days, and roles closed fast. Keep the formula in one scoring.py function with the weights as named constants at the top, and store a human-readable score_reason string. Do not pretend it is machine learning.\n5. Web UI at / with a sortable table of companies by score, a week-over-week delta column, filters by industry and score threshold, and a company detail page showing the posting timeline.\n6. CSV export of the current filtered view.\n\nExplicitly out of scope, do not build:\n- Contact discovery, email finding, or email verification\n- Any email or LinkedIn sending, sequences, or inbox rotation\n- User accounts, teams, or multi-tenancy\n- CRM or ATS integrations\n\nDeliver: README with setup and run commands, a make seed command that loads the CSV and runs one scrape immediately, pytest tests for the diff logic and the scoring function using fixture JSON, and a rate limit of one request per source every 2 seconds with a clear user agent.",
+  "promptCurated": false
+}
