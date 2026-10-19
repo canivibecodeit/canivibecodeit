@@ -1,0 +1,52 @@
+{
+  "slug": "flexio",
+  "name": "FlexiO",
+  "domain": "flexio.energy",
+  "category": "home",
+  "subcategory": "energy management and flexibility",
+  "tagline": "Energy management software that monitors a site's consumption and production and shifts flexible loads like EV charging, heat pumps and batteries.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://flexio.energy/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The optimization math here is not the hard part: read meter and production data, pull day-ahead or tariff prices, decide when the battery charges and when the car draws, repeat every five minutes. An agent can scaffold that in a session and Home Assistant already solved most of the plumbing. What it cannot scaffold is the device layer: every inverter, charger and heat pump speaks a different dialect of Modbus, proprietary cloud API or no API at all, and each one is its own afternoon of reverse engineering. And if the product's real job is aggregating flexibility and bidding it into balancing or capacity markets, that part is not code, it is a market access contract, metering certification and a grid operator relationship. Build the local brain, accept that the market side stays rented.",
+  "coreLoopDIY": "A self-hosted service that ingests meter, solar and tariff data, decides each interval whether to charge, discharge or defer flexible loads, and shows you the decisions and the savings on one page.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A local device you can actually read: inverter or meter with Modbus TCP, a P1 smart meter port, or a Home Assistant instance already talking to them",
+    "An electricity price source for your market, day-ahead API or your fixed tariff schedule",
+    "Controllable hardware, otherwise the optimizer only has opinions and no actuators",
+    "A machine that stays on, Raspberry Pi or small server"
+  ],
+  "whatYouLose": [
+    "Vendor-tested drivers for dozens of inverter, charger and battery brands, including the ones with hostile or undocumented APIs",
+    "Any participation in flexibility, balancing or capacity markets, which needs an aggregator licence and certified metering, not a cron job",
+    "Someone to call when a bad control decision cooks your battery warranty or trips your main breaker",
+    "Multi-site rollups, tenant billing and the reporting formats grid operators and auditors expect",
+    "Remote monitoring and alerting that keeps working when your home internet or your Pi does not"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "proprietary-data"
+  ],
+  "moatNotes": "The device integration list and the market access paperwork are the product. The scheduler is a few hundred lines.",
+  "whyPeopleStillPay": "Because a homeowner with one inverter can hobby their way to a good enough optimizer, and a company with forty sites, three inverter brands and a flexibility revenue line cannot. The paid version exists to absorb hardware heterogeneity and regulatory interface, both of which are maintenance, not features. The savings a DIY build captures are real but capped at your own tariff arbitrage; the money that comes from selling flexibility upstream requires being on the other side of a contract you cannot write yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduler is a weekend, the driver matrix is a career. Price is unverified, treat it as unknown until someone checks.",
+  "prompt": "Build a self-hosted home energy optimizer that runs on a Raspberry Pi or small Linux box.\n\nStack, no substitutions: Python 3.12, FastAPI, SQLite via SQLModel, APScheduler for the control loop, server-rendered Jinja2 templates with htmx, Chart.js from a vendored file. No React, no cloud, no accounts, no telemetry.\n\nData in:\n- A pluggable reader interface with two concrete implementations: (1) Modbus TCP via pymodbus, register map supplied in config.yaml, and (2) Home Assistant REST API, entity ids in config.yaml. Pick the implementation from an env var.\n- Day-ahead prices from an HTTP endpoint defined in .env (ENTSOE_TOKEN and ENTSOE_AREA if used), with a fallback static tariff schedule in config.yaml for fixed-price users.\n- Poll meter and production every 60 seconds, persist to SQLite as time series.\n\nControl loop, every 5 minutes:\n- Inputs: current import/export power, solar production, battery state of charge, price curve for the next 24 hours.\n- Compute a simple greedy plan: charge battery when price is in the cheapest N hours or when solar export would otherwise be curtailed, discharge during the most expensive hours, defer a named flexible load until the cheapest window that still meets a user deadline.\n- Write every decision to a decisions table with the reason string. Never actuate without logging first.\n- Actuation is one function, send_setpoint(device, value), with a DRY_RUN env flag that is true by default. Ship it dry.\n\nSafety: hard min and max state of charge in config, a per-device rate limit, and a kill switch endpoint that halts the scheduler.\n\nUI, one page: current power flow numbers, a 48 hour chart of price, consumption and production, the last 50 decisions with reasons, and a dry-run toggle.\n\nOut of scope, do not build: user accounts, multi-site support, any market or aggregator bidding, mobile apps, push notifications, machine learning forecasts.\n\nDeliver: README with wiring instructions for both readers, .env.example with no real secrets, config.yaml.example, a systemd unit file, and a simulated reader so the whole thing runs with fake data before any hardware is connected.",
+  "promptCurated": false
+}
