@@ -1,0 +1,52 @@
+{
+  "slug": "skybox-ai",
+  "name": "Skybox AI",
+  "domain": "skybox.blockadelabs.com",
+  "category": "ai-image",
+  "subcategory": "360 panorama generation",
+  "tagline": "Text-to-360-degree skybox generator for games, VR scenes and backdrops.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://skybox.blockadelabs.com/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is a web form, a generation queue and a 360 viewer, all of which an agent can rebuild in an afternoon. The part it cannot rebuild is the model: Blockade trained panorama-specific diffusion that produces genuinely seamless equirectangular output with matching depth, plus a stack of consistent style presets. A local build on SDXL with a 360 panorama LoRA, circular padding and seam blending gets you usable backdrops, but horizon warping, zenith and nadir mush, and style drift are real and persistent. If you need skyboxes for a hobby game or a VR test scene, the DIY version is fine. If you need twenty of them that match each other and hold up at full resolution, you will go back to paying.",
+  "coreLoopDIY": "A local web app that turns a text prompt into a seamless equirectangular 360 image with a depth map, and previews it in a browser sphere viewer.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "GPU with at least 12GB VRAM, or a hosted inference endpoint",
+    "SDXL base weights plus a 360 panorama LoRA",
+    "Python 3.11 and Node for the viewer",
+    "Disk space for models and generated panoramas"
+  ],
+  "whatYouLose": [
+    "Seam quality: the hand-off at the 0/360 boundary and at the poles is where open models fall apart",
+    "Style presets that stay consistent across dozens of generations",
+    "Depth and mesh export that is actually aligned to the image",
+    "Remix, inpainting and resolution upscaling tuned for equirectangular geometry",
+    "Zero-setup generation from a phone or a browser with no GPU"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Panorama-native training is the whole product. Everything around it is a form and a sphere mesh.",
+  "whyPeopleStillPay": "Because a skybox is one of those assets where 95 percent correct reads as broken. A visible seam or a smeared zenith is immediately obvious the moment someone turns their head in a headset, and fixing it by hand in Photoshop costs more time than a subscription. Blockade sells the narrow thing it is good at, and the style library means your tenth generation looks like it belongs with your first. A local SDXL rig gets you to concept art, not to shippable environment art.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rebuilding the UI is trivial; rebuilding seamlessness is not, and seamlessness is the entire point.",
+  "prompt": "Build a local text-to-360-panorama studio. Single machine, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI backend, diffusers for inference\n- SQLite for generation history via sqlite3, no ORM\n- Plain HTML + three.js from a CDN for the viewer, no build step, no React\n\nBackend:\n- Load SDXL base plus a 360 equirectangular LoRA path read from .env (LORA_PATH, MODEL_PATH, OUTPUT_DIR)\n- POST /generate takes prompt, negative prompt, style preset key, seed, and width/height defaulting to 2048x1024\n- Patch all Conv2d layers in the UNet and VAE to padding_mode=\"circular\" on the horizontal axis before generation, so the left and right edges tile. This is the single most important step, do not skip it.\n- After generation, run a horizontal seam fix: roll the image by half its width, blend a 64px feathered band over the new center seam, roll it back\n- Generate a depth map with Depth Anything V2 and save it alongside as _depth.png\n- Write PNG + depth + a JSON sidecar with prompt, seed, preset and timestamp into OUTPUT_DIR, insert a row in SQLite\n- GET /gallery returns history, GET /image/{id} serves files\n- Long generations: return a job id immediately, poll GET /job/{id} for status. No websockets.\n\nStyle presets:\n- Hardcode 6 presets in a presets.py dict (photoreal, anime, painterly, sci-fi, fantasy, dystopian). Each is a prompt prefix plus a fixed negative prompt plus fixed cfg and steps. Expose them as a dropdown.\n\nFrontend, one page:\n- Prompt box, preset dropdown, seed field with a randomize button, generate button with job polling\n- three.js viewer: inverted sphere with the panorama as texture, mouse drag to look around, scroll to zoom\n- Gallery strip of past generations, click to load into the viewer, button to download PNG and depth map\n\nExplicitly out of scope: user accounts, sharing links, video, mesh export, inpainting, upscaling, mobile apps, payment.\n\nDeliver a README with model download instructions, a .env.example, and requirements.txt. Do not commit weights. Verify the seam by rolling the output 50 percent and confirming no visible discontinuity.",
+  "promptCurated": false
+}
