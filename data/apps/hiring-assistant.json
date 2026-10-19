@@ -1,0 +1,51 @@
+{
+  "slug": "hiring-assistant",
+  "name": "Hiring Assistant",
+  "domain": "app.source2hire.eu",
+  "category": "hr",
+  "subcategory": "interview prep and candidate screening",
+  "tagline": "AI tooling that preps recruiters for interviews: job spec parsing, candidate summaries, and question sets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://app.source2hire.eu/",
+    "checkedOn": "2026-10-19",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible core is document in, structured prep out: read a job spec, read a CV, produce a fit summary, gaps, and a tailored question set with a scorecard. That is a genuinely good fit for a one-shot build, because an LLM with two text files does most of the work and the output is text you read once. Where it stops being a weekend project is everything around the edges: pulling candidates from an ATS, parsing messy PDF resumes reliably, sharing scorecards with a hiring panel, and the GDPR paperwork a European hiring tool is expected to carry. If you are one recruiter or a founder doing your own screens, the local build covers the actual job. If you are a team that needs an audit trail of who scored whom and why, you are buying process, not prompts.",
+  "coreLoopDIY": "Paste or upload a job spec and a CV, and get back a structured fit summary, flagged gaps, a tailored interview question set, and a printable scorecard, all stored locally.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key (Anthropic or OpenAI) in .env",
+    "Node 20+ and a local SQLite file",
+    "Tolerance for imperfect PDF text extraction"
+  ],
+  "whatYouLose": [
+    "ATS and job board integrations, so candidates arrive by copy paste",
+    "Shared panel scorecards and consolidated feedback from multiple interviewers",
+    "A defensible GDPR posture: data processing agreements, retention policies, EU hosting claims",
+    "Resume parsing that survives two column PDFs, tables, and scanned documents",
+    "Any hiring benchmark data drawn from other companies' funnels"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "collaboration"
+  ],
+  "moatNotes": "Hiring software in the EU sells its compliance story as hard as its features; a local script has no story to tell, which is fine when the only user is you.",
+  "whyPeopleStillPay": "Recruiting is a team sport with legal exposure. The prep itself is cheap to automate, but the thing teams actually pay for is one place where every candidate, every interviewer note, and every rejection reason lives, with timestamps, because that record is what you reach for when someone asks why a candidate did not advance. Add the integrations that keep recruiters out of copy paste hell and the vendor's assurances about where EU candidate data is stored, and a hosted product starts looking cheap compared to building and maintaining that yourself. A solo hirer has none of those problems and should not pay for their solution.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The prep is a prompt; the pipeline is the product. Worth building locally if you are the only person who ever reads the output.",
+  "prompt": "Build a local-only interview prep tool called \"prepkit\". No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Next.js 15 App Router with TypeScript, Tailwind for styling, better-sqlite3 for storage in ./data/prepkit.db, and the Anthropic SDK for generation. API key read from ANTHROPIC_API_KEY in .env.local. Ship a .env.example. Nothing else runs as a service.\n\nData model: roles (id, title, spec_text, created_at), candidates (id, role_id, name, resume_text, source_filename, created_at), preps (id, candidate_id, model, json_output, created_at).\n\nScreens:\n1. /roles: create a role by pasting a job spec. List roles.\n2. /roles/[id]: list candidates for the role, add a candidate by pasting resume text or uploading a .txt, .md, or .pdf file. Use pdf-parse for PDFs and show the extracted text in an editable textarea before saving, because extraction will be wrong sometimes and the user must be able to fix it.\n3. /candidates/[id]: a \"Generate prep\" button plus the rendered prep.\n\nGeneration: one server action sends the job spec and resume text to Claude and requests a strict JSON object with these fields: fit_summary (3 sentences), strengths (array of strings, each tied to evidence quoted from the resume), gaps (array), unclear_claims (array of things the resume implies but does not prove), questions (array of objects with question, what_good_looks_like, follow_up), and scorecard (array of 4 to 6 criteria derived from the job spec, each with a name and a definition of a strong answer). Validate the response with zod and retry once on parse failure. Store the raw JSON.\n\nRender the prep as a clean print-friendly page: an @media print stylesheet so Cmd+P gives a one page sheet to take into the interview. Scorecard criteria render with empty 1 to 5 radio boxes for pen and paper use.\n\nExplicitly out of scope: ATS integrations, email, calendar, multi-user accounts, candidate-facing anything, scoring aggregation across interviewers, ranking candidates against each other.\n\nInclude a README with setup steps and one honest warning: this tool generates suggestions about people, the output is not a decision, and resume text should not be pasted into it for candidates who have not applied to you.",
+  "promptCurated": false
+}
