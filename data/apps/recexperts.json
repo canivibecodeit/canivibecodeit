@@ -1,0 +1,51 @@
+{
+  "slug": "recexperts",
+  "name": "EaseUS RecExperts",
+  "domain": "recorder.easeus.com",
+  "category": "screen-recording",
+  "subcategory": "desktop screen and audio recorder",
+  "tagline": "Desktop screen, webcam and audio recorder with scheduled capture and light editing, sold as a Windows and Mac license.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://recorder.easeus.com/es/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. EaseUS typically sells monthly, yearly and lifetime tiers for this product.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Screen recording is one of the most thoroughly solved problems in desktop software, and the hard part is a library you do not have to write: ffmpeg, or the browser's own capture APIs. An agent can give you a local Electron app that picks a screen or window, grabs mic plus webcam, and writes an mp4 in a single session. The real friction is not code, it is platform plumbing: system audio capture needs a virtual loopback device on macOS, and screen recording permissions have to be granted by hand. You also lose the editor, the scheduler, and the one-click export presets, which is where the paid product actually spends its effort. Worth noting that OBS Studio already does all of this for free, so the honest competitor here is not your weekend build either.",
+  "coreLoopDIY": "A local desktop app that lists screens and windows, records the selected source with mic and optional webcam overlay, and saves a timestamped mp4 to a folder you choose.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node.js and the ability to run an unsigned local Electron app",
+    "ffmpeg installed and on PATH for remux and trim",
+    "OS screen recording and microphone permissions granted manually",
+    "A virtual audio loopback device (BlackHole, VB-Cable) if you want system audio"
+  ],
+  "whatYouLose": [
+    "System audio capture that just works without installing a virtual audio driver",
+    "The built-in trimmer, annotation and export presets for YouTube-sized files",
+    "Scheduled and auto-stop recording, which is the feature people actually buy this for",
+    "Hardware encoder tuning, so long recordings will be larger and hungrier than they need to be",
+    "A signed, notarized binary that does not make your OS squint at it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is codec plumbing and permission handling across two operating systems, not anything conceptual. It is real work, but it is also work that free software finished years ago.",
+  "whyPeopleStillPay": "People pay because they want to click one button, not read a thread about virtual audio drivers. The paid product handles the fiddly parts: system audio without extra setup, a scheduler that records a webinar while you are asleep, sane output presets, and a trim view so you can cut the first ten seconds of throat clearing. For anyone recording occasionally and treating it as a tool rather than a hobby, a license is cheaper than the afternoon it takes to get a DIY build past the permissions dialogs.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can absolutely build this, but check whether OBS already solved your problem for zero dollars before you build anything.",
+  "prompt": "Build a local desktop screen recorder called \"Capture\" as an Electron app. No accounts, no cloud, no telemetry, no auto-update.\n\nStack, non-negotiable:\n- Electron with a single main process and one renderer window\n- Plain HTML, CSS and vanilla JS in the renderer, no framework, no bundler\n- ffmpeg invoked as a child process for remuxing and trimming, assumed on PATH\n- Output written to a user-chosen folder, default the OS Videos directory\n\nIn scope:\n- On launch, use desktopCapturer in the main process to list all screens and windows, send the list to the renderer, show thumbnails in a grid\n- Let the user pick one source, pick a microphone from enumerateDevices, and toggle a webcam overlay\n- Record with MediaRecorder using the video/webm codecs=vp9,opus mime type, writing chunks to a temp .webm file as they arrive so a crash does not lose everything\n- If the webcam overlay is on, composite the screen stream and webcam stream onto a canvas (webcam as a circle in the bottom right, 20 percent of the height) and record captureStream from that canvas\n- Start, pause, resume and stop controls, plus a live elapsed timer and a visible red recording indicator\n- On stop, shell out to ffmpeg to remux the .webm into an mp4 with -c:v libx264 -crf 23 -preset veryfast -c:a aac, name it capture-YYYY-MM-DD-HHmmss.mp4, then delete the temp file\n- A recordings list in the UI reading the output folder, with buttons to reveal in file manager and to delete\n- A simple trim: two number inputs for start and end seconds, running ffmpeg -ss and -to with stream copy into a new file\n- Persist the output folder, last used source type and last mic to a JSON file in app.getPath('userData')\n\nOut of scope, do not build:\n- Any editor beyond the numeric trim, no annotations, no zoom effects\n- Scheduled or timed recording\n- Upload, sharing links, or any network request at all\n- Code signing or installers; npm start is the only way to run it\n\nSystem audio: do not fake it. Detect whether a loopback input device such as BlackHole or VB-Cable is present and list it as a selectable microphone. If none is found, show a one-line note in the UI explaining that system audio requires installing one, and link nothing.\n\nAlso write a README that states the exact OS permissions the user must grant by hand on macOS and Windows, and what happens if ffmpeg is missing. Fail loudly with a readable error in the UI, never silently.",
+  "promptCurated": false
+}
