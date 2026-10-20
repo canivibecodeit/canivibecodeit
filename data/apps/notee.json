@@ -1,0 +1,51 @@
+{
+  "slug": "notee",
+  "name": "Notee",
+  "domain": "notee.ai",
+  "category": "meeting-notes",
+  "subcategory": "AI meeting transcription and summaries",
+  "tagline": "AI note taker that records meetings, transcribes them, and spits out summaries and action items.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://notee.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of an AI note taker is now three commodity parts: audio capture, a speech-to-text model, and a prompt that turns a transcript into bullets and action items. An agent can wire that into a local app in a sitting, and for one person recording their own calls it works fine. The gaps are everything around the edges: a bot that silently joins Zoom, Meet, and Teams on your behalf, calendar sync that knows which meeting is which, speaker labels that are actually right, and a phone app for hallway conversations. Those are integration grinding, not intelligence, but integration grinding is real work and breaks every time a vendor changes something. Build it if you mostly record yourself; pay if you need a bot sitting in meetings you did not organize.",
+  "coreLoopDIY": "Records or ingests meeting audio, transcribes it locally with Whisper, and generates a structured summary with decisions and action items into a searchable local archive.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine that can run faster-whisper, GPU helps but CPU works for short calls",
+    "An LLM API key for summarization, or a local model via Ollama",
+    "System audio capture setup on your OS, which is the genuinely annoying part on macOS"
+  ],
+  "whatYouLose": [
+    "A meeting bot that joins Zoom, Meet, and Teams without you babysitting the recording",
+    "Calendar integration that attaches notes to the right event and invites attendees automatically",
+    "Decent speaker diarization and name attribution instead of SPEAKER_01 and SPEAKER_02",
+    "Mobile apps and shared workspaces where teammates can read notes you took",
+    "Push of summaries into Slack, Notion, CRM, and task tools without you writing each connector"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "collaboration"
+  ],
+  "moatNotes": "The moat is not the transcription, which is a downloadable model. It is the headless browser fleet that reliably joins other people's video calls.",
+  "whyPeopleStillPay": "Because the part people actually value is not the summary, it is never having to think about recording. The bot shows up, the notes land in the right place, the action items appear in Slack, and your laptop fan does not spin up during the call. A local build gives you the transcript and the summary but leaves you pressing record, naming files, and pasting results. That is a fair trade for a solo user and a bad trade for anyone in six meetings a day.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Transcription got commoditized in about eighteen months; the join-the-call plumbing did not.",
+  "prompt": "Build a local, single-user meeting notes app in an empty folder. No accounts, no cloud storage, no telemetry.\n\nStack, non negotiable:\n- Python 3.11 with FastAPI and uvicorn for the backend\n- SQLite via plain sqlite3, schema in schema.sql, no ORM\n- faster-whisper for transcription, default model \"small\", configurable via env\n- A single static frontend: one index.html with vanilla JS and no build step\n- Audio stored on disk in ./recordings, transcripts and summaries in SQLite\n\nFeatures:\n1. Upload page: drop an audio or video file (m4a, mp3, wav, mp4) and queue it for processing.\n2. Browser recording: use MediaRecorder to capture the mic, POST the blob to the same ingest endpoint. Document clearly in README that capturing other participants requires an OS level loopback device such as BlackHole or VB-Cable, and do not pretend otherwise.\n3. Background worker: a simple in-process asyncio queue that transcribes with faster-whisper, stores segments with timestamps, then calls an LLM to produce a summary.\n4. Summarization: single function that takes the transcript and returns JSON with keys summary, decisions, action_items (each with text and optional owner), open_questions. Use the OpenAI API with OPENAI_API_KEY from .env, and support OLLAMA_URL as an alternative backend behind the same interface.\n5. Notes list page with title, date, duration, and a detail page showing the summary up top and the full timestamped transcript below. Clicking a transcript line seeks the audio player.\n6. Full text search across transcripts and summaries using SQLite FTS5.\n7. Export a single note to Markdown, and a button to copy the summary to clipboard.\n\nExplicitly out of scope, do not build or stub: meeting bots that join Zoom, Meet, or Teams; calendar OAuth; speaker diarization; multi-user auth; Slack or Notion integrations; mobile apps.\n\nDeliverables: app.py, worker.py, llm.py, schema.sql, static/index.html, requirements.txt, .env.example, and a README with exact setup commands and the loopback audio caveat stated plainly. Everything must run with: pip install -r requirements.txt then uvicorn app:app.",
+  "promptCurated": false
+}
