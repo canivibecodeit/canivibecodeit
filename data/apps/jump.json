@@ -1,0 +1,52 @@
+{
+  "slug": "jump",
+  "name": "Jump",
+  "domain": "jump.ai",
+  "category": "meeting-notes",
+  "subcategory": "AI meeting assistant for financial advisors",
+  "tagline": "AI meeting assistant that records advisor client meetings, writes compliant notes, and pushes tasks and summaries into the CRM.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://jump.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The transcribe-and-summarize core is now a solved commodity: local Whisper plus a decent model will give you clean meeting notes with a custom template in an afternoon. What you cannot one-shot is the boring half of this product, which is the part advisors actually buy: a bot that reliably joins Zoom and Teams calls, structured write-back into Redtail, Wealthbox or Salesforce, and notes shaped to survive a compliance review. If you are a solo operator who just wants notes and a task list out of your own recordings, build it. If you are a regulated advisor whose firm needs an audit trail and CRM hygiene, the DIY version is a toy that creates work instead of removing it.",
+  "coreLoopDIY": "Records or ingests a meeting audio file, transcribes it locally, and generates a structured client note plus follow-up tasks against a template you control, stored in a local SQLite database with full-text search.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg and a virtual audio device for capturing call audio (BlackHole on macOS, loopback on Windows)",
+    "Local Whisper model or an API key for transcription",
+    "An LLM API key in .env for summarization",
+    "Comfort running a local Python service and a browser UI"
+  ],
+  "whatYouLose": [
+    "A meeting bot that auto-joins Zoom, Teams and Google Meet without you babysitting the recorder",
+    "Two-way CRM sync, so every note and task is copy-paste by hand",
+    "Compliance posture: retention policy, audit trail, supervision review, and the vendor paperwork your firm asks for",
+    "Advisor-specific prompt tuning built from a lot of real advisor meetings, which is why their notes read like advisor notes",
+    "Mobile capture, calendar awareness, and anything resembling support when a recording fails mid-meeting"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "The CRM write-back and the regulated-industry comfort blanket are the product; the transcription is table stakes everyone has.",
+  "whyPeopleStillPay": "Advisors are not paying for summaries, they are paying to never touch the CRM again and to have a defensible record if a regulator asks what was discussed. Those are integration and compliance problems, not AI problems, and both get worse the more clients you have. A personal build also puts the recording failure mode on you, which is a bad trade when the artifact is a client conversation you cannot re-run.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The notes are easy, the CRM round-trip and the compliance paper trail are not; build it for yourself, not for a firm.",
+  "prompt": "Build a local meeting notes tool for client conversations. No accounts, no cloud storage, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, Jinja2 templates with HTMX for interactions, plain CSS, no frontend framework\n- SQLite via sqlite3 with an FTS5 virtual table for transcript and note search\n- faster-whisper for local transcription, default model \"small.en\", configurable in .env\n- ffmpeg shelled out for audio normalization and chunking\n- An OpenAI-compatible chat completions call for summarization, base URL and key from .env\n\nFeatures, in scope:\n- Upload page accepting .m4a, .mp3, .wav, .mp4; store the file under ./data/audio/\n- Background job (threading or a simple in-process queue, no Celery) that transcribes with word-level timestamps and writes segments to SQLite\n- Note templates stored as editable markdown prompt files in ./templates_prompts/, ship two: \"client_meeting\" (attendees, context, decisions, open questions, action items with owners) and \"raw_summary\"\n- After transcription, generate a note from the chosen template and save it as a revision; keep every revision, never overwrite\n- Meeting detail page: transcript with timestamps, note side by side, editable note body, checkbox task list extracted from the note\n- Search page over transcripts and notes using FTS5, with snippet highlighting\n- \"Export\" button producing a single markdown file per meeting plus a JSON dump of all meetings for backup\n\nOut of scope, do not build:\n- No meeting bot, no Zoom/Teams/Meet joining, no calendar integration\n- No CRM integration of any kind\n- No multi-user auth, no sharing, no hosted deployment\n\nRequirements:\n- Secrets only in .env, read via python-dotenv, ship .env.example\n- Everything runs with: uv sync (or pip install -r requirements.txt) then uvicorn app:app\n- README documents how to capture system audio on macOS with BlackHole and on Windows with a loopback device, and states plainly that this records conversations and that consent and retention are the operator's problem\n- Seed script that ingests a sample wav so the UI is not empty on first run",
+  "promptCurated": false
+}
