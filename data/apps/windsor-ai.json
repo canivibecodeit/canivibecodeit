@@ -1,0 +1,50 @@
+{
+  "slug": "windsor-ai",
+  "name": "Windsor.ai",
+  "domain": "windsor.ai",
+  "category": "analytics",
+  "subcategory": "marketing data pipelines",
+  "tagline": "Pulls ad and marketing data from dozens of platforms into Sheets, Looker Studio, BigQuery and friends, with attribution modeling bolted on.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://windsor.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is a connector farm: authenticate to ad platforms, pull spend and conversion data on a schedule, normalize wildly different schemas, dump it somewhere a dashboard can read. If you only care about two or three sources you already have API access to, an agent can write that ETL in a weekend and it will work fine. The pain is not the code, it is the platform side: app review for the Meta and TikTok marketing APIs, token refresh, rate limits, and the fact that every one of those APIs quietly changes field names on you. Windsor also sells attribution modeling across channels, which is a genuinely harder product than the pipes. Build it if you have few sources and patience; buy it if you have fifteen clients and none.",
+  "coreLoopDIY": "A scheduled Python job that hits each ad platform's reporting API, normalizes the rows into one wide table in DuckDB, and exports a flat CSV your dashboard reads.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API credentials or developer app for each ad platform you want (the slow part)",
+    "Somewhere to run a daily cron job",
+    "A dashboard or spreadsheet to point at the output"
+  ],
+  "whatYouLose": [
+    "Pre-built connectors for the long tail of platforms you will want next quarter",
+    "Someone else fixing the pipeline when an API deprecates a field overnight",
+    "Cross-channel attribution modeling, not just raw spend rows",
+    "Native destination plugins for Looker Studio, Sheets and warehouses",
+    "Historical backfill and retry logic that has already been debugged against real rate limits"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Connector maintenance is the whole business. Each one is boring, none of them are hard, and there are a hundred of them.",
+  "whyPeopleStillPay": "Because the marginal cost of adding a thirty-first data source is enormous for you and roughly zero for them. Agencies in particular do not want a per-client pipeline they personally own; they want a line item and a phone number to shout at when the Meta numbers stop arriving on a Tuesday. If you run one or two accounts for yourself, none of that applies and the self-hosted version is genuinely fine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ETL is a weekend. Keeping it alive for two years is the actual purchase.",
+  "prompt": "Build a local marketing data pipeline in an empty folder. Stack: Python 3.11, DuckDB, httpx, pydantic, and a plain `main.py` CLI. No web framework, no accounts, no cloud, no telemetry.\n\nIn scope:\n- A `connectors/` package where each connector is a module exposing `fetch(start_date, end_date) -> list[Row]`.\n- Implement two real connectors: Google Ads (via the Google Ads API reporting query) and Meta Marketing API (insights endpoint). Both read credentials from .env.\n- Implement one fake connector `connectors/sample.py` that returns deterministic rows so the whole pipeline is testable with zero credentials.\n- A shared `Row` pydantic model with: date, source, campaign_id, campaign_name, impressions, clicks, spend, conversions, conversion_value, currency. Every connector maps into this.\n- Load into DuckDB at `data/marketing.duckdb`, table `ad_performance`, idempotent upsert keyed on (date, source, campaign_id) so re-running a date range overwrites instead of duplicating.\n- CLI: `python main.py sync --source all --days 30` and `python main.py export --out exports/ad_performance.csv`.\n- Retry with exponential backoff on 429 and 5xx, max 5 attempts, log each retry.\n- A `config.yaml` listing which connectors are enabled and their account ids.\n- A `queries/` folder with two example SQL files: spend by source by week, and top 20 campaigns by cost per conversion.\n- README covering how to get each API credential, in honest detail, including that Meta requires app review for ads_read.\n\nOut of scope, do not build: attribution modeling, a UI, a scheduler daemon (document a crontab line instead), warehouse destinations, OAuth login flows for end users.\n\nSecrets in .env only, with a committed .env.example. Include pytest tests for the Row mapping and the upsert idempotency using the sample connector. Make `python main.py sync --source sample --days 7 && python main.py export` work immediately after `pip install -r requirements.txt` with no credentials at all.",
+  "promptCurated": false
+}
