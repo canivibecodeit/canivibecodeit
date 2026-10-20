@@ -1,0 +1,53 @@
+{
+  "slug": "loyicard",
+  "name": "LoyiCard",
+  "domain": "loyicard.com",
+  "category": "crm",
+  "subcategory": "digital loyalty cards",
+  "tagline": "Digital stamp and points loyalty cards that live in Apple Wallet and Google Wallet, aimed at small shops and salons.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://loyicard.com/landing-tarjeta-de-fidelizacion-digital/?ctf_src=g&ctf_net=adwords&ctf_mt=b&ctf_grp=195559800126&ctf_ver=1&ctf_cam=23873509134&ctf_kw=tarjeta%20de%20fidelizaci%C3%B3n%20digital&ctf_acc=7403205080&ctf_ad=810145831666&ctf_tgt=kwd-1287915215709&utm_term=tarjeta%20de%20fidelizaci%C3",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The actual logic here is trivial: customers, stamps, a redemption threshold, and a QR code the staff scans. An agent can produce that plus a staff scanning screen and a customer web card in a single session. The part that bites is the wallet integration: Apple Wallet passes need a paid Apple Developer account and a Pass Type ID certificate, and push updates to a pass that is already issued need a pass web service plus APNs. Google Wallet wants an issuer account and service account keys. So the DIY version is real and useful, it just starts life as a mobile web page with a QR code instead of a pass that sits next to your boarding passes.",
+  "coreLoopDIY": "A local web app where staff scan a customer QR to add a stamp, customers open a phone-friendly card page showing their progress, and reaching the threshold flags a reward to redeem.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and a machine or small VPS to host it",
+    "A domain or tunnel so customer card links work on phones",
+    "Apple Developer account plus Pass Type ID certificate if you want real Apple Wallet passes",
+    "Google Wallet issuer account and service account key for Android passes",
+    "Push notifications or SMS need a separate provider and are out of scope by default"
+  ],
+  "whatYouLose": [
+    "Signed Apple and Google Wallet passes out of the box, including automatic updates to a pass the customer already added",
+    "Push notifications to wallet passes, which is the main reason businesses buy this category",
+    "A polished card designer with logos, colours and templates that non technical owners can use",
+    "Multi location staff accounts, roles and anti fraud checks on stamp scanning",
+    "Someone else keeping the pass certificates renewed and the Apple and Google APIs working when they change"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is a certificate chain and two platform relationships, not the loyalty math.",
+  "whyPeopleStillPay": "A barbershop owner is not going to maintain an Apple Pass Type ID certificate, a pass web service and an APNs connection so that a stamp card updates silently on a customer's lock screen. That plumbing is the whole product, and it is the part that quietly breaks. Paying a small monthly fee to never think about it again is a rational trade for anyone whose actual job is cutting hair.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the web card version first and see if your customers even care about wallet passes; plenty of shops find a bookmarked link is enough.",
+  "prompt": "Build a self hosted digital loyalty card system in an empty folder.\n\nStack, no substitutions: Node 20, TypeScript, Fastify, SQLite via better-sqlite3, server rendered HTML with Eta templates, plain CSS, no frontend framework, no build step beyond tsc.\n\nData model:\n- business: name, logo url, stamps_required, reward_text\n- customer: id (uuid), name optional, phone optional, created_at, token (random 24 char url safe string)\n- stamp: id, customer_id, created_at, staff_note optional\n- redemption: id, customer_id, created_at\n\nRoutes:\n- GET /c/:token : public customer card page, mobile first, shows business name, filled and empty stamp icons, progress text, the reward, and a large QR code encoding the absolute URL https://HOST/staff/scan/:token\n- GET /staff : passphrase gated (STAFF_PASSPHRASE in .env, signed cookie session), shows a customer list and an \"add customer\" form that returns the new card link and a printable QR\n- GET /staff/scan/:token : shows the customer, current stamp count, an \"add stamp\" button and, when the count is at or above stamps_required, a \"redeem reward\" button\n- POST /staff/stamp/:token and POST /staff/redeem/:token : write rows, redeem resets the counter by recording a redemption and only counting stamps created after the last redemption\n- GET /admin/settings : edit business name, stamps_required, reward_text\n\nRules:\n- Reject a second stamp for the same customer within a configurable cooldown (default 60 seconds) to stop double scans, show a clear message\n- Seed the database on first run with the business row and three demo customers\n- Secrets only in .env, with .env.example committed\n- No analytics, no telemetry, no external accounts, no email or SMS\n- Apple Wallet and Google Wallet passes are explicitly out of scope: instead print a clear README section explaining exactly what a real .pkpass would require (Apple Developer account, Pass Type ID certificate, pass web service, APNs) and leave a src/wallet/README.md stub describing where that code would plug in\n- Include a README with setup, a single npm run dev command, and instructions for exposing the server over a tunnel so phone links work",
+  "promptCurated": false
+}
