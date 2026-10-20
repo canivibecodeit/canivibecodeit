@@ -1,0 +1,52 @@
+{
+  "slug": "getrender",
+  "name": "GetRender",
+  "domain": "getrender.ai",
+  "category": "ai-image",
+  "subcategory": "architectural rendering",
+  "tagline": "Turns architectural sketches, CAD views and massing models into photorealistic renders with AI.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getrender.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core loop here is image-to-image conditioned on structure: take a line drawing or clay render, keep the geometry, hallucinate materials, light and landscaping. That is a solved pattern with a depth or canny ControlNet on top of an open base model, and an agent can wire the whole pipeline plus a drop-zone UI in a weekend. What you will not match quickly is the tuning: hosted architectural renderers have been fed a lot of interior and exterior imagery and their prompt presets quietly encode what a decent render looks like, so your first outputs will have melted window mullions and furniture that defies gravity. You also inherit the GPU problem, either a 16GB+ card sitting idle or a hosted inference bill. Good enough for your own concept boards, not good enough to hand a client without a long afternoon of prompt and strength tuning.",
+  "coreLoopDIY": "A local web app where you drop a sketch or SketchUp screenshot, pick an exterior or interior preset, and get structure-preserving photoreal variants back from a ControlNet pipeline.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with 16GB+ VRAM, or a hosted inference API key in .env",
+    "Python 3.11 and roughly 20GB of disk for model weights",
+    "A Hugging Face token for gated base model weights",
+    "Patience for tuning ControlNet strength per drawing style"
+  ],
+  "whatYouLose": [
+    "Models tuned specifically on architectural and interior imagery, so fewer geometry artifacts out of the box",
+    "Curated style presets that already know what \"Scandinavian interior, overcast afternoon\" should look like",
+    "Built-in upscaling to print or presentation resolution without a second pipeline",
+    "Fast turnaround from a phone or a laptop with no GPU",
+    "Client-facing sharing, versioning and anything resembling a project folder"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The fine-tune and the preset library are the product. The base diffusion tech is commodity and has been for a while.",
+  "whyPeopleStillPay": "Architects and interior designers are paying to skip a GPU, a weights directory and an evening of guessing at conditioning strength. The value is that a bad render is worthless, and tuned models plus hand-tested presets raise the floor so the fifth output is usable instead of the fiftieth. A practice billing by the hour will not self-host this, and the people who would enjoy self-hosting it were never the customer.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline is a weekend, the taste baked into the presets is not. Budget your time for prompt tuning, not for code.",
+  "prompt": "Build a local, single-user web app called \"renderbench\" that turns architectural sketches and clay renders into photorealistic images while preserving geometry.\n\nStack, no substitutions:\n- Python 3.11, FastAPI backend, Uvicorn.\n- Hugging Face diffusers for inference: SDXL base plus a depth ControlNet, with canny ControlNet as a selectable second mode.\n- Depth maps generated locally with Depth-Anything-V2 small.\n- Frontend: one server-rendered HTML page with vanilla JS and plain CSS. No React, no build step.\n- SQLite via sqlite3 for job history. Files on disk under ./data.\n\nIn scope:\n- Drag-and-drop upload of PNG or JPG (sketch, CAD export, SketchUp screenshot).\n- Mode selector: exterior or interior. Each mode is a hardcoded prompt preset in presets.py with positive prompt, negative prompt, ControlNet conditioning scale and a sensible step count. Keep presets editable in one file.\n- Free-text prompt box appended to the preset prompt.\n- Sliders for conditioning scale (0.3 to 1.2) and denoise strength, with the preset value as default.\n- Generate 4 variants per run with different seeds, show them in a grid, click to open full size.\n- Job history page listing past runs with thumbnail, prompt, seed and settings, so a good result is reproducible.\n- Optional Real-ESRGAN 2x upscale button per image.\n- If RENDER_API_KEY and RENDER_API_URL are set in .env, route generation to that hosted endpoint instead of local weights. Otherwise run locally. Detect CUDA and fail loudly with a readable message if there is no GPU and no API key.\n\nOut of scope, do not build: user accounts, auth, cloud storage, telemetry, analytics, payment, sharing links, mobile app, 3D file parsing of any kind (images in, images out).\n\nDeliverables: requirements.txt, .env.example with HF_TOKEN, RENDER_API_KEY, RENDER_API_URL, a README with exact setup commands, approximate weight download size and first-run time, and three sample presets. Secrets only from .env, never hardcoded. Include a short README section on tuning conditioning scale per drawing style, because defaults will be wrong for hand sketches.",
+  "promptCurated": false
+}
