@@ -1,0 +1,52 @@
+{
+  "slug": "mixstudio",
+  "name": "MixStudio",
+  "domain": "mixstudio.ai",
+  "category": "ai-audio",
+  "subcategory": "AI mixing and mastering",
+  "tagline": "Browser based AI tool that mixes and masters audio tracks without an engineer.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://mixstudio.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A large chunk of what AI mastering tools sell is reference matching: analyze a track you like, nudge EQ curves and loudness to match, hand back a louder, flatter file. That part is genuinely solvable in a weekend with matchering, pedalboard and ffmpeg, locally, no subscription. The part that does not fall out of a one-shot build is multitrack mixing judgment: deciding that the vocal sits 2 dB too low, that the snare needs 4 kHz, that the bass and kick are fighting. That requires either a trained model on a lot of labeled mixes or an actual pair of ears, and a coding agent supplies neither. Build the mastering half, keep a reference track handy, accept that the mixing half is still you.",
+  "coreLoopDIY": "Drop in a WAV, pick a commercial reference track, and get back a loudness and spectrum matched master plus a short report of what it changed.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 with matchering, pedalboard and soundfile",
+    "ffmpeg on PATH",
+    "Reference tracks you own, in lossless format",
+    "Enough CPU patience for Demucs if you want stem separation"
+  ],
+  "whatYouLose": [
+    "Actual mix decisions across stems, not just final bus processing",
+    "Whatever proprietary model they trained, which no local library reproduces",
+    "Genre presets tuned by people who do this for a living",
+    "One click sharing, revisions and browser playback from a phone",
+    "A second opinion that is not your own tired ears at 1am"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "Reference matching is a solved open source problem. Mix intelligence is the bit that needs a dataset of before and after multitracks, which nobody hands out.",
+  "whyPeopleStillPay": "Because most people buying AI mastering are not trying to learn signal processing, they are trying to get a track off their laptop and onto a platform tonight. A paid tool gives a plausible answer in ninety seconds with no Python environment, no sample rate arguments, and no reading about true peak limiting. The local build matches that for mastering if you already have reference tracks and tolerance for CLI work, which is a narrower group than it sounds.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The mastering chain is a weekend; the mix engineer is not.",
+  "prompt": "Build a local audio mastering tool called refmaster. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, uv for dependency management\n- matchering for reference based matching\n- pedalboard (Spotify) for the final limiter and optional gentle EQ\n- soundfile and numpy for IO and analysis\n- ffmpeg shelled out for format conversion only\n- Typer for the CLI, plus a tiny FastAPI + vanilla HTML page for drag and drop\n\nWhat it does:\n1. `refmaster master input.wav --ref reference.wav --out mastered.wav`\n2. Converts any input (mp3, m4a, flac, aiff) to 44.1k or 48k float WAV via ffmpeg, preserving the source rate when it is already standard.\n3. Runs matchering to match the spectral curve and loudness of the reference.\n4. Applies a pedalboard chain afterward: high pass at 25 Hz, true peak limiter targeting -1.0 dBTP, nothing clever.\n5. Measures integrated LUFS, true peak and crest factor before and after, and prints a plain text report of what changed, including the biggest EQ deltas by octave band.\n6. Writes mastered.wav plus mastered_report.txt next to the output.\n\nAlso build:\n- `refmaster compare a.wav b.wav` which prints LUFS, peak and band energy for both, loudness normalized, so A/B is honest.\n- A `refs/` folder convention, and `refmaster refs` to list indexed reference tracks with their measured LUFS.\n- `refmaster serve` on localhost:8787: drag input, pick a reference from refs/, download result. One HTML file, no build step, no npm.\n\nOut of scope, do not build: stem separation, multitrack mixing, genre presets, any model training, user auth, any network call other than localhost.\n\nSecrets: none needed. If you add any config, read it from .env via python-dotenv and commit a .env.example.\n\nDeliver a README with install steps, one worked example command, and an explicit note that this masters a stereo bus and does not mix a session.",
+  "promptCurated": false
+}
