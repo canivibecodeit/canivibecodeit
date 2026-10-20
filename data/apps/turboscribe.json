@@ -1,0 +1,51 @@
+{
+  "slug": "turboscribe",
+  "name": "TurboScribe",
+  "domain": "turboscribe.ai",
+  "category": "audio-video",
+  "subcategory": "transcription",
+  "tagline": "Bulk audio and video transcription with subtitle exports and an unlimited plan.",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "Unlimited",
+    "basis": "monthly, flat",
+    "unit": "flat",
+    "source": "https://turboscribe.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Transcription stopped being a hard problem the day Whisper shipped with open weights, and most of this category is a queue, a progress bar and an export menu wrapped around someone else's model. A local build with faster-whisper or whisper.cpp gets you the same text, the same SRT and VTT files, and no per-file limits, because the limit becomes your own hardware. The real differences are speed on a CPU-only laptop, speaker diarization that does not embarrass itself, and the fact that you now babysit a job queue. If you transcribe a handful of files a week and own a machine that can idle overnight, the hosted version is paying for convenience and a GPU you do not have. If you dump fifty hours a week into it, rent the GPU instead of buying the subscription.",
+  "coreLoopDIY": "Drop audio or video files into a local web queue, transcribe them with a Whisper model on your own machine, and export txt, srt, vtt and json with timestamps.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 and ffmpeg installed locally",
+    "A machine with at least 8GB RAM; a GPU makes large models usable",
+    "Disk space for model weights, roughly 1 to 3GB per model size"
+  ],
+  "whatYouLose": [
+    "Speaker diarization that actually works out of the box, which is a separate and fussier model stack",
+    "Fast turnaround on long files without a GPU: an hour of audio on CPU can take longer than the audio itself",
+    "A polished editor for fixing transcripts while listening, with synced playback and word-level cursoring",
+    "Mobile and browser access from anywhere, since your queue lives on one machine",
+    "Dozens of output formats, translation and the long tail of codec edge cases they have already hit"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat is a GPU fleet that makes a 90 minute file finish in two minutes, plus an editor that is nicer than anything you will build in an afternoon. Neither is the model.",
+  "whyPeopleStillPay": "Because waiting is the product. People pay so a two hour interview comes back before they have finished their coffee, on any device, without thinking about model sizes, ffmpeg flags or whether their laptop fan is about to take off. The unlimited framing also removes the per-minute arithmetic that haunts usage-priced competitors, which matters more to buyers than accuracy does. And the editing view, with playback synced to text, is where most of the actual polish lives.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The model is free, the waiting is what you are buying back.",
+  "prompt": "Build a local transcription workbench. No accounts, no cloud, no telemetry. Everything runs on this machine.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, Uvicorn\n- faster-whisper for inference (CTranslate2 backend)\n- SQLite via plain sqlite3 for the job queue\n- ffmpeg shelled out for audio extraction and normalization\n- Frontend: one server-rendered Jinja2 page plus vanilla JS. No React, no build step.\n\nWhat it does:\n1. A single page at / with a drag and drop zone accepting audio and video files, multi select allowed.\n2. Uploaded files land in ./media and get a row in a jobs table: id, filename, status (queued, running, done, failed), model, language, duration, created_at, error.\n3. A background worker thread pulls queued jobs one at a time. For each: ffmpeg converts to 16kHz mono wav in ./work, then faster-whisper transcribes with word level timestamps.\n4. Results write to ./out/{id}/ as transcript.txt, transcript.srt, transcript.vtt and transcript.json (segments with start, end, text, and words).\n5. The page polls /api/jobs every 2 seconds and shows a table with per job status, elapsed time and download links for each format.\n6. A detail page at /jobs/{id} shows the transcript segments next to an HTML5 audio or video player. Clicking a segment seeks the player. Editing a segment's text saves back to the json and regenerates txt, srt and vtt.\n\nConfig in .env: WHISPER_MODEL (default small), WHISPER_DEVICE (cpu or cuda), WHISPER_COMPUTE_TYPE (default int8), MAX_UPLOAD_MB. Read it with python-dotenv. Commit .env.example, gitignore .env.\n\nExplicitly out of scope: speaker diarization, translation, user auth, hosted deployment, any paid API.\n\nDeliver: requirements.txt, app.py, worker.py, templates/, static/, schema.sql, and a README with install steps, an ffmpeg note, model size guidance with rough speed expectations per device, and one example run. Seed nothing. It should work on a cold clone with python -m uvicorn app:app after pip install.",
+  "promptCurated": false
+}
