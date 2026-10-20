@@ -1,0 +1,52 @@
+{
+  "slug": "songscene",
+  "name": "SongScene",
+  "domain": "songscene.ai",
+  "category": "ai-video",
+  "subcategory": "music video generation",
+  "tagline": "AI tool that turns a song into generated video scenes, lyric visuals and shareable music clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://songscene.ai/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Generative video products in this bracket usually meter by render credits, so assume usage pricing until confirmed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline here is not mysterious: transcribe the vocals, split the lyrics into timed chunks, generate a visual per chunk, cut it to the beat, mux it back against the original audio. An agent can wire that whole chain in a weekend using Whisper, a beat detector and ffmpeg, and for a lyric video or a beat-synced slideshow the result is genuinely fine. What it cannot do is produce the actual moving footage, that part is someone else's video model and you are renting it by the second either way. So you get the orchestration for free and keep paying for the generation, which is the expensive half. Worth building if you want control over timing, prompts and editing; not worth building if you mainly wanted the pretty renders.",
+  "coreLoopDIY": "Takes an audio file, transcribes and time-aligns the lyrics, generates one visual per lyric segment via an image or video API, and assembles a beat-cut video with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for an image or video generation model, in .env",
+    "ffmpeg installed locally",
+    "Whisper (local via faster-whisper, or an API key)",
+    "A machine with enough disk for intermediate frames, renders get large fast"
+  ],
+  "whatYouLose": [
+    "Motion quality: a local build mostly gives you stills with Ken Burns pans, not coherent generated motion",
+    "Style consistency across shots, which is the hard unsolved part and the thing these products tune hardest",
+    "Render farm throughput, your 4 minute song becomes a long evening of sequential API calls",
+    "Preset looks and templates that make output land somewhere between amateur and watchable",
+    "Any kind of in-browser editor for nudging a scene you hate without re-rendering everything"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The orchestration layer is commodity. The defensibility, such as it is, lives in prompt and style tuning on top of a rented video model, which is a thin and expiring advantage.",
+  "whyPeopleStillPay": "Because the gap between a beat-synced lyric slideshow and something that looks like a music video is almost entirely craft, and craft here means thousands of hours of prompt tuning, reference conditioning and shot-to-shot consistency work that nobody wants to redo for one album. Paying also converts a weekend of ffmpeg flag archaeology and a sequential render queue into a progress bar. If you make one video a year, pay. If you are generating visuals for every demo you record, owning the pipeline starts to pay off in control, not just cost.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scheduling and cutting is yours; the pixels are rented. Budget for the API bill, not the build time.",
+  "prompt": "Build a local CLI tool called songscene-diy that turns an audio file into a beat-synced generated music video.\n\nStack: Python 3.11, uv for dependency management, faster-whisper for transcription, librosa for beat and onset detection, Pillow for frame composition, ffmpeg via subprocess for assembly. Single package, no web UI, no server, no accounts, no telemetry.\n\nCommand: `songscene build song.mp3 --style \"grainy 90s film, neon city\" --out video.mp4`\n\nPipeline:\n1. Transcribe the audio with faster-whisper at word timestamps. Cache the JSON next to the input so reruns are free.\n2. Group words into lyric segments of roughly 4 to 10 words, breaking on pauses longer than 600ms.\n3. Run librosa beat tracking to get a beat grid and the estimated tempo. Snap every segment boundary to the nearest beat.\n4. For each segment, build an image prompt from the segment text plus the global --style string plus a fixed style suffix so shots stay visually related. Call an image generation API (read IMAGE_API_KEY and IMAGE_API_URL from .env, use a single provider, do not build a provider abstraction layer). Write images to .cache/ keyed by a hash of the prompt so reruns do not re-bill.\n5. For each image, render a clip of the segment's exact duration with a slow ffmpeg zoompan move, alternating direction per shot.\n6. Optionally burn in the lyric text with drawtext, controlled by --lyrics on|off, default on. Bottom third, white text, subtle shadow.\n7. Concatenate all clips, mux with the original audio stream, write to --out. Hard cut between shots on beats; no crossfades.\n\nAlso include:\n- `songscene plan song.mp3` which prints the segment table (start, end, text, prompt) and estimated image count without calling any API.\n- A --dry-run flag that generates solid color placeholder frames instead of API calls so the whole pipeline is testable for free.\n- Resume behavior: if a run dies, rerunning reuses every cached image and frame.\n\nOut of scope, do not build: generated video motion, face or character consistency, a GUI, upload or sharing features, music source separation, stem analysis beyond beats.\n\nWrite a README that states plainly that output is beat-cut stills with camera moves, not generated motion footage, and that the image API is the only cost.",
+  "promptCurated": false
+}
