@@ -1,0 +1,51 @@
+{
+  "slug": "burning-bridges-ai-video-generator",
+  "name": "Burning Bridges AI Video Generator",
+  "domain": "burningbridgesaitrend.com",
+  "category": "ai-video",
+  "subcategory": "single-template photo to video",
+  "tagline": "Unofficial web tool that drops one uploaded photo into a 12 second vertical chandelier-party clip.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://burningbridgesaitrend.com/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a landing page, an upload box, and one hardcoded prompt pointed at somebody else's image-to-video model. An agent can rebuild the whole loop in an evening: file input, fixed prompt template, 9:16 output, ffmpeg to stitch or trim to 12 seconds. What it cannot rebuild is the model doing the actual work, so you swap a one-time pack for a metered API key and your own failed-generation costs. The tuned prompt is also real work, nobody hands you the exact wording that makes the chandelier scene land, and your first ten attempts will look like generic AI slop. Worth building if you want more than a handful of clips or want to change the scene; not worth it if you want exactly one video of exactly this trend.",
+  "coreLoopDIY": "A local page where you upload a photo, it fires a fixed image-to-video prompt at a hosted video model, retries on failure, and saves a 12 second vertical MP4 to disk.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and ffmpeg installed locally",
+    "An API key with credits at a hosted video model provider (fal.ai, Replicate, or similar)",
+    "Willingness to burn money on failed generations while tuning the prompt",
+    "Patience for 1 to 5 minute render queues"
+  ],
+  "whatYouLose": [
+    "The tuned prompt and reference conditioning that makes the clip look like the trend instead of generic AI footage",
+    "Free retries when a generation comes out mangled; your retries cost real credits",
+    "Someone else eating the queue, the GPU cold starts, and the provider outages",
+    "A mobile-friendly flow you can hand to a friend without explaining environment variables",
+    "Any pretense of a moderation or likeness-safety layer, which matters more than it sounds when you are feeding it other people's faces"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is rented, not owned. They are reselling access to a video model plus a prompt they tuned, which is a real but short-lived advantage: it lasts exactly as long as the trend does.",
+  "whyPeopleStillPay": "Because the alternative is signing up for a model provider, finding the right endpoint, learning what image-to-video conditioning wants, and spending more than the pack price discovering that your prompt makes everyone look waxy. For one clip, a one-time payment and no account is simply the cheaper path. People paying here are not buying software, they are buying a tuned prompt and someone else's GPU bill, delivered in two minutes from a phone.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Trend wrappers like this are the most honest business on the internet: one prompt, one template, priced per shot, gone in six weeks.",
+  "prompt": "Build a local single-purpose web tool that turns one uploaded photo into a 12 second vertical AI video clip.\n\nStack, non-negotiable: Node 20, Express, plain HTML and vanilla JS in a /public folder, no framework, no build step. ffmpeg called via child_process. No database, no accounts, no telemetry, no cloud deploy.\n\nVideo generation: use fal.ai as the provider. Read FAL_KEY from .env via dotenv. Put the model id in a MODEL env var with a sensible image-to-video default so I can swap models without touching code. Ship a .env.example and never log the key.\n\nFlow:\n1. GET / serves a single page: one file input (jpg/png, max 10MB), a textarea prefilled with an editable scene prompt, a Generate button, a status line, and a video player.\n2. POST /generate accepts the image, writes it to ./tmp, submits an image-to-video job at 9:16 aspect ratio, and returns a job id immediately.\n3. GET /status/:id polls the provider and reports queued / running / done / failed with the provider error string passed through verbatim.\n4. On success, download the MP4 to ./out/{timestamp}.mp4.\n5. If the model's max duration is shorter than 12 seconds, generate two segments (second segment conditioned on the last frame of the first, extracted with ffmpeg) and concat them. Then hard-trim the result to exactly 12.0 seconds and normalize to 1080x1920, 30fps, yuv420p.\n6. Auto-retry a failed job up to 2 times, then stop and show the error.\n\nAlso: GET /gallery lists everything in ./out with inline players and a delete button. Store the prompt used alongside each clip in a sibling .json file.\n\nOut of scope, do not build: auth, payments, hosting, rate limits, queues beyond in-memory, face swapping, upscaling, watermark removal.\n\nFinish with a README covering install, ffmpeg requirement, where to get a fal key, roughly what one generation costs, and a plain warning that generating video of real people's faces is on me legally.",
+  "promptCurated": false
+}
