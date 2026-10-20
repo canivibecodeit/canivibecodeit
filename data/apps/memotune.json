@@ -1,0 +1,51 @@
+{
+  "slug": "memotune",
+  "name": "MemoTune",
+  "domain": "memotune.com",
+  "category": "ai-audio",
+  "subcategory": "AI song generation",
+  "tagline": "Browser-based AI song generator that turns a text prompt or lyrics into a finished track.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://memotune.com/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app is a thin web shell around a music generation model, and the shell is the easy part. A coding agent can absolutely build you an upload form, a prompt box, a library of past generations and a waveform player in an afternoon. What it cannot build is a model that produces coherent singing over a mixed instrumental, because that takes a very large licensed music corpus, a lot of training compute and lawyers who have opinions about both. The open weights you can run locally, MusicGen and friends, do instrumental loops fine and vocals badly, which is exactly the part most people are paying for. You can rent a comparable model by the second from an inference host, but then you have rebuilt the product with someone else's moat holding it up.",
+  "coreLoopDIY": "A local web app where you type a style prompt and optional lyrics, send it to a hosted or local music model, and keep every result in a browsable library with playback and download.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An inference API key (Replicate or similar) or a GPU with enough VRAM to run MusicGen locally",
+    "Node 20+ and a few GB of disk for generated audio",
+    "Patience for 30 to 90 second generation times"
+  ],
+  "whatYouLose": [
+    "Singing. Open and rentable models give you instrumentals and mush where the vocal should be.",
+    "Mix quality: the hosted product masters its output, your raw model dump will sound thin.",
+    "Structure control, verse, chorus, bridge, instead of one undifferentiated 30 second clip.",
+    "Any defensible answer to \"am I allowed to use this commercially\", which hosted vendors at least put in writing.",
+    "Stems, extensions, regenerate-this-section and the other editing affordances that take months to get right."
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "content-rights",
+    "scale-infra"
+  ],
+  "moatNotes": "Music generation is one of the few AI categories where the training data itself is a legal artifact, not just a technical one.",
+  "whyPeopleStillPay": "Because the thing being sold is a model that sings, and nobody is giving that away. People paying for AI song tools are mostly buying the gap between a prompt and something that sounds like a real track: the vocals, the mastering, the song structure that holds for two minutes instead of thirty seconds. A self-hosted MusicGen gets you atmospheric instrumental beds, which is a different product with a different use case. The cost per song is also low enough that building your own pipeline to save money is a losing trade unless you are generating thousands.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is a weekend; the voice is not. The moat is a licensed music corpus and a trained vocal model, neither of which ships as a npm package.",
+  "prompt": "Build a local-only AI music sketchpad called \"Hum\". Stack: Next.js 14 App Router, TypeScript, Tailwind, SQLite via better-sqlite3. No auth, no accounts, no telemetry, no cloud storage. Single user, runs on localhost.\n\nCore flow:\n1. A prompt page with a textarea for a style description (e.g. \"slow lo-fi piano, rain, 70bpm\"), a duration slider from 8 to 30 seconds, and an optional seed field.\n2. On submit, POST to /api/generate, which calls the Replicate HTTP API for the meta/musicgen model using REPLICATE_API_TOKEN from .env.local. Poll until the prediction completes.\n3. Download the resulting audio to ./data/audio/{id}.wav and insert a row into a generations table: id, prompt, duration, seed, model, created_at, file_path, favorite.\n4. The library page lists every generation newest first, with an HTML5 audio player per row, a star toggle for favorite, a download link, and a \"remix\" button that preloads the prompt back into the form.\n\nAlso build:\n- A tag system: free text tags per generation, stored in a tags table, filterable in the library.\n- A /api/generate failure path that saves the error message to the row instead of silently dropping it, since inference calls time out often.\n- A tiny queue so two clicks do not fire two paid predictions at once: one in-flight generation at a time, with a visible spinner and elapsed timer.\n\nExplicitly out of scope: vocals, lyrics-to-song, stems, multitrack editing, mastering, sharing, mobile. This tool makes instrumental loops and keeps them organized. Do not pretend otherwise in the UI copy.\n\nDeliverables: a working app after `npm install && npm run dev`, a .env.example listing REPLICATE_API_TOKEN, a migration that creates the SQLite schema on first boot, and a README that states plainly that generation costs money per call and that the model does not sing.",
+  "promptCurated": false
+}
