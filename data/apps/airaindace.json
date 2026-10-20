@@ -1,0 +1,50 @@
+{
+  "slug": "airaindace",
+  "name": "AI Raindance",
+  "domain": "airaindance.online",
+  "category": "ai-video",
+  "subcategory": "photo-to-video effect generator",
+  "tagline": "Browser tool that turns a still photo into a short rain-dance style AI video, with an English and Chinese interface.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://airaindance.online/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product here is a thin, pleasant front end over a hosted image-to-video model, plus one pre-tuned effect prompt and a language toggle. An agent can rebuild the whole shell in a sitting: upload a photo, send it to a video model endpoint, poll the job, show the clip, let you download it. What it cannot rebuild is the model itself, so your clone is a client for someone's API and you pay per generation instead of per credit pack. That is the real gap: the economics barely change, you just move the markup around and inherit the queue failures yourself. Worth building if you want to run twenty variations of the prompt without watching a credit counter, otherwise this is a few dollars of curiosity.",
+  "coreLoopDIY": "Upload a photo, pick a preset effect prompt, fire it at a hosted image-to-video endpoint, poll until the clip is ready, and keep the results in a local gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted image-to-video model (fal, Replicate, or similar)",
+    "A credit card on that provider, since generations are billed per second of output",
+    "Node 20 and a local disk for cached clips"
+  ],
+  "whatYouLose": [
+    "Someone else absorbing failed and ugly generations instead of you paying for every retry",
+    "A prompt that has already been tuned for the specific effect, which is most of the perceived quality",
+    "Bilingual copy and a mobile layout that someone already fought with",
+    "Shareable hosted links you can send to people who do not run dev servers",
+    "Provider abstraction: if the upstream model is deprecated, your clone breaks and you fix it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The effect prompt and the queue are the product. Neither is defensible, but both are annoying enough that most people will pay rather than copy.",
+  "whyPeopleStillPay": "Because the alternative is signing up for a model provider, reading billing docs, and discovering that half of your generations look like melted clay. A trend tool like this sells the one prompt that reliably works plus the willingness to eat the bad outputs, and for a one-off novelty clip that is genuinely cheaper than your own time. The moment you want ten of these per week with your own tweaks, the math flips and the wrapper stops earning its cut.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A wrapper you can rebuild before dinner, over a model you cannot rebuild at all.",
+  "prompt": "Build a local-only photo-to-video playground. No accounts, no telemetry, no hosted backend of your own.\n\nStack, non-negotiable: Next.js 15 App Router, TypeScript, Tailwind, SQLite via better-sqlite3. Everything runs with `npm run dev`.\n\nModel provider: fal.ai image-to-video. Read FAL_KEY from .env.local, never hardcode it, and fail loudly with a readable message if it is missing. Put all provider calls behind a single src/lib/video-provider.ts with a `generate(imagePath, prompt, durationSeconds)` function so the model can be swapped later.\n\nFlow:\n1. Single page with a drag-and-drop photo upload. Accept jpg, png, webp. Store originals in ./storage/uploads with a uuid filename.\n2. A preset picker with 3 hardcoded effect prompts (write them yourself, one of them a rain-dance style motion prompt) plus a free-text override box.\n3. Submit creates a row in a `jobs` table: id, image_path, prompt, status, provider_job_id, output_path, error, created_at.\n4. A server-side poller route checks pending jobs against the provider, downloads finished mp4s into ./storage/outputs, and updates status.\n5. The client polls /api/jobs every 3 seconds and renders a gallery of cards: thumbnail, status badge, inline video player, download button, delete button.\n\nUI: English and Chinese via a simple dictionary in src/lib/i18n.ts and a header toggle persisted in localStorage. Do not pull in a translation framework.\n\nIn scope: cost display per job using the provider's per-second rate as a constant in .env.local, retry button on failed jobs, a hard cap of 3 concurrent generations.\n\nOut of scope: auth, payments, cloud deploy, video editing, trimming, watermarking, social sharing.\n\nDeliver a README with the exact .env.local keys, where the clips land on disk, and one blunt sentence on what each generation actually costs.",
+  "promptCurated": false
+}
