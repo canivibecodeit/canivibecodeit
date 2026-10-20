@@ -1,0 +1,52 @@
+{
+  "slug": "fusion360",
+  "name": "Fusion 360",
+  "domain": "autodesk.com",
+  "category": "design",
+  "subcategory": "parametric CAD / CAM",
+  "tagline": "Autodesk's cloud-connected CAD, CAM, and simulation suite for mechanical design and manufacturing.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Fusion subscription",
+    "basis": "annual or monthly per user",
+    "unit": "per-seat",
+    "source": "https://www.autodesk.com/br/products/fusion-360/overview?term=1-YEAR&tab=subscription&mktvar002=afc_br_nmpi_ppc&AID=12904993&PID=8299320&gclsrc=aw.ds&&cjevent=CjwKCAjwotzWBhBFEiwA1JhPoHtk34BOEr3S4q3oMF--hLkIFig2pwUB3JHviRZK73KB0eKYmco1IBoCTUYQAvD_BwE&click_id=CjwKCAjwotzWBhBFEiwA1JhPoHtk34BOEr3S4q3o",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Autodesk sells monthly, annual, and multi-year terms, plus a free personal-use tier with feature limits.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "Fusion 360 sits on a geometry kernel, a sketch constraint solver, an assembly engine, CAM toolpath generation, and an FEA solver, each of which is a multi-decade engineering effort on its own. An agent can absolutely write you a parametric modeling script that spits out a watertight STL, because open kernels like OpenCascade exist and are scriptable. What it cannot produce in a session is interactive direct editing, a solver that keeps 200 sketch constraints consistent while you drag a line, or post processors that your specific machine will not crash on. There is also the boring part that matters most: when a model goes to a shop, the shop wants STEP files from software they trust. The honest consolation is code-CAD, which a lot of engineers prefer anyway for repeatable parts.",
+  "coreLoopDIY": "A local script-driven parametric modeler: edit a Python file describing a part, see it re-render in a browser viewer on save, export STEP and STL.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Python 3.11+",
+    "build123d or CadQuery (OpenCascade bindings, large install)",
+    "a modern browser for the three.js viewer",
+    "willingness to describe geometry in code instead of dragging it"
+  ],
+  "whatYouLose": [
+    "Interactive GUI modeling and direct edit: everything becomes typing coordinates and parameters",
+    "The sketch constraint solver, so no tangency, symmetry, or dimension-driven dragging",
+    "Assemblies, joints, motion study, and interference checks",
+    "CAM: toolpath strategies, simulation, and tested post processors for real machines",
+    "Simulation, drawings, GD&T, cloud version history, and anything a manufacturing partner expects to receive"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The kernel and constraint solver are the product. Everything around them, cloud storage and the included CAM, exists to make leaving expensive.",
+  "whyPeopleStillPay": "Because the output has to survive contact with a machine shop or a printer, and Fusion's files do. A hobbyist designing brackets can live entirely in code-CAD and many do, happily, with git history and parametric reuse that Fusion handles worse. But the moment you need a toolpath that will not snap a 2mm end mill, an assembly with 80 fasteners that updates when one hole moves, or a dimensioned drawing a supplier will quote from, you are paying for forty years of accumulated edge cases in boolean operations and fillet failures. The free personal tier also removes most of the pressure to replace it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Code-CAD is a genuinely good weekend build and sometimes the better tool. The moat is the geometry kernel, the constraint solver, and the CAM post processors that shops already trust.",
+  "prompt": "Build a local code-CAD workbench: a parametric part modeler driven by Python files, with a live browser viewer. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, build123d for geometry (OpenCascade under the hood)\n- FastAPI backend, uvicorn, watchfiles for file watching\n- Plain HTML plus three.js from a CDN for the viewer, no build step, no framework\n- uv or pip with a requirements.txt, whichever you set up cleanly\n\nWhat it does:\n1. A parts/ directory holds .py files. Each file defines a function build(params: dict) that returns a build123d Part or Compound, plus a PARAMS dict of named defaults with min/max.\n2. On save, the backend re-executes the changed part in a subprocess with a 20 second timeout, tessellates the result to a mesh, and pushes it to the browser over a websocket. Crash in user code must not kill the server: capture the traceback and show it in the UI.\n3. The browser shows the mesh with orbit controls, a ground grid, flat shading plus visible edges, and a sidebar with sliders and number inputs generated from PARAMS. Changing a slider re-runs the build.\n4. Export buttons: STEP, STL, and 3MF, written to exports/ with the part name and parameter hash in the filename.\n5. A measurement panel showing bounding box, volume, and mass given a density input.\n6. Ship three example parts in parts/: a parametric mounting bracket, a cable clip, and an enclosure with lid, each using named parameters.\n\nExplicitly out of scope, do not attempt: interactive sketching, a constraint solver, mouse-based geometry editing, assemblies with joints, CAM or toolpaths, FEA, 2D drawings, multi-user anything.\n\nConstraints: single `make dev` or `uv run app.py` command to start, binds to 127.0.0.1 only, any config in .env, no network calls at runtime beyond the three.js CDN tag. Write a README that states plainly this is a script-driven modeler and not a replacement for interactive CAD.",
+  "promptCurated": false
+}
