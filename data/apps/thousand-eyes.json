@@ -1,0 +1,51 @@
+{
+  "slug": "thousand-eyes",
+  "name": "ThousandEyes",
+  "domain": "thousandeyes.com",
+  "category": "monitoring",
+  "subcategory": "network path and internet visibility",
+  "tagline": "Network and internet intelligence platform that traces application paths hop by hop across the public internet, including BGP and ISP-level outages.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.thousandeyes.com/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. ThousandEyes is quote-based enterprise pricing tied to agent and test counts, no public list price.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build a thing that pings a URL, runs traceroute, and draws the hops on a page. That is not what ThousandEyes sells. It sells a globally distributed fleet of vantage points plus years of BGP and internet routing telemetry, so when your app gets slow it can tell you it is a specific transit provider in Frankfurt and not your code. A one-shot build sees the internet from exactly one place: wherever you ran it. The gap between one vantage point and a few thousand is not a coding problem, it is a procurement and peering problem.",
+  "coreLoopDIY": "Runs scheduled HTTP checks plus traceroute from your own machines, stores the hop-by-hop latency history in SQLite, and renders a path view with alerts when latency or hop topology changes.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine (or a few cheap VPSes in different regions) that can run traceroute or mtr",
+    "Root or CAP_NET_RAW for ICMP probes",
+    "Optional: an API token for a public BGP feed if you want routing context"
+  ],
+  "whatYouLose": [
+    "Global vantage points: you see the internet from your boxes, not from 190 countries and dozens of ISPs",
+    "BGP and route-leak visibility built on years of collected routing data",
+    "Internet outage correlation, the thing that tells you the problem is Cloudflare or Level3 and not you",
+    "Enterprise agents inside branch offices, cloud regions, and on employee laptops",
+    "Vendor-grade reporting and escalation evidence you can hand to your own upstream provider"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "integrations"
+  ],
+  "moatNotes": "The product is a measurement network. The software on top is almost incidental, which is why competitors copy the UI and not the coverage.",
+  "whyPeopleStillPay": "Because when a bank's trading app is slow for customers in Singapore, nobody wants a theory, they want a traceroute from Singapore taken thirty seconds ago and a routing table diff that names the carrier. Enterprises pay ThousandEyes so that the finger pointing with their ISP, their CDN, and their SaaS vendors ends in under an hour instead of a week. That value is entirely downstream of owning vantage points you cannot rent and historical routing data you cannot retroactively collect.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A personal path monitor is a weekend build and genuinely useful for one app from one place. The moat is a planet-scale measurement fleet plus the routing history it has already collected, neither of which you can start collecting retroactively.",
+  "prompt": "Build a self-hosted single-vantage-point network path monitor. Stack: Python 3.12, FastAPI, SQLite via sqlite3 (no ORM), APScheduler for the loop, and server-rendered Jinja2 templates with a little vanilla JS. No frontend framework, no accounts, no cloud, no telemetry.\n\nWhat it does:\n1. Reads a targets.yaml file: a list of targets, each with name, url, optional hostname, and check interval in seconds.\n2. Every interval, for each target: run an HTTP GET with httpx and record status code, DNS time, connect time, TLS time, and total time. Separately run a hop-by-hop probe using the system `mtr --json -c 5` if available, falling back to parsing `traceroute -n`. Store every hop with its index, IP, reverse DNS (cached), and median RTT.\n3. Persist to SQLite: tables `checks` (target, ts, status, timings_json, error) and `hops` (check_id, idx, ip, rdns, rtt_ms). Keep raw rows for 30 days, then roll up to hourly medians.\n4. Detect and store path changes: if the ordered hop IP list for a target differs from the previous successful probe, write a row to `path_changes` with a before/after diff.\n5. Alerts: a simple rules file with thresholds for total response time, consecutive failures, and path change. Fire to a webhook URL from .env (WEBHOOK_URL). Debounce so one incident does not spam.\n\nUI at /: one card per target with current status, a 24 hour sparkline of total response time rendered as inline SVG from the server, and a hop table showing the latest path with per-hop median RTT. A /target/{name} page shows the full timing breakdown chart, the last 50 checks, and a chronological list of path changes with diffs.\n\nExplicitly out of scope, do not attempt: distributed agents, BGP or routing-table analysis, internet-wide outage correlation, multi-region probing, maps, user auth, multi-tenancy.\n\nShip: pyproject.toml, a Dockerfile that installs mtr-tiny and runs with NET_RAW, a sample targets.yaml, .env.example with WEBHOOK_URL, and a README that says plainly this measures the internet from one machine and that hop RTTs from ICMP are indicative, not authoritative. Include a `--once` CLI flag to run a single pass for debugging.",
+  "promptCurated": false
+}
