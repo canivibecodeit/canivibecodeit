@@ -1,0 +1,51 @@
+{
+  "slug": "tiiny-host",
+  "name": "tiiny.host",
+  "domain": "tiiny.host",
+  "category": "hosting",
+  "subcategory": "drag-and-drop static hosting",
+  "tagline": "Drag a zip or HTML file in, get a live URL on a subdomain with SSL, no git and no build step.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tiiny.host/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app logic here is genuinely small: accept an upload, unzip it, serve the folder at a subdomain. An agent can write that in an afternoon, and Caddy will handle the TLS part for you if you point a wildcard DNS record at a box. What you cannot one-shot is the boring half: a domain you own, a server that stays up, and a CDN so your client in another hemisphere does not wait four seconds for a hero image. Also worth saying out loud that Cloudflare Pages and Netlify already do drag-and-drop deploys for free, so the DIY build is competing with free before it competes with paid. Build it if you want sites on your own domain under your own rules, not because the feature is hard.",
+  "coreLoopDIY": "A tiny upload dashboard that takes a zip or single HTML file, extracts it to a folder, and serves it at slug.yourdomain.com with automatic HTTPS.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A domain you control plus a wildcard DNS record pointing at your server",
+    "A small VPS or always-on box",
+    "Caddy or similar for on-demand TLS",
+    "Somewhere to keep uploads that survives a redeploy"
+  ],
+  "whatYouLose": [
+    "A global CDN, so load times depend on where your single box lives",
+    "Password-protected sites, expiring links, custom domain attachment and form handling, all of which exist as polished features",
+    "Someone else being responsible at 3am when the disk fills",
+    "Zero-setup sharing: your version needs DNS and a server before it serves a single byte",
+    "The free tiers of Cloudflare Pages and Netlify already beating your build on cost and speed"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the code, it is the fact that the URL still resolves in eighteen months without you thinking about it.",
+  "whyPeopleStillPay": "Because the people paying are usually not the people who want to configure DNS. The archetype is a freelancer or agency handing a client a preview link for a static build, and the value is that it takes forty seconds and the link works, has SSL, and can be password-gated without a conversation about hosting. Paying a few dollars a month to never think about that again is a rational trade for anyone billing hourly. If you are a developer who already owns a domain and a server, the trade looks much worse.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is a weekend toy; the uptime is the product.",
+  "prompt": "Build a minimal drag-and-drop static site host that runs on a single Linux VPS.\n\nStack, no substitutions:\n- Node 20 with Express and TypeScript\n- SQLite via better-sqlite3 for site metadata\n- multer for uploads, adm-zip for extraction\n- Caddy as the reverse proxy with on-demand TLS\n- Plain server-rendered HTML with a bit of vanilla JS, no React\n\nWhat it does:\n1. One dashboard page at the apex domain, protected by a single password read from ADMIN_PASSWORD in .env, session in a signed cookie.\n2. Upload form accepts either a .zip or a single .html file, max 100MB.\n3. On upload: generate or accept a slug, validate it against [a-z0-9-]{3,40}, extract into SITES_DIR/slug, reject zips with path traversal entries or more than 2000 files, and if the zip has a single top-level folder, flatten it.\n4. Record slug, original filename, byte size, created_at in SQLite.\n5. Dashboard lists sites with their URL, size, and buttons to replace the upload or delete it.\n6. Optional per-site password: store a bcrypt hash, enforce with HTTP basic auth middleware when set.\n7. A catch-all vhost handler: for any Host matching slug.BASE_DOMAIN, serve files from SITES_DIR/slug with index.html fallback for directories, and a 404 page if the slug is unknown.\n\nAlso write:\n- A Caddyfile using on-demand TLS with an /ask endpoint that the app answers, so certs are only issued for slugs that exist\n- A systemd unit file\n- .env.example with ADMIN_PASSWORD, SESSION_SECRET, BASE_DOMAIN, SITES_DIR\n- A README with the exact wildcard DNS record to create\n\nOut of scope: user accounts, billing, analytics, custom domains, git integration, any telemetry. Do not call any third-party API.",
+  "promptCurated": false
+}
