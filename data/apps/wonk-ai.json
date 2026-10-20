@@ -1,0 +1,51 @@
+{
+  "slug": "wonk-ai",
+  "name": "Wonk AI",
+  "domain": "wonka-ai.com",
+  "category": "ai-assistant",
+  "subcategory": "research and document Q&A",
+  "tagline": "An AI assistant for research-heavy work: ask questions, get answers drawn from documents and sources.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.wonka-ai.com/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The shape of this thing, upload sources, ask questions, get cited answers, is one of the most-cloned patterns in software right now, and an agent will hand you a working local version in an afternoon. What you cannot clone in an afternoon is whatever corpus or domain tuning sits behind the product, and on a thin public site it is hard to tell how much of that exists. If the answers come from documents you already own, your build is close to parity. If the answers come from a maintained body of sources the vendor assembled and keeps current, you are building an empty shell and will have to fill it yourself, forever. Assume the second until you have poked at the product and proven otherwise.",
+  "coreLoopDIY": "Ingests your PDFs and text files, chunks and embeds them into a local vector store, and answers questions with inline citations back to the source passage.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An LLM API key with an embeddings endpoint",
+    "Python 3.11 and local disk for the index",
+    "Your own documents; nothing ships with content"
+  ],
+  "whatYouLose": [
+    "Any curated or continuously updated source corpus you did not gather yourself",
+    "Decent handling of ugly PDFs: scans, tables, multi-column layouts, footnotes",
+    "A real retrieval stack: rerankers, hybrid search, query rewriting, evals on your own questions",
+    "Collaboration, shared workspaces, and anything resembling an audit trail",
+    "Mobile access and somebody else paying the inference bill"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "Retrieval demos are easy and retrieval quality is not. The gap between your first build and a product people trust for real work is mostly unglamorous ingestion and ranking work.",
+  "whyPeopleStillPay": "Because the first version of a document Q&A tool always works and the fifth question always breaks it. People pay for the part that comes after the demo: the parser that survives a 300 page scanned report, the retrieval that finds the one paragraph that matters instead of five that look similar, and the confidence that the citation actually says what the answer claims. If the product also brings sources you would otherwise have to collect and keep current yourself, the subscription is cheaper than the librarian.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this to replace your own folder of PDFs, not to replace somebody's research department.",
+  "prompt": "Build a local research assistant: upload documents, ask questions, get answers with citations.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Uvicorn.\n- SQLite for metadata plus sqlite-vec for vector search. One file: data/wonk.db.\n- pypdf for PDF text, plain read for .txt and .md.\n- OpenAI API for embeddings and chat completion. Key from .env as OPENAI_API_KEY, loaded with python-dotenv. Commit a .env.example, never a .env.\n- Frontend: one server-rendered Jinja2 page plus HTMX. No React, no build step, no CSS framework beyond a small inline stylesheet.\n\nWhat it does:\n1. POST /ingest accepts one or more files, extracts text, splits into roughly 800 token chunks with 100 token overlap, stores chunk text plus source filename and page number, embeds each chunk, writes vectors to sqlite-vec. Skip files already ingested by content hash.\n2. POST /ask takes a question, embeds it, pulls the top 12 chunks by cosine similarity, and sends them to the chat model with a system prompt that forbids answering from outside the provided context and requires every claim to carry a marker like [1].\n3. The answer renders with a numbered source list underneath: filename, page, and the exact snippet that was retrieved. Clicking a marker scrolls to the snippet.\n4. GET / lists ingested documents with chunk counts and a delete button that removes the doc and its vectors.\n\nExplicitly out of scope: accounts, login, multi-user, telemetry, cloud deploy, OCR, Docker, websockets, streaming tokens.\n\nAlso ship: requirements.txt, a README with exact run commands, and a scripts/ingest_dir.py that bulk loads a folder from the command line. Store nothing outside the project directory. If a PDF yields under 50 characters of text, log it as probably scanned and skip it instead of silently indexing nothing.",
+  "promptCurated": false
+}
