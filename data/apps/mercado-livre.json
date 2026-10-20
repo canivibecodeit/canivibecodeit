@@ -1,0 +1,52 @@
+{
+  "slug": "mercado-livre",
+  "name": "Mercado Livre",
+  "domain": "mercadolivre.com",
+  "category": "commerce",
+  "subcategory": "marketplace",
+  "tagline": "Latin America's dominant online marketplace, plus payments, shipping and a seller platform bolted on.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://wwww.mercadolivre.com/",
+    "checkedOn": "2026-10-20",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free for buyers, sellers pay per-sale commissions plus shipping and listing fees that vary by country and category.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You cannot one-shot a marketplace, because the product is not the website, it is the millions of buyers and sellers already standing in it. An agent can clone the listing grid, the search filters, the cart and the seller dashboard in an afternoon, and it will be a very clean empty room. The genuinely hard parts are elsewhere anyway: Mercado Pago's payment rails, Mercado Envios logistics, fraud and reputation scoring, and the buyer protection program that makes strangers willing to transact at all. A personal replacement does not even make sense as a concept here, since nobody runs a private marketplace for one person. The closest honest build is a tool that sits beside it: a local watcher for listings you care about.",
+  "coreLoopDIY": "Tracks a list of Mercado Livre item IDs and search queries on a schedule, stores price history in SQLite, and shows a local page with drops and new matches.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20",
+    "A Mercado Libre developer app for API credentials, which means registering and doing an OAuth handshake",
+    "A machine or small VPS that can run a scheduled job",
+    "Tolerance for API terms, rate limits and the odd breaking change"
+  ],
+  "whatYouLose": [
+    "Every buyer and every seller, which is the entire product",
+    "Mercado Pago checkout, installments and escrow",
+    "Mercado Envios shipping labels, pickup points and delivery estimates",
+    "Buyer protection and dispute resolution, the reason people pay a stranger online at all",
+    "Seller reputation and review history that took years to accumulate"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The payments arm is arguably a second moat stacked on the first: Mercado Pago became regional fintech infrastructure on the back of the marketplace's volume.",
+  "whyPeopleStillPay": "Sellers pay the commission because that is where the buyers are, and buyers use it because that is where the sellers are, which is the oldest and most annoying moat in software. On top of that, the payment and logistics layers mean a seller in one city can ship to a buyer two countries away with a printed label and get paid without trusting them, and a buyer can click purchase without wondering whether the money is gone. No amount of code reproduces that, only time and volume do.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is a weekend build; the demand sitting on the other side of it is not. The moat is two decades of regional marketplace liquidity welded to payment and shipping rails nobody else in the region has at that scale.",
+  "prompt": "Build a local Mercado Livre price watcher. Not a marketplace clone, a personal tracker that runs beside the real thing.\n\nStack, no substitutions: Node 20 with TypeScript, Fastify for the server, better-sqlite3 for storage, node-cron for scheduling, server-rendered HTML with a single plain CSS file. No React, no build step beyond tsc, no cloud services.\n\nData source: the public Mercado Libre API (api.mercadolibre.com). The operator registers their own developer app and puts ML_CLIENT_ID, ML_CLIENT_SECRET and ML_SITE_ID (for example MLB for Brazil) in .env. Implement the OAuth authorization code flow with a /auth/start and /auth/callback route, store the refresh token in SQLite, and refresh the access token automatically when it expires. If a request returns 401, refresh once and retry.\n\nFeatures, in scope:\n- Add a watch by item ID or by a search query plus optional max price.\n- A cron job every 6 hours that fetches current price, availability and seller for each watched item, and runs each saved search for new results.\n- Price history table: one row per item per check, only write a row when the price or status changed.\n- A home page listing every watch with current price, lowest price ever seen, percent change since added, and a small inline SVG sparkline drawn from the history rows.\n- An alerts page showing drops below a per-watch target price and new search matches since last viewed.\n- Optional desktop notification via a shell hook the operator can define in .env, left unset by default.\n\nOut of scope, do not build: buying, carts, checkout, payments, seller tools, scraping HTML pages, user accounts, any telemetry.\n\nRespect rate limits: serialise API calls with a 300ms gap, back off on 429, and log every request to a requests table so the operator can see what it is doing.\n\nShip a README with the exact developer-app registration steps, a .env.example, and `npm run dev` plus `npm start` scripts. Seed the database with two example watches on first run so the UI is not empty.",
+  "promptCurated": false
+}
