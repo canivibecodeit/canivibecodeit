@@ -1,0 +1,52 @@
+{
+  "slug": "socialync",
+  "name": "Socialync",
+  "domain": "socialync.io",
+  "category": "social-media",
+  "subcategory": "scheduling and publishing",
+  "tagline": "A social media management tool: connect accounts, queue posts, publish on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://www.socialync.io/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a composer, a queue, and a worker that posts things at a time you picked. That part is genuinely a one-sitting build: a form, a table, a cron job, done. The part that eats your weekend and then your month is permission to publish: Meta and TikTok want app review, X wants money for write access, LinkedIn gates its publishing scopes, and every one of them rotates tokens and rate limits on its own schedule. If you only care about Mastodon, Bluesky, or a single account you already control, build it and never think about it again. If you need Instagram and TikTok in one calendar, you are buying someone else's API paperwork, not their UI.",
+  "coreLoopDIY": "A local web app where you write a post once, pick times per network, and a background worker publishes it and logs the result.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Developer accounts and API credentials for each network you want to post to",
+    "An always-on machine or small VPS so the scheduler actually fires when you are asleep",
+    "Patience with OAuth refresh tokens and per-network media upload rules",
+    "Local image/video storage for attachments"
+  ],
+  "whatYouLose": [
+    "Instagram, TikTok, and Facebook publishing without doing app review yourself",
+    "Someone else maintaining connectors when a platform changes its API next quarter",
+    "Unified analytics and engagement numbers pulled back from each network",
+    "A mobile app and inbox for replying to comments and DMs",
+    "Team approval flows, roles, and shared content calendars"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is not the calendar UI, it is the signed app review paperwork and the on-call engineer who fixes the TikTok connector at 2am.",
+  "whyPeopleStillPay": "Because the value of a scheduler is proportional to how many networks it can actually reach, and reaching them is a bureaucratic problem rather than a coding one. A tool that publishes to Instagram, TikTok, LinkedIn, and X from one box has done paperwork you do not want to repeat, and keeps doing it every time a platform deprecates an endpoint. Add that most buyers are marketers who will not restart a crashed Node worker, and the subscription looks cheap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The queue is trivial; the connectors are the product.",
+  "prompt": "Build a self-hosted social media scheduler called \"queue\" that I run on my own machine or a small VPS.\n\nStack, no substitutions: Next.js (App Router) with TypeScript, SQLite via better-sqlite3, Tailwind for styling, and a single long-running worker process started alongside the app. No auth, no accounts, no telemetry, no hosted services. It is a single-user tool bound to localhost.\n\nNetworks: support Mastodon and Bluesky only. Both have open APIs with no app review, which is the entire reason they are the targets. Structure the posting layer as a small adapter interface (publish(post, account) returning a remote id or an error) so another network can be dropped in later, but do not stub out networks you cannot actually reach.\n\nFeatures that are in:\n- Account setup page: store a Mastodon instance URL plus access token, and a Bluesky handle plus app password. Credentials live in a SQLite table, bootstrapped from .env on first run.\n- Composer: one text area, per-network character counters, up to four image attachments stored on local disk, and alt text fields.\n- Scheduling: pick a datetime in my local timezone and one or more target accounts. One composed post fans out to one row per account.\n- Queue view: upcoming, published, and failed tabs, with the remote URL for anything that went out and the error text for anything that did not.\n- Worker: polls the database every 30 seconds, publishes anything due, retries failures three times with exponential backoff, then marks them failed. Everything is idempotent on a stored remote id so a restart never double posts.\n- A \"post now\" button that bypasses the schedule.\n\nExplicitly out: analytics, engagement metrics, an inbox, teams, approvals, AI caption generation, link shortening, mobile apps.\n\nDeliverables: the app, a schema.sql, a .env.example with MASTODON_INSTANCE, MASTODON_TOKEN, BLUESKY_HANDLE, BLUESKY_APP_PASSWORD, and a README that says in plain words how to get each credential and how to run the worker under systemd or pm2. Seed the database with two example scheduled posts so the queue view is not empty on first load.",
+  "promptCurated": false
+}
