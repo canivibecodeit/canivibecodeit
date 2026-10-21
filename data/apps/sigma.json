@@ -1,0 +1,52 @@
+{
+  "slug": "sigma",
+  "name": "Sigma",
+  "domain": "sigmacomputing.com",
+  "category": "analytics",
+  "subcategory": "cloud BI / warehouse spreadsheets",
+  "tagline": "Spreadsheet-style BI that runs live queries directly against a cloud data warehouse.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://app.sigmacomputing.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Sigma's trick is that it looks like a spreadsheet but every cell, formula and pivot compiles down to SQL that runs inside Snowflake, BigQuery or Databricks, so you can poke at a billion rows without extracting them. Reproducing the surface is easy: a SQL box, a table, a chart, saved queries. Reproducing the compiler that turns ad-hoc spreadsheet formulas and nested groupings into efficient warehouse SQL, plus the materialization and caching that keeps it interactive, is a multi-year engineering problem. Then there is the part nobody enjoys building: row-level security, workspace permissions, version control on workbooks, embedded analytics for your own customers, and audit trails an auditor will accept. A personal build is fine if you are one analyst with one warehouse and no governance requirements, which is not who Sigma is sold to.",
+  "coreLoopDIY": "A local SQL notebook over DuckDB or your warehouse that saves named queries, renders pivot tables and charts, and refreshes them on a schedule.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11+",
+    "A warehouse connection string or local Parquet/CSV files",
+    "DuckDB for local querying",
+    "Comfort writing SQL by hand"
+  ],
+  "whatYouLose": [
+    "Formula-to-SQL compilation: you write SQL, not spreadsheet formulas, and non-SQL colleagues are locked out",
+    "Interactive performance on very large tables without hand-tuning your own caching and materialization",
+    "Governance: row-level security, workspace permissions, audit logs, SSO",
+    "Embedded analytics you can safely expose to external customers",
+    "Workbook versioning, sharing and the collaboration layer that makes BI a team tool instead of a personal toy"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "collaboration",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The real asset is the query compiler plus the governance shell around it. Neither is visible in the UI, which is why the UI looks so copyable.",
+  "whyPeopleStillPay": "Companies do not buy Sigma because nobody can write SQL, they buy it so that the forty people who cannot write SQL stop asking the three people who can. That means permissions, auditability, embedded dashboards for customers, and the confidence that a curious finance person cannot accidentally run a query that costs four figures in warehouse credits. A personal build serves exactly one person and skips all of that by design, which is the whole gap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A SQL notebook with charts is genuinely a weekend build, and that is not what Sigma sells. The moat is the spreadsheet-to-SQL compiler plus the governance layer that lets a company hand warehouse access to people who should not have warehouse access.",
+  "prompt": "Build a local, single-user SQL analytics notebook. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, FastAPI backend, DuckDB as the query engine, plain HTML with HTMX and Chart.js on the frontend. SQLite for storing saved queries and dashboard layouts. No React, no Electron, no auth.\n\nData sources:\n- Load local CSV and Parquet files from a ./data folder as DuckDB views, named after the file.\n- Optionally attach an external Postgres via DuckDB's postgres extension, using DATABASE_URL from .env. Skip silently if unset.\n\nFeatures, in scope:\n- A query page: SQL editor textarea, run button, results in a sortable paginated HTML table, row count and query duration shown.\n- Save a query with a name and description. List and re-open saved queries.\n- For any saved query, pick a chart type (line, bar, pie), choose x and y columns, render with Chart.js.\n- A dashboard page: arrange saved queries as cards in a simple grid, refresh all on load, refresh-one button per card.\n- A pivot helper: given a result set, choose group-by columns, a value column and an aggregate (sum, avg, count, min, max), and generate the SQL for it so the user can see and edit what it produced.\n- CSV export of any result set.\n- A scheduled refresh worker: a separate script that runs saved queries on a cron-style interval and caches results to a local cache table, so dashboards load instantly.\n\nOut of scope, do not build: user accounts, permissions, sharing links, embedding, spreadsheet formula parsing, drag-and-drop pivot UI, Snowflake or BigQuery connectors, real-time streaming.\n\nSafety: run every query with a configurable row limit and a statement timeout. Reject statements that are not SELECT or WITH.\n\nDeliver a README with setup steps, a .env.example containing DATABASE_URL, a requirements.txt, and two sample CSVs in ./data so the app demonstrates itself on first run.",
+  "promptCurated": false
+}
