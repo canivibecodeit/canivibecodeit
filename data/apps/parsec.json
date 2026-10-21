@@ -1,0 +1,52 @@
+{
+  "slug": "parsec",
+  "name": "Parsec",
+  "domain": "parsec.app",
+  "category": "productivity-utilities",
+  "subcategory": "low-latency remote desktop",
+  "tagline": "Low-latency remote desktop and game streaming with native clients on every platform.",
+  "priceMonthly": 8.99,
+  "pricing": {
+    "plan": "Warp",
+    "basis": "monthly",
+    "unit": "flat",
+    "source": "https://parsec.app/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Parsec is not a feature set, it is a latency budget. The product is a hand-tuned capture, hardware-encode, transport, decode, present pipeline measured in single-digit milliseconds, plus NAT traversal that works from hotel wifi, plus native clients for Windows, macOS, Linux, Android, iOS, Raspberry Pi and some smart TVs. An agent can absolutely stand up a WebRTC screen stream in an afternoon and it will feel fine for reading a terminal and awful for anything with a cursor or a frame deadline. The gap is not architecture, it is a thousand small decisions about encoder presets, frame pacing, jitter buffers, packet loss recovery and input prediction. Also worth knowing: the best consolation here is not your own code, it is Sunshine plus Moonlight, which is free and already solved this.",
+  "coreLoopDIY": "Captures one machine's display with a hardware encoder, ships it over WebRTC to a browser, and forwards keyboard and mouse back.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "A host machine with a GPU hardware encoder (NVENC, QuickSync, VideoToolbox, AMF)",
+    "ffmpeg with the matching encoder support compiled in",
+    "A coturn instance or a public IP for anything outside the LAN",
+    "OS-level permissions for screen capture and synthetic input events"
+  ],
+  "whatYouLose": [
+    "The latency. Naive WebRTC screen share lands somewhere in the 60 to 150 ms range; Parsec fights for single digits.",
+    "Native clients on phones, tablets, TVs and ARM boxes, all with gamepad and touch input mapping.",
+    "NAT traversal that actually connects on restrictive networks without you running relay servers.",
+    "Multi-user sessions, guest invites and per-peer input permissions for co-op or remote pairing.",
+    "Audio that stays in sync with video under packet loss, which is its own separate nightmare."
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The relay fleet and the signalling layer are the part you cannot replicate on a weekend; the encoder tuning is the part you cannot replicate at all without someone who does this for a living.",
+  "whyPeopleStillPay": "Because the free tier already covers most personal use and the paid tier exists for people whose work depends on the thing feeling instant: 4K at high refresh, colour accuracy, multi-monitor, privacy mode. If you edit video or play games across a continent, nine dollars a month against the cost of your own time tuning NVENC presets is not a close call. And if you want it free and self-hosted, that has already been built better than you will build it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A WebRTC screen stream is a weekend; a latency budget is not. The moat is years of encoder and transport tuning plus a relay network that connects from networks you do not control.",
+  "prompt": "Build a self-hosted, LAN-first remote desktop streamer. Be honest with me in the README about where it will feel bad.\n\nStack, no substitutions:\n- Host agent: Rust, using ffmpeg via std::process for capture and encode. No custom codec work.\n- Signalling + web client: a single Node 20 process with ws, serving a static page. No framework, no build step.\n- Browser client: plain HTML and JS, WebRTC with a video element. No React.\n\nHost agent behaviour:\n- Capture the primary display at 1080p60 using the best available hardware encoder, detected at startup: NVENC on Linux/Windows with NVIDIA, VideoToolbox on macOS, QuickSync as fallback, libx264 ultrafast as last resort. Log which one won.\n- Encode H.264, baseline-friendly, zerolatency tune, fixed small GOP, no B-frames, target bitrate configurable via .env.\n- Push the stream into WebRTC as a single video track. Use webrtc-rs on the host side and negotiate directly with the browser through the signalling server.\n- Accept an input datachannel. Map keyboard and mouse events from the browser onto synthetic OS input using enigo. Clamp coordinates to the captured display bounds.\n\nSignalling server:\n- One room, one host, one viewer. Shared secret from .env, sent as a query param, rejected with 401 if wrong.\n- Relays SDP and ICE between host and browser. Stores nothing.\n- STUN from .env, defaults to a public Google STUN server. Document that TURN is required off-LAN and leave a commented coturn config.\n\nExplicitly out of scope: audio, multi-monitor, multiple simultaneous viewers, gamepad input, mobile apps, accounts, NAT relay infrastructure, telemetry, any cloud service.\n\nDeliverables: host/ and server/ directories, a .env.example, and a README that states the measured glass-to-glass latency you observe on loopback and says plainly that Sunshine plus Moonlight is the mature option if this is not fast enough.",
+  "promptCurated": false
+}
