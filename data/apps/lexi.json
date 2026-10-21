@@ -1,0 +1,50 @@
+{
+  "slug": "lexi",
+  "name": "Lexi",
+  "domain": "lexiasistent.com",
+  "category": "ai-assistant",
+  "subcategory": "localized AI assistant",
+  "tagline": "An AI assistant pitched at a specific language and document corpus rather than at generic English chat.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://lexiasistent.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The chat shell is the easy part: a retrieval-augmented assistant over your own documents is a well-trodden one-session build, and any decent agent will give you streaming answers with citations by dinner. What you cannot conjure in a session is whatever corpus the product is actually standing on, plus the work of keeping that corpus current and correctly scoped to one language and one set of local conventions. If the real product is mostly a prompt plus a model key, your clone is close to parity. If it is a maintained, curated body of source documents, your clone is a nice interface pointed at nothing in particular. Judge it by how much of the answer quality comes from the sources rather than the model.",
+  "coreLoopDIY": "You drop your own documents into a folder, a local indexer chunks and embeds them, and a chat page answers questions in your language with inline citations back to the source files.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key, or a local model if you want it fully offline",
+    "Your own corpus of documents, which is the part nobody can hand you",
+    "A machine to keep the index on, or a cheap VPS if you want it reachable from your phone"
+  ],
+  "whatYouLose": [
+    "A maintained, updated source corpus instead of whatever files you happened to have",
+    "Tuning for the specific language and phrasing quirks the hosted product was built around",
+    "Someone else absorbing model cost, latency work, and retrieval tuning",
+    "Mobile-ready polish: your build is a browser tab, not an app",
+    "Any accountability at all when the assistant confidently invents an answer"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The defensibility sits in the corpus and its upkeep, not in the chat box. A chat box is a weekend.",
+  "whyPeopleStillPay": "Because sourcing, cleaning, and continuously updating a trustworthy document set in a non-English market is unglamorous work that nobody wants to do twice, and a localized assistant that already did it is cheaper than doing it yourself. People also pay for the implied promise that answers are grounded in something current, which a personal RAG build over stale local files quietly cannot promise. If your questions only ever touch your own documents, though, that promise is worth less than it looks.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth building if your corpus is your own; worth paying for if theirs is better than yours.",
+  "prompt": "Build a local, self-hosted retrieval-augmented chat assistant over a folder of my own documents. Single project, no accounts, no telemetry, no cloud database.\n\nStack, no substitutions: Python 3.11, FastAPI, SQLite with the FTS5 extension for keyword search, plus a simple numpy-based vector store persisted to disk. Server-rendered HTML with htmx for the chat UI. No React, no Next.js, no vector SaaS.\n\nWhat to build:\n1. A ./corpus folder. An ingest script that walks it, reads .txt, .md, .pdf and .docx, splits text into roughly 800-character chunks with 100-character overlap, stores chunks in SQLite with file path and page or heading metadata, and writes embeddings to a .npy file.\n2. Hybrid retrieval: FTS5 keyword hits plus cosine similarity on embeddings, merged with reciprocal rank fusion, top 8 chunks returned.\n3. A /chat endpoint that streams the model answer token by token, with the retrieved chunks in context and a system prompt that says: answer only from the provided sources, in the same language the user wrote in, and say you do not know when the sources do not cover it.\n4. Inline citations as [1], [2] mapped to a source list under each answer, each linking to the local file and showing the matched snippet.\n5. Conversation history stored in SQLite so threads survive a restart.\n6. An /ingest route that re-indexes changed files only, using file mtime and a content hash.\n\nConfiguration: OPENAI_API_KEY, MODEL, and EMBED_MODEL in .env, loaded with python-dotenv. Ship .env.example, never a real key.\n\nExplicitly out of scope: user accounts, multi-tenancy, OAuth, payments, a mobile app, and any source corpus I did not provide myself.\n\nDeliverables: requirements.txt, a single make-style run command, seed the corpus with three sample markdown files so the first run proves retrieval and citations work end to end, and a README with exactly the commands to ingest and run.",
+  "promptCurated": false
+}
