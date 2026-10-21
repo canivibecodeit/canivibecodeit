@@ -1,0 +1,52 @@
+{
+  "slug": "keywords-everywhere",
+  "name": "Keywords Everywhere",
+  "domain": "keywordseverywhere.com",
+  "category": "seo-marketing",
+  "subcategory": "keyword research browser extension",
+  "tagline": "Browser extension that overlays search volume, CPC and competition data on Google and a dozen other sites.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://keywordseverywhere.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The extension itself is trivial: inject a sidebar into the Google results page, render some numbers, done. An agent will have that working before your coffee cools. The problem is where the numbers come from: monthly search volume, CPC and competition are licensed and modelled data, and the whole product is a thin skin over that pipe. You can replicate the skin and then you need an upstream, which means a Google Ads account in good standing with a developer token, or a paid per-request API, either of which costs money and bureaucracy. You end up paying someone for data anyway, just with worse caching and no YouTube, Amazon or Etsy overlays.",
+  "coreLoopDIY": "A local Chrome extension that injects a keyword panel into Google search results, fed by your own Google Ads Keyword Planner credentials through a small caching proxy on localhost.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Ads account with API access and an approved developer token, or a paid keyword data API key",
+    "Node 20+ and a Chromium browser you are willing to load an unpacked extension into",
+    "Comfort with OAuth refresh tokens",
+    "Acceptance that Keyword Planner returns bucketed volume ranges, not precise numbers"
+  ],
+  "whatYouLose": [
+    "Volume and CPC for non-Google surfaces: YouTube, Amazon, Etsy, Bing, eBay, Pinterest",
+    "The blended and smoothed volume estimates, which are closer to reality than raw Keyword Planner buckets",
+    "Trend history, related keywords, People Also Search For, and the one-click CSV export",
+    "Working on a fresh machine or a phone without redoing the OAuth dance",
+    "Someone else absorbing API quota limits, rate limiting and upstream schema changes"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "The licensing and modelling of search volume is the product. The UI is a content script.",
+  "whyPeopleStillPay": "Because the alternative to a few dollars of credits is a Google Ads developer token application, an OAuth flow, and volume data that arrives as ranges like 1K to 10K instead of a number you can sort a spreadsheet by. People buying this are doing keyword research, not building keyword tooling, and the per-lookup cost is small enough that nobody audits it. The multi-site overlays matter too: once you are used to seeing volume on YouTube and Amazon, a Google-only panel feels broken.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The overlay is an afternoon, the data behind it is not. The moat is licensed clickstream and ad-platform volume data plus the deals to resell it per keyword.",
+  "prompt": "Build a local Chrome extension plus proxy called \"kw-panel\" that overlays keyword metrics on Google search results, using my own Google Ads API credentials.\n\nStack, no substitutions:\n- Chrome MV3 extension, plain TypeScript, no framework, no bundler beyond esbuild.\n- Local proxy: Node 20, Express, better-sqlite3 for cache. No Docker.\n- Everything runs on my machine. No hosted backend, no accounts, no telemetry.\n\nProxy (server/):\n- POST /metrics takes { keywords: string[], geo: string, lang: string }.\n- Calls the Google Ads API KeywordPlanIdeaService.GenerateKeywordIdeas endpoint for historical metrics: avg monthly searches, competition level, low and high top-of-page bid micros.\n- Auth via OAuth2 refresh token. Read GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, GOOGLE_ADS_REFRESH_TOKEN, GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CUSTOMER_ID from .env. Ship .env.example, never commit .env.\n- Cache every keyword result in SQLite for 30 days, keyed by keyword + geo + lang. Serve from cache first and only hit the API for misses. Batch misses in groups of 20.\n- If credentials are missing, return a clear error the extension can render instead of crashing.\n\nExtension (extension/):\n- Content script on google.com/search: read the query from the URL, read the \"Related searches\" and \"People also ask\" strings already on the page as the related-keyword list.\n- Inject a panel in the right rail: the main query first, then related terms, each row showing volume, competition, and estimated CPC from the bid range.\n- Sort by volume descending. Add a \"Copy as CSV\" button that puts the table on the clipboard.\n- Options page for geo and language, stored in chrome.storage.sync.\n- Background service worker proxies fetches to http://localhost:8787 so the content script does not trip CORS.\n\nOut of scope, do not build: YouTube, Amazon, Bing or Etsy overlays, trend charts, keyword difficulty scores, a credit system, any login.\n\nDeliver a README that states plainly which Google Ads API prerequisites I must obtain myself, and warns that Keyword Planner returns bucketed volume ranges rather than exact numbers.",
+  "promptCurated": false
+}
