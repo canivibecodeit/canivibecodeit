@@ -1,0 +1,52 @@
+{
+  "slug": "alphacast",
+  "name": "Alphacast",
+  "domain": "alphacast.io",
+  "category": "rss-research",
+  "subcategory": "economic data platform",
+  "tagline": "Hosted economic and financial time series data, pulled from hundreds of public sources and served via API, Python client and Excel add-in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://alphacast.io/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is not the chart viewer, it is the pipeline: thousands of macro series scraped from central banks, statistics agencies and ministries that each publish in their own broken format, then normalized, versioned and kept current. An agent can absolutely build you a dashboard that reads FRED and World Bank APIs in an afternoon, and if those two sources cover your needs you genuinely do not need this. The moment you want Argentine CPI by region, or a Peruvian trade series that only exists as a quarterly XLS with merged header cells, you are signing up for permanent scraper maintenance for sources that break without warning. That maintenance is the entire business. Build the consolation dashboard, pay someone else when the long tail matters.",
+  "coreLoopDIY": "Pulls a chosen set of macro series from free public APIs on a schedule, stores them in SQLite with revision history, and serves charts plus a CSV/JSON endpoint.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "FRED API key (free)",
+    "Python 3.11+",
+    "A cron runner or scheduled GitHub Action",
+    "Patience for sources that change their file layout"
+  ],
+  "whatYouLose": [
+    "Coverage of the long tail: Latin American and emerging market series that are not in FRED or World Bank",
+    "Someone else fixing the scraper when a statistics agency renames a column",
+    "Harmonized units, frequencies and vintages across sources",
+    "The Excel add-in and the maintained Python client",
+    "Revision and point-in-time history that was collected before you started"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "integrations"
+  ],
+  "moatNotes": "The data is all technically public. Getting it, cleaning it and keeping it clean is the product.",
+  "whyPeopleStillPay": "Because macro researchers bill by the hour and none of those hours should go to re-parsing a ministry spreadsheet whose header row moved. The value is that someone has already fought every one of several hundred publishers and keeps fighting them daily, so a series you need at 9am exists at 9am in the same shape it had last month. A self-built pipeline is fine for the ten series you care about and awful for the two hundredth. Paying is a bet that your time is worth more than the scrapers.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The dashboard is a weekend; the harvest is forever. The moat is hundreds of maintained scrapers against publishers who never asked to be scraped.",
+  "prompt": "Build a personal macroeconomic data warehouse and dashboard in an empty folder.\n\nStack, no substitutions:\n- Python 3.11, uv for deps\n- SQLite for storage, one file at data/macro.db\n- httpx for fetching, pandas for shaping\n- FastAPI for the API, Plotly + plain Jinja2 templates for the UI\n- No accounts, no cloud, no telemetry. Secrets in .env (FRED_API_KEY).\n\nIn scope:\n1. A series registry in config/series.yaml. Each entry: id, source (fred | worldbank | csv_url), source_code, name, unit, frequency.\n2. Fetchers for three sources: FRED (api.stlouisfed.org), World Bank indicators API, and a generic CSV-over-HTTP fetcher where the user supplies column mappings in the YAML.\n3. Normalize everything to one long table: series_id, date, value, fetched_at. Never overwrite. If an existing (series_id, date) comes back with a different value, insert a new row and mark the old one superseded, so revision history is preserved.\n4. A CLI: `macro sync` fetches everything in the registry, `macro sync SERIES_ID` fetches one, `macro list` prints registry status with last observation date and last fetch time.\n5. FastAPI app with: a homepage listing all series, a series page with a Plotly line chart and a frequency toggle, and endpoints /api/series/{id}.json and /api/series/{id}.csv supporting ?start= and ?end=.\n6. A transforms module: year-over-year percent change, index-to-100 at a chosen date, and rolling mean. Expose as query params on the series endpoints.\n7. Fetch failures must not kill a sync run. Log them to a fetch_errors table and surface them in red on the homepage.\n\nOut of scope: user auth, multi-user, Excel add-in, scraping HTML pages or PDFs, forecasting, anything bundled as a paid tier.\n\nDeliver: pyproject.toml, README with setup in under ten lines, a seed config/series.yaml containing five real FRED series and two World Bank indicators, and a GitHub Actions workflow that runs `macro sync` daily and commits the SQLite file. Run the sync once at the end and print the row count.",
+  "promptCurated": false
+}
