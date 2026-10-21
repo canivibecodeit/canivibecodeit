@@ -1,0 +1,51 @@
+{
+  "slug": "prompttovisual",
+  "name": "PromptToVisual",
+  "domain": "prompttovisual.com",
+  "category": "ai-image",
+  "subcategory": "multi-model image generation workspace",
+  "tagline": "A single workspace for comparing several AI image models, improving prompts, generating or editing images, and downloading the results.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://prompttovisual.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "None of the hard work here is the product's own: the models belong to Black Forest Labs, Google, OpenAI, Ideogram and friends, reached over HTTP with an API key. What sits on top is a prompt box, a fan-out call to several endpoints, a side-by-side grid, a download button, and one extra LLM call that rewrites your prompt into something wordier. An agent can assemble that in a sitting, and routing through your own provider keys usually costs less per image than buying credits from a reseller. The genuinely useful part, knowing which model is actually good at text in images versus photoreal skin versus flat vector, is editorial opinion you can hardcode and then revise as you learn. Pay if you want the billing and the model roster maintained for you; build if you generate enough images that the markup starts to sting.",
+  "coreLoopDIY": "Sends one prompt to several image model APIs in parallel, shows the results side by side in a grid, and lets you enhance the prompt, re-roll a single model, or download any image.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API keys for each image provider you want, or a single aggregator key such as Replicate or fal.ai",
+    "A payment method on those provider accounts, since generation is billed per image",
+    "Node 20 and somewhere to run it, a laptop is fine",
+    "An LLM API key if you want the prompt enhancement step"
+  ],
+  "whatYouLose": [
+    "Curated model picks, you now maintain your own list as models ship and deprecate",
+    "One bill, instead of three or four provider invoices and separate rate limits",
+    "Hosted image editing and inpainting UI, which is fiddlier to rebuild than plain text to image",
+    "Any moderation or safety layer between you and the raw endpoints",
+    "Polish: history, favorites, aspect ratio presets and mobile layout all become your problem"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The model roster is the only thing that needs ongoing care, and it is maintenance work rather than a moat.",
+  "whyPeopleStillPay": "Because keeping six provider accounts funded, rate limited and current is a small recurring chore, and because the comparison grid is only useful if the models in it are the right ones this month. A paid workspace absorbs the churn, the billing and the occasional provider outage, and gives non-technical creators a place to work without reading any API docs. If you generate a handful of images a week, that convenience is worth more than the markup. If you generate hundreds, the arithmetic flips hard.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Aggregator wrappers live and die on how long the model list stays accurate, which is a content job dressed up as software.",
+  "prompt": "Build a local multi-model AI image comparison workspace. Stack: Next.js 15 with the App Router, TypeScript, Tailwind, and better-sqlite3. No auth, no accounts, no telemetry, no deployment config. It runs with npm run dev on localhost and that is the whole product.\n\nProviders: use Replicate as the single upstream so one API token covers several models. Define the model roster in a single file, lib/models.ts, as an array of objects with id, label, replicateSlug, defaultAspectRatio, strengths (short string), and costNote. Seed it with four to six current text to image models and add a clear comment saying this list goes stale and is meant to be edited by hand.\n\nSecrets: REPLICATE_API_TOKEN and OPENAI_API_KEY in .env.local, read server side only, with a .env.example checked in. If a key is missing, the UI says so plainly instead of throwing.\n\nMain screen: a prompt textarea, a negative prompt field, an aspect ratio select, checkboxes for which models to run, and a Generate button. On submit, POST to a route handler that fans out to every selected model in parallel with Promise.allSettled, so one failing model does not kill the batch.\n\nResults: a responsive grid, one card per model, each card showing the model label, a loading skeleton, the returned image, latency in seconds, cost note, and buttons for Download, Re-roll this model, and Copy seed if the model returns one. Failed models show the error text, not a spinner forever.\n\nPrompt enhancement: a separate route handler that sends the raw prompt to gpt-4o-mini with a system prompt telling it to expand the prompt into concrete visual detail covering subject, composition, lighting, lens and style, and to return only the rewritten prompt. Show the result in a diff-ish before and after panel the user can accept or dismiss. Never auto apply it.\n\nPersistence: download every generated image to ./generated as a file named with timestamp, model id and a short hash, and insert a row into SQLite with prompt, enhanced prompt, model id, params, file path, latency and created_at. A /history page lists past runs newest first, grouped by batch, with thumbnails and a button to reload a batch's settings into the main form.\n\nExplicitly out of scope: image editing, inpainting, upscaling, user accounts, credits, billing, sharing links, and any hosted mode. Do not add them.\n\nFinish with a README stating that generation costs real money on the Replicate account, where the model list lives, and how to add a model.",
+  "promptCurated": false
+}
