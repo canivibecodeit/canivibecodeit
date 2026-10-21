@@ -1,0 +1,52 @@
+{
+  "slug": "bloomreach",
+  "name": "Bloomreach",
+  "domain": "bloomreach.com",
+  "category": "commerce",
+  "subcategory": "product discovery and marketing automation",
+  "tagline": "Enterprise commerce suite: AI product search and merchandising, plus a customer data platform with cross-channel campaign automation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://bloomreach.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Bloomreach sells enterprise contracts quoted per catalog size, traffic and module mix, with no public price list.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Bloomreach is two heavy products bolted together: a product discovery engine that ranks a large catalog using live clickstream and conversion signals, and a CDP that stitches identities and fires email, SMS and on-site campaigns off those events. You can absolutely build semantic product search over your own catalog in an afternoon, and it will feel good on a thousand SKUs. What you cannot one-shot is the part that actually earns the contract: ingesting millions of events a day, keeping identity graphs coherent, letting merchandisers tune ranking without a deploy, and sending campaign volume that lands in inboxes. This is also a product bought by committees that need SLAs, SOC 2, data processing agreements and someone to call at 2am. A personal replacement is not a thing, because there is no personal version of this problem.",
+  "coreLoopDIY": "Index your own product catalog with embeddings plus keyword search, log clicks, and re-rank results using the click data you collected.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A product catalog you control, as CSV or JSON",
+    "An embeddings API key in .env, or a local embedding model",
+    "Real traffic, otherwise the click-based re-ranking has nothing to learn from",
+    "Your own storefront to wire the search endpoint into"
+  ],
+  "whatYouLose": [
+    "Real-time identity stitching across web, email, app and offline, which is most of what a CDP is",
+    "Campaign sending at volume, with deliverability, suppression lists and consent tracking handled for you",
+    "Merchandiser-facing tooling: ranking rules, pinning, banners, A/B tests, all without engineering",
+    "Pretrained relevance from years of retail clickstream, so your cold-start ranking is just vector similarity",
+    "SOC 2, GDPR tooling, DPAs, uptime SLAs and a support line, which is why procurement signed in the first place"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "scale-infra",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The ranking models are fed by aggregate shopper behavior across many retailers. A single store cannot reproduce that signal, no matter how good the code is.",
+  "whyPeopleStillPay": "Because the buyer is a retailer with a hundred thousand SKUs and a merchandising team, not a developer with a weekend. They pay for search that converts on day one rather than after six months of click data, for a marketing team that can launch a segmented campaign without filing a ticket, and for a vendor that signs a DPA and answers the phone when checkout search goes down on Black Friday. The code is the cheap part. The operational guarantees and the behavioral data are the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Semantic search over your own catalog is genuinely a weekend build, and worth doing. The moat is aggregate retail clickstream plus the enterprise paperwork that lets a 500-store chain route live checkout traffic through someone else's ranker.",
+  "prompt": "Build a self-hosted product discovery service for a single store catalog. Consolation build for Bloomreach Discovery, not a clone.\n\nStack, no substitutions: TypeScript, Node 20, Express, SQLite via better-sqlite3 with the FTS5 extension, and sqlite-vec for vector search. Server-rendered HTML with plain templates and a little vanilla JS. No React, no framework, no cloud services beyond one embeddings API.\n\nWhat to build:\n1. `npm run ingest -- catalog.csv` reads a CSV with columns id, title, description, category, brand, price, image_url, in_stock. Upsert into a `products` table.\n2. During ingest, embed `title + brand + category + description` using the OpenAI embeddings API, key read from OPENAI_API_KEY in .env. Batch requests, cache by content hash so re-ingest is cheap, store vectors in sqlite-vec.\n3. Also index title, brand, category and description into an FTS5 table.\n4. GET /search?q=&session= runs both: FTS5 BM25 and vector nearest neighbors. Fuse with reciprocal rank fusion. Filter out of stock items to the bottom, never hide them. Return JSON.\n5. Faceting: return counts by category, brand and three price buckets for the current result set. Support &category=, &brand=, &price_min=, &price_max=.\n6. Event logging: POST /events with {session, query, product_id, type} where type is impression, click or add_to_cart. Store in an `events` table with timestamps.\n7. Re-ranking: a `npm run rerank` script computes, per query token and product, a click-through score from the events table and writes it to a `boosts` table. Search applies boosts as a multiplier, capped so a popular item cannot bury an exact title match.\n8. A `synonyms.json` file expands query terms before FTS5. Hand-edited, loaded at boot.\n9. A minimal /admin page: search box, live results, and the ability to pin a product id to the top for a given query, persisted in a `pins` table.\n10. A demo storefront at / with a search bar and a result grid that fires impression and click events.\n\nExplicitly out of scope: multi-tenancy, user accounts, auth on /admin beyond a shared ADMIN_TOKEN in .env, A/B testing, email, SMS, identity stitching, recommendations widgets, and any analytics dashboard beyond a /stats page printing top queries and zero-result queries.\n\nShip a seed script that generates 200 fake products so it runs with no catalog. README: setup, .env keys, ingest, rerank cron suggestion, and a blunt note that click-based re-ranking does nothing until there is real traffic.",
+  "promptCurated": false
+}
