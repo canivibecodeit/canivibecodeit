@@ -1,0 +1,51 @@
+{
+  "slug": "backplane",
+  "name": "Backplane",
+  "domain": "getbackplane.ai",
+  "category": "automation",
+  "subcategory": "AI agent orchestration",
+  "tagline": "A hosted layer for wiring AI agents into internal workflows and the systems they act on.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://getbackplane.ai/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Agent orchestration is one of the most clonable categories on this site: a queue, a tool registry, a loop that calls a model, and a log of what happened. An agent can scaffold that in a session and it will genuinely run your own jobs against your own APIs. The gaps show up on day three: retries that do not duplicate side effects, credential storage for a dozen third-party systems, human approval steps, and an audit trail someone other than you would trust. If you are orchestrating your own scripts against two or three services you control, build it. If the pitch is that it already speaks to your company's stack with auth and permissions handled, that part is the product.",
+  "coreLoopDIY": "Runs a local orchestrator that takes a task, loops an LLM over a registry of your own tool functions, and logs every step and result to a queryable database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An LLM API key",
+    "Credentials for whatever systems you want the agent to touch",
+    "A machine or small VPS that stays on for scheduled runs"
+  ],
+  "whatYouLose": [
+    "Prebuilt, maintained connectors to common SaaS systems instead of hand-rolled API clients",
+    "Managed OAuth and secret rotation for third-party accounts",
+    "Durable execution: retries, idempotency, and resume-after-crash for long workflows",
+    "Approval gates, role permissions, and an audit log that survives a compliance question",
+    "Someone else noticing when a provider changes its API and breaking changes land on you"
+  ],
+  "moatTags": [
+    "integrations",
+    "compliance-regulatory",
+    "switching-costs"
+  ],
+  "moatNotes": "The orchestration loop is a weekend. The connector surface and the permissions model around it are the ongoing cost.",
+  "whyPeopleStillPay": "Because the interesting part is not the loop, it is everything that makes the loop safe to point at production systems. Teams pay so that credentials live somewhere auditable, so that a half-finished workflow can be resumed rather than rerun, and so that a non-engineer can approve a step without reading a log file. A personal build skips all of that honestly, which is fine when the blast radius is your own side project and a bad answer when it is a customer database.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Clonable core, expensive edges: the loop is a weekend, the connectors are forever.",
+  "prompt": "Build a local AI agent orchestrator called \"miniplane\". Single project, no accounts, no cloud services, no telemetry.\n\nStack, non-negotiable:\n- TypeScript, Node 20, Fastify for the HTTP API\n- SQLite via better-sqlite3 for all state\n- A tiny HTMX + server-rendered HTML UI, no React, no build step\n- Model calls via the OpenAI-compatible chat completions API, base URL and key from .env\n\nWhat to build:\n1. A tool registry: a tools/ directory where each file default-exports { name, description, schema (zod), run(args) }. Load them at boot and expose their JSON schemas to the model.\n2. Ship three example tools: http_get (fetch a URL, return text, respect a domain allowlist from .env), read_file and write_file scoped to a workspace/ directory, and run_sql against a local demo SQLite table.\n3. A run engine: POST /runs with { goal, maxSteps }. Loop: send conversation + tool schemas to the model, if it returns a tool call, execute it, append the result, repeat until the model answers or maxSteps is hit.\n4. Persist everything: runs table (id, goal, status, created_at, finished_at) and steps table (run_id, index, role, content, tool_name, tool_args, tool_result, duration_ms, error). Every model call and tool call gets a row.\n5. Idempotency: each tool call gets a deterministic key from run_id + step_index. If a run is resumed, replay cached results instead of re-executing side effects. Expose POST /runs/:id/resume.\n6. An approval gate: tools can set requiresApproval: true. The run pauses with status \"awaiting_approval\" and the UI shows an Approve or Reject button.\n7. A cron trigger: a schedules table (cron expression, goal template) polled by node-cron, creating runs automatically.\n8. UI at /: list runs with status, click into a run to see the full step timeline including raw tool args and results, plus a form to start a new run.\n\nExplicitly out of scope: multi-user auth, OAuth to third-party SaaS, hosted connectors, distributed workers, streaming token output.\n\nAll secrets in .env (API_BASE_URL, API_KEY, MODEL, HTTP_ALLOWLIST). Commit .env.example, never .env. Include a README with setup, one worked example run, and an honest list of what this does not do.",
+  "promptCurated": false
+}
