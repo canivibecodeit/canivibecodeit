@@ -1,0 +1,53 @@
+{
+  "slug": "giftablesong",
+  "name": "GiftableSong",
+  "domain": "giftablesong.com",
+  "category": "ai-audio",
+  "subcategory": "personalized song gifts",
+  "tagline": "Turns names, relationships, and memories into a custom song you can gift, with two versions to choose from and a pay-once unlock.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://giftablesong.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app is a form, a lyric writer, and a music generation API with a paywall in front of the second half of the track. An agent can rebuild the form, the prompt engineering, and the two-variants-then-pick flow in an afternoon, and you skip the paywall entirely because you are the only customer. What you cannot rebuild is the music model: you will be renting Suno, Udio, Replicate, or ElevenLabs Music, and the quality of your result is their quality, not yours. That is a real third-party dependency, plus a licensing question about whether the output is yours to gift, which is why this is not a clean yes. If you only need one song for one birthday, the honest math is that the paid product is probably cheaper than the hour you spend wiring up API credits.",
+  "coreLoopDIY": "Collects names, relationship, and a few memories in a form, has an LLM turn them into structured lyrics in a chosen genre, sends those to a music generation API twice for two variants, and plays both back from a local page with a download link.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and a local dev environment",
+    "An LLM API key for lyric writing",
+    "A music generation API key (Replicate, Suno, Udio, or ElevenLabs Music) and prepaid credits",
+    "Patience for generation latency: tracks take tens of seconds to minutes",
+    "A read of the music API's terms if the song is going to a real person"
+  ],
+  "whatYouLose": [
+    "Prompt engineering someone else already tuned: your first ten songs will sound like a karaoke machine having a feeling",
+    "Mix and master quality, including vocal clarity on names, which is where these things usually fall apart",
+    "A gift-shaped delivery page you can send to a person who is not technical",
+    "Someone to complain to when the chorus mispronounces your mother's name",
+    "Clear commercial rights on the output, which the paid product has presumably sorted out"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust",
+    "content-rights"
+  ],
+  "moatNotes": "The underlying model is rented by everyone, so the product is the prompt templates, the vocal quality bar, and the fact that a stranger will hand over a card for a gift they cannot preview in full.",
+  "whyPeopleStillPay": "Because this is bought once, under deadline, usually two days before an anniversary. Nobody shopping for a last-minute gift wants to open an API account, top up credits, and iterate on lyric prompts until the vocals stop sounding haunted. The paywall-after-preview model is also well matched to the use case: you hear enough to know whether it is embarrassing before you commit. A DIY build makes sense if you intend to make twenty of these, or if you enjoy the tinkering more than the gift.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The build is easy, the taste is not: budget most of your time for rewriting the lyric prompt, not the app.",
+  "prompt": "Build a local-only personalized song generator web app in an empty folder. No accounts, no payments, no analytics, no deployment.\n\nStack, non-negotiable: Next.js 15 App Router with TypeScript, Tailwind for styling, SQLite via better-sqlite3 for storage, generated audio written to ./public/songs. Run with npm run dev on localhost only.\n\nFlow:\n1. A single form page: recipient name, relationship to them, occasion, three to five freeform memory fields, a tone select (heartfelt, funny, nostalgic, roast), and a genre select (acoustic folk, pop ballad, indie rock, lo-fi, country).\n2. On submit, call the OpenAI API with a lyric prompt that returns strict JSON: title, verse1, chorus, verse2, bridge, plus a short style descriptor string for the music model. Put the lyric prompt in lib/lyricPrompt.ts as a single exported template so it is easy to iterate on, and enforce the shape with zod.\n3. Show the lyrics for review with an inline edit box and a Regenerate button before any audio is generated. Audio is the expensive step, so never generate it without an explicit click.\n4. On Generate Audio, call Replicate's HTTP API twice with the same lyrics and style descriptor at two different temperature or seed values to produce two variants. Poll the prediction until done, show a progress state, then download both MP3s to ./public/songs/{songId}-a.mp3 and -b.mp3.\n5. A result page at /song/[id] with two audio players side by side, the lyrics, a Download button per variant, and a Regenerate this variant button.\n\nStorage: one songs table with id, created_at, inputs JSON, lyrics JSON, style descriptor, and the two file paths. A /library page listing past songs newest first.\n\nSecrets: OPENAI_API_KEY and REPLICATE_API_TOKEN in .env.local, read server-side only, with a .env.example. Never ship a key to the client.\n\nHandle failure honestly: if a prediction fails or times out, surface the real error and keep the lyrics so the user does not lose work. Retry once on transient 5xx, no further magic.\n\nOut of scope: payment, preview truncation, email delivery, hosting, multi-user, mobile app.\n\nFinish with a README that states the per-song API cost is on the user, names the exact Replicate model slug you chose, and warns that commercial or gifting rights depend on that model's license.",
+  "promptCurated": false
+}
