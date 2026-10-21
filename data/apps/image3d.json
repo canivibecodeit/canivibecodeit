@@ -1,0 +1,53 @@
+{
+  "slug": "image3d",
+  "name": "Image3D",
+  "domain": "image3d.io",
+  "category": "generative-media",
+  "subcategory": "image-to-3D model generation",
+  "tagline": "Turns a photo or a text prompt into a downloadable 3D mesh.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://image3d.io/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Single-image-to-3D stopped being magic the moment open weights caught up: TRELLIS, Hunyuan3D and Stable Fast 3D all run locally and produce textured GLBs from one photo. An agent can wrap one of them in a FastAPI service with a drag-and-drop page and a three.js preview in a sitting, assuming you already have a GPU with real VRAM. What you cannot one-shot is the part these services actually sell, which is someone else owning the 24GB card, the model updates, the queue, and the cold-start time. Output quality is also a per-model lottery: the hosted tools typically run a newer or tuned checkpoint than whatever you pull off Hugging Face, and the gap shows up in back faces, thin geometry, and texture seams. Buildable, genuinely useful, not free in hardware terms.",
+  "coreLoopDIY": "Drop in an image, strip the background, run a local image-to-3D checkpoint, and get a textured GLB you can preview in the browser and download.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "NVIDIA GPU, 16GB VRAM minimum and 24GB if you want the full-size checkpoint",
+    "Python 3.10+, CUDA toolkit, and patience for the first install",
+    "~20GB disk for model weights",
+    "Hugging Face token for gated checkpoints",
+    "Optional: a text-to-image model if you want the prompt path, not just the photo path"
+  ],
+  "whatYouLose": [
+    "Instant results: local inference on a consumer card is slow and the first run is slower",
+    "Whatever tuned or newer checkpoint the hosted service runs, which is usually better than public weights",
+    "Any mesh cleanup pipeline: retopology, UV sanity, watertightness, poly budget targets",
+    "Multi-view and multi-image conditioning, which most open single-image pipelines handle badly",
+    "Working on a laptop, a phone, or anything without a GPU"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The real asset is a tuned checkpoint plus a GPU fleet that keeps the wait under a minute. Open weights erode the first half of that, not the second.",
+  "whyPeopleStillPay": "Because 3D generation is one of the few AI categories where the compute bill is the product. Most people who need a mesh need it once, for a prop in a game jam or a product render, and renting ten seconds of an A100 beats buying a 4090 and spending an evening on CUDA versions. The hosted tools also quietly absorb a lot of unglamorous work: background removal that does not eat thin geometry, mesh simplification, format conversion, and a viewer that does not explode on a 200k-triangle GLB. If you generate meshes weekly, local pays off. If you generate four a year, it does not.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wrapper is an afternoon, the GPU is a purchase decision.",
+  "prompt": "Build a local image-to-3D generator web app in an empty folder. Stack: Python 3.10, FastAPI backend, plain HTML/JS frontend with three.js from a CDN. No accounts, no database, no telemetry, no cloud inference.\n\nPipeline:\n1. POST /generate accepts a single image upload (png/jpg/webp).\n2. Remove the background with rembg (isnet-general-use), composite onto transparent RGBA, center and pad to a square.\n3. Run image-to-3D with the Hunyuan3D-2 mini checkpoint from Hugging Face (tencent/Hunyuan3D-2mini) loaded once at startup and cached in a module-level singleton. Read HF_TOKEN from .env via python-dotenv.\n4. Post-process the mesh with trimesh: merge vertices, fill small holes, optionally decimate to a target triangle count passed as a query param (default 50000).\n5. Export .glb to ./outputs/{uuid}.glb and return JSON with the id, triangle count, and elapsed seconds.\n\nAlso expose GET /outputs/{id}.glb and GET / serving a single page: a drop zone, a progress state that polls GET /jobs/{id}, a three.js viewer with orbit controls and a neutral HDRI-free three-point light setup, and a download button.\n\nJobs run in a single-worker background queue (asyncio task plus an in-memory dict). One generation at a time, because the GPU cannot do more. Show queue position in the UI.\n\nIn scope: single-image input, GLB export, OBJ export via trimesh, browser preview, triangle budget.\nOut of scope: text-to-3D (no diffusion image model, document the gap in the README), rigging, retopology, UV unwrapping, multi-image conditioning, auth, hosting.\n\nWrite requirements.txt with pinned versions, a .env.example containing HF_TOKEN, and a README that states the VRAM floor, the expected first-run download size, and what to do when CUDA and torch disagree. Fail loudly at startup if no CUDA device is visible rather than silently falling back to CPU.",
+  "promptCurated": false
+}
