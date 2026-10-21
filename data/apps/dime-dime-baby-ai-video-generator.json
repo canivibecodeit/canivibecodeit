@@ -1,0 +1,52 @@
+{
+  "slug": "dime-dime-baby-ai-video-generator",
+  "name": "Dime Dime Baby AI Video Generator",
+  "domain": "dimedimebabyai.video",
+  "category": "ai-video",
+  "subcategory": "photo-to-video",
+  "tagline": "Browser tool that turns a still photo plus a text prompt into a short AI-generated video clip.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://dimedimebabyai.video/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is an upload box, a prompt field, a job queue and a gallery, which an agent will write for you before lunch. What it is not is the video model: the actual frames come from a diffusion or video transformer that nobody is training in a weekend, so your clone is a front end bolted to somebody's inference API. That is a fine trade if you only make a few clips a month, because you pay metered cents instead of a subscription, and you own the prompt presets and the output files. The gaps are real though: no credit system, no abuse handling, no moderation, no mobile polish, and your per-clip cost is whatever the upstream provider charges today. If the service has quietly tuned prompts, aspect ratio handling or post-processing to make outputs look better than raw API calls, that part does not come across in a one-shot build.",
+  "coreLoopDIY": "A local web app where you drop a photo, write a motion prompt, fire an image-to-video job against a hosted model API, and watch finished clips land in a local gallery you can replay and download.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted image-to-video model provider",
+    "A credit card, because video inference is metered and not cheap",
+    "Node 20 and local disk space for output files",
+    "Patience for 30 to 180 second generation times per clip"
+  ],
+  "whatYouLose": [
+    "Any model the service tuned or prompt-wrapped on top of the raw API",
+    "Credits, billing and quota logic, you just watch your provider invoice",
+    "Mobile friendly UI and the share links people actually use",
+    "Moderation and safety filtering, which matters the second anyone else touches it",
+    "Whatever post-processing (upscale, interpolation, audio) is baked into the paid output"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is rented, not owned: the product sits on top of a third party video model, so its defensibility is mostly UX plus whatever prompt engineering it hides.",
+  "whyPeopleStillPay": "Because the subscription is not really for the software, it is for not thinking about inference. Someone else eats the GPU queue, the failed generations, the model version churn and the question of which provider is currently least bad at making a photo blink convincingly. For a casual user making a handful of clips, a flat plan is also cheaper and less scary than an open-ended metered API key sitting in a .env file. The people who save money by self-hosting the front end are the ones generating constantly and already comfortable reading provider docs.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A one-shot clone is honest work, just be clear that you are building the vending machine, not the soda.",
+  "prompt": "Build a local-only photo-to-video studio called PhotoMotion. Empty folder, one sitting.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind. No component library.\n- SQLite via better-sqlite3 for the job table. No ORM, raw SQL is fine.\n- Local filesystem for uploads and rendered clips, under ./storage.\n- fal.ai as the image-to-video provider, called server side only, key in .env as FAL_KEY. Put the model id in .env too as VIDEO_MODEL so it can be swapped.\n\nWhat to build:\n1. One page at / with a drag-and-drop image dropzone, a motion prompt textarea, a duration select (5s or 10s), an aspect ratio select (16:9, 9:16, 1:1), and a Generate button.\n2. A preset row of 6 one-click motion prompts (slow zoom in, gentle parallax, hair and fabric movement, camera orbit, subject blinks and smiles, cinematic dolly out) that fill the textarea.\n3. POST /api/jobs: validate the image is png or jpg and under 10MB, write it to ./storage/uploads, insert a job row with status queued, kick off the fal call, return the job id immediately.\n4. A server-side worker module that submits to fal, polls for completion, downloads the mp4 to ./storage/clips, and updates the job row to done or failed with the error text.\n5. GET /api/jobs returns all jobs newest first. The client polls every 3 seconds while anything is queued or running.\n6. A gallery grid below the form: thumbnail, inline video player, prompt text, elapsed time, cost field if the provider returns one, download button, delete button that removes the row and both files.\n7. Show the raw provider error on failure. Do not swallow it.\n\nExplicitly out of scope: accounts, auth, billing, credits, telemetry, analytics, cloud storage, sharing links, moderation, model training, any deploy config.\n\nWrite a .env.example with FAL_KEY and VIDEO_MODEL. Write a README that states plainly that every generation costs real money at the provider's metered rate and that there is no spend cap in this app. Seed nothing. It should run with npm install, npm run dev.",
+  "promptCurated": false
+}
