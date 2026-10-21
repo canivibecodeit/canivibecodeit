@@ -1,0 +1,52 @@
+{
+  "slug": "last-frost-day",
+  "name": "Last Frost Day",
+  "domain": "lastfrostday.com",
+  "category": "home",
+  "subcategory": "gardening reference",
+  "tagline": "Look up your average last spring frost and first fall frost dates, frost probability odds and USDA hardiness zone by location.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://lastfrostday.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Everything this sells is public domain: NOAA NCEI 1991-2020 Climate Normals already publish freeze and frost probability dates per station at the 10, 20, 30, 40 and 50 percent thresholds, so you are not deriving the statistics, you are joining them. The real work is plumbing: pull the normals, pull ZIP or place centroids, pick a sane nearest-station rule that does not hand a coastal gardener a mountain station, and sample a hardiness zone raster. An agent can get a working local lookup running in a weekend, and the output is genuinely yours after that. What it will not match on day one is station quality control, elevation-aware selection and the thousands of pre-rendered location pages that make the hosted version findable. If you only care about your own garden, the DIY version is strictly better because you can hardcode your coordinates and stop.",
+  "coreLoopDIY": "Ingests NOAA freeze/frost probability normals plus ZIP centroids and a hardiness zone layer into SQLite, then serves a location lookup page showing last spring frost, first fall frost, growing season length and the full probability table.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "NOAA NCEI 1991-2020 Climate Normals annual/seasonal files, which include freeze/frost probability dates per station",
+    "US Census ZIP Code Tabulation Area or Gazetteer centroid file for geocoding",
+    "A USDA plant hardiness zone raster or shapefile to sample, if you want the zone badge",
+    "Python with pandas and rasterio or a small geo stack",
+    "Enough patience to sanity check nearest-station picks against elevation"
+  ],
+  "whatYouLose": [
+    "Nationwide pre-rendered location pages, which is most of why the hosted site exists at all",
+    "Curated station quality control: your naive nearest-station join will occasionally be wrong in mountains and near coastlines",
+    "Coverage outside the US, where the normals format and station density change entirely",
+    "Someone to redo the pipeline when the normals period rolls over to 2001-2030",
+    "Mobile polish, shareable links and anything resembling a planting reminder"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The dataset is free and the math is precomputed by NOAA. The defensible part is coverage, correct station selection and being the page that ranks when someone types their town plus frost date.",
+  "whyPeopleStillPay": "Because almost nobody wants a frost date pipeline, they want one number before they put tomatoes in the ground. The hosted version answers that in six seconds without a Python environment, a 200MB download or a decision about which weather station represents your valley. If your use is one garden in one place, you look it up once a year and the question of building it never comes up.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The statistics are NOAA's, the UI is a table, the work is the join in between.",
+  "prompt": "Build a local frost date lookup tool. Stack: Python 3.11, FastAPI, Jinja2 templates, SQLite. No JS framework, no Tailwind CDN, plain CSS in one file. No accounts, no telemetry, no cloud services.\n\nPart 1, ingest script (ingest.py):\n- Download NOAA NCEI 1991-2020 US Climate Normals, annual/seasonal product, station level. These files already contain freeze and frost probability dates (probability of last spring occurrence and first fall occurrence at 32F and 28F thresholds, at the 10/20/30/40/50/60/70/80/90 percent levels). Do not recompute them from daily data.\n- Download the US Census Gazetteer ZCTA file for ZIP centroids (lat, lon).\n- Load both into SQLite tables: stations(id, name, state, lat, lon, elev_m), frost_normals(station_id, threshold_f, direction, probability_pct, day_of_year), zips(zcta, lat, lon, place_name).\n- Print row counts and bail loudly if any file is missing.\n\nPart 2, station selection (lookup.py):\n- Given lat/lon, rank stations by haversine distance, then penalize candidates whose elevation differs from a sampled elevation by more than 150m. Return the best station plus the three runners up so the UI can show alternates. Document the heuristic in a comment, do not pretend it is authoritative.\n\nPart 3, web app (app.py):\n- GET / with a ZIP or lat/lon form.\n- GET /loc/{zcta} renders: headline last spring frost and first fall frost at the 50 percent level, growing season length in days, the full probability table for 32F and 28F, the station used with its distance in km, and the three alternate stations.\n- Convert day_of_year to a readable date with a non-leap reference year.\n- Add a plain banner stating these are 1991-2020 climatological probabilities, not a forecast.\n\nIn scope: US only, ZIP and coordinate lookup, SQLite, server-rendered HTML.\nOut of scope: hardiness zone raster sampling (leave a stub function and a TODO), live weather, email alerts, maps, international data, user accounts.\n\nSecrets: none needed, but read any download URLs from .env with sane defaults. Ship a README with the exact download commands and a Makefile with targets: ingest, run, clean.",
+  "promptCurated": false
+}
