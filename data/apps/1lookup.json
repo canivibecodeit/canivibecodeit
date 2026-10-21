@@ -1,0 +1,52 @@
+{
+  "slug": "1lookup",
+  "name": "1Lookup",
+  "domain": "1lookup.io",
+  "category": "dev-tools",
+  "subcategory": "phone and email validation API",
+  "tagline": "Validation and lookup APIs for phone numbers, emails and IPs, priced per lookup.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.1lookup.io/",
+    "checkedOn": "2026-10-13",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Most of what a validation endpoint returns is derivable from open data: libphonenumber handles format, region and plausible line type, DNS and MX records plus a disposable domain list handle most email triage, and a free GeoIP database handles IP. An agent can wrap all of that in a local HTTP service in one sitting and it will be genuinely useful for form validation and list hygiene. What you cannot reproduce is live carrier and HLR state: whether a number is currently active, ported, or reachable, and whether a mailbox actually exists. Those answers come from paid telecom and deliverability feeds, not from code. So the DIY version is a good first filter and a bad final verdict.",
+  "coreLoopDIY": "Runs a local REST service that validates and enriches phone numbers, emails and IPs from offline libraries and DNS, with caching and a batch CSV endpoint.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 or newer",
+    "outbound DNS access for MX and SMTP probing",
+    "a GeoLite2 or similar IP database file you download yourself",
+    "a disposable email domain list (public repos exist)"
+  ],
+  "whatYouLose": [
+    "Live carrier, ported and active-line status from HLR or similar network queries",
+    "Real mailbox existence checks that survive greylisting and catch-all domains",
+    "Someone else's IP reputation and abuse data, which is genuinely proprietary",
+    "An SLA, uptime guarantees and the right to blame a vendor when a signup form breaks",
+    "Rate limit handling, SDKs, dashboards and usage billing you did not have to write"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "integrations",
+    "scale-infra"
+  ],
+  "moatNotes": "The code is thin. The telecom and deliverability data feeds behind it are the actual product, and they are licensed, not scraped.",
+  "whyPeopleStillPay": "Because the questions that matter commercially are the ones open data cannot answer. Knowing a number is a valid UK mobile format is free; knowing it is live right now before you spend money sending SMS to it is not. The same goes for email: anyone can reject a malformed address, but telling a 200k list apart from the 60k of it that will actually deliver requires access to signals you have to buy. Paying per lookup also externalises the ugly part, SMTP probes getting your IP blocked, carrier endpoints changing, rate limits, onto a vendor whose job that is.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Cheap to clone for form validation, hopeless to clone for anything that depends on live carrier state.",
+  "prompt": "Build a local validation and lookup API service. No cloud accounts, no telemetry, no signup.\n\nStack, no substitutions: TypeScript, Node 20, Fastify, Zod for request validation, better-sqlite3 for the cache. pnpm. Vitest for tests.\n\nEndpoints:\n- POST /v1/phone  body { number: string, defaultRegion?: string }. Use libphonenumber-js to return: valid, e164, national format, country code, region, number type (mobile / fixed line / voip / toll free / unknown), and a carrier-region guess only if libphonenumber-js metadata supports it. Never claim the line is active.\n- POST /v1/email  body { email: string }. Return: syntax valid (use a strict RFC-ish regex plus length checks), normalized address, domain, has MX records (resolve via node:dns/promises), is_disposable (lookup against a local disposable-domains.txt loaded into memory at boot), is_role_account (info@, admin@, support@ etc), is_free_provider (local list), and an optional SMTP RCPT TO probe behind config flag SMTP_PROBE=true, defaulting to false, with a 5 second timeout and a clearly labelled inconclusive result for catch-all or greylisted responses.\n- POST /v1/ip  body { ip: string }. Return country, region, city, asn if available, using a local MaxMind-format mmdb file whose path comes from GEOIP_DB_PATH in .env. If the file is missing, return 503 with a clear message, do not fake data.\n- POST /v1/batch  multipart CSV upload, one column per record type chosen by a form field, streams results back as CSV. Cap at 50k rows.\n- GET /healthz\n\nRules:\n- Cache every email domain MX result and IP lookup in SQLite with a TTL (default 24h, env configurable).\n- Every response includes a confidence field and a sources array naming which checks actually ran. Being honest about what was not checked is the point.\n- API key auth via a single API_KEY in .env, compared in constant time. Per-key rate limit in memory.\n- Config in .env only: PORT, API_KEY, GEOIP_DB_PATH, SMTP_PROBE, CACHE_TTL_HOURS. Ship .env.example.\n\nOut of scope, do not attempt or stub with fake values: HLR / live carrier lookups, number porting status, mailbox existence guarantees, IP reputation or fraud scores, a web dashboard, billing.\n\nDeliver: src/, a seed script that downloads nothing automatically but documents exactly where to get the disposable domain list and GeoLite2 db, tests for the phone and email validators with table-driven cases, and a README with curl examples and a short section titled 'what this cannot tell you'.",
+  "promptCurated": false
+}
