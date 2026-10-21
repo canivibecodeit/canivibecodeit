@@ -1,0 +1,52 @@
+{
+  "slug": "audien",
+  "name": "Audien",
+  "domain": "audien.to",
+  "category": "audio-video",
+  "subcategory": "transcription and AI summaries",
+  "tagline": "Browser tool that turns audio and video into speaker-labeled transcripts, then spins them into minutes, show notes, subtitles and recaps.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://audien.to/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free daily usage is advertised without signup, paid tiers exist for volume.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Transcription is one of the few AI categories where the good models are open weights, so the core of this is genuinely yours to run: faster-whisper plus ffmpeg gets you timestamped text in an afternoon, and an LLM pass turns that text into minutes or show notes without much cleverness. The gaps are real and specific. Speaker diarization is the part that eats your weekend, pyannote needs a Hugging Face token and gated license acceptance, and it will still mislabel crosstalk in ways the hosted version mostly hides. You also lose the thing that makes a web tool usable, which is dropping a 90 minute recording in a browser tab and not thinking about GPU queues, long-file chunking or the fact that your laptop fans are now a participant in the meeting. Build it if you have a machine that can sit there and grind; pay if you transcribe on a phone or on deadline.",
+  "coreLoopDIY": "A local web app where you drop an audio or video file and get back a timestamped, speaker-labeled transcript plus SRT, meeting minutes and show notes generated from it.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "faster-whisper or whisper.cpp model weights downloaded (a few GB)",
+    "a Hugging Face token and accepted model terms if you want speaker diarization via pyannote",
+    "an LLM for the summary step: a local Ollama model or an API key in .env",
+    "a machine with a GPU, or patience measured in multiples of real time"
+  ],
+  "whatYouLose": [
+    "Diarization that holds up on crosstalk, phone audio and more than three speakers",
+    "Upload from any device, including a phone, without touching your own hardware",
+    "Fast turnaround on long files: local CPU transcription of a 90 minute recording is not a coffee break",
+    "The prompt engineering behind the output formats, which is the part that quietly took them months",
+    "Zero-setup use with no model downloads, tokens or dependency hell"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The ASR is commodity. The moat is the pipeline around it: chunking, diarization cleanup, and output templates that read like a human wrote them.",
+  "whyPeopleStillPay": "Because the marginal cost of pasting a file into a tab is zero and the marginal cost of maintaining your own inference box is not. Most people who need transcripts need them under time pressure, from whatever device is nearby, and do not want to discover that their diarization pipeline broke after a dependency bump. The paid tier is buying throughput and the absence of fiddling, not secret technology.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Open-weight ASR means the hard part of this category is already free; what you are paying for is someone else running it and formatting the output nicely.",
+  "prompt": "Build a local-only transcription and notes web app in an empty folder. No accounts, no telemetry, no cloud storage.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI backend, Jinja2 templates with HTMX for the UI. No React.\n- faster-whisper for ASR, model size configurable via .env, default \"medium\".\n- ffmpeg via subprocess for audio extraction and normalization to 16kHz mono WAV.\n- SQLite via sqlite3 stdlib for job records and transcripts. No ORM.\n- Background jobs in a single worker thread with an in-process queue. No Celery, no Redis.\n\nFeatures that are in scope:\n1. Upload page accepting audio or video files up to 2GB, stored under ./data/uploads.\n2. Job list page showing status (queued, transcribing, diarizing, summarizing, done, failed) with HTMX polling every 3 seconds.\n3. Transcription producing segments with start/end timestamps and text, saved to SQLite.\n4. Optional speaker diarization with pyannote.audio 3.x, enabled only if HF_TOKEN is set in .env. Align diarization turns to whisper segments by maximum time overlap and label them \"Speaker 1\", \"Speaker 2\", etc. If HF_TOKEN is missing, skip diarization and say so in the UI instead of crashing.\n5. Transcript view page with timestamps, speaker labels, and an inline editable speaker-name mapping that rewrites labels across the transcript.\n6. Export buttons: plain text, Markdown, SRT, WebVTT, and JSON.\n7. A \"Generate\" panel with four output types: meeting minutes, podcast show notes, email recap, study notes. Each is a separate prompt template file under ./prompts/ so they can be edited without touching code. Send the transcript to an LLM configured by .env: either OPENAI_API_KEY with a model name, or OLLAMA_URL for a local model. Chunk transcripts over the context limit by time windows and do a map-then-reduce pass.\n8. Generated outputs saved to SQLite and rendered as Markdown next to the transcript.\n\nOut of scope, do not build: user auth, payments, mobile apps, live/streaming transcription, YouTube URL ingestion, translation, multi-tenant anything.\n\nDeliverables: requirements.txt, .env.example with every key documented, a README with exact setup steps including the ffmpeg install and the pyannote model gating step, and a Makefile with \"make run\". Handle a missing ffmpeg binary and an unreadable media file with clear error messages, not stack traces.",
+  "promptCurated": false
+}
