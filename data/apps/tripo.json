@@ -1,0 +1,52 @@
+{
+  "slug": "tripo",
+  "name": "Tripo",
+  "domain": "studio.tripo3d.ai",
+  "category": "generative-media",
+  "subcategory": "text and image to 3D",
+  "tagline": "Generates textured 3D meshes from a text prompt or a single image, in seconds.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://studio.tripo3d.ai/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The product is a 3D generative model, and you are not training one of those in a session. Tripo's value sits in model weights trained on a large corpus of 3D assets plus the GPU fleet that turns a prompt into a quadded, UV-unwrapped, textured mesh in under a minute. A coding agent can absolutely build you a clean local pipeline around open weights like TripoSR or Stable Fast 3D, and that is worth doing if you only need rough props from single images. What comes out will be lower fidelity, worse topology, and weaker texturing than the paid service, and no amount of prompt engineering closes that gap. The app shell is trivial; the thing inside it is the whole company.",
+  "coreLoopDIY": "Runs an open-source image-to-3D model locally and gives you a drop-zone UI that returns a downloadable GLB you can spin in a browser viewer.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with at least 12GB VRAM, or patience with CPU inference",
+    "Python 3.10+ and a working CUDA toolchain",
+    "Comfort with model weight downloads measured in gigabytes",
+    "A separate text-to-image model if you want text-to-3D rather than image-to-3D"
+  ],
+  "whatYouLose": [
+    "Mesh quality: open weights give you blobby geometry and smeared backsides compared to Tripo's output",
+    "Clean topology, retopo, and rigging options",
+    "Fast text-to-3D in one step instead of a two-model relay",
+    "PBR texture maps worth putting in an engine without rework",
+    "Seconds-per-generation turnaround on someone else's GPUs"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "proprietary-data",
+    "scale-infra"
+  ],
+  "moatNotes": "3D training data is scarcer and messier than image data, which is exactly why the good weights are not open.",
+  "whyPeopleStillPay": "Because the output is usable. Anyone who needs a prop in a game, a product mockup, or a printable file is paying for mesh quality and turnaround, not for a web page with an upload box. The local build gets you maybe 60 percent of the way on good input photos and falls apart on anything with thin geometry, transparency, or an unphotographed back side. If you are generating a handful of assets a month, a credit pack costs less than the electricity and the weekend.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The upload form and the GLB viewer are an afternoon; the mesh is not. The moat is model weights trained on a 3D asset corpus that nobody else has scraped, served on GPUs you do not own.",
+  "prompt": "Build a local image-to-3D studio. No accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11 backend with FastAPI and uvicorn.\n- Hugging Face diffusers/transformers plus trimesh for mesh export.\n- Single page frontend: plain HTML with three.js loaded from a local vendored file, no build step, no React.\n- SQLite via sqlite3 for a generation history table. No ORM.\n\nWhat it does:\n1. POST /generate takes an uploaded image, runs background removal with rembg, then runs an open image-to-3D model (default: stabilityai/stable-fast-3d, with a config flag to swap in stabilityai/TripoSR) and writes a .glb to ./outputs/.\n2. Generation runs in a background task; the endpoint returns a job id immediately. GET /jobs/{id} returns queued, running, done, or failed with an error string.\n3. GET / serves a single page: a drop zone, a job list polled every 2 seconds, and a three.js viewer that loads the finished GLB with OrbitControls and a neutral studio HDRI.\n4. Each history row stores: job id, source image path, output path, model name, seed, wall clock seconds, created_at. Clicking a row loads it in the viewer.\n5. A Download GLB button. That is the only export format.\n\nExplicitly out of scope: text-to-3D, retopology, rigging, PBR map baking, animation, multi-image reconstruction, any hosted API.\n\nConstraints:\n- Detect CUDA and use fp16 if available, otherwise fall back to CPU and warn loudly in the UI that a generation will take many minutes.\n- Model cache directory and output directory read from .env with sane defaults. Ship .env.example, gitignore .env and outputs/.\n- requirements.txt pinned. A README with the exact commands to install, download weights on first run, and start the server.\n- Fail honestly: if VRAM allocation fails, surface the real exception text in the job record instead of a generic message.\n\nWhen done, print the local URL and nothing else.",
+  "promptCurated": false
+}
