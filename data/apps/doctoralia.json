@@ -1,0 +1,52 @@
+{
+  "slug": "doctoralia",
+  "name": "Doctoralia",
+  "domain": "doctoralia.com",
+  "category": "scheduling",
+  "subcategory": "medical appointment marketplace",
+  "tagline": "A patient-facing directory of doctors and clinics with reviews and online appointment booking, plus paid profile and practice management tiers for practitioners.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://doctoralia.com/",
+    "checkedOn": "2026-10-21",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Doctoralia (Docplanner group) sells practitioner subscriptions that vary heavily by country and clinic size, and the figures are not published cleanly.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The booking widget is the easy part: a calendar, slot rules, a confirmation email, done in an afternoon. What a doctor actually buys is patients who were already searching Doctoralia for a dermatologist in their city, plus the review history attached to their name. You cannot one-shot demand. Add health data handling, local medical advertising rules, and SMS reminder deliverability, and the consolation build is a clinic booking page, not a replacement. Fine if you already have the patients and just want to stop doing phone scheduling.",
+  "coreLoopDIY": "A self-hosted booking page for one practice: define services and working hours, let patients pick a free slot, store the appointment, and email both sides a confirmation.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A domain and somewhere to host it",
+    "An SMTP provider for confirmation emails (and an SMS provider if you want reminders)",
+    "Your own patient flow: people must already know your practice exists",
+    "A real look at local rules before you store anything clinical"
+  ],
+  "whatYouLose": [
+    "Patient discovery: the search traffic that makes the listing worth paying for",
+    "Accumulated public reviews and the ranking they feed",
+    "Insurance, specialty and location filters that patients actually browse by",
+    "SMS reminder infrastructure with decent delivery rates and no-show reduction data",
+    "Practice management extras: multi-practitioner calendars, patient records, payments, support in your language"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "brand-trust",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "Two sided and geographically fragmented: being big in Poland, Spain, Italy or Brazil is the product, and a local clone starts with zero patients on day one.",
+  "whyPeopleStillPay": "Doctors do not pay for a calendar, they pay to be found. A clinic that drops the subscription keeps its appointment slots and loses the stream of strangers who typed a specialty and a city into Google and landed on a Doctoralia profile with 200 reviews. The reviews are the other half: they are hosted there, they do not come with you, and starting a fresh review history at zero is a worse marketing problem than the subscription cost. For an established practice with a full book and word of mouth, cancelling makes sense and a self-hosted booking page covers the rest. For anyone growing, the fee is a customer acquisition line item.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The booking form is a weekend; the patients are not. The moat is marketplace liquidity in specific countries plus the review history that stays behind when you leave.",
+  "prompt": "Build a self-hosted appointment booking page for a single medical practice. This is a scheduling tool, not a directory: no patient-facing search across practitioners, no reviews, no marketplace.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind\n- SQLite via better-sqlite3, file at ./data/app.db, schema created on first run\n- Nodemailer for email, SMTP credentials from .env\n- Deployed as a single long-running Node process, no serverless assumptions\n\nData model:\n- practitioners: id, name, title, bio\n- services: id, practitioner_id, name, duration_minutes, price, buffer_minutes\n- availability_rules: practitioner_id, weekday, start_time, end_time\n- blackouts: practitioner_id, starts_at, ends_at, reason\n- appointments: id, service_id, practitioner_id, starts_at, ends_at, patient_name, patient_email, patient_phone, reason_note, status (booked | cancelled | completed), cancel_token\n\nPublic flow at /book:\n1. Pick a service, 2. pick a practitioner, 3. see a two-week grid of free slots, 4. enter name, email, phone and a short reason, 5. confirm.\nSlot generation runs server side from availability_rules minus blackouts minus existing appointments including buffers. Never trust slots sent by the client: re-check on submit inside a transaction and return a clear conflict error.\n\nEmails: confirmation to patient with an .ics attachment and a cancel link using cancel_token, plus a notification to the practice inbox. Add a /api/cron/reminders route protected by a shared secret that emails anyone with an appointment in the next 24 hours.\n\nAdmin at /admin behind a single password from .env (HTTP-only session cookie, no user accounts): day and week calendar, manual booking, cancel, blackout editor, service and availability editor.\n\nKeep clinical data out. The reason_note is one short free-text line, label it clearly as non-confidential, and do not add file uploads, diagnoses or records. No analytics, no telemetry, no third-party scripts.\n\nShip with a seed script creating one practitioner, three services and Mon-Fri hours, a README covering .env vars and SQLite backup, and a note in the README that storing patient data may trigger local health privacy rules.",
+  "promptCurated": false
+}
