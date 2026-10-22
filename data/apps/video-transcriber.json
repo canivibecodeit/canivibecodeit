@@ -1,0 +1,51 @@
+{
+  "slug": "video-transcriber",
+  "name": "Video Transcriber",
+  "domain": "videotranscriber.pro",
+  "category": "audio-video",
+  "subcategory": "transcription and subtitles",
+  "tagline": "Upload a video file or paste a public link, get a searchable transcript with speaker labels and subtitle exports.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://videotranscriber.pro/",
+    "checkedOn": "2026-10-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "This category sits on top of open weights, which is the whole story. Whisper (or faster-whisper, or whisper.cpp) plus ffmpeg plus yt-dlp covers file ingest, link ingest, transcription, and timestamped output, and the export formats are string formatting, not engineering. Speaker labels are the one genuinely annoying part: pyannote needs a Hugging Face token and gated model acceptance, and its accuracy on crosstalk is mediocre everywhere, including in paid products. If you process video occasionally and own a machine with a GPU or just patience, a local version is a single session of work and costs nothing per minute forever. The reason to pay is that you want a URL box in a browser tab and no Python in your life.",
+  "coreLoopDIY": "A local web app that takes an uploaded video or a public URL, extracts audio with ffmpeg, transcribes with faster-whisper, optionally diarizes with pyannote, and exports TXT, DOCX, SRT, VTT, and CSV.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+, ffmpeg installed on PATH",
+    "A machine with a decent CPU, GPU strongly preferred for long videos",
+    "Hugging Face token and accepted model terms if you want speaker diarization",
+    "Disk space for model weights, roughly 1 to 3 GB depending on model size"
+  ],
+  "whatYouLose": [
+    "No queue: a two hour video ties up your laptop instead of someone's GPU fleet",
+    "Speaker diarization setup is gated behind Hugging Face token plumbing and is fiddly to get right",
+    "No polished browser editor for fixing transcript errors and re-syncing timings",
+    "Link ingest breaks whenever a platform changes its player, and yt-dlp updates are your problem",
+    "Nothing to share: no links, no team access, no mobile upload from a phone"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The model is open, so the product is the convenience layer: a fast queue, a usable editor, and formats that actually validate.",
+  "whyPeopleStillPay": "Because transcription is bursty. Most people need it four times a year, usually under deadline, usually on a laptop that is already doing something else, and paying a few dollars to have a transcript in ten minutes beats installing CUDA at 11pm. The paid versions also absorb the two boring failure modes: long files that need chunking and resumption, and subtitle files that have to be frame-accurate enough for an editor to accept them.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The entire industry here is a UI wrapper around weights that Meta and OpenAI gave away, and most of them know it.",
+  "prompt": "Build a local video transcription tool. Single machine, no accounts, no cloud, no telemetry.\n\nStack: Python 3.11, FastAPI backend, server-rendered Jinja2 templates with plain HTML and a little vanilla JS. No React. SQLite via sqlite3 for job records. Store everything under ./data.\n\nCore flow:\n1. A single page with two inputs: a file upload (mp4, mov, mkv, webm, mp3, wav, m4a) and a text field for a public video URL.\n2. URL ingest uses yt-dlp as a Python module to download audio only. File uploads are saved to ./data/uploads.\n3. Extract and normalize audio with ffmpeg via subprocess: mono, 16 kHz, 16-bit WAV.\n4. Transcribe with faster-whisper. Default model size from WHISPER_MODEL in .env, default \"small\". Auto-detect device: cuda if available, else cpu with int8 compute type. Request word timestamps.\n5. Optional speaker labels: if HF_TOKEN is set in .env, run pyannote/speaker-diarization-3.1 and assign each segment the speaker whose turn overlaps it most. If HF_TOKEN is missing, skip diarization silently and label everything \"Speaker\". Do not crash.\n6. Run jobs in a background thread with a simple in-process queue, one at a time. Poll job status from the page every 2 seconds and show stage plus percent where known.\n\nOutputs, all generated from one internal segment list (start, end, speaker, text):\n- TXT: plain paragraphs, speaker prefix when diarization ran\n- SRT and VTT: correctly formatted timestamps, max 2 lines and ~42 chars per cue, split on word boundaries using word timestamps\n- CSV: start,end,speaker,text with proper quoting\n- DOCX: via python-docx, speaker headings and body text\nWrite exports to ./data/exports/{job_id}/ and expose download links.\n\nAlso build a transcript view page with the segments listed, a search box that filters segments client-side, and a click-to-copy button.\n\nOut of scope: user accounts, payments, translation, an editable transcript editor, multi-machine workers, anything touching private or login-walled video URLs.\n\nDeliver: requirements.txt, .env.example with WHISPER_MODEL and HF_TOKEN, a README with ffmpeg install notes per OS and a realistic speed table for cpu versus cuda, and one end-to-end smoke test using a 10 second generated sine-wave video so the test suite needs no network.",
+  "promptCurated": false
+}
