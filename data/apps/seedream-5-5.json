@@ -1,0 +1,50 @@
+{
+  "slug": "seedream-5-5",
+  "name": "Seedream 5.5",
+  "domain": "seedream55.app",
+  "category": "ai-image",
+  "subcategory": "text-to-image and image-to-image generation",
+  "tagline": "A web front end for generating and editing images from text prompts and reference images.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://seedream55.app/",
+    "checkedOn": "2026-10-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit-based image generators usually bill per render, not per seat.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The interface here is a prompt box, an aspect ratio picker, a reference image slot, and a grid of results. That part is genuinely a one-sitting build. The part that matters is the Seedream image model itself, which is a large diffusion-family model trained by a well-funded lab on a corpus you do not have and cannot assemble. You can replace the wrapper in an afternoon and still be renting the same weights from someone, either through an API or by running an open model locally and accepting worse text rendering and worse prompt adherence. If you care about the specific look and the specific instruction-following, you are paying for the model, not the site.",
+  "coreLoopDIY": "A local studio page that takes a prompt plus optional reference image, calls a hosted image model, and saves every render with its parameters into a searchable local gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted image model provider, or a GPU with 16GB+ VRAM to run an open weights model locally",
+    "Node 20+",
+    "Disk space for the image gallery"
+  ],
+  "whatYouLose": [
+    "The actual Seedream weights, which you cannot reproduce at any effort level",
+    "Reliable legible text inside images, which open alternatives still fumble",
+    "Whatever prompt rewriting and safety plumbing sits between your input and the model",
+    "Zero setup: no keys, no CUDA, no queue management",
+    "Someone else eating the cost of a failed render"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra"
+  ],
+  "moatNotes": "Wrapper sites around a strong model are easy to replace. The model is not, and the wrapper knows it.",
+  "whyPeopleStillPay": "Because typing a prompt into a box that already works beats provisioning a GPU, chasing model weights, and discovering that your local setup renders hands fine but cannot spell. Image generation is also bursty: most people want forty renders in one evening and then nothing for three weeks, which is exactly the usage pattern that makes pay-per-credit cheaper than owning anything. The front end is commodity, the inference is not, and the price of a few hundred images is still less than one month of a rented GPU.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is an afternoon; the weights are not. The moat is a trained image model plus the inference fleet to serve it, and no amount of clean frontend code conjures either.",
+  "prompt": "Build a local image generation studio called \"Darkroom\". Single user, runs on my machine, no accounts, no telemetry, no cloud database.\n\nStack, non-negotiable: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3. Images stored on disk under ./data/images, metadata in ./data/darkroom.db. No ORM, write the SQL.\n\nModel access: call the Replicate HTTP API directly with fetch. Read REPLICATE_API_TOKEN from .env.local and nothing else. Put the model slug in a single exported constant in lib/models.ts so I can swap it in one place. Do not vendor an SDK.\n\nCore screen, one page:\n- A prompt textarea, a negative prompt field, aspect ratio select (1:1, 3:2, 2:3, 16:9), and a count select (1, 2, 4).\n- An optional reference image drop zone. If a reference is present, send it as the image input for image-to-image and expose a strength slider from 0.1 to 0.9.\n- A Generate button that creates a prediction, polls it until it resolves, downloads the output bytes to ./data/images, and inserts one row per image with prompt, negative prompt, ratio, strength, reference hash, model slug, seed if returned, cost field left null, and created_at.\n\nGallery:\n- Reverse chronological grid below the form, infinite scroll in pages of 40.\n- Click an image for a detail view with full parameters, a \"copy settings into the form\" button, a \"use as reference\" button, and delete.\n- A text search box that does LIKE matching over the prompt column. Favourite toggle, and a filter for favourites only.\n\nRules:\n- Generation runs in a route handler, never in the browser. The token must never reach the client bundle.\n- Handle failed and cancelled predictions: show the provider error text verbatim, do not swallow it.\n- Keep a hard local concurrency cap of 2 in-flight predictions.\n\nOut of scope: user auth, sharing links, upscaling, inpainting masks, model fine-tuning, payments, a mobile app.\n\nShip a README with the exact .env.local keys and a one-command start. Seed nothing.",
+  "promptCurated": false
+}
