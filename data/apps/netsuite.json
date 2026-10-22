@@ -1,0 +1,52 @@
+{
+  "slug": "netsuite",
+  "name": "NetSuite",
+  "domain": "netsuite.com",
+  "category": "finance-accounting",
+  "subcategory": "ERP",
+  "tagline": "Oracle's cloud ERP: general ledger, AR/AP, inventory, order management, and financial reporting for mid-market companies.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.netsuite.com/portal/home.shtml",
+    "checkedOn": "2026-10-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. NetSuite is quote-only: base license plus modules plus per-user seats, negotiated annually.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "NetSuite is not an app, it is a decade of accounting regulation compiled into software and then audited. The parts you can see, invoices, purchase orders, an item list, are the easy 5%. The parts that matter are multi-entity consolidation, multi-currency revaluation, revenue recognition under ASC 606, tax jurisdictions, period close with locked books, and an audit trail your external auditors will actually accept. An agent can absolutely give you a double-entry ledger in an afternoon, and for a solo operator or a one-entity shop that might genuinely be enough. For anything that files consolidated statements or gets audited, you are not building software, you are taking on personal liability.",
+  "coreLoopDIY": "A local double-entry ledger with a chart of accounts, journal entries, invoices, bills, and a trial balance plus P&L and balance sheet you can export.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Somewhere to run it, a local machine is fine",
+    "An actual accountant to sign off on your chart of accounts",
+    "Discipline to never edit a posted entry"
+  ],
+  "whatYouLose": [
+    "Audit trail and period locking that auditors recognize without arguing",
+    "Multi-entity and multi-currency consolidation, including FX revaluation at close",
+    "Revenue recognition, deferred revenue schedules, and anything ASC 606 shaped",
+    "Sales tax and VAT determination across jurisdictions, plus filing-ready reports",
+    "Every integration your business already runs through it: payroll, banks, 3PL, CRM, the lot",
+    "Someone to blame, and to call, when the books are wrong in Q4"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "ERP switching costs are legendary for a reason: the data model has your entire operating history in it, and the implementation partner ecosystem exists because migrating out is a multi-quarter project with a project manager.",
+  "whyPeopleStillPay": "Nobody buys NetSuite because it is pleasant. They buy it because an auditor, an investor, or a bank asked for financials that reconcile, and because thirty other systems already write into it. The cost of a bad close is higher than the license, and the license is already absurd. Once your controller, your tax filings, and your quote-to-cash flow live inside it, the only exit is a funded migration project.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A ledger is a weekend; a close is not. The moat is compliance liability plus twenty integrations that already point at it.",
+  "prompt": "Build a local, single-entity double-entry accounting ledger. This is a bookkeeping tool for one small business, not an ERP.\n\nStack, no substitutions:\n- Python 3.12, FastAPI backend, SQLite via SQLAlchemy.\n- Server-rendered Jinja2 templates plus HTMX for interactivity. No React, no build step.\n- Decimal arithmetic everywhere for money. Never float. Store amounts as integer minor units.\n- Run with: uvicorn app.main:app --reload. Everything local, no accounts, no cloud, no telemetry.\n\nData model:\n- Account: code, name, type (asset, liability, equity, revenue, expense), parent_id for a tree.\n- JournalEntry: date, memo, reference, posted_at, period_id.\n- JournalLine: entry_id, account_id, debit_minor, credit_minor.\n- Period: year, month, status (open, closed).\n- Contact: name, type (customer, vendor).\n- Invoice and Bill: contact, issue_date, due_date, lines, status. Each posts a JournalEntry on approval.\n\nHard invariants, enforce in code and test them:\n- Every entry must balance: sum of debits equals sum of credits, or the save is rejected.\n- A posted entry is immutable. Corrections happen only via a reversing entry that links back to the original.\n- No entry can post into a closed period.\n- Closing a period is one-way through the UI.\n\nScreens:\n- Chart of accounts, editable tree.\n- Journal entry form with dynamic lines and a live balance indicator.\n- Invoice and bill entry with auto-posting to AR/AP.\n- Reports: trial balance, profit and loss, balance sheet, general ledger per account, AR and AP aging. All with a date range and CSV export.\n\nSeed a plausible small-business chart of accounts on first run. Ship a seed script with three months of fake transactions so the reports are not empty.\n\nExplicitly out of scope, state this in the README: multi-entity consolidation, multi-currency, revenue recognition schedules, sales tax determination, payroll, inventory valuation, fixed asset depreciation, bank feeds. The README must also say in plain words that this output is not audit-grade and should not be the system of record for a company that gets audited.\n\nInclude pytest coverage for balance enforcement, period locking, immutability of posted entries, and that the balance sheet actually balances against the trial balance.",
+  "promptCurated": false
+}
