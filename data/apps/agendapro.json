@@ -1,0 +1,53 @@
+{
+  "slug": "agendapro",
+  "name": "AgendaPro",
+  "domain": "agendapro.com",
+  "category": "scheduling",
+  "subcategory": "salon and clinic booking",
+  "tagline": "Booking, POS and client management software for salons, spas and clinics, mostly in Latin America.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://agendapro.com/",
+    "checkedOn": "2026-10-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The booking calendar itself is a solved problem: slots, services, durations, staff, a public page where a client picks a time. An agent can give you that in a sitting and it will work fine for one practitioner with one room. What it will not give you is the rest of the product: card payments, receipts and tax-compliant invoicing in whichever country you operate, WhatsApp and SMS reminders that actually deliver, inventory, commissions, and the no-show economics that make the whole thing pay for itself. If you are a solo therapist or barber who just wants people to stop texting you for openings, build it. If you run a five-chair shop with staff payouts and a cash register, the DIY version turns into a part-time job.",
+  "coreLoopDIY": "A self-hosted booking site where clients pick a service, see real availability from your working hours and existing bookings, and book, with an owner calendar and email confirmations.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small VPS or any Node host",
+    "Postgres (or SQLite for a single location)",
+    "An SMTP account for confirmation emails",
+    "A domain for the public booking page",
+    "Optional: Stripe keys if you want deposits"
+  ],
+  "whatYouLose": [
+    "Payments, POS and country-specific electronic invoicing",
+    "WhatsApp and SMS reminders with real deliverability, which is what kills no-shows",
+    "Multi-staff scheduling, commissions and payroll-ish reporting",
+    "Inventory and product sales alongside services",
+    "A mobile app and a support line that your front desk staff can actually call"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "Billing and invoicing rules differ per country, and the LATAM localization plus WhatsApp messaging is a lot of unglamorous plumbing.",
+  "whyPeopleStillPay": "Because the calendar is the cheap part. Shops pay for the fact that reminders reach clients on WhatsApp, that the register closes at night with numbers that match, that invoices satisfy the local tax authority, and that a receptionist who is not technical can be trained on it in an afternoon. Once a year of client history, appointment notes and prepaid packages live inside it, moving is a migration project nobody wants to run during business hours.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it if you are one person with one chair; buy it the moment you have staff and a cash drawer.",
+  "prompt": "Build a self-hosted appointment booking app for a single small service business (one location, up to 3 staff).\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript\n- SQLite via Prisma\n- Tailwind for styling, no component library\n- Nodemailer for email, SMTP creds in .env\n- Single admin login via a password hash in .env, cookie session. No user signup, no OAuth, no third-party auth service.\n\nData model: Service (name, durationMinutes, priceCents, active), StaffMember (name, email, active), WorkingHours (staffId, weekday, startTime, endTime), TimeOff (staffId, start, end, reason), Appointment (serviceId, staffId, clientName, clientEmail, clientPhone, start, end, status: booked | completed | noshow | cancelled, notes), Client (name, email, phone, notes) deduped by email or phone.\n\nPublic side:\n- /book: pick service, then staff (or 'anyone'), then a date, then an available time slot.\n- Availability is computed server side from WorkingHours minus TimeOff minus existing Appointments, sliced into slots by service duration. Never trust client-submitted slots: re-validate on POST and return a clear conflict error.\n- Confirmation email to the client and the owner, with a cancel link signed by an HMAC token.\n- /appointment/[token]: client can cancel or see details.\n\nAdmin side (password protected):\n- Day and week calendar view, create and edit appointments manually, mark completed or no-show.\n- CRUD for services, staff, working hours, time off.\n- Client list with appointment history and notes.\n- CSV export of appointments.\n\nExplicitly out of scope: payments, POS, inventory, SMS or WhatsApp, invoicing, multi-location, marketing campaigns, analytics beyond simple counts.\n\nStore all times in UTC, render in a single TIMEZONE from .env. Handle the case where two people book the same slot at the same moment with a unique constraint or transaction, and show a human error message.\n\nShip a seed script with 3 services, 2 staff and sample hours, a README with setup steps, and a .env.example. No telemetry, no external analytics.",
+  "promptCurated": false
+}
