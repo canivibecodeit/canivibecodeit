@@ -1,0 +1,52 @@
+{
+  "slug": "ace-step",
+  "name": "ACE-Step",
+  "domain": "ace-step.club",
+  "category": "ai-audio",
+  "subcategory": "text-to-music generation",
+  "tagline": "A hosted web front end for ACE-Step, an open weights foundation model that turns text prompts and lyrics into full songs.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://ace-step.club/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Hosted music generators of this shape usually sell credit packs rather than seats.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The interesting part of ACE-Step is a 3.5B parameter music generation model, and no coding agent is going to train one of those in an afternoon. The twist is that you do not have to: the weights are open and downloadable, so the thing standing between you and a personal version is a GPU and a pile of torch dependencies, not model research. An agent can absolutely scaffold the inference server, the prompt and lyrics form, the seed and duration controls, and a local library of generated tracks in one session. What it cannot do is make a 16GB consumer card feel like someone else's inference cluster, or spare you the half hour of CUDA roulette that precedes the first song. So: buildable, genuinely, as long as you own the silicon.",
+  "coreLoopDIY": "Run the open ACE-Step weights locally behind a small web UI where you type a prompt and lyrics, pick a length, and get a WAV back into a browsable local library.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An NVIDIA GPU with roughly 16GB VRAM, or Apple Silicon with 24GB plus unified memory",
+    "About 20GB of disk for model weights and generated audio",
+    "Python 3.10 and tolerance for PyTorch install archaeology",
+    "Willingness to wait on first run while the weights download"
+  ],
+  "whatYouLose": [
+    "Instant results: a hosted cluster renders faster than your one card, and queues nothing",
+    "Zero setup. The hosted site works on a phone, in a browser, from a hotel wifi",
+    "Whatever model updates and fine tunes the host ships without telling you",
+    "Sharing links, embeds, and any social layer around the tracks",
+    "Someone else absorbing the cost when you generate 200 variations of the same chorus"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "hardware",
+    "execution-polish"
+  ],
+  "moatNotes": "The weights are open, so the moat is not the model. It is owning GPUs and amortizing them across strangers.",
+  "whyPeopleStillPay": "Because most people who want a song do not want a CUDA toolkit. Paying per credit converts a weekend of dependency hell and a four figure GPU purchase into a text box that works right now, on whatever device is in hand. That trade is rational if you generate music occasionally. It stops being rational the moment you generate music daily, at which point the open weights are sitting right there and the math flips hard in favor of self-hosting.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Rare case where the hard part is already free and the easy part is what gets charged for.",
+  "prompt": "Build a local text-to-music studio that wraps the open weights ACE-Step model. Empty folder, no accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.10, uv for dependency management\n- FastAPI backend, single process\n- Plain HTML, CSS and vanilla JS frontend served by FastAPI from /static. No React, no build step.\n- SQLite via sqlite3 stdlib for the track library\n- Generated audio written to ./outputs as WAV, filenames keyed by row id\n\nWhat to build:\n1. A setup script that creates the venv, installs torch plus the acestep package, and downloads the ACE-Step checkpoint into ./models on first run. Print clear progress; the download is large.\n2. A warm model wrapper: load the pipeline once at startup into a module-level singleton, never per request. Log the detected device (cuda, mps or cpu) and refuse to start on cpu unless ALLOW_CPU=1 is set in .env, because cpu generation is unusably slow.\n3. POST /api/generate accepting: tags or prompt text, optional lyrics, duration in seconds (default 60, cap 240), seed (optional, random if absent), and an inference steps value. Run generation in a background thread, return a job id immediately.\n4. GET /api/jobs/{id} returning status queued | running | done | error, plus the output path when done. One job at a time, simple in-memory FIFO queue; reject concurrent generation with a clear message.\n5. GET /api/tracks listing the library from SQLite with prompt, lyrics, duration, seed, steps, created_at and file path.\n6. Frontend: one page. Left side a form with prompt, lyrics textarea, duration slider, seed field with a dice button, steps field. Right side a reverse-chronological list of tracks, each with an inline HTML audio player, the seed shown, a download link, a delete button, and a \"reuse settings\" button that refills the form.\n7. Poll the job endpoint every 2 seconds while a generation is running and show elapsed time. Generation takes minutes; do not pretend otherwise.\n\nExplicitly out of scope: user accounts, billing, sharing links, stem separation, training or fine tuning, mobile apps, any hosted API fallback.\n\nConfig in .env: MODEL_DIR, OUTPUT_DIR, PORT, ALLOW_CPU. Commit .env.example, never .env.\n\nWrite a README with exact commands, the real VRAM floor, expected generation time per minute of audio on a mid range GPU, and a troubleshooting section for torch and CUDA mismatches.",
+  "promptCurated": false
+}
