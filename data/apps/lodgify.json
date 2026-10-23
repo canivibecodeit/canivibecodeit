@@ -1,0 +1,53 @@
+{
+  "slug": "lodgify",
+  "name": "Lodgify",
+  "domain": "lodgify.com",
+  "category": "travel",
+  "subcategory": "short-term rental management",
+  "tagline": "Vacation rental management software: direct booking website, unified calendar, channel sync with the big OTAs, and payments.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "tiered by number of rentals, discounted annually",
+    "unit": "custom",
+    "source": "https://www.lodgify.com/",
+    "checkedOn": "2026-09-18",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The half you see is genuinely easy: a booking site for two or three rentals, a unified availability calendar, a quote calculator, Stripe deposits, and templated guest emails is one solid session of work. The half you do not see is the channel manager, and that is where the money goes. Two-way rate and inventory push to Airbnb, Booking.com, Vrbo and Expedia runs through partner APIs with certification, contracts and support obligations, so a DIY build falls back to iCal feeds that refresh on someone else's schedule and carry no pricing. That is workable for a single owner with direct bookings as the main channel, and it is a double-booking generator if OTAs are most of your volume. Repricing is the easy part of what is missing, not the hard part.",
+  "coreLoopDIY": "Pulls iCal feeds from each listing into one local calendar, blocks overlaps, and serves a direct booking page with seasonal pricing and a Stripe deposit.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "iCal export URLs from each OTA listing",
+    "a Stripe account for deposits and balances",
+    "SMTP credentials for guest email",
+    "a domain and somewhere to host a small Node app",
+    "somewhere reliable to run a sync job every 15 to 30 minutes"
+  ],
+  "whatYouLose": [
+    "Two-way channel sync: you can read OTA calendars over iCal, you cannot push rates, minimum stays or availability back",
+    "Sync latency measured in hours, which is exactly how overlapping bookings happen",
+    "OTA content and listing management, plus any support channel when a connection silently breaks",
+    "Payment plumbing you did not want to think about: 3DS, refunds, chargebacks, security deposits, tax and city-levy handling",
+    "Guest-facing polish: multilingual booking flow, mobile app, upsells, review requests, damage protection partners"
+  ],
+  "moatTags": [
+    "integrations",
+    "switching-costs",
+    "compliance-regulatory"
+  ],
+  "moatNotes": "The OTA connections are a business development artifact, not a technical one. You cannot code your way into a Booking.com or Expedia connectivity partnership over a weekend.",
+  "whyPeopleStillPay": "Because the failure mode is not a bug, it is a stranger with luggage standing outside a house that is already occupied. Hosts pay for someone else to own the sync guarantee across four channels, and for the fact that when Airbnb changes something, a support team notices before the guest does. A self-built system is fine when direct bookings are the main channel and you are in the calendar daily anyway; it stops being fine the moment you list on three platforms and stop looking.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this if direct bookings are your channel and OTAs are a trickle. Do not build it if OTAs are your business.",
+  "prompt": "Build a self-hosted short-term rental manager for a single owner with up to five properties. No multi-tenant accounts, no SaaS signup, no telemetry.\n\nStack, non-negotiable: Next.js App Router with TypeScript, Tailwind, SQLite via Drizzle ORM, Stripe Checkout for deposits, Nodemailer over SMTP for email. One repo, runs with `npm run dev` and a single `.env`. All secrets in `.env` with a committed `.env.example`.\n\nData model: Property, RatePlan (seasonal date ranges with nightly rate, minimum stay, cleaning fee), ChannelFeed (a named iCal URL per property per channel), Booking (source = direct or channel name, guest details, dates, computed total, deposit status), BlockedDate.\n\nFeatures, in scope:\n1. Admin UI at /admin behind a single password from .env (HTTP basic or a signed cookie, keep it simple).\n2. iCal ingest: a sync job that fetches every ChannelFeed, parses events with node-ical, and upserts them as external bookings. Keep the raw UID so re-syncs update instead of duplicating. Log each run with counts and errors.\n3. Expose /api/sync as a POST endpoint protected by a token so an external cron can hit it every 20 minutes. Also a manual Sync now button.\n4. Conflict detection: any date covered by two or more bookings shows up on a red Conflicts panel on the admin dashboard and triggers one email alert per new conflict.\n5. Unified calendar: month grid per property, colour coded by source, with drag-free manual blocking.\n6. Public booking page per property at /stay/[slug]: photo gallery from a local /public folder, availability-aware date picker, live quote from the rate plans, guest form.\n7. On submit, create a pending Booking and send the guest to Stripe Checkout for a configurable deposit percentage. On webhook success, confirm the booking and email both guest and owner using editable templates.\n8. Export: /api/ical/[propertySlug].ics serving confirmed bookings so OTAs can read your direct bookings back.\n9. A simple pricing rules screen: base rate, weekend uplift, per-season overrides, last-minute discount window. Rules only, no demand data.\n\nOut of scope, do not attempt: two-way OTA API push, OTA listing content management, dynamic repricing from market data, channel-specific fee reconciliation, mobile apps, multi-user roles.\n\nInclude a seed script with two fake properties and sample feeds, integration tests for the overlap detector and the quote calculator, and a README that states plainly that iCal sync is delayed and therefore double bookings remain possible.",
+  "promptCurated": false
+}
