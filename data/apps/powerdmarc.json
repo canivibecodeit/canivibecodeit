@@ -1,0 +1,51 @@
+{
+  "slug": "powerdmarc",
+  "name": "PowerDMARC",
+  "domain": "powerdmarc.com",
+  "category": "security",
+  "subcategory": "email authentication and DMARC reporting",
+  "tagline": "Hosted DMARC, SPF, DKIM and BIMI monitoring that turns raw XML aggregate reports into dashboards and alerts.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://powerdmarc.com/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "DMARC aggregate reports are just gzipped XML emailed to an address you control, and parsing them into a per-source pass/fail table is a genuinely small program. An agent can build the ingest, the database, and a readable dashboard for your own domains in a weekend, and for one or two domains that is most of the practical value. What does not come along: forensic failure reports with their PII handling, IP and sender reputation enrichment so you can tell Mailchimp from a spoofer, SPF flattening to dodge the ten lookup limit, hosted record delegation, and BIMI certificate work that requires an actual certificate authority. You also inherit the operational judgment problem: the hard part of DMARC is deciding when it is safe to move to p=reject, not drawing the chart. Fine if you are a domain owner who wants visibility; not fine if you are an MSP billing clients for attestations.",
+  "coreLoopDIY": "Pulls DMARC aggregate reports from an IMAP mailbox, unzips and parses the XML, stores per-source results in SQLite, and serves a dashboard showing which sending IPs pass SPF and DKIM alignment over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a domain you control and can edit DNS for",
+    "a dedicated mailbox with IMAP access for the rua address",
+    "somewhere to run a scheduled job (cron on a VPS or a laptop that is usually on)"
+  ],
+  "whatYouLose": [
+    "Forensic and failure reports, plus the redaction and retention policy that makes handling them legally boring",
+    "Sender reputation and IP ownership enrichment, so you get raw IPs instead of 'this is SendGrid, your marketing team'",
+    "SPF flattening and hosted record delegation, which is the thing that actually fixes the ten DNS lookup limit",
+    "BIMI and VMC issuance, which needs a certificate authority and a trademark, not code",
+    "Alerting, multi-domain tenancy, client reporting, and someone to blame when p=reject eats the invoices"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The parsing is commodity; the surrounding services are DNS delegation, CA relationships, and being the vendor whose report an auditor accepts.",
+  "whyPeopleStillPay": "Because nobody buys DMARC tooling to look at XML, they buy it to get to enforcement without blocking a payroll provider, and then to prove to an insurer or an enterprise customer that they did. A self-hosted parser answers 'what is sending as me' very well, which is genuinely most of the journey. It does not hand you a flattened SPF record, a VMC, a client-ready PDF, or a support engineer at 2am when a sanctioned mail stream starts failing alignment. Agencies managing fifty client domains are paying for the tenancy and the delegation, not the chart.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The XML parser is a weekend; the nerve to publish p=reject is not.",
+  "prompt": "Build a self-hosted DMARC aggregate report dashboard. Single Python service, no cloud accounts.\n\nStack, non-negotiable: Python 3.11+, FastAPI, SQLite via sqlite3 (no ORM), Jinja2 templates, plain CSS, uv or pip with a requirements.txt. Server-rendered HTML only, no frontend framework, no JS build step. One small vanilla JS file is allowed for sorting tables.\n\nWhat it does:\n1. An ingest command (python -m dmarcbox.ingest) connects to an IMAP mailbox over SSL using credentials from .env (IMAP_HOST, IMAP_USER, IMAP_PASS, IMAP_FOLDER). It fetches unread messages, finds attachments that are .zip, .gz or .xml, decompresses them in memory, and parses the DMARC aggregate XML schema: report_metadata (org_name, report_id, date_range), policy_published (domain, p, sp, pct, adkim, aspf), and every record (source_ip, count, disposition, dkim and spf eval results, header_from, auth_results).\n2. Store into SQLite tables: reports and records, with a UNIQUE constraint on (org_name, report_id) so re-ingesting is idempotent. Mark the message seen only after a successful commit. Write malformed attachments to ./quarantine/ and keep going, never crash the whole run.\n3. Reverse DNS lookup each source_ip once, cache the PTR in an ip_cache table. Do not call any paid or external reputation API.\n4. Web UI at /: pick a domain and a date window. Show total messages, percent fully aligned (DKIM pass OR SPF pass with alignment), and a table of sending sources sorted by volume with columns: source_ip, PTR hostname, volume, DKIM aligned %, SPF aligned %, disposition breakdown. Clicking a source shows its per-report detail rows. A second page shows the published policy over time so you can see when p changed.\n5. A /sources page where you can tag an IP range as known-good with a label (e.g. 'Google Workspace'), stored in SQLite, so the dashboard can split traffic into known versus unknown. Manual tagging only.\n\nExplicitly out of scope: forensic/RUF report parsing, SPF flattening, BIMI, DNS record editing, email alerting, multi-tenancy, auth. It binds to 127.0.0.1 and assumes you are the only user.\n\nDeliverables: working code, requirements.txt, .env.example, a schema.sql, a sample aggregate report XML in ./fixtures/ plus a test that parses it, and a README with the exact DNS TXT record to publish (_dmarc.example.com with rua pointing at the ingest mailbox) and a crontab line to run ingest hourly. Secrets only in .env, which is gitignored. No telemetry, no analytics, no outbound calls except IMAP and DNS.",
+  "promptCurated": false
+}
