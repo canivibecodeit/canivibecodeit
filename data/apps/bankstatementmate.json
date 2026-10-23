@@ -1,0 +1,52 @@
+{
+  "slug": "bankstatementmate",
+  "name": "BankStatementMate",
+  "domain": "bankstatementmate.com",
+  "category": "finance-accounting",
+  "subcategory": "bank statement conversion",
+  "tagline": "Turns PDF, PNG and JPG bank statements into clean Excel or CSV transaction tables, processed locally with a preview before export.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://bankstatementmate.com/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Parsing one bank's PDF statement is a genuinely easy afternoon: the text layer is usually there, the columns are regular, and pdfplumber plus a few regexes will get you a CSV you can trust after eyeballing it. Parsing every bank's statement is the actual product, and that part is a grind of layout quirks, multi-line descriptions, wrapped balances, credit card statements that put debits and credits in the same column, and scans that need OCR. If you only ever handle statements from two or three accounts, the one-shot build is fine and arguably safer, since nothing leaves your machine. If you handle other people's statements, you will spend your weekends fixing a parser instead of doing the thing the spreadsheet was for. The honest split: yes for your own accounts, no for arbitrary input.",
+  "coreLoopDIY": "A local CLI plus tiny web preview that extracts transaction rows from your bank's PDFs (and OCRs image statements) into a reviewable table you export as CSV or XLSX.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 on your own machine",
+    "pdfplumber for text-layer PDFs, Tesseract installed for scans and images",
+    "A handful of your own real statements to write and test rules against",
+    "Willingness to hand-check totals against the statement's closing balance"
+  ],
+  "whatYouLose": [
+    "Coverage of banks you have not personally written a rule for",
+    "Decent OCR accuracy on photographed or low-quality scans, which is a model problem, not a code problem",
+    "Handling of credit card statements, multi-currency lines and balance-column weirdness without extra work",
+    "Someone else maintaining the parsers when a bank quietly changes its PDF template",
+    "A preview UI that is pleasant rather than a bare HTML table"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The defensible asset is the accumulated pile of bank layout rules and the test statements behind them, not the PDF library everyone uses.",
+  "whyPeopleStillPay": "Because the failure mode of a homemade parser is silent: a row gets dropped, a minus sign gets eaten, and you reconcile against the wrong number three weeks later. Paid converters earn their money on the long tail of formats and on having already been wrong in public enough times to fix it. Accountants and bookkeepers who touch statements from dozens of institutions are buying coverage and a plausible accuracy claim, which no single-weekend build has. On-device processing also matters here as a trust signal, and a tool you built yourself satisfies that trivially, which is exactly why the DIY route is reasonable for personal use.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build it for your own two accounts and it is a solved problem by Sunday; build it for everyone's accounts and you have accidentally started a company.",
+  "prompt": "Build a local-only bank statement to CSV/XLSX converter. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable:\n- Python 3.11, uv or venv, single repo\n- pdfplumber for text-layer PDFs\n- pytesseract + Pillow for PNG/JPG and image-only PDFs (assume Tesseract is installed; fail with a clear message if not)\n- pandas + openpyxl for output\n- FastAPI + one Jinja template for the preview UI, served on 127.0.0.1 only\n\nWhat it does:\n1. CLI: `python -m bsm parse FILE --bank chase --out out.csv` and `python -m bsm serve`.\n2. Bank rules live in `rules/*.yaml`: regex for the date, amount and balance columns, a header/footer skip pattern, date format, and whether debits are negative or in a separate column. Ship two example rule files and document the schema in README.\n3. Parse pipeline: detect text layer; if the page has no extractable text, route to OCR. Normalise rows into date, description, debit, credit, amount, balance.\n4. Multi-line descriptions: join continuation lines that have no date and no amount into the previous row.\n5. Sanity check: if the file exposes opening and closing balances, assert that opening + sum(amount) == closing and surface the delta loudly in the UI and CLI output. Do not hide it.\n6. Preview UI: upload a file, pick a bank rule, see the parsed table with low-confidence rows highlighted, edit cells inline, then export CSV or XLSX.\n7. Everything runs in-process on the uploaded temp file and deletes it after export.\n\nExplicitly out of scope: cloud storage, multi-user auth, bank API connections, categorisation, double-entry bookkeeping, any LLM call.\n\nDeliverables: working code, README with the rule-file schema and how to add a new bank, pytest covering the row normaliser and the balance check with two small synthetic fixtures. Any secrets (there should be none) go in .env.example.",
+  "promptCurated": false
+}
