@@ -1,0 +1,52 @@
+{
+  "slug": "lexware",
+  "name": "Lexware",
+  "domain": "lexware.de",
+  "category": "finance-accounting",
+  "subcategory": "German SMB bookkeeping, invoicing and payroll",
+  "tagline": "German accounting software for small businesses: invoicing, bookkeeping, payroll and tax filing to the Finanzamt.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.lexware.de/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Lexware spans several products (Office, Buchhaltung, Lohn+Gehalt) at different tiers.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "You can absolutely build an invoice generator and a receipt ledger in an afternoon, and that part of Lexware is not hard. The part that matters is everything downstream: GoBD-compliant immutable records, Umsatzsteuer-Voranmeldung filed through ELSTER, EÜR and payroll runs that track German wage tax and social insurance rules as they change every January. Your agent cannot one-shot an ERiC interface, and it cannot one-shot the legal maintenance contract that keeps the numbers correct next year. A tax advisor who wants a DATEV export is not going to accept your CSV with a shrug. Build the invoicing layer if you like, but keep the paid thing for anything the Finanzamt will ever read.",
+  "coreLoopDIY": "A local app that writes compliant German invoices with sequential numbering and VAT lines, logs receipts into a double-entry ledger, and exports a CSV your accountant can at least open.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node and a local Postgres or SQLite",
+    "Correct German VAT rates and Kleinunternehmer status for your own case",
+    "A real Steuerberater to actually file anything",
+    "Manual bank statement imports, since FinTS and EBICS access is its own project"
+  ],
+  "whatYouLose": [
+    "ELSTER submission via ERiC: VAT pre-returns, EÜR, annual filings all go out by hand or through your advisor",
+    "GoBD compliance, including immutable audit trails and the Verfahrensdokumentation an auditor expects",
+    "Payroll that keeps up with yearly changes to Lohnsteuer, social insurance ceilings and reporting to health insurers",
+    "DATEV export formats your tax advisor's workflow is actually built around",
+    "Bank connectivity, automatic transaction matching, and someone to blame when a filing is wrong"
+  ],
+  "moatTags": [
+    "compliance-regulatory",
+    "integrations",
+    "brand-trust"
+  ],
+  "moatNotes": "The software is a wrapper around German tax law, and German tax law ships a new version every year whether you are ready or not.",
+  "whyPeopleStillPay": "Because the output has a legal reader. Invoices, VAT returns and payslips are documents a tax office and a Steuerberater will inspect, and both of them have opinions about format, numbering, retention and audit trails. Lexware sells the ongoing promise that this year's rules are already encoded, that the ELSTER pipe works, and that the export lands in DATEV without an argument. A self-built ledger gives you the same arithmetic with none of the institutional acceptance, and the cost of being wrong is not a bug report.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The invoice PDF is a weekend; the Finanzamt is not. The moat is compliance-regulatory: ELSTER integration, GoBD audit trails and a legal update treadmill nobody wants to maintain alone.",
+  "prompt": "Build a local-first German small business invoicing and bookkeeping tool. No accounts, no cloud, no telemetry.\n\nStack, no substitutions: TypeScript, Next.js App Router, SQLite via Drizzle ORM, Tailwind, pdf-lib for PDF output. Runs with `npm run dev` on localhost only.\n\nData model:\n- clients: name, address, country, USt-IdNr, default payment terms\n- invoices: gapless sequential number per year, issue date, service date or period, line items (description, quantity, unit price, VAT rate), net total, VAT by rate, gross total, status (draft, sent, paid, cancelled)\n- receipts/expenses: date, vendor, net, VAT rate, gross, category, file attachment path\n- ledger entries: double-entry with debit and credit accounts, drawn from a minimal SKR03-style chart of accounts you hardcode\n\nRules to enforce:\n- Invoice numbers are sequential with no gaps; once an invoice leaves draft it becomes read-only and corrections happen via a cancellation document plus a new invoice\n- Every mutation writes an append-only audit log row (who is irrelevant, record what and when)\n- VAT rates limited to 19, 7 and 0; support a Kleinunternehmer mode per section 19 UStG that suppresses VAT and prints the required note\n- Invoice PDFs include all mandatory fields under section 14 UStG: full names and addresses of both parties, tax number or USt-IdNr, issue date, service date, invoice number, net amounts per rate, VAT amounts, gross total\n\nViews: client list, invoice list with filters, invoice editor, expense entry with drag-and-drop file attach, and a quarter view showing net revenue, input VAT, output VAT and the resulting VAT balance as a number you can read off and type into ELSTER yourself.\n\nExports: CSV of all bookings with date, account, contra account, amount, VAT key and document reference, plus a ZIP of all attachments named by document reference.\n\nExplicitly out of scope, do not attempt, and print a README note saying so: ELSTER or ERiC submission, DATEV-certified export formats, payroll, bank connections via FinTS or EBICS, and any claim of GoBD certification.\n\nSeed with two sample clients and five invoices. No secrets needed; if you add any config, read it from .env.",
+  "promptCurated": false
+}
