@@ -1,0 +1,51 @@
+{
+  "slug": "langsmith",
+  "name": "LangSmith",
+  "domain": "smith.langchain.com",
+  "category": "dev-tools",
+  "subcategory": "LLM observability and evals",
+  "tagline": "Tracing, dataset management and evaluation for LLM and agent applications.",
+  "priceMonthly": 39,
+  "pricing": {
+    "plan": "Plus",
+    "basis": "monthly per seat, with trace volume on top",
+    "unit": "per-seat",
+    "source": "https://smith.langchain.com/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The part most people actually use, seeing what their agent did on a given run, is a logging table with a decent waterfall view. An agent can build that in one sitting: an ingest endpoint, SQLite, a run tree, token and latency counts, and a diff of the prompt that was actually sent. Where it gets thin is everything around it: dataset versioning, annotation queues, regression comparisons across hundreds of runs, and the fact that LangChain and LangGraph emit callbacks straight into LangSmith with one env var. You can point OpenTelemetry at your own collector instead, but you are now maintaining a collector. For a solo dev debugging one app, the DIY version is genuinely fine; for a team arguing about whether last week's prompt change regressed, it is not.",
+  "coreLoopDIY": "Logs every LLM and tool call from your app into SQLite with inputs, outputs, tokens and latency, then renders browsable run trees and lets you replay a saved dataset through a scoring function.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a model provider API key for replay and LLM-as-judge scoring",
+    "willingness to instrument your own code, or an OpenTelemetry exporter pointed at the local collector",
+    "somewhere to leave the server running if you want traces from deployed code"
+  ],
+  "whatYouLose": [
+    "Zero-config capture from LangChain and LangGraph, which currently ship with LangSmith as the default sink",
+    "Annotation queues and human feedback collection with multiple reviewers",
+    "Dataset versioning and experiment comparison across many runs, which is the bulk of the real product",
+    "The hosted prompt playground and prompt version history your teammates can also see",
+    "Trace retention and search at volume; SQLite gets unhappy somewhere past a few million spans"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "switching-costs"
+  ],
+  "moatNotes": "The moat is being the default destination for the framework the same company ships. That is a distribution advantage more than a technical one, and OpenTelemetry tracing is slowly commoditizing the ingest side.",
+  "whyPeopleStillPay": "Because debugging agents is already miserable and nobody wants their observability tool to also be a thing they debug. The paid tiers buy a trace view that works on day one, a place to park eval datasets that is not a folder of JSON files, and a shared URL to send a coworker when a run goes sideways. Teams also pay for the comparison view: running the same hundred-case dataset against two prompts and getting a table instead of a feeling. A personal build covers the first of those well and the rest poorly.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The trace viewer is a weekend; the eval discipline is the thing you were actually buying.",
+  "prompt": "Build a local LLM observability and eval tool. Single Python service, no cloud, no accounts, no telemetry.\n\nStack, non-negotiable: Python 3.12, FastAPI, SQLite via sqlite3 with WAL enabled, Jinja2 templates, Tailwind from CDN, a tiny bit of vanilla JS. Manage deps with uv. No React, no Postgres, no Docker Compose, no auth.\n\nIn scope:\n1. An ingest API: POST /v1/runs accepting a span with id, parent_id, trace_id, name, run_type (llm, tool, chain, retriever), start_time, end_time, inputs JSON, outputs JSON, error, model, prompt_tokens, completion_tokens, cost_usd, tags, metadata. Accept batches. Upsert by id so a span can be opened then closed.\n2. A Python client in client/tracer.py: a @trace decorator and a context manager that auto-capture args, return value, exceptions and timing, propagate trace_id and parent_id via contextvars, and POST in a background thread so instrumentation never blocks the app. Include a wrap_openai(client) helper that records model, messages, response and token usage.\n3. A web UI at /: list traces newest first with name, duration, token total, cost, error badge. Click into a trace for an indented waterfall of spans with proportional duration bars. Span detail shows pretty-printed inputs and outputs, with a raw JSON toggle. Search by name, tag and free text over inputs and outputs using SQLite FTS5.\n4. Datasets: save any span's inputs and outputs as an example into a named dataset. Dataset page lists examples and allows CSV import and export.\n5. Experiments: POST /v1/experiments takes a dataset name and runs a user-supplied target function (imported by dotted path from a local targets.py) over every example, storing each run plus scores. Ship two scorers: exact_match and an llm_judge that calls a model from OPENAI_API_KEY in .env. Experiment page shows a per-example table and aggregate scores, plus a side-by-side compare view of any two experiments on the same dataset highlighting rows where scores diverge.\n\nOut of scope, do not build: user accounts, teams, annotation queues, a prompt playground, alerting, OpenTelemetry protocol support, deployment config.\n\nDeliverables: app.py, client/tracer.py, targets.py with one example target, schema.sql, templates/, .env.example with OPENAI_API_KEY, and a README showing a 10-line instrumented script that produces a visible trace. Seed the DB with three fake traces including one failing tool call so the UI is not empty on first run. `uv run app.py` must start on port 8700 and work immediately.",
+  "promptCurated": false
+}
