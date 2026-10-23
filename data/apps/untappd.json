@@ -1,0 +1,53 @@
+{
+  "slug": "untappd",
+  "name": "Untappd",
+  "domain": "untappd.com",
+  "category": "social-media",
+  "subcategory": "beer check-in and logging",
+  "tagline": "Social check-in app for logging, rating, and discovering beers, with a huge crowd-built beer and venue catalog.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Untappd Insider",
+    "basis": "monthly or annual subscription",
+    "unit": "flat",
+    "source": "https://untappd.com/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Free tier plus a paid Insider tier with ad removal and stats.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app itself is a glorified logging form: pick a beer, give it a rating in quarter stars, attach a photo, optionally tag a venue. That part an agent will hand you before lunch. What it cannot hand you is the catalog of millions of beers with labels, breweries, ABV and style data that thousands of users spent a decade entering, nor the barcode scan that resolves a can in two seconds, nor the friends whose check-ins are the actual reason people open the thing. A solo beer journal is a fine product and arguably a nicer one, but it is a different product. If you only ever wanted a private list of what you drank and what you thought, build it; if you wanted the feed and the catalog, you are buying those, not the form.",
+  "coreLoopDIY": "A local-first beer journal where you log a beer with brewery, style, ABV, quarter-star rating, notes and a photo, then browse and filter your history with basic stats.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20+ and a place to run it (laptop, NAS, or a small VPS)",
+    "Local disk for photos",
+    "Optional: an Untappd data export CSV if you want your history imported",
+    "Optional: Open Food Facts API key-free lookups if you want crude barcode resolution"
+  ],
+  "whatYouLose": [
+    "The catalog: millions of beers with labels, breweries, styles and ABV already entered, so you type everything yourself",
+    "Barcode and label scanning that identifies a can instantly",
+    "The friend feed, toasts, comments and the social reason to check in at all",
+    "Venue and brewery pages, nearby menus, and the ability to see what a taproom has on tap right now",
+    "Badges, year-in-beer recaps and the whole completionist loop",
+    "A polished mobile app that works offline in a loud bar and syncs later"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "integrations"
+  ],
+  "moatNotes": "The beer database is crowd-built but Untappd owns the resulting graph, and the venue menu integrations with POS and tap list systems are a separate business entirely.",
+  "whyPeopleStillPay": "Most people are not paying for the logging, they are paying to not type \"Sierra Nevada Pale Ale, 5.6%, American Pale Ale\" by hand, and to see that three friends also had something good last night. The paid Insider tier is mostly ad removal and deeper personal stats on top of a free product, which tells you the real product is the free network. A personal journal removes the ads for free, but it also removes the catalog lookup and the feed, which is the trade you are actually making.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The check-in form is an afternoon; the beer database and your friend list are not. The moat is a decade of crowd-entered beer data plus the social feed that makes logging feel like something other than homework.",
+  "prompt": "Build a local-first personal beer journal called \"Cellar\". Stack: Next.js 15 with the App Router, TypeScript, Tailwind, and SQLite via better-sqlite3. No accounts, no cloud, no telemetry, no analytics. Single user, runs with `npm run dev` on localhost and is deployable to a small VPS behind basic auth if the user wants.\n\nData model in SQLite, created by a migration script on first run:\n- breweries: id, name, country, notes\n- beers: id, brewery_id, name, style, abv, ibu, notes\n- checkins: id, beer_id, rating (integer 1 to 20, rendered as quarter stars out of 5), serving (can, bottle, draft, cask, other), venue_text, notes, photo_path, drank_at (ISO datetime), created_at\n\nFeatures, all of them:\n1. A \"Log a beer\" form as the home page. Brewery and beer fields are combobox inputs that search existing rows as you type and offer \"create new\" inline, so logging a repeat beer is two clicks.\n2. Quarter-star rating widget, keyboard accessible, stored as integer 1 to 20.\n3. Optional photo upload, saved to ./data/photos with a uuid filename, thumbnail generated with sharp. Photos are files on disk, not blobs in the database.\n4. A history page: reverse chronological check-ins with photo thumbnails, filterable by style, brewery, serving type, and rating range, plus a text search over beer name and notes.\n5. A beer detail page showing every time you drank it, your rating trend, and your notes history.\n6. A stats page: total check-ins, unique beers, unique breweries, rating distribution histogram, top styles, check-ins per month for the last 24 months. Use plain SQL aggregates and render charts with a tiny inline SVG component, no chart library.\n7. CSV import: accept an Untappd data export CSV at /import, map its columns onto the schema, dedupe by beer name plus brewery name, and report how many rows were inserted or skipped. Be defensive about missing columns.\n8. CSV and JSON export of everything at /export, so the data is never trapped.\n\nExplicitly out of scope: friends, feeds, comments, badges, venue menus, maps, barcode scanning, push notifications, and any beer database lookup from a third party. Do not stub these; do not add placeholder buttons for them.\n\nPut DB path and an optional BASIC_AUTH_USER / BASIC_AUTH_PASS in .env.example. Include a README with setup, a note that ./data holds the database and photos and should be backed up, and a one-command `npm run backup` that zips ./data with a timestamp. Seed the database with five example check-ins so the UI is not empty on first run, and include a `npm run seed:clear` to wipe them.",
+  "promptCurated": false
+}
