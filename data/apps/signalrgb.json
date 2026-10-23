@@ -1,0 +1,52 @@
+{
+  "slug": "signalrgb",
+  "name": "SignalRGB",
+  "domain": "signalrgb.com",
+  "category": "productivity-utilities",
+  "subcategory": "RGB lighting control",
+  "tagline": "One app that takes over RGB lighting across keyboards, mice, fans, strips and GPUs from dozens of different vendors.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "subscription, per user",
+    "unit": "flat",
+    "source": "https://signalrgb.com/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The visible part of SignalRGB is a color picker and some effect shaders, which is genuinely a weekend of work. The invisible part is thousands of device profiles: USB HID protocols, I2C addresses, per-model LED maps and quirks, most of it reverse engineered from vendors who actively do not want this to exist. An agent can talk to one device you already have documentation for, and that device will probably still fight you about which interface accepts writes. The moment you add a second brand you are doing protocol archaeology with a USB sniffer, not coding. Build the single-device toy if you enjoy that, but do not expect your whole rig to light up in one session.",
+  "coreLoopDIY": "A local CLI that opens one specific HID device by vendor and product ID, writes a per-key or per-zone color buffer, and runs a couple of animated effects in a loop.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A device whose protocol you can find documented or already reverse engineered",
+    "hidapi and permission to claim the USB interface (udev rules on Linux, driver headaches on Windows)",
+    "Tolerance for bricking an effect profile and power cycling a lot",
+    "Nothing else running that also owns the device"
+  ],
+  "whatYouLose": [
+    "Support for anything other than the one device you hand-coded",
+    "Per-key maps and layout data for hundreds of keyboard models",
+    "Screen capture ambient lighting, audio reactive effects and game integrations",
+    "Vendor firmware quirks already handled: wake-from-sleep resets, hardware mode fallbacks, mode switching",
+    "Updates when a vendor silently changes protocol in a firmware revision"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "hardware",
+    "execution-polish"
+  ],
+  "moatNotes": "The device profile database is the product. The UI is just the part you can see.",
+  "whyPeopleStillPay": "Because the alternative to paying is owning six vendor utilities that all fight each other for the same USB interface, and that is worse than a subscription. Unified control across mismatched hardware is the whole pitch, and it only works if someone keeps grinding through new devices and firmware changes forever. You are not paying for effects, you are paying for the fact that your fans, RAM and keyboard agree on what color red is.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The effect engine is a weekend; the device database is not. The moat is years of reverse engineered USB protocols for hardware that was never meant to be controlled by third parties.",
+  "prompt": "Build a local command line RGB controller for ONE specific USB HID device. No GUI, no cloud, no accounts, no telemetry.\n\nStack: Python 3.11, hidapi via the `hid` package, `click` for the CLI, `pyyaml` for device profiles. Single repo, `uv` or plain venv, no Electron, no web server.\n\nStructure:\n- `profiles/` holds YAML device profiles: vendor_id, product_id, usage_page, interface_number, write_mode (feature report or output report), report_id, packet_size, led_count, and an ordered `led_map` of zone or key names.\n- `rgbctl/device.py` opens the device by vid/pid and interface, with a `--dry-run` flag that prints hex packets instead of writing them.\n- `rgbctl/packets.py` builds the color payload from a list of (r,g,b) tuples according to the profile, handling chunking when led_count exceeds what fits in one packet.\n- `rgbctl/effects.py` implements exactly three effects: static, breathing, and horizontal rainbow wave. Each is a generator yielding a full frame of colors at a target FPS.\n- `rgbctl/cli.py` exposes: `list` (enumerate HID devices with vid/pid/interface so the user can identify theirs), `set --color RRGGBB`, `effect NAME --speed N`, and `off`.\n\nShip one example profile for a generic single-zone device and treat it as a template, not a guarantee.\n\nRules:\n- Catch and explain permission errors clearly: on Linux print the exact udev rule to add, on Windows warn that a vendor service may already own the interface and must be stopped.\n- Restore the device to a safe state on SIGINT.\n- No secrets needed, but still include a `.env.example` if any path overrides are added.\n- README must state plainly: this works only for devices whose protocol you supply, finding that protocol means USB packet capture or an existing open source implementation, and this tool will not auto-detect anything.\n\nOut of scope: screen capture ambient mode, audio reactive effects, game integrations, multi-device sync, per-key layouts for keyboards you do not own.",
+  "promptCurated": false
+}
