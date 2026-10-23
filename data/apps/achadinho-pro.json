@@ -1,0 +1,52 @@
+{
+  "slug": "achadinho-pro",
+  "name": "Achadinho Pro",
+  "domain": "achadinhopro.com.br",
+  "category": "automation",
+  "subcategory": "affiliate deal posting",
+  "tagline": "Brazilian affiliate tooling that pulls marketplace deals, wraps them in your affiliate links, and pushes them out to WhatsApp and Telegram groups on a schedule.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://achadinhopro.com.br/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical core here is not hard: poll a product feed, rewrite links with your affiliate tag, template a message with price and discount, post it on a timer, remember what you already sent. An agent can give you that in one sitting with SQLite, a cron loop and the Telegram Bot API. The gaps are all at the edges: affiliate program credentials you have to be approved for, marketplace endpoints that change and rate limit, and WhatsApp, which has no honest API for blasting groups unless you pay for Cloud API or run an unofficial client that can get your number banned. The copywriting and image cards that make deal posts actually convert are also more work than they look. Build it if Telegram is your channel and you already hold your own affiliate credentials; pay if WhatsApp groups are the whole business.",
+  "coreLoopDIY": "Polls marketplace deal feeds on a schedule, rewrites URLs with your affiliate tag, dedupes against what you already sent, and posts formatted offers to your Telegram channels.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Your own affiliate accounts and tracking IDs for each marketplace",
+    "A Telegram bot token and channel admin rights",
+    "Somewhere to run a cron job that is not your laptop",
+    "Tolerance for scrapers breaking when a marketplace changes its HTML"
+  ],
+  "whatYouLose": [
+    "WhatsApp group posting that does not risk your number",
+    "A maintained deal feed, someone else eats the breakage when marketplaces change",
+    "Price history and discount validation so you stop posting fake 70 percent off",
+    "Ready-made post templates and offer image cards",
+    "Multi-group scheduling, analytics and click tracking in one dashboard"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The real asset is a deal pipeline that stays unbroken plus a WhatsApp path that does not get users banned. Neither is intellectually hard, both are chores forever.",
+  "whyPeopleStillPay": "Affiliate deal posting is a volume game run by people who are not engineers, on WhatsApp, where the messaging channel actively fights automation. Paying monthly means the feed keeps flowing when Shopee changes something, the templates already convert, and nobody has to debug a headless browser at 2am. The subscription is cheaper than one week of a dead bot during a Black Friday window.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Telegram-only version is a weekend; the WhatsApp half is where you start trading your phone number for uptime.",
+  "promptCurated": false,
+  "prompt": "Build a self-hosted affiliate deal poster. Stack: TypeScript, Node 20, SQLite via better-sqlite3, node-cron, no web framework unless the admin UI needs one.\n\nIn scope:\n1. A source adapter interface: fetchDeals() returns { externalId, title, url, priceCents, originalPriceCents, imageUrl, store }.\n2. Implement two adapters: one reading an affiliate product feed from a URL in .env (JSON or CSV, configurable), and one reading a local deals.json file so the whole thing is testable offline.\n3. A link rewriter that appends or substitutes affiliate tags per store, with the tag map read from .env. Never hardcode credentials.\n4. A SQLite table of posted deals keyed on externalId plus priceCents, so the same product can be reposted only if the price actually dropped since last post. Add a configurable cooldown in hours.\n5. A discount sanity filter: drop deals where originalPrice is missing, where discount is under a configurable floor, or where discount is over 90 percent, which is almost always a feed error.\n6. Message templating with a handful of named templates in a templates/ folder, Handlebars syntax, variables for title, price formatted as BRL, discount percent and link.\n7. A Telegram publisher using the Bot API sendPhoto with caption, token and chat ids from .env. Retries with backoff, respects 429 retry_after.\n8. node-cron scheduler reading a cron expression from .env, plus a `npm run post-once` command for manual runs and a `--dry-run` flag that prints what would be sent.\n9. Structured logs to stdout. A simple stats query command: deals posted per day per channel.\n\nOut of scope, say so in the README rather than faking it: WhatsApp delivery, click tracking, image card generation, multi-user accounts, any hosted dashboard.\n\nDeliver .env.example, a README with setup in under ten steps, and Vitest tests for the dedupe logic, the discount filter and the link rewriter."
+}
