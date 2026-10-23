@@ -1,0 +1,50 @@
+{
+  "slug": "minimaxh3gen",
+  "name": "Minimaxh3gen",
+  "domain": "minimaxh3gen.com",
+  "category": "ai-video",
+  "subcategory": "hosted front end for a third-party video model",
+  "tagline": "A web front end that generates short AI videos from text or image prompts using MiniMax's Hailuo video models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://minimaxh3gen.com/",
+    "checkedOn": "2026-10-23",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Sites like this are a prompt box, a queue, a credit counter and a gallery sitting on top of someone else's video model. The interface layer is genuinely a one-sitting build: form, job polling, local history, download button. What you cannot build is the model, so your DIY version still calls a vendor API and you still pay per second of generated video. Whether you come out ahead depends entirely on whether the resale markup here is larger than the hassle of holding your own API key and watching your own billing. Treat this as a convenience tax question, not a software question.",
+  "coreLoopDIY": "A local web app where you type a prompt, pick duration and resolution, submit it to a video generation API, poll until the job finishes, and keep every result in a browsable local gallery with the prompt attached.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted video generation model, with billing attached",
+    "Somewhere to run a small Node process, local is fine",
+    "Disk space, generated video gets large fast"
+  ],
+  "whatYouLose": [
+    "Prepaid credit bundles instead of a metered vendor bill you have to watch",
+    "Whatever prompt presets, aspect ratio defaults and example prompts the hosted UI ships with",
+    "Instant sharing links and a public gallery, if you care about those",
+    "Someone else absorbing queue failures, retries and model version changes",
+    "Mobile friendly access without you hosting anything"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat belongs to the model vendor, not the front end. Resellers like this are renting someone else's moat and charging for the rental.",
+  "whyPeopleStillPay": "Because buying a credit pack is one click and getting a model API key, wiring billing, handling async job polling and babysitting failed generations is not. Plenty of people generating a handful of clips a month will never notice the markup, and for them the hosted box is correctly priced. The arithmetic flips the moment you are generating daily, at which point going direct to the model provider is both cheaper and gives you parameters the wrapper probably hides.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is an afternoon, the model is not yours either way, so this is a markup question dressed up as a build question.",
+  "prompt": "Build a local text-to-video generation studio. No accounts, no cloud, no telemetry.\n\nStack, no substitutions: Next.js App Router with TypeScript, Tailwind for styling, SQLite via better-sqlite3 for job history, local filesystem for generated video files. Run it with npm run dev on localhost.\n\nSecrets: read VIDEO_API_KEY and VIDEO_API_BASE from .env.local. Ship a .env.example. Never hardcode a key, never commit one.\n\nCore loop:\n1. A single page with a prompt textarea, an optional reference image upload, and selects for duration, resolution and aspect ratio.\n2. On submit, POST to an internal /api/jobs route that calls the video generation API, stores the returned job id in SQLite with status 'pending' plus every parameter used.\n3. A /api/jobs/[id] route polls the vendor for status. The client polls that route every 5 seconds with backoff, and shows elapsed time.\n4. When the job completes, download the video server side into ./generated and store the local path in SQLite.\n5. A gallery below the form lists all jobs newest first: thumbnail or inline video player, the exact prompt, the parameters, status, and a download link. Clicking 'reuse' repopulates the form with those parameters.\n\nAlso required: a cost estimate shown next to the submit button, computed from a per-second rate in .env so I can see what a generation costs before I run it. A total spend figure at the top of the gallery. Failed jobs stay in the list with the vendor error message visible, not swallowed.\n\nPut all vendor-specific request and response shaping in one file, lib/provider.ts, so swapping model providers means editing exactly one module.\n\nOut of scope: auth, multi-user, sharing links, video editing, timeline trimming, deployment configs, Docker.\n\nWrite a README with setup steps and one honest paragraph on where the money actually goes.",
+  "promptCurated": false
+}
