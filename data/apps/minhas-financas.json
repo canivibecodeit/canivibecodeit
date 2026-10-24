@@ -1,0 +1,51 @@
+{
+  "slug": "minhas-financas",
+  "name": "Minhas Finanças",
+  "domain": "minhasfinancas.app.br",
+  "category": "personal-finance",
+  "subcategory": "expense tracking and budgeting",
+  "tagline": "Brazilian personal finance tracker: log income and expenses, tag them by category, and watch the charts quietly judge you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://minhasfinancas.app.br/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The core of a personal finance tracker is a transactions table, a categories table, and some aggregation queries, which an agent will produce before you finish your coffee. Budgets, recurring bills, monthly comparisons and a pie chart that tells you how much you spent on iFood are all trivially in scope. What is not in scope for one session: automatic bank sync via Open Finance, which in Brazil means paying an aggregator like Pluggy or Belvo and doing a certification dance, plus a real mobile app for logging a pastel de feira while standing at the stall. If you are disciplined enough to type transactions yourself, or to import OFX/CSV exports once a week, the DIY build is genuinely fine and your data stays on your machine. If the whole reason you pay is that the bank feed shows up without you doing anything, keep paying.",
+  "coreLoopDIY": "A local web app where you record income and expenses with categories and accounts, set monthly budgets, import OFX/CSV bank exports, and see spend by category over time.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and somewhere to run it: a laptop, a home server, or a small VPS",
+    "Manual entry, or OFX/CSV exports downloaded from your bank's web portal",
+    "A paid Open Finance aggregator account (Pluggy, Belvo) if you want true automatic bank sync, which is a separate project"
+  ],
+  "whatYouLose": [
+    "Automatic bank and credit card sync, the single feature that keeps finance apps from dying of neglect",
+    "A polished native mobile app with offline entry, widgets and notifications; a PWA gets you maybe 70 percent of the way",
+    "Credit card fatura logic done right: closing dates, due dates, installments, and purchases that hit a later month",
+    "Someone else maintaining import parsers when your bank silently changes its CSV layout",
+    "Backups, device sync, and a password reset flow you did not have to think about"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The moat in Brazilian personal finance is bank connectivity plus parcelamento modeling, not the UI. Everything else is CRUD with charts.",
+  "whyPeopleStillPay": "Expense tracking fails for behavioral reasons, not technical ones. People pay so that the data appears without effort, so the app nags them on their phone, and so the credit card fatura with twelve installments of R$ 89,90 is modeled correctly instead of dumped as one giant March expense. A self-hosted build gets the ledger and the charts right on day one, then slowly rots because typing every lunch into a web form on your laptop is not a habit anyone keeps. If you already export OFX monthly and reconcile by hand, you were never the target customer anyway.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The ledger is a weekend; the habit is not. Automatic bank sync is the feature you are actually buying.",
+  "prompt": "Build a self-hosted personal finance tracker for a single household, in Brazilian Portuguese, with BRL formatting and pt-BR dates.\n\nStack, no substitutions:\n- Next.js 15 App Router, TypeScript, Tailwind CSS\n- SQLite via better-sqlite3, schema created by a migration script on first boot\n- Recharts for charts\n- Zod for input validation\n- No external SaaS, no telemetry, no analytics, no account system beyond one optional password\n\nData model:\n- accounts: id, name, type (corrente, poupanca, cartao, dinheiro, investimento), opening_balance\n- categories: id, name, kind (receita or despesa), parent_id nullable, color\n- transactions: id, account_id, category_id, date, amount in cents as integer, description, notes, is_transfer, transfer_group_id nullable\n- budgets: id, category_id, year_month, limit_cents\n- recurring: id, template fields, frequency (mensal, semanal, anual), next_date, active\n- card_purchases: installment support, parent purchase plus generated child transactions across future months\n\nFeatures that are in scope:\n- Quick entry form: date, amount, category, account, description. Keyboard-first, opens with the slash key\n- Transaction list with filters by month, account, category, and free text search\n- Transfers between accounts recorded as a linked pair that nets to zero in reports\n- Credit card accounts with closing day and due day, so purchases land in the correct fatura; installments split into N future transactions\n- Monthly dashboard: income vs expense, balance per account, spend by category pie chart, 12 month trend line, budget progress bars\n- Budgets per category per month, with over-budget highlighting\n- Recurring transactions materialized into real rows by a button labeled \"gerar lancamentos do mes\"\n- Import: upload OFX or CSV, map columns, preview, dedupe by date plus amount plus description hash, then commit\n- Export: full CSV and a raw SQLite file download\n- PWA manifest and service worker so the quick entry form works on a phone home screen\n\nExplicitly out of scope, do not attempt:\n- Open Finance or any bank API integration\n- Multi-user accounts, roles, invitations\n- Investment portfolio pricing or quotes\n- Tax reporting or DIRPF export\n\nOperational requirements:\n- Single APP_PASSWORD in .env guarding all routes with a signed cookie, .env.example committed, .env gitignored\n- SQLite file path from DB_PATH in .env, defaults to ./data/financas.db\n- A seed script with a realistic Brazilian category tree (moradia, alimentacao, transporte, saude, lazer, educacao, assinaturas) and about 80 sample transactions\n- npm run dev and npm run build must both work on a clean clone after npm install\n- README in Portuguese: install, run, backup by copying the db file, restore\n\nMoney is always integer cents. Never use floats for amounts. Write a few vitest unit tests for the installment splitter and the fatura date logic.",
+  "promptCurated": false
+}
