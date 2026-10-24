@@ -1,0 +1,52 @@
+{
+  "slug": "unraster",
+  "name": "Unraster",
+  "domain": "unraster.ai",
+  "category": "ai-image",
+  "subcategory": "background removal",
+  "tagline": "Browser-based AI background remover aimed at product photos, with a free tier and nothing to install.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://unraster.ai/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Background removal is one of the few AI tasks where the open weights are genuinely competitive with the paid products: RMBG-1.4 and BiRefNet will cut a product photo off a white or cluttered backdrop about as cleanly as a hosted tool does. Transformers.js runs those models in the browser on WebGPU, so a one-shot build is a static page with a drag-and-drop zone, a queue, and a ZIP export, no server and no per-image credits. The gap is not accuracy, it is the long tail: wispy hair, glass, fine mesh, and the matting refinement pass that polished tools quietly layer on top. For e-commerce cutouts of solid objects, which is the stated use case, the DIY version is fine on day one. The main cost is the one-time model download and a browser new enough to have WebGPU.",
+  "coreLoopDIY": "Drops images onto a local static page, runs a segmentation model fully client-side, and hands back transparent PNGs individually or as a ZIP.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A browser with WebGPU (recent Chrome or Edge) for usable speed; wasm fallback is slow",
+    "A one-time model download of roughly 50 to 180 MB, cached by the browser",
+    "Node 20 plus for the dev server and build",
+    "No API keys, no account, no backend"
+  ],
+  "whatYouLose": [
+    "Edge refinement on hair, fur, glass, and transparent packaging, where the paid tools usually win",
+    "Fast batch throughput on hundreds of images: your laptop GPU is the bottleneck now",
+    "Any API or integration for piping cutouts into a store or pipeline",
+    "Shadow regeneration, auto-cropping, and the other post-cutout niceties polished tools bundle",
+    "Model upgrades handled for you; you now pin and swap ONNX weights by hand"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "Whatever matting and refinement stack sits on top of the base segmentation is the actual product; the raw mask is commodity.",
+  "whyPeoplePayAnyway": null,
+  "whyPeopleStillPay": "Because most people buying a background remover are not optimizing for cost, they are optimizing for not thinking about it. A hosted page that works on a phone, handles a 200-image batch without melting the laptop, and cleans up hair edges without a second pass is worth real money to someone shipping a catalog this week. The DIY build is strictly better on privacy and marginal cost and strictly worse on the fiddly 5 percent of images that need actual matting.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The model is free, the mask is free, the last 5 percent of edge quality is the thing you are actually buying.",
+  "prompt": "Build a local, fully client-side background remover as a static web app. No backend, no accounts, no telemetry, no analytics, no network calls except fetching model weights from the Hugging Face CDN on first run.\n\nStack, non-negotiable: Vite + React + TypeScript + Tailwind. Use @huggingface/transformers (transformers.js v3) for inference. No other heavy deps.\n\nModel: load briaai/RMBG-1.4 via the image-segmentation pipeline, device 'webgpu', dtype 'fp32', with automatic fallback to 'wasm' if WebGPU is unavailable. Download the model inside a web worker so the UI never blocks. Show a progress bar driven by the progress_callback, and tell the user the one-time download size.\n\nUI, one page:\n- A large drag-and-drop zone that also accepts a file picker and clipboard paste. Accept jpg, png, webp. Allow many files at once.\n- A queue list showing each file with a thumbnail and status: queued, processing, done, failed.\n- Process files sequentially through the worker so memory stays bounded. Downscale the longest side to 2048 px before inference, then composite the resulting alpha mask back onto the ORIGINAL full-resolution pixels so output keeps native resolution.\n- Result view: before/after with a checkerboard transparency backdrop and a drag slider.\n- Per-image download as PNG, plus a 'Download all as ZIP' button using client-side zipping (fflate).\n- A background option toggle: transparent, solid white, or a hex color picker, applied at export time only.\n- A 'Clear all' button that revokes every object URL.\n\nExplicitly out of scope: shadow generation, auto-crop, upscaling, a hosted API, user accounts, saved history, mobile-native builds.\n\nQuality details that matter: feather the mask by 1 px to avoid jagged edges, keep EXIF orientation correct on input, and never upload a file anywhere.\n\nInclude a README with run instructions, the model license note (RMBG-1.4 is non-commercial; state this clearly and mention swapping in BiRefNet or isnet-general if commercial use is needed), and a short section on where edge quality will disappoint: hair, fur, glass, and mesh.\n\nNo .env is needed. If you add one later for an optional model mirror, document it and keep it out of git.",
+  "promptCurated": false
+}
