@@ -1,0 +1,52 @@
+{
+  "slug": "pixwit",
+  "name": "Pixwit",
+  "domain": "pixwit.ai",
+  "category": "ai-video",
+  "subcategory": "image-to-video generation",
+  "tagline": "Web app for turning stills and prompts into short AI-generated video clips.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://pixwit.ai/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a prompt box, an upload field, a job queue and a gallery, all of which an agent can produce in an afternoon. What it is not is the thing doing the work: image-to-video runs on video diffusion models that you either rent per second from fal, Replicate or a model vendor, or run locally on a GPU you probably do not have. So a personal replacement is real and genuinely useful, but it is a shell around someone else's weights, and your output quality is whatever checkpoint you pointed it at. If a tool like this is mostly reselling credits with a nicer interface, the DIY version can be cheaper per clip; if it has done real work on prompt rewriting, shot chaining and preset tuning, you will feel the gap in your first ten renders.",
+  "coreLoopDIY": "Upload an image, write a motion prompt, fire it at a hosted video model, poll the job, and keep every result in a local gallery with its exact settings.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted video model provider (fal.ai, Replicate or similar)",
+    "A credit card, since every render costs money per second of output",
+    "Node 20 and local disk for storing generated MP4s",
+    "Optional: an NVIDIA GPU with 16GB+ VRAM if you want to run open video models locally instead"
+  ],
+  "whatYouLose": [
+    "Curated model and preset choices, so you do the trial and error on your own dime",
+    "Prompt rewriting and safety-net defaults that quietly make mediocre prompts look better",
+    "Fast CDN delivery and shareable links; your clips sit on your laptop",
+    "Any mobile experience, plus upscaling, frame interpolation and audio if the paid tool bundles them",
+    "Someone else absorbing failed renders, queue spikes and model deprecations"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is not the UI, it is the relationship with whoever trains and hosts the weights, plus the accumulated knowledge of which settings do not produce melted faces.",
+  "whyPeopleStillPay": "Because video generation is a cost and taste problem, not a code problem. People pay to skip the part where they burn forty dollars learning that this model needs short prompts and that one needs camera directions, and to get a clip they can post in two minutes without touching an API dashboard. A self-hosted shell gives you full control and a tidy archive, which matters if you render constantly, but it hands you the model selection, the credit management and the failed renders. For a few clips a month, the subscription is cheaper than your own attention.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The interface is a weekend; the weights are not. Build it if you render enough to care about per-clip cost, otherwise just pay.",
+  "prompt": "Build a local-only image-to-video studio called \"Reel Bench\" in an empty folder.\n\nStack, no substitutions: Next.js 15 with App Router and TypeScript, Tailwind for styling, better-sqlite3 for storage, local filesystem for media. No auth, no accounts, no telemetry, no cloud database. Single user on localhost.\n\nGeneration backend: the fal.ai HTTP API via the @fal-ai/client package. Put FAL_KEY in .env.local and read it server-side only. Define the model list in one config file, lib/models.ts, with at least two image-to-video endpoints and one text-to-video endpoint, each with its own parameter schema (duration, aspect ratio, motion strength where supported). Never ship the key to the browser.\n\nFeatures that are in scope:\n- Upload a source image (drag and drop), store it under ./storage/inputs with a hashed filename.\n- A composer: source image, prompt textarea, negative prompt, model picker, and the parameters that the selected model actually supports, rendered from the schema.\n- Submit creates a job row in SQLite with status queued, then calls fal and stores the request id.\n- A server-side poller route that checks in-flight jobs, downloads finished MP4s to ./storage/outputs, and writes status, duration, error text and estimated cost onto the job row.\n- A gallery page: grid of generated clips, hover to play muted, click for a detail view showing the full settings used and a \"rerun with these settings\" button that refills the composer.\n- Cost ledger: a simple total of estimated spend this month, computed from a per-model price field in lib/models.ts.\n- Delete a job and its files.\n\nOut of scope, do not build: user accounts, sharing links, upscaling, audio, editing or trimming, multi-shot stitching, mobile layouts beyond basic responsive Tailwind.\n\nRequirements: npm install then npm run dev must work with only FAL_KEY set. Handle API failures by writing the error to the job row and showing it in the gallery instead of crashing. Include a README that states plainly that every render costs real money and lists the per-model prices you hardcoded, with a note to verify them against current provider pricing.",
+  "promptCurated": false
+}
