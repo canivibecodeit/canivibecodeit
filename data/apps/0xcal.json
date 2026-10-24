@@ -1,0 +1,52 @@
+{
+  "slug": "0xcal",
+  "name": "0xCal",
+  "domain": "0xcal.app",
+  "category": "scheduling",
+  "subcategory": "booking links",
+  "tagline": "A scheduling app for sharing availability and letting people book time with you.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://0xcal.app/",
+    "checkedOn": "2026-10-08",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "A personal booking page is one of the most cloneable products in existence: availability rules, a slot picker, a confirmation, an .ics file. The agent will get you there, and for a single person with one calendar it will be good enough. The pain is everything around it: Google and Microsoft OAuth verification, recurring-event edge cases, DST and timezone math, rescheduling and cancellation links that still work three weeks later, and reminder emails that actually land in an inbox instead of spam. Scheduling is also the rare tool where the other person sees your build, so a half-rendered slot grid costs you a meeting. Build it if you book a handful of calls a week and own the embarrassment; pay if your calendar is how you get paid.",
+  "coreLoopDIY": "A self-hosted booking page that reads your Google Calendar for conflicts, shows open slots in the visitor's timezone, and emails both sides an invite with an .ics attachment.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Google Cloud project with Calendar API enabled and OAuth client credentials",
+    "An SMTP account or transactional email API key for confirmations",
+    "A public HTTPS host so bookers can reach the page",
+    "A domain you control, if you want invite emails to not look like phishing"
+  ],
+  "whatYouLose": [
+    "Multi-provider calendar support: Outlook, iCloud, CalDAV all need separate integrations",
+    "Round-robin, group events, paid bookings, and team routing",
+    "Reliable email deliverability and reminder sequences",
+    "Polished mobile booking UX that your guests judge you on",
+    "Timezone and DST correctness in the ugly cases, which you will discover live"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The product is mostly an integration layer plus a surface strangers see. Both are unglamorous and both are the whole job.",
+  "whyPeopleStillPay": "Scheduling tools are cheap relative to the cost of one botched meeting, and the vendor absorbs the parts nobody wants to own: OAuth app review with two cloud providers, invite emails that reach corporate inboxes, and a booking page that renders correctly on a five-year-old Android phone. Paying also means someone else gets paged when a timezone rule changes in some country you have never visited.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this for yourself, not for a team, and test it against a guest in another hemisphere before you trust it.",
+  "prompt": "Build a single-user self-hosted meeting booking app. Empty folder, no scaffolding questions, make the choices yourself.\n\nStack, non-negotiable:\n- Next.js (App Router) with TypeScript\n- SQLite via better-sqlite3, file at ./data/app.db, schema created on boot\n- Tailwind for styling, no component library\n- luxon for all timezone and DST math, never raw Date arithmetic\n- nodemailer for email, SMTP creds from .env\n- Google Calendar API via googleapis for conflict checks\n\nIn scope:\n- /admin, protected by a single ADMIN_PASSWORD from .env in an httpOnly cookie session. No user table, no signup.\n- Admin sets: weekly availability windows per weekday, home timezone, meeting durations (15/30/60), buffer before and after, minimum notice hours, max days out.\n- A one-time Google OAuth connect flow in /admin that stores the refresh token in SQLite. Read the connected calendar's busy blocks via the freebusy endpoint to subtract conflicts.\n- Public page at /book/[slug] for each event type: slot grid in the visitor's detected timezone with a manual timezone override, name and email fields, optional notes.\n- On booking: write the row to SQLite, create the event on the connected Google Calendar with the guest as an attendee, and email both parties a confirmation with a valid .ics attachment (METHOD:REQUEST, correct UID and DTSTAMP).\n- Signed cancel and reschedule links (HMAC over booking id plus a secret in .env) that work without login and delete or move the Google event.\n- Double-booking protection: re-check availability inside the same transaction before confirming, return a clear error if the slot went stale.\n\nOut of scope, do not build:\n- Outlook, iCloud, or CalDAV support\n- Teams, round-robin, group events, payments, webhooks, analytics, telemetry\n- Any third-party scheduling SDK\n\nRequirements:\n- All secrets in .env, ship a .env.example, never hardcode\n- Seed script that creates one 30-minute event type so the app is usable on first run\n- README with Google Cloud OAuth setup steps and the exact redirect URI\n- Include tests for the slot generator covering a DST spring-forward day, a booking that straddles midnight in the guest timezone, and a buffer collision",
+  "promptCurated": false
+}
