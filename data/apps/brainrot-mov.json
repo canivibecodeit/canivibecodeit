@@ -1,0 +1,54 @@
+{
+  "slug": "brainrot-mov",
+  "name": "brainrot.mov",
+  "domain": "brainrot.mov",
+  "category": "ai-video",
+  "subcategory": "short-form brainrot video generator",
+  "tagline": "Turns a text prompt or script into a vertical short with TTS narration, burned-in captions and looping background gameplay footage.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://brainrot.mov/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "The whole pipeline here is four well-documented pieces stapled together: an LLM writes a script, a TTS engine reads it, a speech model gives you word-level timings for the bouncing captions, and ffmpeg composites that over a looping clip of someone playing a mobile game. None of those steps need a vendor, and the local versions of each are genuinely good now. What you are paying for is not capability, it is that someone already picked the font, the caption animation and the footage library so your output looks like the other 400,000 videos in the feed. A coding agent gets you a working render in a sitting; getting the captions to feel right takes a second pass. The real cost is that you now have to source background footage yourself, and that is a rights question, not an engineering one.",
+  "coreLoopDIY": "A local CLI that takes a script or topic, generates narration audio, force-aligns it for word-level caption timing, and renders a 1080x1920 MP4 with burned-in captions over looping background video.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "ffmpeg with libx264 and drawtext or ASS subtitle support",
+    "Python 3.11",
+    "A local TTS model (Piper) or an API key for a hosted voice",
+    "faster-whisper or similar for word-level timestamps",
+    "Background footage you have the right to use, which you must supply yourself"
+  ],
+  "whatYouLose": [
+    "A curated library of background clips, voices and caption styles that already look like the format",
+    "One-click posting and scheduling to TikTok, YouTube Shorts and Reels",
+    "Render speed on someone else's hardware instead of your laptop fan",
+    "Whatever trend-chasing the product does to its script prompts and templates",
+    "Mobile and browser access; your build runs where the ffmpeg is"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights",
+    "integrations"
+  ],
+  "moatNotes": "The format is the moat, not the code. Matching the exact caption bounce and voice people expect is a taste problem that takes more iterations than the pipeline itself.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Because the pipeline being easy is not the same as the output being good. The paid version ships with footage, voices and a caption style that already read as native to the feed, plus it posts for you, which is the part that actually eats your evening. If you are grinding out volume for a faceless channel, paying someone to keep the render queue and the publishing integrations alive is rational. If you want ten videos to see whether the format does anything for you, build it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The engineering is a solved problem; the taste and the footage rights are the parts nobody hands you.",
+  "prompt": "Build a local CLI called slopmaker that renders vertical brainrot-style short videos. Empty folder, start from scratch.\n\nStack, no substitutions: Python 3.11, Typer for the CLI, Piper for text to speech, faster-whisper for word-level timestamps, ffmpeg via subprocess for all compositing. No web UI, no server, no accounts, no telemetry.\n\nCommands:\n1. slopmaker script \"topic\" writes a 150 word narration script to scripts/ using an OpenAI-compatible chat endpoint read from .env (OPENAI_API_KEY, OPENAI_BASE_URL, MODEL). If no key is set, skip this and accept a hand-written .txt file instead.\n2. slopmaker render script.txt renders the video.\n\nRender pipeline, in order:\n- Synthesize narration with Piper to narration.wav at 22050 Hz, model path from config.\n- Run faster-whisper on narration.wav with word_timestamps=True to get per-word start and end times.\n- Group words into caption chunks of 1 to 3 words, max 18 characters per chunk.\n- Emit an ASS subtitle file: bold sans font, white fill, thick black outline, centered at roughly 55 percent height, each chunk popping in with a 120ms scale from 85 to 100 percent.\n- Pick a random background clip from assets/backgrounds/, loop or trim it to the narration length, crop and scale to 1080x1920.\n- Burn the ASS subtitles in, mux the narration, encode h264 yuv420p CRF 23, AAC 128k, output to out/.\n\nConfig lives in config.toml: voice model path, font name, caption position, chunk size, background folder.\n\nIn scope: deterministic renders given a seed, a --dry-run that prints the ffmpeg command, graceful failure if assets/backgrounds/ is empty.\n\nOut of scope: posting to any platform, a scheduler, a GUI, bundling any background footage. Write a README that says the user must supply their own background clips and that this is their rights problem, not the tool's.\n\nFinish with a working end to end run using a sample script and a placeholder solid-color background clip generated by ffmpeg.",
+  "promptCurated": false
+}
