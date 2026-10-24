@@ -1,0 +1,51 @@
+{
+  "slug": "extract-stems",
+  "name": "Extract Stems",
+  "domain": "extractstems.com",
+  "category": "ai-audio",
+  "subcategory": "stem separation",
+  "tagline": "Browser-based stem splitter that turns a track into 2, 4, or 6 separated audio files you can preview and download.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://extractstems.com/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Model appears to be one-time prepaid minute packs plus a small free allotment for verified accounts.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The hard part of stem separation was solved in public: Demucs and its descendants are open weights, pip installable, and produce roughly the same vocals, drums, bass, other split that every paid stem tool ships. What you are paying for here is a queue, a GPU you do not own, and a web page that does not make you think about Python. A local build is a genuinely strong substitute if you have a machine with a decent GPU or the patience for CPU inference, and it has no per minute meter, no upload limits, and no file leaving your laptop. The catch is setup time and wall clock: a four minute song on CPU can take several minutes, and you own every dependency break. If you process stems occasionally on a phone or a thin laptop, prepaid minutes are the saner purchase.",
+  "coreLoopDIY": "Drop an audio file into a local web page, pick 2, 4, or 6 stems, run Demucs on your own machine, then preview and download the stems individually or as a ZIP in MP3, WAV, or FLAC.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.10+ and pip",
+    "ffmpeg installed on PATH",
+    "Several GB of disk for model weights",
+    "A GPU strongly recommended; CPU works but is slow"
+  ],
+  "whatYouLose": [
+    "Speed on weak hardware: CPU separation of a full track can take many minutes per run",
+    "Zero setup. You now own CUDA, torch, and ffmpeg version drift",
+    "Mobile and tablet use, unless you expose the local server somehow",
+    "Someone else's queue management when you batch twenty files at once",
+    "Whatever post-processing or model tuning the hosted version layers on top of the base model"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "Open weights mean the model is not the moat. The moat is that most people will not install a Python toolchain to split a karaoke track, and renting a GPU by the minute is cheaper than buying one.",
+  "whyPeopleStillPay": "Because the alternative is a terminal. Stem separation is a bursty, occasional need for most people: a cover band wants an isolated bass line, a podcaster wants vocals pulled off a bad recording, a DJ wants an acapella. Nobody wants to maintain a PyTorch environment for that. Prepaid minutes with no subscription is honestly the right shape for this product, and the hosted GPU finishes in seconds what a laptop grinds on for minutes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare cases where the open model is the product and the SaaS is the convenience wrapper, priced accordingly.",
+  "prompt": "Build a local, single-user audio stem separation tool in an empty folder. No accounts, no cloud, no telemetry, no analytics. Everything runs on the machine it is installed on.\n\nStack, non-negotiable:\n- Python 3.11, FastAPI, uvicorn\n- demucs (the pip package) for separation, invoked in-process via its Python API, not shelled out\n- ffmpeg via subprocess for encoding, assume it is on PATH and fail loudly with a clear message if it is not\n- Frontend is one static index.html with vanilla JS and no build step. No React, no Tailwind CDN, no framework.\n- SQLite via sqlite3 stdlib for a simple job table. No ORM.\n\nFeatures that are in scope:\n- Drag and drop or file picker upload for mp3, wav, flac, m4a, ogg\n- Stem count selector: 2 (vocals + accompaniment, use htdemucs then sum the non-vocal stems), 4 (htdemucs: vocals, drums, bass, other), 6 (htdemucs_6s: adds guitar and piano)\n- Output format selector: mp3 320k, wav 16-bit, flac\n- A job queue. Exactly one separation runs at a time, backed by a single asyncio worker task reading from an asyncio.Queue. Other uploads wait and show as queued.\n- Progress: poll a /api/jobs/{id} endpoint every second and show status (queued, separating, encoding, done, failed) plus the demucs progress percentage if available\n- Results page per job: an HTML5 audio element per stem for preview, a download link per stem, and a Download all button that streams a ZIP built with zipfile\n- A jobs list showing past jobs with their files still on disk\n- A Delete button per job that removes the row and the files\n\nExplicitly out of scope, do not build these:\n- User accounts, auth, billing, usage minutes\n- Waveform visualization, pitch shift, tempo change, any editing\n- Multi-user support or anything that assumes a public URL\n\nImplementation details:\n- Store uploads in ./data/uploads/{job_id}/ and outputs in ./data/output/{job_id}/. Create on startup. Add data/ to .gitignore.\n- Read PORT, MAX_UPLOAD_MB, and DEMUCS_DEVICE (cpu or cuda) from a .env via python-dotenv. Ship a .env.example with sane defaults (PORT=8000, MAX_UPLOAD_MB=200, DEMUCS_DEVICE=cpu). No real secrets exist in this app, do not invent any.\n- Auto-detect cuda availability at startup and log which device is in use, plus a warning that CPU separation takes several minutes per track.\n- First run downloads model weights, which is slow. Print a clear message about this instead of appearing hung.\n- Handle failure: if demucs raises, mark the job failed, store the error string, and show it in the UI.\n\nDeliver: requirements.txt, main.py, static/index.html, .env.example, .gitignore, and a README with exact install steps including the ffmpeg prerequisite per OS and a blunt note on expected runtime for CPU versus GPU. Verify the app starts and the full upload to download path works end to end before you call it finished.",
+  "promptCurated": false
+}
