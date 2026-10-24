@@ -1,0 +1,52 @@
+{
+  "slug": "ai-translate-manga",
+  "name": "AI Translate Manga",
+  "domain": "aitranslatemanga.com",
+  "category": "localization",
+  "subcategory": "manga and comic translation",
+  "tagline": "Translates Japanese manga pages into English or Simplified Chinese in place, keeping the artwork and replacing the text inside the bubbles.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://aitranslatemanga.com/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Every piece of this pipeline is open and pretrained: text block detection, manga-specific OCR for vertical Japanese, inpainting to wipe the original lettering, an LLM or DeepL call for the translation, and PIL to letter the result back in. An agent can wire that into a working local batch tool in a single sitting, and the output will be readable. What it will not be is pretty: bubble-aware line breaking, font choice, vertical-to-horizontal reflow, and sound effects painted over the art are where all the actual craft lives, and your first pass will look like a fan scanlation from 2006. The Chrome extension reading flow, where pages get translated live as you scroll a reader site, is a second project with its own DOM wrangling and latency problem. Build it if you read raws for yourself; do not expect it to look typeset.",
+  "coreLoopDIY": "A local CLI that takes a folder of manga pages or a PDF, detects and OCRs the Japanese text blocks, translates them with an API call, inpaints the originals away, and re-letters the translation into the same bubbles.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine that can run small vision models, GPU optional",
+    "An OpenAI or DeepL API key for the translation step",
+    "Pretrained weights: manga-ocr for Japanese OCR, a comic text detector model for bubbles",
+    "A CJK-capable font and a comic lettering font you have the rights to use"
+  ],
+  "whatYouLose": [
+    "Typesetting that looks deliberate: font matching, bubble-fitted line breaks, hyphenation, tapering text shapes",
+    "Sound effect and out-of-bubble text handling, which is mostly hand work",
+    "The in-browser reading flow, translating pages live while you scroll a reader instead of batch-processing a download",
+    "Context across panels and volumes, so pronouns, honorifics, and names drift between pages",
+    "Someone else eating the GPU bill and the model upkeep"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat is not the translation, it is the lettering. Anyone can put English in a bubble; putting it in the bubble so it does not look wrong is the product.",
+  "whyPeopleStillPay": "Because the gap between a working pipeline and a readable page is enormous, and it is all taste. Paying users want to open a reader tab, hit a button, and keep reading without thinking about ONNX weights, inpainting masks, or why the OCR read a tone screen as kanji. The browser extension in particular is the thing people actually pay for: translation that meets you where you already read, rather than a batch job you run on a folder you had to download first.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The open source manga translation stack is unusually mature, which is why the one-shot works at all · the part nobody open-sourced is good taste in lettering.",
+  "prompt": "Build a local manga translation tool in Python 3.11. CLI only, no web server, no accounts, no telemetry.\n\nStack: Typer for the CLI, Pillow for image work, OpenCV for masks and inpainting, onnxruntime for models, pypdfium2 for PDF input and output.\n\nPipeline, in this order:\n1. Input: a folder of jpg/png pages or a single PDF. Sort pages naturally (page2 before page10).\n2. Text detection: use a comic text detector ONNX model to get text block polygons plus a binary text mask per page. Download weights on first run into ./models and cache them.\n3. OCR: crop each block, run kha-white/manga-ocr (transformers, CPU is fine) to get Japanese text. Handle vertical blocks by reading order right-to-left, top-to-bottom.\n4. Translate: batch all blocks from one page into a single chat completion call so the model sees page context. Target language is a --lang flag, either en or zh-Hans. System prompt: you are translating manga dialogue, keep it terse and natural, preserve speaker tone, return strict JSON keyed by block id. Read OPENAI_API_KEY from .env via python-dotenv.\n5. Erase: dilate the text mask a few pixels and inpaint with cv2.INPAINT_TELEA. Good enough for flat bubbles.\n6. Letter: for each block, fit the translated string into the block's bounding box with Pillow. Binary search the font size, greedy word wrap, center both axes, use a bundled comic font for latin and a CJK font for zh-Hans. If the text still overflows at minimum size, shrink line spacing, then accept overflow and log a warning.\n7. Output: write translated pages to ./out as PNGs and also assemble ./out/translated.pdf. Write ./out/report.json with per-block original text, translation, and any overflow warnings.\n\nIn scope: speech bubbles and rectangular caption boxes, a --dry-run that stops after OCR, resumable runs that skip pages already in ./out.\nOut of scope: sound effects painted over artwork, handwritten marginal notes, a browser extension, any GUI, any cloud storage.\n\nDeliver: pyproject.toml, src/ package, .env.example, README with install commands and one worked example. No code I have to edit before the first run except the API key.",
+  "promptCurated": false
+}
