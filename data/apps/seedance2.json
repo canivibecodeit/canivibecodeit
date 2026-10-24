@@ -1,0 +1,51 @@
+{
+  "slug": "seedance2",
+  "name": "Seedance2",
+  "domain": "seedance2.love",
+  "category": "ai-video",
+  "subcategory": "text-to-video generation",
+  "tagline": "Web front end for generating short AI videos from text prompts or stills using the Seedance family of video models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://seedance2.love/",
+    "checkedOn": "2026-10-24",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The site is a thin credit-based wrapper: prompt box, aspect ratio, resolution, queue, gallery. An agent can rebuild that shell in an afternoon and it will look fine. What it cannot rebuild is the video model doing the actual work, which is a ByteDance-scale training run plus the GPU fleet to serve it. Your DIY version is a nicer UI pointed at somebody else's inference API, which means you are still paying per second of video, just with fewer middlemen and no refund policy. If the wrapper's markup over raw API pricing annoys you, build it; if you thought you were escaping the compute bill, you are not.",
+  "coreLoopDIY": "A local prompt-to-video console that submits jobs to a hosted video model API, polls the queue, and files finished clips in a searchable local gallery with the prompt attached.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted video generation model, billed per generation",
+    "Disk space for output clips, they get large fast",
+    "ffmpeg installed locally if you want thumbnails or format conversion"
+  ],
+  "whatYouLose": [
+    "The model itself, which you are renting either way",
+    "Prompt presets, style templates and whatever tuning the wrapper does behind the scenes before it hits the API",
+    "Fast queue priority on busy days, which hosted wrappers buy in bulk",
+    "Hosted sharing links and a gallery you can show people without running a server",
+    "Someone to complain to when a generation comes back as melted geometry and your credits are gone"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The front end has no moat at all. Everything that matters sits upstream in model weights and GPU capacity, which is why dozens of near-identical wrapper sites exist around the same handful of models.",
+  "whyPeopleStillPay": "Because the alternative is managing your own API keys, watching your own job queue, and eating failed generations with no recourse. Wrapper sites bundle credits, hide the polling, and give you a gallery that works on your phone, and for occasional use the markup is smaller than the hassle. Heavy users eventually do go direct to the API, which is the honest end state for anyone generating video daily.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is an afternoon; the model is a datacenter. The moat is proprietary video weights plus the GPU capacity to serve them, and no amount of front end work gets you either.",
+  "prompt": "Build a local text-to-video console called \"clipdesk\". Single user, runs on my machine, no accounts, no telemetry.\n\nStack: Next.js with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3. No ORM, write the SQL. No auth. No cloud deploy config.\n\nWhat it does:\n1. A prompt form: text prompt, optional reference image upload, duration in seconds, aspect ratio (16:9, 9:16, 1:1), resolution preset. Submit creates a job row in SQLite with status queued.\n2. A worker route or small Node script polls queued jobs, calls a hosted video generation API, and updates status to running, done, or failed with the error text stored verbatim.\n3. Abstract the provider behind one file, lib/provider.ts, exporting submit(job) and poll(id). Ship one concrete implementation reading PROVIDER_API_KEY and PROVIDER_BASE_URL from .env. Do not hardcode any key. Include .env.example.\n4. Finished clips download to ./storage/clips and are served from a local route. Generate a jpeg thumbnail with ffmpeg if ffmpeg is on PATH, otherwise skip quietly.\n5. Gallery page: grid of thumbnails, newest first, click to play inline, shows the full prompt and settings, has a copy-prompt button and a \"regenerate with tweaks\" button that prefills the form.\n6. Full text search over prompts using SQLite FTS5. Filter by status and aspect ratio.\n7. A cost column: store the provider's reported cost per job if it returns one, show a running total for the current month. If the API does not report cost, leave it null and say so in the UI rather than guessing.\n\nExplicitly out of scope: user accounts, sharing links, model training, any attempt to run video models locally, payment handling, mobile apps.\n\nFailure handling matters more than polish here. Retries are manual, a failed job stays visible with its error, nothing is silently deleted. Seed the database with three fake completed jobs so the gallery renders before I spend a cent. Write a README with setup steps and a blunt note that every generation costs real money.",
+  "promptCurated": false
+}
