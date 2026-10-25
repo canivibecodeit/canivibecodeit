@@ -1,0 +1,53 @@
+{
+  "slug": "jme-freestyle-ai",
+  "name": "JME Freestyle AI",
+  "domain": "jmeukrap.com",
+  "category": "ai-video",
+  "subcategory": "artist freestyle video generator",
+  "tagline": "Web app that turns a text prompt into a short AI freestyle video built around a single UK rap artist.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://jmeukrap.com/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Mechanically, this is a thin app: a prompt box, a queue, a job status poller, and a hosted text-to-video or lip-sync model doing the actual work. An agent will scaffold that in one sitting and it will more or less work, assuming you are happy paying per render to whoever hosts the model. What an agent cannot hand you is the reason anyone opens this particular site: a named artist's face, voice, and cadence, used with permission. Your clone generates some person rapping; theirs generates a specific person people already follow. Build it for the mechanics, not for the thing that makes it interesting.",
+  "coreLoopDIY": "Take a text prompt, send it to a hosted video and voice model, poll the job, and show the finished clip with a download button.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "API key for a hosted video model (fal.ai, Replicate, or similar)",
+    "A voice or music generation API if you want audio, not just visuals",
+    "ffmpeg locally for muxing audio onto video",
+    "Real money for renders: video inference is not free",
+    "A reference image or voice sample you actually have the right to use"
+  ],
+  "whatYouLose": [
+    "The licensed artist likeness and voice, which is the entire draw",
+    "Prompt and pipeline tuning that makes outputs look deliberate rather than melted",
+    "Any shareable context: nobody wants your render of a stranger",
+    "Hosted queueing and retries when a model provider has a bad afternoon",
+    "Mobile-friendly polish and share cards that make a clip spreadable"
+  ],
+  "moatTags": [
+    "content-rights",
+    "brand-trust",
+    "execution-polish"
+  ],
+  "moatNotes": "The code is a wrapper. The permission to use a recognisable person's face and voice is not, and that is the part with a contract attached.",
+  "whyPeopleStillPay": "People show up for the artist, not the architecture. A single-flow AI video app lives or dies on whether the output is a specific recognisable thing that your friends will react to, and that recognisability comes from rights, reference material, and tuning done against one subject over and over. Paying a few quid for credits is also just cheaper than opening a model provider account, eating the setup, and discovering that generic text-to-video looks like a fever dream of a person.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wrapper is an afternoon; the likeness is a legal agreement. Build it to learn the pipeline, not to replace the product.",
+  "prompt": "Build a local, single-page AI video generator. No accounts, no analytics, no cloud database.\n\nStack, fixed, do not substitute:\n- Next.js (App Router) with TypeScript and Tailwind.\n- SQLite via better-sqlite3 for a local jobs table.\n- fal.ai as the inference provider, called server-side only.\n- ffmpeg invoked via child_process for muxing.\n\nFlow:\n1. One page: a textarea for a prompt, an optional file input for a reference image, a Generate button.\n2. POST /api/jobs writes a row (id, prompt, status, provider_job_id, output_path, created_at) and kicks off the provider call.\n3. A text-to-video model generates the clip. If a reference image is supplied, use an image-to-video model instead. Pick one model id for each case, hardcode it, and put the id in a single config file so it is easy to swap.\n4. Optionally generate a short spoken audio track from the same prompt with a TTS model, then mux it onto the video with ffmpeg. Gate this behind an ENABLE_AUDIO env flag, default off.\n5. GET /api/jobs/:id returns status. The client polls every 3 seconds and renders a progress state.\n6. Finished clips are written to ./outputs and served from a route handler, never from /public.\n7. Home page lists the last 20 jobs with thumbnails and a download link.\n\nRules:\n- FAL_KEY lives in .env.local, read server-side only. Ship .env.example.\n- Handle provider failure honestly: store the error string, show it, allow retry. Do not fake progress bars.\n- Show the approximate cost per render in the UI, read from config, so the user knows what they are spending.\n- Do not bundle, scrape, or imitate any real person's face or voice. Reference images are user supplied and the UI must say so.\n- No auth, no rate limiting, no deployment config. This runs on localhost.\n\nFinish with a README: how to get a FAL key, how to install ffmpeg, how to run, and roughly what 10 renders cost.",
+  "promptCurated": false
+}
