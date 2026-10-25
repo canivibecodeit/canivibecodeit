@@ -1,0 +1,50 @@
+{
+  "slug": "spacefs",
+  "name": "spaceFS",
+  "domain": "spacefs.com",
+  "category": "productivity-utilities",
+  "subcategory": "disk space analysis",
+  "tagline": "A desktop utility that scans your drives and shows you, visually, what is eating the space.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://spacefs.com/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Disk space analyzers are the canonical one-shot build: walk the tree, sum the bytes, draw a treemap, offer a delete button. There is no server, no account, no network, and no data you do not already own sitting on your own disk. The hard parts are not conceptual, they are the ugly edges: hardlinks counted twice, APFS snapshots, sparse files, permission-denied directories, cloud-synced placeholder files that report zero bytes. A competent agent gets you a working local scanner and an interactive treemap in a single session, and it will be fast enough on an SSD. What you will not get is the polish, the native feel, or the confidence to let it delete things without reading the path twice.",
+  "coreLoopDIY": "Walks a directory tree concurrently, caches the size index, and serves an interactive treemap on localhost where you can drill in and delete.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Go 1.22+ installed",
+    "A browser",
+    "Read access to whatever you point it at, and the nerve to test deletion on a scratch folder first"
+  ],
+  "whatYouLose": [
+    "Accurate accounting for hardlinks, snapshots, sparse files, and cloud placeholder files, which is where naive scanners lie to you",
+    "Native app feel: a real window, a dock icon, drag and drop, dark mode that matches the OS",
+    "Safe deletion: trash integration, undo, and the guardrails that stop you removing a system directory at 1am",
+    "Code signing and notarization, so your own machine will fight you about running it",
+    "Incremental rescans and filesystem watching, so every look costs a full walk"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The only real moat on a disk analyzer is that you trust it enough to press delete inside it.",
+  "whyPeopleStillPay": "Because the category is cheap, usually a one-time purchase, and the paid ones are genuinely pleasant: instant rescans, correct byte math on weird filesystems, and a delete path that routes to the trash instead of oblivion. People do not pay for the treemap, they pay to not think about whether the treemap is lying. A homemade version is perfectly good for the quarterly 'why is my disk full' panic, which is the only time most people open one of these at all.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Details here are thin, so treat the pricing and feature read as provisional. The build, however, is not in doubt.",
+  "prompt": "Build a local disk space analyzer called \"spacemap\". Single Go binary, no external services, no telemetry, no accounts.\n\nStack, non-negotiable:\n- Go 1.22+ for the scanner and an embedded HTTP server on 127.0.0.1:7777.\n- Static frontend embedded with go:embed: one index.html, vanilla JS, and d3 v7 vendored locally (no CDN).\n- No database. Scan results are held in memory and snapshotted to ~/.cache/spacemap/scan-<hash>.json.\n\nScanner requirements:\n- Walk a root path with a bounded worker pool (default runtime.NumCPU()), using os.ReadDir and Lstat.\n- Do not follow symlinks. Do not cross filesystem boundaries unless --cross-device is passed.\n- Track inode+device pairs and count hardlinked files only once. Report the deduplicated total separately from the naive total.\n- Use the on-disk block count (st_blocks * 512) where available, not just apparent size, and show both.\n- Never abort on permission errors: collect them into a list and surface a \"skipped N directories\" banner in the UI.\n- Emit progress over a /api/progress SSE endpoint: files seen, bytes seen, current directory.\n\nAPI:\n- POST /api/scan {path} starts a scan. GET /api/tree?path=... returns one level of children with sizes, sorted descending, child count capped at 500 with an \"other\" bucket.\n- DELETE /api/path moves a path to the OS trash if possible, otherwise refuses. Hard delete only with an explicit --allow-unlink flag at startup, and never for paths outside the scanned root.\n\nUI:\n- Full-window d3 treemap, click to zoom into a directory, breadcrumb trail to zoom back out, Escape goes up one level.\n- Hover shows full path, size, file count, and modified date.\n- Right panel lists the 50 largest individual files under the current node.\n- Delete requires typing the basename to confirm. Show the absolute path in monospace, large.\n\nAlso ship: a --json flag that prints the top 100 largest paths and exits, so it is usable from a terminal with no browser.\n\nInclude a README with build instructions and a loud warning that deletion is irreversible. Write table-driven tests for the hardlink dedup and the size math. Do not add auth, do not add a config file, do not add an updater.",
+  "promptCurated": false
+}
