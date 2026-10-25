@@ -1,0 +1,52 @@
+{
+  "slug": "window-peeper-ai",
+  "name": "Window Peeper AI",
+  "domain": "windowpeeper.info",
+  "category": "ai-video",
+  "subcategory": "image-to-video generation",
+  "tagline": "Upload a photo, get a short AI video of a figure peering in through the window.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://windowpeeper.info/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is an upload box, a prompt preset, a job queue, and a video player, and an agent will hand you all four in an afternoon. What it is not is the model: image-to-video inference is the entire cost and the entire quality ceiling, and you are either renting a hosted Wan endpoint or renting a GPU big enough to run the open weights yourself. That is a real dependency, not a cosmetic one, so this cannot be called a clean yes. The consolation is that the dependency is rentable by anyone, which means the site is selling markup on compute plus one well-tuned prompt. Build it if you generate enough clips that per-clip pricing annoys you; otherwise paying is genuinely cheaper than your weekend.",
+  "coreLoopDIY": "A local web app that takes an uploaded photo, fires a preset image-to-video prompt at a hosted Wan endpoint, polls the job, and shows the finished clip in a gallery.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted image-to-video provider (fal, Replicate, or similar), or a rented GPU with 24GB+ VRAM to run Wan weights locally",
+    "Node 20+",
+    "Disk space for generated MP4s",
+    "Patience for the tuning loop: the preset prompt is most of the output quality"
+  ],
+  "whatYouLose": [
+    "Someone else eating the cost and variance of failed generations",
+    "A prompt and parameter set that has already been tuned across thousands of inputs",
+    "Queue handling and capacity when the trend spikes and every GPU provider is saturated",
+    "Mobile-friendly upload, share links, and anything resembling a polished result page",
+    "Content moderation, which matters more than usual for an app whose whole premise is a stranger at a window"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-models",
+    "execution-polish"
+  ],
+  "moatNotes": "Wan weights are not theirs, so the defensible parts are GPU capacity, a tuned preset, and being the site that ranks for the trend.",
+  "whyPeopleStillPay": "Because the thing people want is one clip, right now, from their phone, and nobody wants to provision an inference endpoint to get it. Per-clip pricing on a wrapper is irrational only if you plan to make hundreds; for the one-off it is strictly cheaper than reading provider docs. The site is selling the removal of setup, and that is a real product even when the underlying model is public.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is a weekend; the inference bill is forever.",
+  "prompt": "Build a local, single-user image-to-video web app in an empty folder. No accounts, no telemetry, no cloud database.\n\nStack, non-negotiable:\n- Next.js 15 (App Router) with TypeScript and Tailwind. One app, no separate backend.\n- SQLite via better-sqlite3 for the job table. File at ./data/app.db, created on boot.\n- Local filesystem storage: uploads in ./data/uploads, outputs in ./data/outputs. Serve them through a route handler, not the public folder.\n- Hosted inference via fal.ai image-to-video (Wan family endpoint). Read FAL_KEY from .env.local. Commit a .env.example, never a key.\n\nBuild this:\n1. A single page: drop zone for one image (jpg/png, max 10MB), a textarea prefilled with an editable preset prompt describing a figure appearing at a window at night, a duration/aspect selector, and a Generate button.\n2. POST /api/jobs: validate the upload, write it to disk, insert a job row (id, inputPath, prompt, status, providerJobId, outputPath, error, createdAt), submit to fal with the image and prompt, store the provider job id, return the job id. Status starts as queued.\n3. GET /api/jobs/:id: poll the provider, update status (queued, running, done, failed), and on success download the MP4 to ./data/outputs and record the path. Client polls every 3 seconds with a 10 minute timeout.\n4. A gallery below the form reading from SQLite: thumbnail, status badge, inline video player for finished clips, download link, delete button that removes both DB row and files.\n5. Honest cost display: read a PRICE_PER_CLIP_USD env var and show a running total of what you have spent this session. No fake credits.\n\nExplicitly out of scope: auth, multi-user, payments, sharing links, watermarks, moderation, mobile app, Docker.\n\nError handling: if FAL_KEY is missing, say so on the page instead of crashing. If a generation fails, store the provider error string and show it verbatim in the gallery row.\n\nWrite a README with setup steps, the .env.example contents, and one blunt paragraph noting that output quality is ~90% prompt tuning and the code cannot fix a bad preset.",
+  "promptCurated": false
+}
