@@ -1,0 +1,51 @@
+{
+  "slug": "shortpixel",
+  "name": "ShortPixel",
+  "domain": "shortpixel.com",
+  "category": "dev-tools",
+  "subcategory": "image optimization",
+  "tagline": "Bulk image compression and WebP/AVIF conversion, mostly for WordPress sites, sold as credits plus an optional image CDN.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "credit packs, monthly or one-time",
+    "unit": "usage",
+    "source": "https://shortpixel.com/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Image compression is a solved problem with excellent open source libraries, and ShortPixel is largely a hosted wrapper around them with a credit meter attached. libvips via sharp, mozjpeg, oxipng and the AVIF/WebP encoders will get you within a few percent of ShortPixel's output on most photos, and you can run them in parallel on your own machine for free. The real product is the WordPress plugin that walks your media library, rewrites URLs, keeps backups of originals and serves modern formats with fallbacks, plus the Adaptive Images CDN. If you just want a folder of images to come out smaller, a one-shot build wins outright. If you want it wired into a live CMS without breaking anything, you are now maintaining a plugin.",
+  "coreLoopDIY": "A local CLI plus drag-and-drop web page that takes a folder of images, strips metadata, resizes to a max dimension and writes optimized JPEG/PNG plus WebP and AVIF variants with a before/after size report.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node 20 and the ability to install sharp (prebuilt libvips binaries, no system deps on most platforms)",
+    "Local disk space for originals plus derivative formats",
+    "Patience for CPU-bound batches if you are processing thousands of files"
+  ],
+  "whatYouLose": [
+    "The WordPress plugin: media library crawling, URL rewriting, thumbnail regeneration, and rollback to originals",
+    "Adaptive Images CDN, which serves the right size and format per device without touching your templates",
+    "Their tuned lossy presets, which are genuinely well calibrated across weird edge-case images",
+    "Offloading CPU, big batches run on your laptop instead of someone else's servers",
+    "Someone to blame when a client's product photos come out muddy"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The compression is commodity. The plugin that touches 40,000 rows in wp_postmeta without destroying the site is not.",
+  "whyPeopleStillPay": "Most ShortPixel customers are not image nerds, they are agencies and site owners who got a bad PageSpeed score and want it to go away. Paying by the credit to click one button inside WordPress is a very different product from running a CLI over an exported folder, and the plugin handles the genuinely annoying parts: finding every derivative thumbnail, keeping restorable backups, and not breaking URLs. The CDN tier also moves the work off your origin and handles per-device sizing, which is real infrastructure. If you are optimizing your own static site assets at build time, none of that applies and you are paying for convenience you do not need.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "sharp is doing most of the work in both products; one of them just charges per image.",
+  "prompt": "Build a local image optimizer called \"squish\" in an empty folder. No accounts, no cloud, no telemetry, no analytics.\n\nStack, non-negotiable:\n- Node 20 + TypeScript, ESM\n- sharp for all encoding and resizing\n- commander for the CLI\n- Fastify for a tiny local web UI on 127.0.0.1\n- vitest for a couple of smoke tests\n\nCLI: `squish <input-dir-or-file> [--out dir] [--max-width 2560] [--quality 78] [--formats original,webp,avif] [--keep-metadata] [--concurrency N] [--dry-run]`\n\nBehavior:\n- Recursively find .jpg .jpeg .png .webp .avif .tiff, preserving relative paths in the output dir.\n- Resize down only if the long edge exceeds --max-width. Never upscale.\n- Strip EXIF/ICC by default except orientation, which must be applied then dropped. --keep-metadata preserves ICC and EXIF.\n- Encode: JPEG via sharp mozjpeg:true, PNG via palette quantization when the image has 256 or fewer colors otherwise compressionLevel 9 with effort 10, WebP at the given quality, AVIF at quality minus 10 with effort 4.\n- If an output file is larger than the input, keep the input bytes instead and record that in the report.\n- Process files in parallel bounded by --concurrency, default os.cpus().length.\n- Skip work when the output already exists and is newer than the input, unless --force.\n\nOutput a table per file (path, original size, new size, percent saved, chosen format) and a totals line. Also write report.json next to the output dir.\n\nWeb UI at `squish serve`: one page, drag images onto it, shows a live list with before/after sizes and download links. Served from localhost only, no upload size limit, files go to a temp dir that is cleaned on exit.\n\nOut of scope, do not build: any CMS plugin, any CDN or URL rewriting, cloud storage, user accounts, a job queue, smart cropping, or content-aware quality tuning.\n\nInclude a README with install steps, a one-line example for optimizing a static site's /public dir, and an honest note that AVIF encoding is slow. Put nothing in .env because there are no secrets.",
+  "promptCurated": false
+}
