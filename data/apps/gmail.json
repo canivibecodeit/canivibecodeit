@@ -1,0 +1,51 @@
+{
+  "slug": "gmail",
+  "name": "Gmail",
+  "domain": "mail.google.com",
+  "category": "email",
+  "subcategory": "email client and mailbox hosting",
+  "tagline": "Google's web email client and mailbox, free for consumers and paid as part of Workspace.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://mail.google.com/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can absolutely build a mail client in a session: IMAP in, SMTP out, a list view, a reader pane, a compose box. What you cannot build is the mailbox itself, which is where all the actual value sits. Running your own mail server means reverse DNS, SPF, DKIM, DMARC, warmed IPs, and a permanent fight to stay out of other people's spam folders, and losing that fight silently costs you invoices and password resets. Gmail is also the identity root for most of your other accounts, so the switching cost is not the client, it is every service that has your address on file. Build a client if you want; keep the mailbox where it is.",
+  "coreLoopDIY": "A local desktop mail client that talks IMAP and SMTP to an existing mailbox, with search, threads, and compose, while the mailbox stays hosted elsewhere.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An existing mailbox with IMAP and SMTP access",
+    "An app password or OAuth client for the provider",
+    "A local machine you are happy to keep the mail cache on"
+  ],
+  "whatYouLose": [
+    "Deliverability: nobody will trust mail from your fresh server, and you will not know when you are being filtered",
+    "Spam filtering built on a decade of signals across billions of messages",
+    "Mobile and offline apps that just work, plus push notifications",
+    "Search that is instant across 15 years and 300,000 messages",
+    "Calendar, Contacts, Drive attachments, and the rest of the account graph hanging off the same login"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-data",
+    "switching-costs"
+  ],
+  "moatNotes": "Spam filtering and deliverability reputation are both functions of scale. Neither is replicable by one person with a VPS.",
+  "whyPeopleStillPay": "Most people do not pay for Gmail at all, which is part of the point: the consumer tier is free and still better than anything you would self-host. The ones who do pay are paying for a domain-based address, admin controls, retention and legal hold, and the ability to tell an auditor that someone else is responsible for the mail infrastructure. Email is the one service where failure is invisible: a dropped message does not error, it just never arrives, and you find out weeks later. That asymmetry is why almost nobody who tries self-hosted mail stays there.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The client is a weekend; the mailbox is not. The moat is deliverability reputation and spam filtering at a scale one person cannot reproduce.",
+  "prompt": "Build a local desktop email client in an empty folder. Do not build a mail server.\n\nStack: Electron with React and TypeScript, Vite for the renderer, SQLite via better-sqlite3 for the local cache. No cloud, no accounts, no telemetry.\n\nScope, in:\n- Connect to one existing mailbox over IMAP (imapflow) and send over SMTP (nodemailer).\n- Credentials live in .env: IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASS, SMTP_HOST, SMTP_PORT. Write a .env.example and gitignore .env.\n- Initial sync: pull headers for the last 5000 messages, store in SQLite, fetch bodies lazily on open and cache them.\n- Thread messages by References and In-Reply-To, falling back to normalized subject.\n- Three-pane UI: folder list, message list, reader pane. Keyboard first: j/k to move, Enter to open, e to archive, # to delete, c to compose, r to reply, / to focus search.\n- Full text search over cached subjects and bodies using SQLite FTS5.\n- Compose, reply, reply-all, forward. Plain text and basic HTML rendering with remote images blocked by default and a per-message unblock button.\n- Offline reading from the cache, with a queue that flushes sends when the connection returns.\n- Incremental sync on an interval plus IMAP IDLE if the server supports it.\n\nScope, out: no mail server, no spam filtering, no calendar, no contacts, no mobile app, no OAuth flow (app password only, document that in the README), no attachments editor beyond plain file attach.\n\nDeliverables: npm install then npm run dev starts the app. README explains how to get an app password, what the sync does, and that the mailbox stays hosted by the existing provider.",
+  "promptCurated": false
+}
