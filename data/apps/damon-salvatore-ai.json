@@ -1,0 +1,51 @@
+{
+  "slug": "damon-salvatore-ai",
+  "name": "Damon Salvatore AI",
+  "domain": "damonsalvatoreai.net",
+  "category": "ai-video",
+  "subcategory": "image-to-video trend clips",
+  "tagline": "Turns a single uploaded photo into a short cinematic 9:16 video built around one viral template, sold in credits.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://damonsalvatoreai.net/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "There is no real software here beyond an upload box, a hardcoded prompt, a queue, and a credit meter. An agent can rebuild that shell in an afternoon, and you get to swap templates freely instead of being stuck with one church entrance. The catch is that the actual generation is a rented image-to-video model, so you trade a credit pack for an API key and still pay per clip. Expect to spend real time rediscovering the prompt, seed, and motion settings that make the output look deliberate instead of melted. The product is a prompt with a checkout page, which is cheap to copy and also means you are copying something thin.",
+  "coreLoopDIY": "Upload a photo, send it plus a stored template prompt to a hosted image-to-video endpoint, poll the job, and return a 9:16 MP4 you can save or share.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted image-to-video model (fal.ai, Replicate, or a Kling/Runway/Veo reseller)",
+    "A card on that account, since generation is billed per second of output",
+    "ffmpeg installed locally for cropping, trimming, and audio",
+    "Node 20+"
+  ],
+  "whatYouLose": [
+    "The tuned template: their prompt, motion strength, and seed choices are the only thing that makes the clip read as the trend",
+    "Instant phone-to-result flow with no keys, no install, no ffmpeg",
+    "Someone else eating failed generations, retries, and provider outages",
+    "Any content moderation or safety filtering between you and the model",
+    "The gallery of example outputs that tells you what the tool can actually do before you spend"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The GPUs are rented from the same providers you would call yourself, so 'infra' here means a prepaid balance and a queue, not a moat anyone owns.",
+  "whyPeopleStillPay": "Because buying ten credits is faster than getting an API key, reading model docs, and learning what 'motion bucket' does, and because most people want exactly one clip of exactly one trend and then never again. A one-off purchase with no subscription is a genuinely reasonable shape for that. The honest read is that you are paying a markup on inference plus a tip for prompt work, which is fine if you value the five minutes, and silly if you plan to make fifty clips.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The shell is a weekend afternoon; the template prompt is the only ingredient worth anything. Also worth noting that the whole genre is built on a licensed character likeness, which is a legal exposure, not an asset.",
+  "prompt": "Build a local-only image-to-video tool called \"clipforge\" in an empty folder.\n\nStack, no substitutions: Node 20, TypeScript, a single Express server, and one server-rendered HTML page with vanilla JS. No React, no database, no auth, no accounts, no telemetry, no deploy config.\n\nWhat it does:\n1. Serves one page at / with a file input for a single image, a dropdown of video templates, an optional free-text prompt override, and a Generate button.\n2. Templates live in templates.json, each with id, label, prompt, negativePrompt, durationSeconds, and motionStrength. Ship three starters: \"cinematic-entrance\" (slow push-in, volumetric light, shallow depth of field), \"slow-orbit\", and \"wind-and-rain\". Keep them editable as plain text, this file is the actual product.\n3. POST /generate accepts the image plus template id, uploads the image to the provider, submits an image-to-video job, and returns a job id.\n4. GET /jobs/:id polls the provider and reports queued | running | done | failed with the provider error passed through verbatim. The page polls every 3 seconds and shows elapsed time.\n5. On completion, download the MP4 into ./out, then shell out to ffmpeg to center-crop and scale to 1080x1920, cap at the template duration, and strip audio. Keep both the raw and the 9:16 file.\n6. The page lists everything in ./out as a grid of playable videos with a delete button.\n\nProvider: fal.ai, called over plain HTTPS with fetch. Put FAL_KEY in .env, load it with node --env-file, and write .env.example plus a .gitignore that excludes .env and out/. Hardcode one model id in a single constant at the top of src/provider.ts with a comment saying swap it here.\n\nHandle these for real, not with a TODO: files over 10MB rejected before upload, non-image mime types rejected, provider 429 retried three times with backoff, missing ffmpeg detected at boot with a clear message, and a per-run cost note printed to the console from the template duration.\n\nOut of scope: user accounts, credits, billing, cloud storage, queues beyond in-memory, multi-image input, audio, captions, and scheduled posting.\n\nFinish with a README that states plainly: generation is billed per second by fal.ai, output quality lives or dies on the template prompt, and the first ten clips will look wrong until the prompts are tuned.",
+  "promptCurated": false
+}
