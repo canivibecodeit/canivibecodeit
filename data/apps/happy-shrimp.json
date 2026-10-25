@@ -1,0 +1,52 @@
+{
+  "slug": "happy-shrimp",
+  "name": "Happy Shrimp",
+  "domain": "happyshrimpmusic.com",
+  "category": "ai-audio",
+  "subcategory": "text-to-song generation",
+  "tagline": "A generative music model that turns a one line prompt into a finished song with lyrics, melody, vocals and arrangement.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://happyshrimpmusic.com/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product here is not the web app, it is the model that sings. A coding agent can absolutely build you a prompt box, a job queue, a waveform player and a library view in an afternoon, and none of that matters, because the thing that makes a listenable vocal performance over a coherent arrangement is a large audio model trained on a licensed or at least expensively assembled music corpus. You cannot train that in a session, you cannot train it on a laptop, and the open checkpoints that exist today do not produce singing that survives a second listen. The only honest DIY path is scaffolding: structure, lyrics, chords, MIDI, which is genuinely useful if you write music and completely useless if you wanted a finished track. Treat the glue as free and the voice as the entire bill.",
+  "coreLoopDIY": "Takes one line of text and emits a song sketch: structure, lyrics, a chord chart and a rendered MIDI backing track, with no vocals and no mix.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11",
+    "FluidSynth plus a General MIDI soundfont for rendering",
+    "An LLM API key in .env for lyrics and chord planning",
+    "Basic comfort reading a chord chart, because nothing here sings"
+  ],
+  "whatYouLose": [
+    "Vocals, which is most of why anyone uses this",
+    "A mixed, mastered stereo track instead of a GM soundfont render that sounds like 1998",
+    "Genre fidelity: the model knows what a drill hi-hat pattern or a shoegaze guitar tone is, your MIDI does not",
+    "Iteration speed, regenerate-until-good is a model feature, not a script feature",
+    "Any licensing or clearance story for what comes out the other end"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "content-rights"
+  ],
+  "moatNotes": "Training audio models is a capital expense with a legal department attached. Both halves are hostile to a weekend build.",
+  "whyPeopleStillPay": "Because the gap between a chord chart and a song with a voice on it is the whole product. Anyone can plan a verse-chorus-verse and pick four chords, that part has been free for centuries. What you are buying is a model that renders timbre, phrasing and a vocal performance that holds together for three minutes, plus the GPU capacity to do it in under a minute and the willingness to own whatever rights questions come with the output. None of those three things get cheaper when you self-host, and the open alternatives are far enough behind that the comparison is not close yet.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The app around the model is a weekend of forms and a player. The moat is the model itself: a trained audio generator, the compute behind it, and someone prepared to answer for the training data.",
+  "prompt": "Build a local command line tool called songsketch. Python 3.11, no web UI, no accounts, no telemetry.\n\nWhat it does: takes one line of text describing a song and produces a song sketch folder on disk. It does NOT generate audio vocals. Be explicit about that in the README.\n\nStack, no substitutions:\n- Python 3.11, typer for the CLI, pydantic for the schema\n- An LLM call via the OpenAI-compatible HTTP API, key read from OPENAI_API_KEY in .env via python-dotenv\n- pretty_midi for MIDI construction\n- FluidSynth invoked as a subprocess to render MIDI to WAV using a soundfont path from SOUNDFONT_PATH in .env\n\nPipeline:\n1. `songsketch new \"a sad disco song about missing the last train\"`\n2. One LLM call returns strict JSON validated by pydantic: title, key, tempo_bpm, time_signature, genre_notes, section list (each with name, bars, chord symbols as strings, and lyric lines), and a one paragraph arrangement note describing what each instrument should do.\n3. Parse chord symbols into pitch sets locally with a small chord parser you write yourself: triads, sevenths, sus, slash bass. Fail loudly on anything unparseable, do not silently substitute.\n4. Build a MIDI file with four tracks: chord pad, bass on roots following the slash bass, a four-on-the-floor-or-genre-appropriate drum pattern chosen from three hardcoded patterns, and a melody track that walks chord tones in the vocal range with one note per lyric syllable (approximate syllables with a simple vowel-group counter, do not pretend it is accurate).\n5. Render MIDI to WAV with FluidSynth.\n6. Write out: song.json, lyrics.md with section headers, chords.md as a chart, song.mid, song.wav.\n\nIn scope: deterministic rerender from song.json via `songsketch render ./out`, and `songsketch regen-lyrics ./out` to redo only the lyrics while keeping structure and chords.\n\nOut of scope, do not build: vocals, singing synthesis, stem separation, mixing, mastering, genre-accurate instrument tones, any cloud storage, any auth.\n\nREADME must state in the first three lines that this produces a demo-quality sketch for a human to perform or produce, and that it will not sound like a finished record.",
+  "promptCurated": false
+}
