@@ -1,0 +1,52 @@
+{
+  "slug": "elevenreader",
+  "name": "ElevenReader",
+  "domain": "elevenreader.io",
+  "category": "read-it-later",
+  "subcategory": "text to speech reading app",
+  "tagline": "Reader app from ElevenLabs that narrates PDFs, ebooks, articles and pasted text with high-end AI voices.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://elevenreader.io/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The pipeline here is not exotic: extract text from an EPUB, PDF or URL, chunk it on sentence boundaries, feed it to a TTS engine, stitch the audio, remember where you stopped. An agent can build that in a weekend, and with a local model like Kokoro or Piper you get offline narration with no API bill. What you will not get in one session is the part people actually notice: voice quality that survives an entire novel, correct handling of footnotes and tables and page headers, and a phone app that keeps your position synced while you walk the dog. If you keep an ElevenLabs API key in .env you close the voice gap and reopen the dependency, which is the honest trade. Build it if you mostly want to listen to your own PDF pile on a laptop or a self-hosted podcast feed.",
+  "coreLoopDIY": "Ingests EPUBs, PDFs and article URLs, converts each chapter to narrated audio with a local TTS model, and serves them through a web player and a private podcast RSS feed that remembers your position.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg",
+    "A few GB of disk for generated audio and the TTS model",
+    "Optional: an ElevenLabs or OpenAI TTS key in .env if local voices are not good enough",
+    "Patience for the first long book, local TTS is not realtime on CPU"
+  ],
+  "whatYouLose": [
+    "Voice quality that holds up for ten hours straight, local models get fatiguing fast",
+    "A real iOS and Android app with background playback, lock screen controls and CarPlay",
+    "Cross-device position sync that just works",
+    "Clean layout handling for messy PDFs: columns, footnotes, captions, headers",
+    "Whatever licensed and celebrity-narrated content ships inside the app"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The reader shell is a thin wrapper around the thing ElevenLabs actually owns, which is the voice stack. The app exists to make that stack habit-forming.",
+  "whyPeopleStillPay": "Because listening to a book is a trust exercise with the narrator, and most people bail within ten minutes if the voice mispronounces names, flattens questions or buzzes on sibilants. Paying removes the entire question of whether your pipeline sounds good, plus you get a phone app that resumes mid-sentence and a library that follows you between devices. A self-hosted version is genuinely useful for a pile of work PDFs, less so for the thing you want to listen to on a long drive.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The reader is a weekend project; the voice is not, and the voice is the whole product.",
+  "prompt": "Build a self-hosted text-to-audio reader called \"earread\" in an empty folder. Stack is fixed: Python 3.11, FastAPI, SQLite via sqlite3 (no ORM), server-rendered Jinja2 templates with htmx, ffmpeg on the PATH. No React, no accounts, no telemetry, no cloud storage.\n\nIngestion: a single upload/paste form that accepts (a) an EPUB file, (b) a PDF file, (c) a URL, (d) raw pasted text. Use ebooklib plus BeautifulSoup for EPUB chapters, pypdf for PDF text, trafilatura for URL article extraction. Normalize everything into a documents table and a chapters table (document_id, index, title, text).\n\nText cleanup before synthesis: strip page headers and footers that repeat across PDF pages, drop bracketed footnote markers, collapse hyphenated line breaks, expand common abbreviations (Dr., Mr., e.g., i.e., vs.), and split into chunks of at most 500 characters on sentence boundaries.\n\nTTS: use kokoro-onnx locally as the default engine, downloading the model on first run into ./models. Put an optional ELEVENLABS_API_KEY in .env and implement a second engine that uses it when present; select the engine with a TTS_ENGINE env var. Never hardcode keys.\n\nSynthesis is a background job: a simple in-process worker queue that renders chunks to wav, concatenates per chapter with ffmpeg, encodes to mp3 at 64kbps mono, writes to ./audio/{document_id}/{chapter_index}.mp3, and updates a status column (queued, running, done, failed) so the UI can poll with htmx.\n\nUI: a library page listing documents with progress, a document page listing chapters with an HTML5 audio player, and a position tracker that POSTs currentTime every 10 seconds into a progress table so playback resumes where you left off.\n\nAlso expose /feed/{document_id}.xml as a valid podcast RSS feed with enclosures, so the audio can be subscribed to in any podcast app. Bind to 0.0.0.0 and document how to put it behind Tailscale.\n\nOut of scope, do not build: mobile apps, user accounts, multi-user support, cross-device sync beyond the RSS feed, OCR for scanned PDFs, DRM-protected ebooks, voice cloning.\n\nShip a README with setup steps, a .env.example, and a seed script that ingests a public domain Gutenberg EPUB so the whole pipeline can be tested end to end in one command.",
+  "promptCurated": false
+}
