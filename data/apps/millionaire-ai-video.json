@@ -1,0 +1,51 @@
+{
+  "slug": "millionaire-ai-video",
+  "name": "Millionaire AI Video",
+  "domain": "howibecomeamillionaire.app",
+  "category": "ai-video",
+  "subcategory": "meme video generator",
+  "tagline": "Upload one photo and get a vertical AI skit that ends on a deadpan punchline.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://howibecomeamillionaire.app/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is a thin, well aimed wrapper: one photo in, one 9:16 clip out, with the joke pre-written so you never have to think about prompting. An agent can rebuild that wrapper in an afternoon, because the wrapper is a form, a queue, and an ffmpeg call. What it cannot rebuild is the video model underneath, so your clone is a billing relationship with fal.ai or Replicate wearing a local UI. You will also spend more time than you expect tuning the prompt template so the face survives the generation and the punchline lands on the right frame. Worth building if you want ten variants a week and control over the gag; not worth building if you wanted one clip.",
+  "coreLoopDIY": "A local web page that takes one selfie, sends it to a hosted image-to-video model with a fixed skit prompt, then uses ffmpeg to crop to 9:16 and stamp the punchline card and voice line on the end.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted image-to-video model (fal.ai, Replicate, or similar) plus real per-clip credit spend",
+    "ffmpeg installed locally",
+    "A TTS key or a pre-recorded punchline audio file",
+    "Patience for generation queues that take minutes, not seconds"
+  ],
+  "whatYouLose": [
+    "Their prompt template, which is the actual product and took real iteration to get the face and timing right",
+    "Instant, no-setup rendering with no API keys or billing to configure",
+    "Phone-friendly upload and share flow, since your build is a laptop page",
+    "Whatever retry and moderation logic hides the failed generations from you",
+    "Someone else eating the cost of the clips that come out wrong"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The moat is a prompt template and a sense of comic timing, both of which leak the moment anyone reverse engineers a sample clip.",
+  "whyPeopleStillPay": "Because the alternative is reading model docs, topping up a credit balance, and burning four bad generations to learn what the fifth should say. People buying a meme clip are buying it in the mood for a meme clip, and that mood does not survive a terminal. Credit packs with no subscription are also exactly the right shape for a one-off novelty, which is honest pricing for a product that nobody uses twice a month.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A joke with a payment link is still a product, and this one knows exactly how long the joke lasts.",
+  "prompt": "Build a local-only meme video generator. Stack: Next.js 15 App Router, TypeScript, Tailwind. No auth, no database, no telemetry, no deploy config.\n\nFlow:\n1. One page with a single file input for a photo, a text field for the punchline (default: \"Get a job.\"), and a Generate button.\n2. On submit, POST the image to /api/generate.\n3. The route uploads the image to fal.ai and calls an image-to-video model (use fal-ai/kling-video/v1.6/standard/image-to-video or whatever current image-to-video endpoint the fal client exposes) with a fixed prompt template stored in lib/prompt.ts. Template: a short deadpan skit where the subject gestures confidently at the camera as if explaining how they got rich. Keep the template in one exported const so it is easy to edit.\n4. Poll the job until the clip URL comes back. Stream status text to the page, do not fake a progress bar.\n5. Download the clip to ./out, then shell out to ffmpeg to: scale and center-crop to 1080x1920, append a 1.5 second black card with the punchline in large white sans-serif using drawtext, and mix in public/punchline.mp3 over that card.\n6. Show the finished file inline with a video tag and a download link.\n\nRules:\n- FAL_KEY in .env.local, read server side only, never sent to the browser.\n- Write a small lib/ffmpeg.ts that spawns ffmpeg and rejects on a non-zero exit with stderr included. No ffmpeg wasm.\n- Keep every generated artifact under ./out and gitignore it.\n- If punchline.mp3 is missing, skip the audio mix and log a warning instead of crashing.\n- Print the estimated per-clip cost in the README so the user knows each click costs money.\n\nOut of scope: accounts, credit packs, payments, queues, sharing, mobile layout polish, multiple skit templates. One photo, one clip, one punchline.",
+  "promptCurated": false
+}
