@@ -1,0 +1,53 @@
+{
+  "slug": "airapvideo",
+  "name": "airapvideo",
+  "domain": "ai-rap-video.me",
+  "category": "ai-video",
+  "subcategory": "talking-photo / lip-sync music video",
+  "tagline": "Upload a photo, get a vertical lip-synced rap video with a beat and a stage behind it.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://ai-rap-video.me/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a pipeline, not an invention: face detect, lip-sync a face to an audio track, mix the vocal over a beat, composite to 1080x1920, burn captions, export. Every stage has an off-the-shelf model or an ffmpeg flag behind it, so an agent can wire the whole chain in a weekend. The catch is that none of those models will run on a laptop pleasantly, so you are either buying a GPU hour or renting inference, and the rap vocal itself is the part you cannot fake with ffmpeg. Quality is also where the gap shows: their output is tuned, yours will have mushy mouths on profile shots and a vocal that sits badly on the beat until you fight the mix. Fine for making your friends laugh, worse than the paid version for anything you would post.",
+  "coreLoopDIY": "A local web page where you upload a portrait, paste lyrics, pick a beat, and get back a downloadable 1080x1920 lip-synced rap clip with burned-in captions.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An inference API token (Replicate or similar) or a local GPU with 12GB+ VRAM",
+    "A vocal source: a music/voice generation API, or your own recorded rap",
+    "ffmpeg with libx264 and the drawtext or subtitles filter",
+    "A folder of beats you actually have the rights to use",
+    "Python 3.11 and the patience to re-render a job four times"
+  ],
+  "whatYouLose": [
+    "Tuned defaults: their mouth tracking and vocal timing are already fought with, yours is not",
+    "Someone else's GPU queue, so your render is as fast as whatever card you are paying for",
+    "A phone-shaped flow, upload and share in thirty seconds without touching a terminal",
+    "Beat library and any pretense of licensing clarity on what you generated",
+    "Graceful failure on bad inputs: sunglasses, side profiles, group photos, low light"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "The models are rented, not owned. What they actually sell is the parameter sweep nobody wants to redo and a GPU bill that is already paid.",
+  "whyPeopleStillPay": "Because the output is the product and the output is fiddly. Anyone can chain a lip-sync model to ffmpeg, but the difference between a clip that looks like a meme and a clip that looks like a mistake lives in a hundred small defaults: crop ratio, mouth region padding, vocal compression, how captions land on the beat. People paying for this want a video in the next three minutes, not a weekend spent discovering that face alignment hates hats. Add the fact that running the models yourself means either a GPU or an inference bill anyway, and the per-video price stops looking unreasonable.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The novelty wears off around clip four, which is a decent argument for renting it rather than building it.",
+  "prompt": "Build a local single-user web app that turns a portrait photo into a vertical lip-synced rap video.\n\nStack, no substitutions: Python 3.11, FastAPI, one server-rendered HTML page with vanilla JS, SQLite for job state, ffmpeg for all audio and video composition. No React, no user accounts, no cloud deploy, no telemetry, no analytics.\n\nFlow:\n1. Page has: a photo upload field, a lyrics textarea, a dropdown of beats read from ./beats/*.mp3, and a Generate button.\n2. POST creates a job row in SQLite with status queued and returns a job id. The page polls GET /jobs/{id} every 2 seconds and shows the current stage.\n3. Worker runs as a FastAPI BackgroundTask, one job at a time, writing intermediates to ./work/{job_id}/.\n\nPipeline stages, each a separate function with its own retry and its own log line:\n- Validate the photo: detect exactly one frontal face, reject anything else with a clear message. Center-crop to a square around the face.\n- Produce the vocal track. Call a hosted model through an HTTP client behind a VocalProvider interface, token from .env. Also support a local-file mode where I drop my own recorded vocal at ./work/{job_id}/vocal.wav and the stage is skipped entirely. Implement the local-file mode first so the pipeline is testable without spending money.\n- Mix: ffmpeg amix of vocal over the chosen beat, sidechain-free, vocal 3dB hot, normalize to -14 LUFS.\n- Lip-sync: send the cropped photo and the mixed audio to a hosted lip-sync model (wav2lip-class) behind a LipSyncProvider interface, token from .env. Save the returned mp4.\n- Compose: ffmpeg scale and pad the talking head onto a 1080x1920 canvas over a still background from ./backgrounds/, burn the lyrics as captions using the subtitles filter from an SRT generated by splitting lyrics evenly across the audio duration. Encode h264, yuv420p, faststart.\n4. GET /jobs/{id}/download serves the final mp4.\n\nAlso ship: .env.example with the two API tokens and nothing else, a README with ffmpeg install notes and the local-vocal test path, and one end-to-end test that runs the whole pipeline on a bundled sample photo and a 5 second wav with both providers stubbed.\n\nOut of scope, do not build: payments, sharing links, multi-face scenes, animated backgrounds, voice cloning, mobile app, queue scaling.\n\nBe explicit in the README about the fact that beats in ./beats and anything a hosted model returns are my licensing problem, not the app's.",
+  "promptCurated": false
+}
