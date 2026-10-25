@@ -1,0 +1,52 @@
+{
+  "slug": "pomelli",
+  "name": "Pomelli",
+  "domain": "pomelliai.app",
+  "category": "ai-image",
+  "subcategory": "brand marketing visuals",
+  "tagline": "Describe or point at a brand once, then generate product shots, ads, and social visuals that stay on-brand.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://pomelliai.app/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Tools in this space are typically free to start with credit or subscription tiers above that, but we have not confirmed a published price for this one.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is two things stacked: a brand profile (colors, tone, product references, do-not-do rules) and an image pipeline that respects it. The brand profile half is genuinely a weekend build, it is JSON plus a prompt template plus a small gallery. The image half is someone else's model, which means your clone is a thin client holding an API key, and you pay per render forever instead of per month. You can get usable social and ad visuals this way, what you will not get cheaply is consistency: keeping the same actual product, logo, and typography correct across twenty variants is the hard part, and it needs reference-image conditioning or fine-tuning that most one-shot builds skip. Build it if you want a private, cheap, template-driven generator; do not expect the output discipline of a tuned product.",
+  "coreLoopDIY": "A local web app that stores a brand kit as JSON, expands it into structured prompts, calls a hosted image model for product and ad variants, and composites headline text over the results.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An image model API key (Gemini image, gpt-image-1, or Replicate), billed per render",
+    "Node 20+ and a local dev environment",
+    "Reference photos of your actual product if you want product fidelity",
+    "Brand assets: logo SVG, fonts, hex codes"
+  ],
+  "whatYouLose": [
+    "Brand consistency enforcement: your clone will drift, theirs is tuned to not",
+    "Product fidelity across variants without supplying and wiring reference images yourself",
+    "Preset ad formats and safe-area layout rules for each social platform, which you will rebuild badly",
+    "Any hope of self-hosting: the actual value is a model you are renting",
+    "Whatever licensing and content-safety posture the vendor carries on generated output"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The brand-profile UI is replicable in an afternoon. The thing making an image that still has your logo spelled correctly at 1080x1350 is not.",
+  "whyPeopleStillPay": "Because marketing visuals are a volume problem, not a craft problem, and the people generating them do not want to hold an API key or debug a prompt template. A hosted studio gives them format presets, a brand that stays put across sessions, and a gallery their coworkers can see, for roughly the price of one freelance asset. A DIY build is cheaper per image and more private, but someone has to be the person who maintains it, and in most teams nobody volunteers.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Worth building if you generate the same five asset types weekly; worth paying for if you generate them once a quarter.",
+  "prompt": "Build a local-only brand visual studio called \"brandkit\" in an empty folder.\n\nStack, no substitutions: Next.js 15 (App Router) + TypeScript + Tailwind, SQLite via better-sqlite3, sharp for compositing, satori for text overlays. Single process, run with npm run dev. No auth, no accounts, no telemetry, no cloud database.\n\nImage generation: call the Gemini image API. Read GEMINI_API_KEY from .env.local and nothing else. Write a thin adapter module src/lib/imageProvider.ts with one function generate(prompt, referenceImages, aspectRatio) so the provider can be swapped later. If the key is missing, the app must still run and show placeholder gray cards with the resolved prompt printed on them, so the whole flow is testable for free.\n\nData model in SQLite: brands (id, name, voice, audience, palette JSON, fonts JSON, avoid_list JSON), assets (id, brand_id, file_path, kind: logo | product | texture), and renders (id, brand_id, preset, prompt_used, file_path, created_at, favorite).\n\nFeatures, in scope:\n1. Brand editor: one form, free-text description plus structured fields. Uploading a logo or product photos stores them under ./storage/assets.\n2. Prompt compiler: a pure function that turns a brand row + a preset into a final prompt string. Show the compiled prompt in the UI before generating. This is the most important file, keep it readable and testable.\n3. Presets, hardcoded, five of them: product-on-seamless, lifestyle-scene, instagram-square-ad, story-9x16, wide-banner-3x1. Each preset declares aspect ratio, a prompt fragment, and a safe-area inset.\n4. Generate: pick brand + preset + count (1-4), pass product photos as reference images, write outputs to ./storage/renders, insert render rows.\n5. Headline overlay: optional text field, rendered with satori using the brand font and palette, composited by sharp inside the preset safe area. Never overlay outside the safe area.\n6. Gallery: grid of renders filtered by brand, favorite toggle, download, and a \"regenerate with same prompt\" button.\n\nOut of scope, do not build: user accounts, team sharing, hosted deploy config, video, scheduling or posting to social platforms, billing, analytics, A/B testing, any kind of usage tracking.\n\nInclude a seed script that creates one example brand so the UI is not empty on first run, a .env.local.example, and a README with exactly: setup, how to run, where files land on disk, and a one-line honest note that per-render API cost is the real ongoing price of this thing.",
+  "promptCurated": false
+}
