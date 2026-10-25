@@ -1,0 +1,52 @@
+{
+  "slug": "flux-3",
+  "name": "Flux 3",
+  "domain": "flux-3.org",
+  "category": "ai-image",
+  "subcategory": "hosted FLUX image generation and editing",
+  "tagline": "Browser front end for FLUX-family image generation and editing, with prompt presets, series consistency and revisions.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.flux-3.org/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit-based freemium tiers are typical for this category but the specific numbers were not confirmed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product here is a web wrapper: a prompt box, a gallery, seed and reference controls, and a credit meter in front of image models it did not train. An agent can rebuild that wrapper in an afternoon, including seed locking, batch variations, saved prompt presets and a local gallery with revision history. What it cannot rebuild is the inference, so you either rent GPU time from an image API or run open FLUX weights on your own card, and that is the real gap between this and a clean yes. Editing features like masked inpainting and character consistency across a series are also where polish lives, and polish is exactly what one-shot builds skip. Fine for a solo workflow, annoying as a replacement if you have never touched a model endpoint before.",
+  "coreLoopDIY": "A local web app that sends prompts plus optional reference images to an image model endpoint, locks seeds for consistent series, and keeps every generation with its parameters in a browsable gallery you can re-run and tweak.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An image generation API key (fal.ai, Replicate or Black Forest Labs) or a local GPU with at least 16GB VRAM running FLUX weights",
+    "Node 20+",
+    "Disk space for generated images, they add up fast",
+    "Willingness to pay per-image inference costs directly instead of via credits"
+  ],
+  "whatYouLose": [
+    "Zero-setup inference: someone else owns the GPUs and eats the cold starts",
+    "A tuned editing UI, masked inpainting and region selection are fiddly to build and worse when you build them in one pass",
+    "Automatic access to whatever model they swap in next month",
+    "Mobile access without hosting it yourself",
+    "Whatever prompt engineering and parameter defaults they bake in behind the scenes"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The models are the moat and they are rented, not owned: FLUX comes from Black Forest Labs, and open weights for several variants are public. A reseller's moat is UI and convenience, which is thinner than it looks.",
+  "whyPeopleStillPay": "Because a credit balance is simpler than an API key, a GPU bill and a masking tool you wrote yourself at midnight. For anyone generating a few dozen images a month, the hosted flow is cheaper in attention than in money, and the editing surface, inpaint, upscale, re-run with a tweak, is where hosted tools earn their keep. The DIY version wins if you generate at volume, want prompts and seeds in a database you control, or want to script generation into something larger.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Thin wrappers around open-weight models are the softest targets in this directory, the only thing you really buy is not having to think about inference.",
+  "prompt": "Build a local-only AI image studio called \"inkpad\". Single operator, no accounts, no telemetry, no cloud database.\n\nStack, non-negotiable:\n- Next.js 15 App Router with TypeScript and Tailwind. No component library.\n- SQLite via better-sqlite3 at ./data/inkpad.db.\n- Generated images written to ./data/images as files, DB stores paths only.\n- Image inference through the fal.ai HTTP API using a FLUX text-to-image endpoint and a FLUX image-to-image/edit endpoint. Put the endpoint ids in src/lib/models.ts so they are easy to swap.\n- FAL_KEY read from .env.local. Ship .env.example. Never commit keys.\n\nFeatures in scope:\n- Generate page: prompt textarea, negative prompt, aspect ratio select, steps, guidance, seed field with a lock toggle and a dice button, batch count 1 to 4.\n- Every generation is stored as a row: prompt, all parameters, model id, seed, created_at, file path, parent_id.\n- Gallery page: reverse-chronological grid, click an image for a detail view showing full parameters, with \"re-run same seed\", \"re-run new seed\" and \"use as reference\" buttons. Re-runs set parent_id so revisions form a chain.\n- Series mode: one locked seed plus a list of prompt variations entered one per line, queued sequentially, results grouped under a series name.\n- Image-to-image: upload or pick a gallery image as reference, with a strength slider, routed to the edit endpoint.\n- Prompt presets stored in SQLite: save the current prompt and parameters under a name, load it back.\n- A simple in-process job queue so batches run one at a time, with per-job status polled by the UI. Jobs survive a page refresh because status lives in the DB.\n\nExplicitly out of scope: auth, multi-user, payments, masked inpainting, upscaling, sharing links, any analytics.\n\nDeliver: working app, npm scripts for dev and a db init, a README that states expected per-image API cost and how to point models.ts at a local ComfyUI or Replicate endpoint instead. Seed the DB with three example presets. Handle API errors by writing the error text onto the job row and showing it in the UI, do not swallow failures.",
+  "promptCurated": false
+}
