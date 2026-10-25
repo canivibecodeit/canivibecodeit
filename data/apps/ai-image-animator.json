@@ -1,0 +1,52 @@
+{
+  "slug": "ai-image-animator",
+  "name": "AI Image Animator",
+  "domain": "imageanimator.app",
+  "category": "ai-video",
+  "subcategory": "image-to-video generation",
+  "tagline": "Web tool that turns a still image into a short animated clip from a text prompt.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://imageanimator.app/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is an upload box, a prompt field, a queue, and a video player, which an agent will produce in an afternoon. The part that actually matters, the image-to-video model, is not something you write: you rent it from fal.ai, Replicate, or whichever lab is currently winning, and so does every tool in this category. That makes the DIY version honest rather than impressive, you get the same frames at roughly raw inference cost instead of a bundled credit pack, with no free tier to ease you in. Running an open model like Wan or LTX-Video locally is possible but needs a serious GPU and the output quality gap is visible. Call it a wrapper you can rebuild, not a capability you can replicate.",
+  "coreLoopDIY": "Upload a still, type a motion prompt, fire it at a hosted image-to-video endpoint, poll the job, and keep the resulting MP4s in a local gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted image-to-video model (fal.ai, Replicate, or similar)",
+    "A credit card on that provider, generations are billed per second of output",
+    "Node 20+ and local disk for the rendered clips",
+    "Optional: an NVIDIA GPU with 16GB+ VRAM if you want to run an open model locally instead"
+  ],
+  "whatYouLose": [
+    "The free tier, every render now bills to your own card from the first click",
+    "Prompt presets and motion templates that quietly make mediocre prompts look good",
+    "Whatever model routing or upscaling pass they run after generation",
+    "Mobile-friendly UI, sharing links, and anything resembling polish",
+    "Someone else absorbing the cost when a render comes back as melted faces"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The models are not theirs either, which is the whole tension in this category: the moat is rented, so the price is mostly margin on inference plus UX.",
+  "whyPeopleStillPay": "Because a credit pack is a simpler decision than a provider account, a billing alert, and a prompt you tune yourself. Most people animating a photo want one clip, right now, with a free attempt first, and they do not care which model produced it. The paid tier buys a working default and the absence of a bill you have to watch.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A UI over someone else's GPU, which is most of this category right now.",
+  "prompt": "Build a local, single-user web app called \"stillmotion\" that animates a still image into a short video using a hosted image-to-video model.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, and better-sqlite3 for job history. No auth, no accounts, no telemetry, no cloud storage. It runs on localhost only.\n\nIn scope:\n- A single page: drag-and-drop or file-pick one image (jpg/png/webp, max 10MB), a textarea for the motion prompt, selects for duration (5s or 10s) and aspect ratio (16:9, 9:16, 1:1), and a Generate button.\n- POST /api/jobs saves the source image to ./data/uploads, inserts a row in SQLite (id, created_at, prompt, duration, aspect, status, provider_job_id, output_path, error), then submits the job to fal.ai using FAL_KEY from .env. Put the model id in a single MODEL_ID constant at the top of one file so it can be swapped in ten seconds.\n- A server-side poller: GET /api/jobs/:id checks provider status, and on completion downloads the MP4 to ./data/outputs and updates the row. The client polls every 3 seconds while status is queued or running.\n- A gallery below the form listing every past job newest first: thumbnail of the source image, the prompt, status badge, an inline HTML5 video player for finished jobs, a download link, and a delete button that removes both the row and the files on disk.\n- Show the provider's reported cost per job if the API returns it, otherwise show a static estimated cost per second read from .env so the user is never surprised.\n- Clear error states: show the provider's error text verbatim, do not retry automatically.\n\nOut of scope, do not build: user accounts, sharing links, upscaling, batch queues, prompt presets, watermarking, mobile-specific layouts, any payment flow.\n\nDeliverables: working app, a .env.example with FAL_KEY and COST_PER_SECOND_USD, and a README that states plainly that every generation bills the user's own provider account and lists roughly what a 5 second clip costs today.",
+  "promptCurated": false
+}
