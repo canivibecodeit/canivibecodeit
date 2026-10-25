@@ -1,0 +1,51 @@
+{
+  "slug": "video-text-remover-ai",
+  "name": "Video Text Remover AI",
+  "domain": "videotextremover.net",
+  "category": "ai-video",
+  "subcategory": "video inpainting / watermark removal",
+  "tagline": "Browser tool that blanks out text, watermarks or subtitles from short video clips by marking fixed boxes and time ranges.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Credit pack",
+    "basis": "credits per clip",
+    "unit": "usage",
+    "source": "https://videotextremover.net/",
+    "checkedOn": "2026-10-25",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The actual job here is video inpainting, and the open source stack for that already exists: ffmpeg has a delogo filter, and if you want something that looks less smeared there are inpainting models you can run locally. An agent can wrap that in a local web UI with a preview, box drawing and time ranges in a weekend, and because the tool only handles static boxes rather than tracking moving text, you are not chasing a hard target. What you do not get for free is speed, queueing and the GPU: good inpainting on a 60 second clip is minutes of compute somewhere, and that somewhere is your machine. The paid version's real pitch is that you do not install anything and do not care how it works. Reasonable, just not a moat.",
+  "coreLoopDIY": "A local web app where you load an MP4, draw up to three boxes, set start and end times per box, and run ffmpeg delogo or a local inpainting pass to render a cleaned file.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "Python 3.11 plus a local web stack",
+    "Optional: a GPU and an inpainting model if delogo smear is not good enough",
+    "Patience for render times on longer clips"
+  ],
+  "whatYouLose": [
+    "No tracking of moving text, same as the paid tool, but you also lose the tuned defaults that make static boxes look passable",
+    "Render speed: their queue runs on rented compute, yours runs on your laptop fan",
+    "No instant preview of the result before you commit to a full render unless you build that too",
+    "Format tolerance: odd codecs, rotated phone video and variable frame rate clips will embarrass a one-shot build",
+    "Nobody to blame when the output looks like wet newspaper"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The compute is the product. Everything else is a box drawing UI.",
+  "whyPeopleStillPay": "Because installing ffmpeg, figuring out delogo versus a real inpainting model, and waiting on your own CPU is a worse afternoon than paying a few dollars for a credit pack and getting a file back. Pay-per-clip pricing also fits the actual usage pattern: most people do this twice, for one video, and never again. A self-hosted version makes sense if you are cleaning clips weekly or if the footage is sensitive enough that you would rather it never leave your machine.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Credit pricing on a tool you use once is honest pricing, and the sub-60-second limit tells you exactly where the compute bill starts hurting.",
+  "prompt": "Build a local, single-user web app called \"clipscrub\" that removes static text or watermarks from short video clips.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, uvicorn\n- Plain HTML plus vanilla JS plus a single CSS file, no framework, no build step\n- ffmpeg invoked via subprocess, assume it is on PATH and fail loudly with a clear message if it is not\n- SQLite via sqlite3 for job records, file at ./data/jobs.db\n\nCore flow:\n1. Upload page accepts .mp4, .mov, .webm up to 200 MB. Store in ./data/uploads with a uuid filename.\n2. Probe with ffprobe for duration, resolution, fps, rotation metadata. Reject anything over 180 seconds with a plain message.\n3. Editor page shows the video in a native HTML video element with an overlay canvas sized to the displayed video. The user draws up to 3 rectangles by dragging. Each rectangle gets a start and end time in seconds, defaulting to 0 and the full duration. Rectangles are listed below with editable numeric fields and a delete button.\n4. Translate rectangle coordinates from displayed pixels to source pixels. Get this right, including when the browser letterboxes the video.\n5. Render: build one ffmpeg command using a filter_complex chain of delogo filters, one per rectangle, each wrapped with enable='between(t,START,END)'. Re-encode with libx264 crf 18 and copy the audio stream.\n6. Run the render as a background task, poll status from the browser, then offer the finished file for download from ./data/outputs.\n\nAlso build:\n- A \"preview frame\" button that renders a single frame at the current playhead through the same filter chain and shows it as a PNG, so the user can judge the result before a full render.\n- A jobs list page showing status, input name, duration and output link.\n\nExplicitly out of scope: user accounts, payments, cloud storage, telemetry, motion tracking of moving text, and AI inpainting models. Add a visible note in the UI that delogo blurs and interpolates from surrounding pixels, so busy backgrounds and high motion will look bad.\n\nConfig in .env: PORT, MAX_UPLOAD_MB, DATA_DIR. Provide .env.example, a README with exact run commands, and a check on startup that ffmpeg and ffprobe exist.\n\nKeep it to a handful of files. Do not scaffold a monorepo.",
+  "promptCurated": false
+}
