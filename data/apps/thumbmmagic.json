@@ -1,0 +1,51 @@
+{
+  "slug": "thumbmmagic",
+  "name": "Submagic Thumbnail Generator",
+  "domain": "submagic.co",
+  "category": "ai-image",
+  "subcategory": "YouTube thumbnail generation",
+  "tagline": "AI thumbnail maker inside Submagic's short-form video tool: feed it a face or a frame, get clickable YouTube thumbnails back.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://app.submagic.co/thumbnail-generator/0a12c030-ba75-48be-9f21-4109b5697beb",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Under the hood this is a prompt template, a background-removal pass, and a text compositor sitting on top of someone else's image model. An agent can rebuild that loop in an afternoon: cut out your face, generate a background, slam three words of bold outlined type over it at 1280x720. What you cannot rebuild in one sitting is the prompt library that makes the output look like a thumbnail instead of AI slop, and you will still be renting an image model by the call. It is also a feature of a larger video editor, so if you are already paying for captions and b-roll, the thumbnail tool is not what you are paying for. Buildable, but the first twenty outputs will be ugly and you will spend the weekend tuning prompts instead of making videos.",
+  "coreLoopDIY": "A local web app that takes a face photo or video frame, removes the background, generates a scene with a hosted image model, composites big outlined headline text, and exports four 1280x720 variants.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local browser",
+    "An image model API key (gpt-image-1 or similar) in .env.local",
+    "A background-removal step: rembg locally or a hosted cutout API",
+    "A couple of bold display fonts you have the rights to use"
+  ],
+  "whatYouLose": [
+    "The tuned prompt library that keeps faces from melting and text from being unreadable at 120px wide",
+    "Batch variant generation that is fast enough to actually pick a winner",
+    "Pulling frames straight out of a video you are already editing in the same product",
+    "Templates that get updated as platform-native thumbnail styles drift",
+    "Doing it from your phone at 11pm before you hit publish"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is taste encoded as prompts plus being adjacent to the editing timeline, not any model they own.",
+  "whyPeopleStillPay": "Because thumbnails are a conversion problem, not a rendering problem, and most people would rather pay for a button that emits five decent options than maintain their own prompt-and-compositor rig. The adjacency matters too: if your captions and b-roll already live in Submagic, generating the thumbnail from the same clip in the same tab is worth more than the generation itself. The DIY build is cheap to run but expensive in attention, and attention is the thing creators have least of.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The hard part was never generating an image, it was knowing which of the five images gets clicked.",
+  "prompt": "Build a local-only YouTube thumbnail generator. No accounts, no database, no telemetry, no deploy step.\n\nStack, non-negotiable: Next.js 15 (App Router) + TypeScript + Tailwind. sharp for compositing. No UI component library.\n\nSecrets: read OPENAI_API_KEY from .env.local. Commit a .env.example, never a real key.\n\nUI, one page:\n- Drop zone for a source image (face photo or exported video frame).\n- Text inputs: headline (max 4 words), optional kicker (max 3 words).\n- A style select with exactly four hardcoded presets: 'shock face', 'clean tech', 'money green', 'before/after'. Each preset is a prompt template string plus a text layout spec (position, color, stroke width, font).\n- A 'Generate 4' button and a results grid with download buttons.\n\nPipeline, server route at /api/generate:\n1. Strip the background from the uploaded image. Shell out to `rembg i` if available on PATH; otherwise fail loudly with an install hint. Do not silently skip this.\n2. Call the image model once per variant with the preset prompt template to produce a 1280x720 background. Run the four calls in parallel.\n3. Composite: background, then the cutout subject scaled and anchored per the preset, then the headline text rendered as SVG via sharp with a thick contrasting stroke, then the kicker if present.\n4. Return four PNGs at exactly 1280x720, written to ./out with timestamped filenames.\n\nRules:\n- Bundle two open-licensed display fonts in /public/fonts. Do not fetch fonts at runtime.\n- Render a 120px-wide preview next to each result so the user can check legibility when it is tiny. This is the point of the whole app.\n- Show the exact prompt used under each variant so presets can be edited by hand.\n- Out of scope: video upload, frame extraction, A/B testing, CTR tracking, cloud storage, sharing links.\n\nREADME: setup, rembg install, one example run, and a note that each generation costs real API money.",
+  "promptCurated": false
+}
