@@ -1,0 +1,52 @@
+{
+  "slug": "dakboard",
+  "name": "DAKboard",
+  "domain": "dakboard.com",
+  "category": "home",
+  "subcategory": "wall display dashboard",
+  "tagline": "Turns a spare screen into a wall dashboard showing calendars, photos, weather and news.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://dakboard.com/site",
+    "checkedOn": "2026-09-04",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A wall dashboard is one of the purest one-shot targets there is: a full screen web page that fetches a few feeds on a timer and never gets clicked. Calendars are public iCal URLs, weather is a free API with no key, photos are a folder on disk, news is RSS. The whole thing is a static page plus a thin server to dodge CORS, then Chromium in kiosk mode on whatever old tablet or Pi you have taped behind the frame. What you are actually buying from DAKboard is the OAuth plumbing for Google Photos and iCloud, a phone-friendly layout editor, and remote config for screens you do not want to SSH into. If it is one screen in your own kitchen, that convenience is worth less than an evening.",
+  "coreLoopDIY": "A kiosk-mode fullscreen page that renders your iCal events, local weather, a rotating local photo album and a couple of RSS headlines, refreshing on a timer forever.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A spare screen and a machine to drive it: Raspberry Pi, old laptop, or an Android tablet in kiosk mode",
+    "Public or secret-URL iCal links for each calendar you want shown",
+    "A folder of photos on the device or a mounted drive",
+    "Willingness to SSH in when you want to change the layout"
+  ],
+  "whatYouLose": [
+    "Google Photos, iCloud and Dropbox photo sync via OAuth, you get a folder instead",
+    "The phone/browser layout editor and instant push to multiple screens",
+    "Prebuilt blocks: transit times, sports scores, stocks, fitness, dozens of tidy widgets",
+    "Managed screens for family members who will never debug a black display",
+    "Their tuned hardware and wake/sleep scheduling that just works out of the box"
+  ],
+  "moatTags": [
+    "hardware",
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The real business is selling screens and CPU sticks with the software as the reason to buy them. That part you cannot clone, but you also do not need to if you already own a dead tablet.",
+  "whyPeopleStillPay": "Because the failure mode of a homemade wall display is that it dies quietly on a Tuesday and nobody in the house can fix it but you. DAKboard sells the boring guarantees: photos keep syncing from the account where the photos actually live, the screen sleeps at night, the layout can be changed from a phone on the couch, and if you buy their frame it is running in ten minutes with no terminal. Multiply that across a few screens for grandparents and the subscription starts looking like a support contract rather than software.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The rare paid app whose entire value is a for-loop and a screen you already own.",
+  "prompt": "Build a self-hosted wall dashboard called \"wallboard\" that runs fullscreen on a Raspberry Pi or old laptop in Chromium kiosk mode.\n\nStack, no substitutions: Node 20 with Express for a tiny server, plain HTML/CSS/JS on the front end, no framework, no build step, no database. Config lives in a single config.json plus a .env for anything secret.\n\nServer responsibilities (it exists only to avoid CORS and to serve local files):\n- GET /api/calendar: fetch every iCal URL in config.json using node-ical, merge, expand recurring events, return the next 20 events as JSON with start, end, title, allDay and a calendar color. Cache 5 minutes.\n- GET /api/weather: call the Open-Meteo forecast API using lat/lon from config.json. No API key. Return current temp, condition code and a 4 day forecast. Cache 15 minutes.\n- GET /api/news: parse the RSS feeds in config.json, return the newest 8 headlines. Cache 10 minutes.\n- GET /api/photos: return a shuffled list of image filenames from ./photos, served statically. Re-read the directory every 10 minutes so I can drop new files in.\n- Every endpoint must return last-known-good cached data on upstream failure and never crash the page.\n\nFront end, one page, designed to be read from across a room:\n- CSS grid: large clock and date top left, weather block top right, agenda list down the left half grouped by day, full-bleed photo slideshow filling the right half with a slow crossfade every 60 seconds, single-line news ticker along the bottom.\n- Dark theme, huge type, no scrollbars, no cursor, no hover states, no click targets.\n- Poll each endpoint on its own interval, update the DOM in place, never reload the page.\n- Show a small red dot in a corner if any endpoint has been failing for more than 15 minutes. That is the entire error UI.\n\nAlso ship:\n- config.example.json with commented-style example calendars, coords, feeds and rotation timing.\n- A systemd unit file and a one-page README covering Chromium kiosk flags, hiding the cursor, disabling screen blanking, and a cron pair to turn HDMI off at night and on in the morning.\n\nExplicitly out of scope: accounts, login, multi-user, OAuth of any kind, Google Photos or iCloud integration, a layout editor, telemetry, analytics, Docker. Assume one trusted screen on a home LAN.\n\nWhen done, print the exact commands to run it and the exact Chromium kiosk command line.",
+  "promptCurated": false
+}
