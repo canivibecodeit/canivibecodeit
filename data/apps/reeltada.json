@@ -1,0 +1,52 @@
+{
+  "slug": "reeltada",
+  "name": "ReelTada",
+  "domain": "reeltada.com",
+  "category": "ai-video",
+  "subcategory": "photo to vertical short",
+  "tagline": "Uploads a still photo and returns a templated vertical short video built by AI video models.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://reeltada.com/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The actual work here is done by somebody else's image-to-video model, and those models are available to you directly through fal.ai or Replicate for a few cents a clip. An agent can wrap that in an afternoon: upload a photo, pick a motion template, call the model, burn captions, mux music, export 1080x1920. What you cannot one-shot is the taste layer, the set of template prompts that reliably produce something watchable instead of melted faces, which is the only part that took real iteration. You also inherit the raw per-clip cost and the queue times with no retry safety net. So yes buildable, no it will not feel as finished, and your first twenty renders will be garbage until you tune the prompts.",
+  "coreLoopDIY": "Takes a photo plus a chosen template, calls a hosted image-to-video model, then stitches the clip with captions, music and a vertical export via ffmpeg.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A fal.ai or Replicate API key with billing enabled",
+    "ffmpeg installed locally",
+    "Your own music files, since you will not have a licensed library",
+    "Patience for per-clip render latency of a minute or more"
+  ],
+  "whatYouLose": [
+    "A template library whose prompts have already been tuned against thousands of real renders",
+    "Retries, queue handling and a refund when a render comes back mangled",
+    "Licensed background music you can actually post commercially",
+    "A phone-friendly flow, your local build will be a laptop tool",
+    "Any guardrails on faces, hands and text artifacts"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights",
+    "proprietary-data"
+  ],
+  "moatNotes": "The prompt presets and negative prompts behind each template are the real product, and they are invisible from the outside.",
+  "whyPeopleStillPay": "Because the gap between calling an image-to-video endpoint and getting a clip that does not look cursed is entirely prompt craft plus a lot of discarded attempts, and paying a few dollars a month to skip that loop is rational if you post videos rather than build tools. The flat subscription also smooths out the per-render cost, which hurts more than people expect once you start regenerating.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Thin wrapper over rented models, which is fine, but the wrapper is where all the work went.",
+  "prompt": "Build a local photo-to-vertical-short tool. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Next.js 15 with the App Router, TypeScript, Tailwind. Everything runs on localhost. Files live on disk under ./work, no database.\n\nFlow:\n1. A single page with a drop zone for one image, a template picker, an optional caption field, and a Render button.\n2. On submit, write the upload to ./work/{jobId}/input.jpg and start a background job tracked in a JSON file at ./work/{jobId}/job.json with status queued | running | done | failed.\n3. The job calls the fal.ai image-to-video endpoint using FAL_KEY from .env. Pick one model and hardcode it. Poll until the clip is ready, then download it to ./work/{jobId}/raw.mp4.\n4. Post process with ffmpeg via child_process, no wrapper libraries: scale and pad to 1080x1920, loop or trim to the template duration, burn the caption with drawtext using a bundled font, mix in an optional audio file from ./assets/music if the template names one, output ./work/{jobId}/final.mp4.\n5. The page polls job.json and shows the finished video inline with a download link.\n\nTemplates live in templates.json. Each entry has id, label, positive prompt, negative prompt, duration seconds, caption position, optional music filename. Ship four of them: slow push in, parallax drift, subtle handheld, zoom out reveal.\n\nIn scope: one image in, one vertical mp4 out, job status, retry button that reruns the same job with the same inputs.\n\nOut of scope: posting to any social platform, user accounts, batch mode, multi image timelines, voiceover, a hosted deploy.\n\nPut FAL_KEY in .env.example. Fail loudly with the raw API error if the key is missing or the render errors. README should state the per render cost comes out of my own fal.ai balance and that prompt quality in templates.json is the thing worth tuning.",
+  "promptCurated": false
+}
