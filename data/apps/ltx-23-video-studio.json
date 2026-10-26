@@ -1,0 +1,53 @@
+{
+  "slug": "ltx-23-video-studio",
+  "name": "LTX-23 Video Studio",
+  "domain": "ltx-23.org",
+  "category": "ai-video",
+  "subcategory": "text-to-video and image-to-video generation",
+  "tagline": "Browser front end for LTX text-to-video and image-to-video generation, sold by the credit.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://ltx-23.org/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Credit packs and subscriptions are advertised but amounts were not confirmed.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product here is a prompt box, a settings panel, a queue, and a gallery, all of which an agent can produce before lunch. The part you are actually paying for is a GPU running a video diffusion model for several minutes per clip, plus whichever LTX checkpoints the operator has access to. Some LTX-Video weights are openly published, so a local build is not fantasy, but it needs a large consumer GPU and still lands behind the hosted versions on resolution, length, and synchronized audio. Point it at a hosted inference API instead and you have rebuilt the billing relationship with extra steps. This is a reseller wrapper, which makes it cheap to imitate and pointless to imitate.",
+  "coreLoopDIY": "A local job queue and gallery that runs open LTX-Video weights on your own GPU from text or image prompts, with a saved prompt library.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "NVIDIA GPU with at least 24GB VRAM, ideally more",
+    "Python with CUDA-enabled PyTorch and diffusers",
+    "Tens of gigabytes of disk for model weights",
+    "Patience: minutes of compute per short clip",
+    "ffmpeg for muxing and encoding"
+  ],
+  "whatYouLose": [
+    "Access to the newest LTX checkpoints, which may never be published as open weights",
+    "Synchronized audio generation, which the open local pipelines mostly do not do",
+    "Someone else's fast GPUs, so a clip that takes 40 seconds hosted can take many minutes locally",
+    "Resolution and duration ceilings that are tuned by people who do this full time",
+    "Zero-setup use from a phone or a laptop with no GPU"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "proprietary-models",
+    "hardware"
+  ],
+  "moatNotes": "The moat is rented, not owned: this is a storefront in front of someone else's models and someone else's GPUs, which means it is easy to clone and easy to be cloned.",
+  "whyPeopleStillPay": "Because video inference is the rare AI task where the compute bill is obvious and unavoidable. A ten second clip is thousands of frames of denoising, and most people do not have a 4090 sitting idle, let alone the appetite to babysit CUDA versions and 40GB checkpoint downloads. Paying per credit converts a hardware problem into a line item, and for anyone generating a handful of clips a month that is straightforwardly the cheaper option. The front end is not worth money, the minutes are.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The UI is an afternoon of work; the frames are not. The moat is GPU minutes and model checkpoints that someone else trained and someone else hosts.",
+  "prompt": "Build a local, single-user AI video generation workbench. Do not build accounts, billing, telemetry, or any cloud component.\n\nStack, no substitutions: Python 3.11, FastAPI backend, SQLite via sqlite3, plain HTML plus htmx plus vanilla CSS for the UI, diffusers plus PyTorch for inference, ffmpeg via subprocess for encoding.\n\nScope that is IN:\n- A /generate form with: prompt, negative prompt, optional input image for image-to-video, width, height, number of frames, fps, guidance scale, seed, and steps.\n- A single-worker background job queue (one asyncio task pulling from a SQLite jobs table, status: queued, running, done, failed). One job at a time, because one GPU.\n- An inference module that loads an open LTX-Video pipeline from diffusers by model id read from MODEL_ID in .env, keeps it resident between jobs, and supports both text-to-video and image-to-video paths.\n- Write frames to MP4 with ffmpeg, h264, yuv420p, at the requested fps. Store outputs under ./outputs/{job_id}.mp4 and record the full parameter set in SQLite.\n- A gallery page: newest first, inline video preview, the exact params used, a \"re-run with tweaks\" button that prefills the form, and a delete button.\n- A prompt library: a prompts table with title, body, tags; save any prompt from a job, insert any saved prompt into the form. Seed it with six cinematic example prompts.\n- A /health endpoint reporting GPU name, free VRAM, and whether the pipeline is loaded.\n\nScope that is OUT: audio generation, upscaling, multi-GPU, user auth, model fine-tuning, and any hosted inference API fallback. If no CUDA device is present, fail loudly at startup with a clear message instead of silently falling back to CPU.\n\nConfig: MODEL_ID, OUTPUT_DIR, MAX_FRAMES, DEFAULT_STEPS in .env, loaded with python-dotenv. Ship .env.example, never a real .env.\n\nDeliver: requirements.txt, a README with exact setup commands, the VRAM floor you are assuming, and a one-command run script. Add a seeded smoke test that enqueues a 25 frame job at low resolution and asserts an MP4 lands on disk.",
+  "promptCurated": false
+}
