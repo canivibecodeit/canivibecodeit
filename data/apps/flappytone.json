@@ -1,0 +1,49 @@
+{
+  "slug": "flappytone",
+  "name": "FlappyTone",
+  "domain": "flappytone.com",
+  "category": "audio",
+  "subcategory": "pitch training game",
+  "tagline": "A Flappy Bird style game where your voice pitch flies the bird, used as singing and vocal range practice.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://flappytone.com/",
+    "checkedOn": "2026-09-14",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "The whole product is a pitch tracker wired to a side scroller, and both halves are solved problems in the browser. Web Audio gives you the mic stream, an autocorrelation or YIN detector gives you a fundamental frequency every frame, and you map Hz to the bird's altitude. The real work is not detection, it is the feel: smoothing the pitch curve enough that vibrato does not slam you into a pipe, without adding so much lag that the game stops feeling responsive. That tuning is a few hours of fiddling, not a moat. The honest caveat is that a monophonic voice in a quiet room is the easy case, and a polished version handles noisy rooms, low male fundamentals, and octave errors better than your first pass will.",
+  "coreLoopDIY": "Captures mic input, estimates the fundamental frequency each frame, and maps it to the bird's vertical position in a canvas side scroller with pipes and a score.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A browser with microphone permission, served over https or localhost",
+    "A halfway decent mic and a reasonably quiet room",
+    "A calibration step to learn your comfortable vocal range"
+  ],
+  "whatYouLose": [
+    "Robust pitch detection in noisy rooms and octave error handling at the low end",
+    "Latency tuning that has already been tested across dozens of devices and browsers",
+    "Any structured curriculum: exercises, ranges, progression, streaks",
+    "Leaderboards and the mild social pressure that makes practice apps sticky",
+    "Art, sound design, and the general feeling that someone cared"
+  ],
+  "moatTags": [
+    "execution-polish"
+  ],
+  "moatNotes": "The defensible part is game feel, not signal processing. Anyone can get a number out of a microphone; making that number fun to steer with is the craft.",
+  "whyPeopleStillPay": "Because people who buy vocal practice tools want to practice, not debug an autocorrelation window. A paid version is already tuned, already runs on a phone, already has levels that get harder in a sensible order, and does not require you to care about buffer sizes. If you are building it to learn Web Audio, build it. If you are building it because you actually want to work on your range, the few dollars buys back the evening you would spend on smoothing constants.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare audio apps where the DSP is the easy half and the 60fps game loop is the interesting half.",
+  "prompt": "Build a single-page browser game called PitchFlyer. No build step, no framework, no backend, no accounts, no telemetry.\n\nStack: one index.html, one main.js, one style.css. Vanilla JS modules, canvas 2D, Web Audio API. Serve with `python3 -m http.server` and note in the README that mic access needs localhost or https.\n\nCore loop:\n- Ask for mic permission via getUserMedia with echoCancellation, noiseSuppression and autoGainControl all set to false.\n- Run an AnalyserNode plus a raw time-domain tap. Estimate the fundamental frequency each animation frame using autocorrelation with a parabolic peak interpolation. Reject frames whose RMS is below a silence threshold and whose autocorrelation peak clarity is below 0.9.\n- Hold the last confident pitch for up to 120ms when confidence drops, then let the bird fall.\n- Convert Hz to MIDI note number, smooth it with a one-pole low pass filter, and map the calibrated range to canvas height. Expose the smoothing coefficient as a slider so the feel is tunable at runtime.\n\nCalibration: on first load, ask the player to hum their lowest comfortable note, then their highest. Store both as MIDI numbers in localStorage with a Recalibrate button.\n\nGame: scrolling pipes with gaps, collision detection, score counter, game over screen with restart on spacebar. High score in localStorage. Draw a thin trailing line of the last 90 frames of pitch so the player can see their own wobble.\n\nDebug panel toggled with the D key: current Hz, MIDI note name, RMS, clarity, measured input-to-render latency.\n\nOut of scope: multiplayer, leaderboards, chord or polyphonic detection, mobile-specific layout, sound effects, anything needing a server or an API key. No .env is needed because there are no secrets.\n\nWrite a README with run instructions, the known failure modes (background noise, octave errors on very low voices, Bluetooth mic latency), and which constants to tune for feel.",
+  "promptCurated": false
+}
