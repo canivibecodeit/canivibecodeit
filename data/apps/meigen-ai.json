@@ -1,0 +1,51 @@
+{
+  "slug": "meigen-ai",
+  "name": "Meigen AI",
+  "domain": "ai-meigen.com",
+  "category": "ai-video",
+  "subcategory": "text-to-video and text-to-image generation",
+  "tagline": "Browser tool that turns text prompts and reference images into short AI videos and stills, with a free tier.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://ai-meigen.com/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a prompt box, a model picker, and a gallery, which an agent can reproduce before lunch. What it is not is the thing doing the work: video generation needs a frontier video model and a pile of GPUs you do not own and cannot clone. Any personal rebuild is a client for somebody else's inference endpoint, which means you have swapped one vendor for another and kept the metered bill. The honest consolation is that you can own the queue, the prompt history, and the output files instead of renting them inside a credit dashboard. Note also that the headline model names here read like marketing on top of whatever API is actually being called, so you are not even sure which vendor you are swapping out.",
+  "coreLoopDIY": "A local studio page where you type a prompt, optionally attach a reference image, fire it at a hosted video or image model, and keep every result and its exact prompt in a searchable local gallery.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An API key for a hosted generation provider (fal.ai, Replicate, or similar)",
+    "A credit card, since video inference is billed per second of output",
+    "Node 20+ and a few GB of local disk for generated files"
+  ],
+  "whatYouLose": [
+    "Free generations: the hosted free tier is a marketing cost someone else is paying",
+    "Model selection curated for you, including whatever is actually behind the branded model names",
+    "Fast queue times and retries when a provider is overloaded",
+    "Mobile friendly polished UI, presets, and aspect ratio handling tuned by someone who tested it",
+    "Any hosted sharing link you can send to a person who is not you"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The real moat belongs to whoever trained the video model, not to the site in front of it. This app's own moat is a free tier and a URL.",
+  "whyPeopleStillPay": "Because the alternative to paying is paying, just with more steps. Running video generation yourself means renting the same class of GPU at the same or worse rates, and most people want three clips for a slideshow, not an inference pipeline. A free tier that gets you a usable 5 second clip in a browser tab with no setup is a genuinely good deal for occasional use, and the per-credit upsell only hurts once you are generating daily, at which point you would be better off at the provider's own API anyway.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The frontend is an afternoon; the model weights and the GPU fleet are not. The moat is proprietary video models and the inference scale to serve them, neither of which lives at this domain either.",
+  "prompt": "Build a local, single user AI generation studio. Stack: Next.js 15 App Router with TypeScript, Tailwind, and better-sqlite3. No auth, no accounts, no telemetry, no cloud database. Runs on localhost only.\n\nIt calls hosted generation models through the fal.ai HTTP API. FAL_KEY lives in .env.local and is read server side only; never ship it to the browser.\n\nPages:\n1. /studio: a prompt textarea, an optional reference image upload (stored under ./storage/inputs), a model dropdown with exactly two hardcoded options (one text-to-video model, one text-to-image model, both read from a models.ts constant so they are easy to swap), plus aspect ratio and duration fields that only show for the video model. Submit button queues a job.\n2. /gallery: reverse chronological grid of every finished job, with inline video and image playback, the full prompt, the model id, the cost estimate, and buttons to copy the prompt or re-run it with edits.\n3. /job/[id]: single job detail with raw request JSON and raw response JSON, because debugging generation failures is most of the job.\n\nBackend: a jobs table in SQLite (id, model, prompt, params JSON, input_path, status, output_path, error, created_at, finished_at). Route handlers submit to fal, poll for completion in a background interval, download the finished asset to ./storage/outputs, and update the row. Poll from the client with a simple 3 second fetch; no websockets.\n\nIn scope: queueing, local persistence, file download, prompt history, re-run, full text search over prompts with SQLite FTS5.\nOut of scope: training anything, self-hosted inference, user accounts, sharing links, billing, mobile layout beyond 'does not break'.\n\nWrite a README that states plainly: this is a client for a metered third party API, every generation costs real money, and the file ./storage can get large fast. Include a `npm run cost` script that sums the stored cost estimates so the bill is never a surprise.",
+  "promptCurated": false
+}
