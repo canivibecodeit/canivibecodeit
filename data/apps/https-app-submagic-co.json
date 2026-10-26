@@ -1,0 +1,52 @@
+{
+  "slug": "https-app-submagic-co",
+  "name": "Submagic",
+  "domain": "submagic.co",
+  "category": "audio-video",
+  "subcategory": "short-form captions and auto-editing",
+  "tagline": "Web app that auto-captions short vertical videos in trendy animated styles and layers on b-roll, zooms and sound effects.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://app.submagic.co/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The engine under animated captions is word-level speech recognition plus a subtitle renderer, and both halves are free and local: Whisper gives you word timestamps, ffmpeg burns karaoke-highlighted ASS subtitles into the video. A coding agent can get you captioned vertical clips in one sitting, and for a one-person content habit that is most of the value. What does not fall out of a one-shot build is the taste layer: the specific font and bounce and pop-in combos that look native to the feed, auto emoji placement, auto zoom on speaker beats, and a licensed b-roll and sound effect library. You will also miss having it be a web app you can use from a phone between other things. Build it if you publish often enough that the subscription annoys you and you are willing to tune the look yourself.",
+  "coreLoopDIY": "Transcribes a video locally with word-level timestamps, renders styled karaoke-highlight captions, and burns them into a vertical export with one command.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "ffmpeg installed",
+    "Python 3.11+",
+    "faster-whisper or whisper.cpp running locally (GPU helps, CPU works)",
+    "A font file for the caption style you want"
+  ],
+  "whatYouLose": [
+    "The preset gallery: dozens of caption looks that already read as native to each platform",
+    "Auto b-roll, auto zooms and sound effects timed to the transcript",
+    "Licensed stock footage and audio you can legally publish",
+    "Browser and phone access instead of a terminal on one machine",
+    "Fast cloud renders; long clips on a laptop CPU are slow"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part was never the transcription, it was knowing which caption style performs and shipping fifty of them that all render correctly.",
+  "whyPeopleStillPay": "Because creators are paying for throughput and taste, not for speech recognition. The subscription turns a twenty minute editing chore into a two minute upload while someone else keeps the presets current with whatever the feed rewards this quarter, and it comes with footage and audio that will not get the video muted. A local script matches the captions and none of the rest.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Captions are a solved local problem; the template aesthetic is the actual product.",
+  "prompt": "Build a local CLI tool called \"capclip\" that burns animated word-highlight captions into short vertical videos. Empty folder, Python 3.11, no web UI, no accounts, no cloud services.\n\nStack, non negotiable:\n- Python with typer for the CLI\n- faster-whisper for transcription with word_timestamps=True\n- ffmpeg via subprocess for all video work\n- No external APIs. Everything runs offline after the model downloads.\n\nCommands:\n- capclip caption INPUT.mp4 --style bold --out out.mp4\n- capclip transcript INPUT.mp4 --out words.json (dump word timings so I can hand edit)\n- capclip caption INPUT.mp4 --words words.json (re-render from edited words, skip transcription)\n\nBehavior:\n1. Extract audio to 16k mono wav with ffmpeg.\n2. Transcribe with faster-whisper, model size configurable, default \"small\". Collect word-level start/end/text.\n3. Group words into caption lines of max 3 words or 1.2 seconds, whichever comes first. Never split mid-word.\n4. Generate an ASS subtitle file where the current word is highlighted: the active word gets a different fill color and a slightly larger scale, the rest of the line stays white with a thick outline and drop shadow. Use ASS \\k timing or per-word Dialogue events with \\fscx\\fscy, whichever renders more reliably.\n5. Styles live in styles.toml: font file path, font size, primary color, highlight color, outline width, vertical position as a fraction of frame height, uppercase true/false. Ship exactly three styles: \"bold\", \"clean\", \"neon\". No style picker menus in code, just the toml.\n6. Burn in with ffmpeg subtitles filter. Add --vertical to center-crop and scale to 1080x1920 first.\n7. Print the ffmpeg command before running it, and keep intermediate files in a .capclip-tmp folder that gets cleaned unless --keep.\n\nOut of scope, do not build: b-roll insertion, zoom effects, sound effects, translation, a GUI, any upload or sharing feature.\n\nInclude a README with install steps, the ffmpeg requirement, and one worked example. Put the whisper model size and font directory in .env.example, loaded with python-dotenv. No telemetry.",
+  "promptCurated": false
+}
