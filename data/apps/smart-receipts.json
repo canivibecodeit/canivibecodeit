@@ -1,0 +1,52 @@
+{
+  "slug": "smart-receipts",
+  "name": "Smart Receipts",
+  "domain": "smartreceipts.co",
+  "category": "finance-accounting",
+  "subcategory": "receipt scanning and expense reports",
+  "tagline": "Scan paper receipts, organize them into expense reports, and export to PDF, CSV or your accounting tool.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://smartreceipts.co/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible product is a CRUD app with a camera attached: photo in, fields out, filter by date or merchant or amount, export a report. An agent will get you that in a weekend, and a modern vision model reads receipts well enough that you will be pleasantly surprised on the first ten. The pain starts at receipt eleven, when the thermal paper has gone grey, the total is half a smudge, and you need the number to be right rather than plausible. Add sync and backup across phone and laptop, because a receipt app that loses receipts is worse than a shoebox, and you are now maintaining infrastructure. Fine as a personal tool if you reconcile monthly and glance at every extracted total; not fine if someone else depends on the output.",
+  "coreLoopDIY": "A local web app where you drop receipt photos, a vision model extracts merchant, date, total, tax and currency into an editable row, and you filter, tag and export a report as CSV or PDF.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A machine to run it on, ideally always-on if you want to upload from your phone",
+    "An API key for a vision-capable model (OCR quality is the whole product)",
+    "Somewhere real to back up the SQLite file and the image folder",
+    "Patience for manual correction on faded or crumpled receipts"
+  ],
+  "whatYouLose": [
+    "A real mobile app with a capture flow tuned for receipts: edge detection, cropping, multi-shot, offline queueing",
+    "Sync and backup you did not build, so your data survives a dead laptop",
+    "Export formats and report templates that finance departments and tax software actually accept",
+    "Mileage tracking, per-trip report grouping and the other accumulated expense-report plumbing",
+    "Anyone to blame but yourself when a total is extracted wrong and you only notice at tax time"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The moat is not the OCR, which is now rented by the token. It is the capture ergonomics, the report formats, and the fact that years of receipts living in one app are annoying to move.",
+  "whyPeopleStillPay": "Because the app is a tax-season insurance policy and the price is roughly one restaurant bill a year. People pay for the phone in their pocket working offline in a car park, for the data still being there when the phone drowns, and for an export that their accountant opens without comment. A self-hosted version delivers the same function and none of those guarantees, which is a fine trade if the stakes are a few personal reimbursements and a bad trade if the stakes are an audit.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Receipt extraction got cheap the moment vision models got good; the camera flow and the not-losing-things did not.",
+  "prompt": "Build a local-first receipt manager as a single web app. Stack: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for UI. No auth, no cloud accounts, no telemetry. Everything runs on localhost.\n\nData model:\n- receipt: id, image_path, merchant, purchase_date, total_cents, tax_cents, currency, category, payment_method, notes, reimbursable (bool), created_at, extraction_json, extraction_confidence, verified (bool)\n- report: id, name, date_from, date_to, created_at\n- report_receipt: join table\nStore images on disk under ./data/images, database at ./data/receipts.db. Create both on first run.\n\nIngest:\n- Drag-and-drop or file-picker upload of JPG, PNG, HEIC and PDF. Convert HEIC and PDF pages to JPG server-side with sharp and pdf-to-img.\n- After upload, call a vision model to extract merchant, purchase_date (ISO), total, tax, currency and a suggested category. Read OPENAI_API_KEY from .env and use a vision-capable chat completion; keep the provider call in one file (lib/extract.ts) so it can be swapped.\n- Require strict JSON output. Store the raw response in extraction_json. If any field is missing or unparseable, leave it null rather than guessing.\n- Mark every new receipt verified=false.\n\nReview UI:\n- Inbox view listing unverified receipts: image on the left, editable fields on the right, keyboard-friendly, \"Save and next\" button that sets verified=true.\n- Main table of all receipts with sort and filter by date range, merchant (substring), amount range, category and verified state. Running total of the filtered set shown at the top.\n- Click a row to open the full-size image next to the fields.\n\nReports and export:\n- Create a report from the current filter, name it, add or remove receipts.\n- Export a report as CSV (one row per receipt) and as a PDF built with Puppeteer: summary table first, then one receipt image per page with its extracted fields underneath.\n\nBackup, treat as a required feature not a nice-to-have:\n- A `npm run backup` script that zips ./data (db plus images) to a path set by BACKUP_DIR in .env, timestamped, keeping the last 10.\n- A banner in the UI if no backup has been written in 14 days.\n\nOut of scope, do not build: user accounts, mobile apps, multi-device sync, accounting-software integrations, mileage tracking, OCR model training, bank feeds.\n\nDeliver a README with setup steps, the .env keys (OPENAI_API_KEY, BACKUP_DIR), and an explicit note that extracted totals on faded thermal receipts need human verification before anything financial depends on them.",
+  "promptCurated": false
+}
