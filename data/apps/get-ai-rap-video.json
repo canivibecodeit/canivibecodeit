@@ -1,0 +1,53 @@
+{
+  "slug": "get-ai-rap-video",
+  "name": "Get AI Rap Video",
+  "domain": "getairapvideo.org",
+  "category": "ai-video",
+  "subcategory": "AI rap/music video generation",
+  "tagline": "Type a topic or upload a photo, get back a short rap track with a matching generated video.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://getairapvideo.org/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "This is a pipeline, not an invention: lyrics from an LLM, a beat and vocal from a music model, stills or clips from an image/video model, then ffmpeg glues it together. An agent can wire that whole chain in a weekend and you will get rap videos out the other end. What you cannot build is the models, so you swap a subscription for API credits and keep paying someone, just not this site. The gap that actually bites is quality control: the hosted product has presets, seeds and retry logic tuned so most generations are watchable, and your first build will produce a lot of off-beat garbage before you tune it. If you want one rap video for a birthday, pay the few dollars. If you want fifty, build the pipeline.",
+  "coreLoopDIY": "A local web form that takes a topic, writes lyrics with an LLM, renders a rapped vocal over a generated beat, makes images or clips for each bar, and stitches the whole thing into an MP4 with ffmpeg.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and ffmpeg installed locally",
+    "An LLM API key for lyrics",
+    "A music/voice generation API key (music model plus TTS or a singing voice model)",
+    "An image or short-video model API key for the visuals",
+    "Patience for generation latency and a credit budget"
+  ],
+  "whatYouLose": [
+    "Tuned prompts, seeds and model choices that make most outputs usable on the first try",
+    "Beat-aligned timing and lipsync, which is the hard part and the part that looks cheap when wrong",
+    "A share link and hosted MP4 you can send someone without zipping a file",
+    "Mobile capture and upload, if the product does the photo-to-character thing",
+    "Any content filtering between you and a model that will happily rap something you cannot post"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models",
+    "scale-infra"
+  ],
+  "moatNotes": "The polish moat is real but shallow: the site does not own the models, it owns the prompt tuning and the retry loop on top of them.",
+  "whyPeopleStillPay": "Because the alternative is four API accounts, a credits balance in each, and an afternoon of discovering that your vocal is a quarter beat ahead of the kick. Novelty video tools get used two or three times, and nobody builds infrastructure for a two-time use case. The paid version converts a weekend of pipeline debugging into one button and a small charge, which is exactly the right trade if you only ever want one rap about your coworker.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A thin wrapper with a good domain name, which is a business model, just not a defensible one.",
+  "prompt": "Build a local-only rap video generator. No accounts, no cloud deploy, no telemetry.\n\nStack, non negotiable: Python 3.11, FastAPI for the HTTP layer, plain server rendered HTML with htmx for the UI, SQLite for job state, ffmpeg via subprocess for assembly. No React, no Docker, no queue broker. One background thread pool is enough.\n\nFlow:\n1. A single page form: topic, style (boom bap, trap, drill), bar count (8, 12 or 16), and optional reference image upload.\n2. POST creates a job row in SQLite with status queued and returns a job page that polls for status with htmx every 2 seconds.\n3. Worker step A: call the LLM to write lyrics as a JSON array of bars, each bar with text and a short visual prompt. Enforce the bar count. Store the JSON.\n4. Worker step B: call the music model for an instrumental of the chosen style at a fixed BPM per style, and call the voice model to render the lyrics as a vocal track. Save both as WAV.\n5. Worker step C: for each bar's visual prompt, call the image model, save the PNG.\n6. Worker step D: ffmpeg. Mix vocal over instrumental with a fixed gain offset, compute per bar duration from BPM and bar count, build a concat slideshow of the images with a slow zoom (zoompan), mux with the mixed audio, output 1080x1920 H.264 MP4 to ./out.\n7. Job page shows a video tag when done, plus the lyrics and a retry button that reruns only the failed step.\n\nAll API keys from .env via python-dotenv: LLM_API_KEY, MUSIC_API_KEY, IMAGE_API_KEY. Put every model call behind a thin adapter module with a provider name in one config dict, so swapping providers is a one line change. Log the exact prompt and model params for every call into the job row so bad outputs are debuggable.\n\nIn scope: lyrics, audio, stills, assembly, retry, local playback.\nOut of scope: lipsync, animated video models, user accounts, sharing links, payment, moderation.\n\nShip a README with: install ffmpeg, pip install -r requirements.txt, cp .env.example .env, uvicorn app:app --reload, and a one paragraph note on expected cost per generation and which step is the slowest.",
+  "promptCurated": false
+}
