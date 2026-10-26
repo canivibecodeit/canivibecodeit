@@ -1,0 +1,51 @@
+{
+  "slug": "erasenoise",
+  "name": "EraseNoise",
+  "domain": "erasenoise.com",
+  "category": "audio-video",
+  "subcategory": "speech noise removal",
+  "tagline": "Browser tool that strips steady background noise from speech in audio and video files.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://erasenoise.com/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "low",
+  "verdictSummary": "Removing steady, stationary noise behind speech is one of the most solved problems in audio: spectral gating handles hum, hiss and fan noise, and open models like RNNoise and DeepFilterNet handle the messier cases. All the plumbing is ffmpeg: demux, denoise, remux, preserve video stream untouched. An agent can build a local drop-zone page with a real before/after A/B player in a single session, and it will run on files longer than 30 seconds without a paywall. What you are actually paying EraseNoise for is not having to install ffmpeg and not having to wait on your own laptop. That is a convenience fee, not a moat.",
+  "coreLoopDIY": "Drop an audio or video file on a local page, it extracts the audio, runs a denoiser, lets you A/B the before and after, and writes a cleaned file with the video stream copied through untouched.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "ffmpeg and ffprobe on PATH",
+    "Python 3.11",
+    "One-time model download for the neural denoiser, roughly 100MB",
+    "Patience on long files if you have no GPU"
+  ],
+  "whatYouLose": [
+    "Works from any device including a phone, with nothing installed",
+    "Someone else's CPU time, so a 90 minute podcast does not pin your fan for 20 minutes",
+    "A denoise chain that has been tuned against thousands of real recordings, so fewer watery artifacts on voices",
+    "A polished waveform UI and shareable output links",
+    "Any guarantee you picked the right model for your specific noise, you will be ear-tuning thresholds yourself"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The audible difference between a naive spectral gate and a well tuned chain is real, it just is not patentable. Anyone can reach 90 percent of the quality with open models in an afternoon.",
+  "whyPeopleStillPay": "Because the people who need this most are the people who should not be installing ffmpeg: a teacher with a lecture recording, a founder with a noisy webcam demo, someone editing on a borrowed laptop. The free preview is the entire sales pitch, you hear the fix before you pay, and at that point five or ten dollars to finish the job beats an hour of reading about spectral subtraction. Pay-per-fix pricing also means there is no subscription guilt, which removes the main reason people go looking for a DIY replacement in the first place.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "If your noise is genuinely steady, hum, hiss, HVAC, a stationary spectral gate gets you most of the way in about ten lines.",
+  "prompt": "Build a local, offline speech denoiser with a browser UI. No accounts, no cloud, no telemetry.\n\nStack, non-negotiable: Python 3.11, FastAPI, a single server-rendered HTML page with vanilla JS and no build step, ffmpeg and ffprobe invoked via subprocess. Audio processing with DeepFilterNet (pip install deepfilternet) as the default engine and noisereduce as a 'stationary' fallback engine.\n\nFlow:\n1. GET / serves one page: a drop zone, an engine selector (neural or stationary), a strength slider 0 to 100, and a Process button.\n2. POST /process accepts one file up to 2GB, saves it to a temp work dir, probes it with ffprobe.\n3. Extract audio to 48kHz mono WAV via ffmpeg. Keep the original file path for remuxing.\n4. Run the chosen denoiser over the WAV. For stationary mode use noisereduce with prop_decrease mapped from the strength slider. For neural mode run DeepFilterNet, then blend the clean and original signals according to strength so 60 does not sound like a telephone.\n5. If the input had a video stream, remux: ffmpeg -i original -i cleaned.wav -map 0:v -map 1:a -c:v copy -c:a aac out.mp4. If audio only, encode to the input's original container where sane, otherwise WAV.\n6. Return JSON with URLs for the original audio and cleaned audio.\n\nThe page must include a real A/B player: two HTMLAudioElements sharing one timeline, a single play button, and an A/B toggle that swaps which one is audible without resetting position. This is the whole point, make it tight.\n\nAlso ship a CLI: python -m erasenoise input.mp4 -o out.mp4 --engine neural --strength 70.\n\nIn scope: progress reporting via a simple polling endpoint, temp files deleted after 1 hour by a background task, clear errors when ffmpeg is missing.\n\nOut of scope: user accounts, payments, queues, S3, Docker, music source separation, de-reverb, transcription, time limits of any kind.\n\nWrite a README with install steps, the ffmpeg prerequisite, and one honest paragraph on when the stationary engine beats the neural one. Put nothing in .env because nothing needs a secret.",
+  "promptCurated": false
+}
