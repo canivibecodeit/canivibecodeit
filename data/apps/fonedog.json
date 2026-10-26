@@ -1,0 +1,52 @@
+{
+  "slug": "fonedog",
+  "name": "FoneDog Broken Android Data Extraction",
+  "domain": "fonedog.com",
+  "category": "productivity-utilities",
+  "subcategory": "android data recovery",
+  "tagline": "Desktop utility that tries to pull photos, messages and contacts off an Android phone with a dead screen or a stuck boot.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://www.fonedog.com/broken-android-data-extraction/",
+    "checkedOn": "2026-10-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "Under the hood this category is mostly adb, fastboot, Samsung download mode and a per-model recovery image, all of which are public and scriptable. For one phone that you own, an agent can absolutely write you a wrapper that puts the device into download mode, flashes a matching recovery, pulls partitions and parses the SQLite databases for SMS and contacts. What it cannot write for you is the catalogue of model-specific payloads that makes a commercial tool work on a phone it has never seen. The bigger wall is not software at all: modern Android uses file-based encryption tied to your screen lock, so if the screen is dead and you cannot enter the PIN, no tool, paid or homemade, is getting your messages out. Build it if your device is older, Samsung, or already unlocked; otherwise you are paying for a nicer UI over the same long odds.",
+  "coreLoopDIY": "A Python CLI that drives adb and heimdall to boot a recovery image on one specific device, dumps userdata and media, then parses the SMS and contacts SQLite files into CSV.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A computer with Android platform-tools (adb, fastboot) and heimdall or equivalent installed",
+    "A phone that still enters download mode or fastboot, and a working USB cable",
+    "A recovery image that actually matches your exact model and firmware",
+    "Userdata that is either unencrypted or whose PIN you can still enter",
+    "Tolerance for bricking a phone that is already broken"
+  ],
+  "whatYouLose": [
+    "Model coverage: a commercial tool ships payloads for hundreds of devices, yours will work on exactly one",
+    "A GUI that a panicking non-technical person can use at 2am",
+    "Any pretense of safety rails; your script can and will brick things",
+    "Preview-before-recovery and selective export, which you would have to build yourself",
+    "Someone to email when it does not work, for whatever that is worth"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is the per-model recovery payload library plus the SEO real estate on every panicked 'broken phone data' search, not the extraction logic.",
+  "whyPeopleStillPay": "People pay because their phone is dead right now and they are not in a mental state to learn Odin. The product sells a one-click path and a vague promise, and it only has to feel more plausible than nothing. Whether it actually recovers anything depends almost entirely on the device model and encryption state, which is also true of the DIY route, but the paid route does not require you to understand why.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Half the value of these tools is the landing page ranking for a search made in panic.",
+  "prompt": "Build a single-device Android data extraction CLI in Python 3.11, called salvage, in this folder.\nStack: Python + Typer for the CLI, rich for output, stdlib sqlite3 for parsing. No GUI, no web server, no telemetry, no accounts.\nIt shells out to adb, fastboot and heimdall, which it assumes are already on PATH. Check for them on startup and exit with a clear message if missing.\nCommands to implement:\n  salvage doctor: report which tools are present, list attached devices from adb devices and fastboot devices, and print the detected state (normal, recovery, sideload, download mode, fastboot, none).\n  salvage pull-media: if adb sees an authorized device, adb pull /sdcard/DCIM, /sdcard/Pictures, /sdcard/Download, /sdcard/WhatsApp into ./out/media with resume-safe behaviour and a progress line per directory.\n  salvage boot-recovery --image PATH: with a device in download mode, call heimdall flash with the RECOVERY partition using the given image; refuse to run unless the user passes --i-know-this-can-brick-my-phone.\n  salvage dump-partitions --list FILE: with adb root available in recovery, read partition names from the file and dd each one to ./out/partitions/NAME.img, streaming over adb exec-out, verifying byte counts.\n  salvage parse --db PATH: open mmssms.db or contacts2.db, detect which it is by table names, and export SMS to ./out/sms.csv and contacts to ./out/contacts.csv with sane column names and ISO timestamps.\n  salvage report: write ./out/report.md summarising what was recovered, sizes and anything that failed.\nIn scope: the orchestration, retries, logging to ./out/salvage.log, and clear refusal when preconditions are unmet.\nOut of scope: shipping or downloading any firmware or recovery images, bypassing lock screens, defeating file-based encryption. If userdata looks encrypted (no readable SQLite headers), say so plainly and stop.\nNo secrets are needed, but still create .env.example and read optional ADB_PATH, FASTBOOT_PATH and HEIMDALL_PATH from the environment.\nWrite a README that states bluntly: this works on devices that still enter download mode or fastboot, with a recovery image matching the exact model, and with userdata that is either unencrypted or unlocked, and that it will do nothing useful otherwise.\nAdd pytest tests for the SQLite parsers using small fixture databases you generate in the test setup. Mock all subprocess calls; no test may touch a real device.",
+  "promptCurated": false
+}
