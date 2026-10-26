@@ -1,0 +1,52 @@
+{
+  "slug": "yuka",
+  "name": "Yuka",
+  "domain": "yuka.io",
+  "category": "wellness",
+  "subcategory": "food and cosmetics scanning",
+  "tagline": "Scan a barcode on food or cosmetics and get a 0 to 100 health score with a plain-language breakdown.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Yuka Premium",
+    "basis": "annual subscription",
+    "unit": "flat",
+    "source": "https://yuka.io/en/",
+    "checkedOn": "2026-09-07",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The app itself is trivial: a camera, a barcode decoder, a lookup, a colored score. What you cannot one-shot is the reason it works in a supermarket aisle, which is millions of products with parsed ingredient lists, additive risk classifications, and cosmetics data that Yuka's team assembled and keeps current with help from users who photograph missing labels. Open Food Facts gets you a real food scanner for free and Yuka's scoring weights are roughly public, so a personal food version is genuinely usable in Europe. The cosmetics half has no open equivalent at all, and coverage is the entire product: a scanner that shrugs at one item in three stops being used by week two. Build it for fun, keep the app for shopping.",
+  "coreLoopDIY": "Scans a barcode with the phone camera, looks it up in Open Food Facts, and shows a computed 0 to 100 score from nutrition, additives, and organic status with per-ingredient flags.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A phone with a decent camera",
+    "HTTPS or localhost so the browser will grant camera access",
+    "Internet access for the Open Food Facts API",
+    "Tolerance for products that simply are not in the database"
+  ],
+  "whatYouLose": [
+    "Cosmetics scanning entirely, there is no open ingredient risk database to point at",
+    "Coverage: Yuka resolves most barcodes you throw at it, an open dataset will not",
+    "Curated additive and ingredient risk ratings maintained by people who read the toxicology literature",
+    "A native app with offline caching that opens in half a second at the shelf",
+    "Recommended healthier alternatives for the thing you just scanned"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "brand-trust"
+  ],
+  "moatNotes": "Users photographing missing products is the flywheel: every scan miss gets fixed by the next shopper, which is why coverage compounds and a personal clone's coverage does not.",
+  "whyPeopleStillPay": "You use this standing in a shop with a cart in one hand, which means it has to answer instantly and it has to answer at all. Yuka earns money because it almost always has the product, because the score comes with a reason you can read in four seconds, and because millions of people have decided to trust that particular number. Premium adds offline scanning, search without a barcode, and dietary filters, which are the features you want once the habit sticks. None of that is a coding problem.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "The scanner is a weekend, the answer is not. The moat is a product database plus additive risk research that gets denser every time a user photographs a label Yuka was missing.",
+  "prompt": "Build a local-first PWA called \"ShelfCheck\" that scans product barcodes and shows a health score. No accounts, no backend, no telemetry.\n\nStack, no substitutions:\n- Vite + React + TypeScript\n- Tailwind for styling\n- @zxing/browser for barcode decoding from a live video stream\n- Dexie (IndexedDB) for scan history and a response cache\n- vite-plugin-pwa for installability and offline shell\n\nData source: the public Open Food Facts API (https://world.openfoodfacts.org/api/v2/product/{barcode}.json). Send a descriptive User-Agent. Cache every successful response in IndexedDB forever so repeat scans are instant and offline.\n\nCore loop:\n1. Full-screen camera view with a scan reticle, continuous EAN-13 and EAN-8 decoding.\n2. On decode, vibrate, stop the stream, fetch the product.\n3. Show a result card: product name, brand, image, a 0 to 100 score, and a colored band (excellent / good / poor / bad).\n4. List the reasons: nutrition contributions, each detected additive with its E-number and a risk label, and an organic bonus.\n5. \"Scan again\" button and a history list with search.\n\nScoring, implement exactly this and put it in one pure, unit-tested module scoring.ts:\n- 60% nutritional quality derived from the Nutri-Score grade or, if absent, from per-100g sugar, salt, saturated fat, energy, fiber, and protein.\n- 30% additives: start at full marks, subtract per additive using a hand-written table in additives.ts of roughly 100 common E-numbers mapped to none / limited / moderate / high risk. Hardcode the table, cite nothing you cannot source, and mark unknown additives as unrated rather than guessing.\n- 10% organic bonus from the labels field.\n\nExplicitly out of scope: cosmetics, recommended alternatives, user accounts, sync, any scraping of a commercial app's private API.\n\nHandle the miss case properly: if the barcode is unknown, say so plainly, show the raw barcode, and offer a link to add it on Open Food Facts. This will happen a lot.\n\nPut any config in .env (only a User-Agent string and an optional API base). Ship a README with the honest coverage caveat and how to run it over HTTPS on a phone on the local network.",
+  "promptCurated": false
+}
