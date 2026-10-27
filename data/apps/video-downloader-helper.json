@@ -1,0 +1,51 @@
+{
+  "slug": "video-downloader-helper",
+  "name": "Video DownloadHelper",
+  "domain": "downloadhelper.net",
+  "category": "audio-video",
+  "subcategory": "media downloading",
+  "tagline": "Browser extension that detects video and audio streams on a page and downloads them, with optional paid license for bulk and converted output.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Premium license",
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://downloadhelper.net/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The entire category sits on top of yt-dlp and ffmpeg, both free, both local, both maintained by people who care more about site coverage than any commercial extension ever will. An agent can wrap them in a local queue with a format picker, a progress list and a downloads folder in one sitting, and the result handles more sites than the extension does. What you are actually paying for in the paid version is packaging: a browser button that notices a stream while you are already looking at the page, plus conversion without touching a terminal. That convenience is real but it is a UI problem, not a moat. Be aware you are not building the hard part, you are shipping a front end for software other people maintain.",
+  "coreLoopDIY": "Paste a URL into a local web page, pick a format, and a background worker runs yt-dlp plus ffmpeg and drops the file in a watched folder.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11 locally",
+    "yt-dlp and ffmpeg installed and on PATH",
+    "A machine that stays awake long enough to finish the queue",
+    "Willingness to paste URLs instead of clicking a toolbar icon"
+  ],
+  "whatYouLose": [
+    "The in-page detection: no toolbar badge lighting up when a stream appears on a random site",
+    "One-click capture of HLS and DASH streams found by sniffing browser traffic rather than by site support",
+    "Cookie and login state from your browser session, unless you wire up a cookie export",
+    "A GUI someone else keeps alive across browser API changes",
+    "Any support channel other than reading yt-dlp issues yourself"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The browser extension surface is the whole product. The downloading engine underneath is commodity open source and always has been.",
+  "whyPeopleStillPay": "Because the moment you want a video is the moment you are already in the browser looking at it, and a toolbar icon is zero friction while opening a local app and copying a URL is a small amount of friction repeated forever. The paid license also covers conversion and bulk grabs without any terminal contact, which matters to the large group of people who will never install ffmpeg on purpose. None of that is defensible technology, it is just being in the right place in the workflow.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Your DIY version will outperform the product on site coverage and underperform it on the two seconds it takes to notice a video exists.",
+  "prompt": "Build a local-only video download manager called Grabbag. No accounts, no cloud, no telemetry.\n\nStack, non negotiable: Python 3.11, FastAPI, SQLite via plain sqlite3, server-rendered Jinja2 templates, vanilla JS for polling. No React, no Tailwind build step, no Docker.\n\nIt shells out to yt-dlp and ffmpeg, both assumed installed and on PATH. Check for both at startup and print a clear error if missing.\n\nFeatures that are in scope:\n- A single page at / with a textarea where the user pastes one or more URLs, one per line, and a submit button.\n- Format choice as radio buttons: best video+audio merged mp4, audio only m4a, audio only mp3, or 720p cap. Map each to concrete yt-dlp format selectors and pass -x with the right audio codec where relevant.\n- A jobs table in SQLite: id, url, format_choice, title, status (queued, running, done, failed), percent, error_text, output_path, created_at.\n- A background worker thread with a simple queue, max 2 concurrent downloads. Parse yt-dlp stdout progress lines to update percent in the DB.\n- The page polls /api/jobs every 2 seconds and re-renders the job list: title, status, percent bar, error text if failed, and a link to open the file's folder path as text.\n- Retry button on failed jobs, delete button on any job (deletes the DB row only, never the file).\n- Downloads go to a folder set by DOWNLOAD_DIR in .env, defaulting to ./downloads. Use yt-dlp output template with title and id so filenames do not collide.\n- Optional COOKIES_FILE in .env, passed to yt-dlp as --cookies when set, so logged-in sites work.\n\nOut of scope, do not build: browser extension, in-page stream sniffing, DRM handling, user auth, multi-user support, remote hosting, any analytics.\n\nWrite a .env.example with DOWNLOAD_DIR and COOKIES_FILE, a requirements.txt, and a README with exactly the commands to install and run it on one machine. Make `python -m uvicorn app:app` work from a clean checkout after pip install.",
+  "promptCurated": false
+}
