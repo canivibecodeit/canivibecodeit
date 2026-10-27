@@ -1,0 +1,52 @@
+{
+  "slug": "sms-factor",
+  "name": "SMSFactor",
+  "domain": "smsfactor.com",
+  "category": "seo-marketing",
+  "subcategory": "bulk SMS / SMS API",
+  "tagline": "Bulk SMS campaigns and a send API for marketing and transactional messages.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "per SMS credit, volume tiered",
+    "unit": "usage",
+    "source": "https://smsfactor.com/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The dashboard part of this is genuinely trivial: contact lists, a message composer, merge fields, a send queue, delivery stats. The part that matters is the thing that actually puts a message on a carrier network, and you cannot write that. Every self-hosted version ends with an API key from an aggregator, which means you have rebuilt the console and kept paying for the route. On top of that sit sender ID registration per country, opt-out handling, consent records and the local rules that decide whether your campaign gets delivered or silently dropped. Build the console if you like owning your contact data, but do not pretend you replaced the product.",
+  "coreLoopDIY": "A local campaign console that imports contacts, merges templates, queues sends through a gateway API you still pay per message, and logs delivery receipts.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An account and API credentials with an SMS gateway or aggregator",
+    "A registered sender ID or purchased number for each country you send to",
+    "Documented opt-in consent for every number you import",
+    "Somewhere always-on to run the queue and receive delivery webhooks"
+  ],
+  "whatYouLose": [
+    "Carrier routes and the deliverability work behind them, which is the actual product",
+    "Sender ID and short code registration handled for you per country",
+    "Built-in opt-out, consent and local compliance plumbing",
+    "Credit pricing negotiated at volume, instead of retail per-message rates",
+    "Someone to call when a route starts blackholing your messages at 2am"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "compliance-regulatory",
+    "integrations"
+  ],
+  "moatNotes": "The moat is a contract with carriers, not code. Aggregators resell access; you cannot self-host access.",
+  "whyPeopleStillPay": "Because sending an SMS is not a software problem, it is a telecom problem. A gateway has interconnect agreements, registered sender IDs, routes that fall back when one operator degrades, and a compliance team that keeps those routes alive. You can write a nicer composer than any of them in an afternoon, and it will still be sitting on top of someone else's route, at whatever per-message price you can get. For anyone sending real volume, the platform fee is noise next to the credit cost, so the console you built saves almost nothing.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The console is an afternoon; the route to a handset is not. The moat is carrier interconnects plus per-country sender registration, and no amount of local code gets you either.",
+  "prompt": "Build a self-hosted SMS campaign console. Single Node 20 + TypeScript app, Fastify for the server, better-sqlite3 for storage, server-rendered HTML with a tiny bit of htmx. No React, no cloud services, no telemetry, no user accounts: this runs on localhost or one small box for one operator.\n\nIn scope:\n- SQLite schema: contacts (phone in E.164, first_name, custom_json, consent_source, consent_at, opted_out_at), lists, list_members, campaigns, messages (campaign_id, contact_id, body, status, provider_id, cost, error), webhook_events.\n- CSV import with a column mapper, E.164 normalization via libphonenumber-js, duplicate detection, and a hard reject for rows with no consent fields filled in.\n- Campaign composer: plain text body with {{first_name}} style merge fields, live GSM-7 vs UCS-2 detection, segment count and estimated cost before send.\n- Send queue: a worker that drains messages at a configurable per-second rate, retries transient failures with backoff, and records provider message IDs.\n- Provider adapter interface with ONE concrete implementation using Twilio's REST API, credentials from .env (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM). Keep the interface small enough that another gateway can be dropped in.\n- Inbound webhook endpoint for delivery receipts and replies; treat replies matching STOP, STOPP, UNSUBSCRIBE, ARRET as instant opt-outs and append the opt-out footer to every outbound message automatically.\n- Campaign report page: sent, delivered, failed, opted out, total cost, plus a CSV export.\n- Dry-run mode that writes messages to the DB and logs them instead of calling the provider. Default it to on.\n\nOut of scope: billing, multi-tenant auth, A/B testing, link shortening, drip automations, any attempt to talk to carriers directly.\n\nShip a README that says plainly: this app does not send SMS, your gateway does, and sender ID registration and consent compliance remain your problem. Include a seed script with 20 fake contacts and a Vitest suite covering normalization, segment counting and opt-out handling.",
+  "promptCurated": false
+}
