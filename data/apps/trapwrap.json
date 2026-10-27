@@ -1,0 +1,53 @@
+{
+  "slug": "trapwrap",
+  "name": "TrapWrap",
+  "domain": "rapaivideomaker.app",
+  "category": "ai-video",
+  "subcategory": "AI rap and music video generation",
+  "tagline": "Turns a prompt into an AI rap track with a matching captioned video.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://rapaivideomaker.app/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pipeline is not mysterious: write lyrics with an LLM, render a vocal, lay it over a beat, force-align the words, burn animated captions onto a looping visual, export vertical. An agent can assemble that end to end with ffmpeg and a few API calls in a weekend, and the output will be recognizably the same shape of thing. What you cannot build is the part that makes rap sound like rap: flow, timing, pocket, and a voice that does not sound like a podcast narrator reading bars. That piece comes from hosted music models you rent either way, so the DIY version is a wrapper around someone else's wrapper. Build it if you want control over the template and the caption style, not if you want the vocals to land.",
+  "coreLoopDIY": "A local script that takes a topic, writes lyrics, generates a vocal over a chosen beat, word-aligns it, and burns karaoke captions onto a vertical video.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "API key for a text model (lyrics)",
+    "API key for a music or voice generation model",
+    "ffmpeg installed locally",
+    "a small library of licensed instrumental beats you actually have rights to",
+    "local whisper or a hosted transcription endpoint for word-level timing"
+  ],
+  "whatYouLose": [
+    "Vocal quality: rented models still rarely nail flow and pocket, and yours will not be tuned for it",
+    "Preset visual templates and transitions that already look like a music video instead of a slideshow",
+    "Beat library with clear licensing, which is a legal problem and not a code problem",
+    "Phone-friendly capture, preview, and one-tap export to TikTok or Reels",
+    "Someone else absorbing model cost spikes and API deprecations"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The music generation layer is rented by everyone, including the app, so the real differentiation is template taste and beat licensing.",
+  "whyPeopleStillPay": "Because the difference between a rap video and a text-to-speech slideshow is about forty small aesthetic decisions, and an app that has already made them is worth more than a script you have to babysit. Add the beat licensing question, which a personal build usually answers by ignoring it, and paying a few dollars to get a sharable vertical clip in ninety seconds is a reasonable trade for anyone who wants the output more than the process.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The pipeline is a weekend; the flow is not.",
+  "prompt": "Build a local command line tool called barwrap that turns a topic into a vertical rap video. No accounts, no web app, no telemetry.\n\nStack: Python 3.11, click for the CLI, ffmpeg for all audio and video work (shell out, do not wrap a library), faster-whisper for word level timing. Secrets in .env, loaded with python-dotenv. Dependencies in requirements.txt.\n\nPipeline, in this order:\n1. Lyrics: call an OpenAI chat model with the topic, a target bar count, and a style note. Output 16 bars max, plain text, one bar per line. Save to out/lyrics.txt and print it.\n2. Pause for approval: show the lyrics and ask to continue, regenerate, or edit in $EDITOR.\n3. Vocal: call ElevenLabs text to speech with the approved lyrics and a voice id from .env. Save out/vocal.mp3. Document clearly in the README that this gives spoken bars, not rapped bars, and that swapping in a music generation API is the upgrade path. Keep the vocal step behind a single function so it can be replaced.\n4. Beat: read an instrumental from beats/ chosen by filename flag. Ship no audio in the repo, just a beats/README.md explaining the user must supply files they have rights to.\n5. Mix: ffmpeg amix the vocal over the beat, duck the beat by 6dB under the vocal using sidechaincompress, normalize with loudnorm to -14 LUFS.\n6. Timing: run faster-whisper on the vocal only to get word level timestamps.\n7. Captions: generate an ASS subtitle file with one or two words on screen at a time, large centered bold text, a karaoke style highlight on the active word.\n8. Video: take a still image or looping clip from assets/, scale and crop to 1080x1920, loop to match audio length, add a slow zoom, burn in the ASS subtitles, mux the mixed audio, export out/video.mp4 as h264 + aac.\n\nIn scope: one command, barwrap make --topic \"...\" --beat trap1.mp3 --bg loop.mp4, that runs the whole chain with progress printed per step and intermediate files kept in out/ so steps can be rerun.\n\nOut of scope: a GUI, uploading anywhere, multiple caption themes, voice cloning, beat generation, mobile anything.\n\nWrite a README with setup steps, required .env keys, an honest paragraph on where the output falls short of a real rap video, and a note on beat licensing.",
+  "promptCurated": false
+}
