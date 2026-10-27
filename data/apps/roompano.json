@@ -1,0 +1,50 @@
+{
+  "slug": "roompano",
+  "name": "Roompano",
+  "domain": "roompano.com",
+  "category": "design",
+  "subcategory": "360 panoramas and virtual room tours",
+  "tagline": "Web tool for turning 360 degree room photos into shareable virtual tours.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://roompano.com/en",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The viewing half of this is a solved problem: equirectangular images in a WebGL sphere, hotspots to jump between rooms, done. Photo Sphere Viewer and Marzipano have handled that for a decade and an agent can wire a tour editor on top of them in an afternoon. What you do not get for free is the part that happens before the upload: clean capture, exposure matching, nadir patching, and whatever automated staging or relighting sits behind the paid product. You also inherit the hosting problem, because panoramas are large files and clients open tours on phones over bad hotel wifi. Build it if you have a handful of spaces and a camera; buy it if you are shipping tours to paying clients every week.",
+  "coreLoopDIY": "Drop equirectangular photos into a folder, place hotspots between them in a browser editor, and export a static self-hosted 360 tour anyone can open by link.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A 360 camera or a phone panorama app that outputs equirectangular JPEGs",
+    "Somewhere to host static files, since panoramas get large",
+    "Node 20 and basic comfort editing a JSON scene file"
+  ],
+  "whatYouLose": [
+    "Any AI staging, relighting or furniture removal that the hosted product does on your uploads",
+    "Automatic exposure and white balance matching across shots of the same space",
+    "Tuned image tiling and CDN delivery, so your tours will be slower on mobile",
+    "Client-facing niceties: branded links, view analytics, lead capture, password protection",
+    "Someone else's problem when a panorama renders with a visible seam"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat, such as it is, lives in image processing quality and delivery speed, not in the sphere viewer.",
+  "whyPeopleStillPay": "Because the people who buy this are selling or renting rooms, and the tour is a sales asset, not a hobby project. They want to upload photos from a phone, get back something that looks professional without seams or blown windows, and hand a client a link that loads in two seconds. A self-hosted viewer gets you the link. It does not get you the polish, and polish is the entire pitch when the tour is standing in for a physical visit.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The sphere is free, the pixels are the work.",
+  "prompt": "Build a local-first 360 degree virtual tour builder and viewer. Empty folder, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Vite + React + TypeScript\n- @photo-sphere-viewer/core plus the markers and virtual-tour plugins for rendering\n- No backend. A small Node script handles image prep. Everything else is static.\n\nData model:\n- A tour lives in /tours/{tourId}/ with panos/*.jpg and tour.json\n- tour.json: { id, title, scenes: [{ id, name, file, initialYaw, initialPitch, links: [{ toSceneId, yaw, pitch, label }], info: [{ yaw, pitch, title, text }] }] }\n- Hand-editable. Never hide the JSON behind a database.\n\nBuild these two surfaces:\n1. Editor at /edit?tour=ID. Loads the panos, shows the sphere, and lets me click anywhere in the view to drop either a navigation link to another scene or an info marker with a title and body. Dragging a marker updates its yaw and pitch. A \"set default view\" button saves the current camera angle as initialYaw and initialPitch. All edits write back to tour.json via a tiny dev-only Express endpoint that is excluded from the production build.\n2. Viewer at /t/ID. Read-only. Scene list in a corner, keyboard arrows to move, deep link to a specific scene via ?scene=, works on touch, no editor code shipped.\n\nImage prep script, scripts/prep.ts:\n- Uses sharp to validate each input is roughly 2:1 equirectangular, generate a 1024px wide preview for fast first paint, and emit a resized 6000px max master\n- Warns loudly on aspect ratio mismatch instead of silently stretching\n- Does not attempt stitching. Input is already-stitched equirectangular JPEG.\n\nExplicitly out of scope: AI staging, furniture removal, relighting, exposure matching between scenes, floor plan generation, measurements, analytics, lead capture, auth.\n\nShip with one sample tour of two scenes using placeholder gradient panoramas generated by the prep script so `npm run dev` shows something working immediately. Put any config in .env.example. README: how to add a tour in four steps, and a one-line `npm run build` that outputs a static folder I can drop on any host.",
+  "promptCurated": false
+}
