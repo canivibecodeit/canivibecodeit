@@ -1,0 +1,52 @@
+{
+  "slug": "outstanding-tiny-desk",
+  "name": "Outstanding Tiny Desk",
+  "domain": "tiny-desk-ai.video",
+  "category": "ai-video",
+  "subcategory": "photo-to-performance video",
+  "tagline": "Upload a photo of yourself, optionally add bandmates, and get an AI-generated desk-concert style performance video.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://tiny-desk-ai.video/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is thin: a photo upload, a band-size toggle, a prompt template, and a job queue that waits on a video model. An agent can rebuild that shell in one sitting, and with a hosted image-to-video API you will get a person-in-a-room clip out the other end. What you will not get is their specific look: the camera framing, the crowded-office staging, the instrument placement, and whatever identity-preservation and audio pipeline keeps a face recognizable for the whole clip. That part is prompt craft and model choice they have already paid to discover, and you will burn real credits rediscovering it. Buildable, yes, but expect your first twenty renders to look like a stranger miming at a desk.",
+  "coreLoopDIY": "A local web app that takes a face photo plus an optional second and third photo, fires a templated image-to-video job at a hosted generation API, and shows the finished clip when the job returns.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted image-to-video model (fal, Replicate, or similar) and a funded balance",
+    "Local disk or an S3-compatible bucket for uploads and finished renders",
+    "Patience for 60 to 300 second render waits per attempt",
+    "Optional: an audio generation or stock music source if you want sound under the video"
+  ],
+  "whatYouLose": [
+    "Their tuned prompt and model selection, which is most of the actual product",
+    "Identity consistency across the clip without manual trial and error",
+    "Multi-person composition, which is substantially harder than one subject",
+    "Queue handling, retries, and refunds when a render comes back as melted faces",
+    "Anything resembling a usable mobile experience"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The model is not theirs, so the moat is really prompt and pipeline tuning on top of someone else's weights. The borrowed format name is also a liability, not an asset.",
+  "whyPeopleStillPay": "Because the gap between \"I called a video API\" and \"this looks like the thing I wanted\" is measured in credits, not code. A per-render product lets you spend ten dollars to find out whether the novelty is funny instead of spending a weekend plus ten dollars. For a gift video you make once, paying is clearly the rational move; the DIY build only pays off if you want to generate a hundred of them or swap in a different aesthetic entirely.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Thin wrapper over a hosted video model, which is fine, but price it like credits and not like software.",
+  "prompt": "Build a local single-user web app called DeskSet that turns photos into short AI performance videos.\n\nStack, non negotiable: Next.js with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3. No auth, no accounts, no analytics, no telemetry. Runs with npm run dev on localhost.\n\nCore flow:\n1. A single page with a drop zone for a required lead photo and two optional additional photos labelled bandmates.\n2. A short form: performance style preset (acoustic trio, solo piano, full band), a free text detail field, and a duration selector limited to what the chosen model supports.\n3. On submit, store the images on local disk under ./storage/uploads, insert a job row in SQLite with status queued, and return a job id.\n4. A server-side worker route polls and submits the job to a hosted image-to-video API. Use fal.ai as the provider; read FAL_KEY from .env.local and read the model slug from an env var so it can be swapped without a code change.\n5. Compose the prompt from the preset plus the detail field using a template stored in a single prompts.ts file, so prompt tuning is one file edit.\n6. Poll the provider, update job status, download the finished mp4 into ./storage/renders, and record cost and elapsed time on the job row.\n7. A /jobs page lists every run with a thumbnail, the exact prompt used, status, cost, and an inline video player. Failed jobs show the provider error verbatim.\n\nExplicitly in scope: local file storage, SQLite job log, prompt templating, cost tracking, retry button on failed jobs.\nExplicitly out of scope: payments, user accounts, email, cloud deploy, mobile app, multi-tenant anything, background music generation.\n\nSecrets live only in .env.local and ship an .env.example. Never commit keys. Write a README that states plainly that every render costs real money, that multi-person renders fail more often than single-subject ones, and that the quality ceiling is set by the model and the prompt template, not by this code.",
+  "promptCurated": false
+}
