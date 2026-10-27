@@ -1,0 +1,54 @@
+{
+  "slug": "ida-pro",
+  "name": "IDA Pro",
+  "domain": "hex-rays.com",
+  "category": "security",
+  "subcategory": "disassembler and reverse engineering",
+  "tagline": "Interactive disassembler and decompiler for reverse engineering binaries across dozens of processor architectures.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://hex-rays.com/ida-pro",
+    "checkedOn": "2026-08-26",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. IDA is sold as named-user licenses and subscriptions, with decompilers priced separately, so a single monthly number is misleading.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "An agent can absolutely wire Capstone to a web UI and get you a browsable disassembly with function lists, cross references and a control flow graph. That is maybe two percent of IDA. The actual product is thirty years of processor modules, loaders, type libraries, signature databases and a decompiler that turns machine code into readable C for multiple architectures, which is a research program rather than a weekend. Add IDAPython, the plugin ecosystem and the fact that half the published RE writeups assume you are looking at the same pseudocode, and personal replacement stops being a build question. Build the browser if you want to learn how binaries work, not to replace the tool.",
+  "coreLoopDIY": "Loads an ELF or PE, lists sections, symbols, imports and strings, disassembles with Capstone, guesses function boundaries, and lets you rename and comment addresses in a local browser UI with a per-function basic block graph.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "Python 3.12 locally",
+    "Capstone and LIEF (pip installable)",
+    "Graphviz binary for CFG rendering",
+    "Willingness to accept x86, x86-64, ARM and ARM64 only",
+    "No decompiler, ever"
+  ],
+  "whatYouLose": [
+    "The Hex-Rays decompiler, which is the reason most people pay and is not something you reimplement",
+    "Processor modules for the long tail: PowerPC, MIPS, SuperH, 6502, PIC, DSPs, weird embedded targets",
+    "Loaders and type libraries that already understand thousands of file formats, calling conventions and API signatures",
+    "FLIRT signatures and library function identification, so every statically linked binary looks like an undifferentiated blob",
+    "IDAPython plus fifteen years of public plugins, scripts and loaders that assume the IDA API exists",
+    "A debugger, and the local/remote debugging workflow that goes with it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "switching-costs",
+    "integrations"
+  ],
+  "moatNotes": "The decompiler is the product; the IDB format, IDAPython and the plugin ecosystem are the fence around it. Ghidra exists and is free, which tells you the moat is quality and habit, not price.",
+  "whyPeopleStillPay": "People pay because the decompiler saves days per binary and because their entire workflow, scripts, muscle memory and shared writeups live in IDA's idiom. Free alternatives are real and good, but a firm doing malware analysis or vulnerability research bills more in an afternoon than the license costs, so the calculation is not close. A hand-rolled disassembler viewer is a teaching project: useful for understanding relocations and calling conventions, useless the first time you meet a stripped statically linked ARM binary with obfuscated control flow.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A disassembly browser is a multi-day build; a decompiler is a decade. The moat is the Hex-Rays decompiler plus the processor modules, loaders and signature databases behind it, and an entire industry's scripts written against the IDA API.",
+  "prompt": "Build a local, single-user static binary explorer. Learning tool, not an IDA replacement. Be explicit about that in the README.\n\nStack, no substitutions:\n- Python 3.12, FastAPI, uvicorn.\n- LIEF for binary parsing (ELF, PE, Mach-O headers, sections, symbols, imports, exports, relocations).\n- Capstone for disassembly. Support x86, x86-64, ARM, ARM64 only.\n- SQLite via sqlite3 for the project database, one .db file per analyzed binary.\n- Graphviz (dot) shelled out for control flow graphs, rendered to SVG.\n- Frontend: server-rendered Jinja2 templates plus vanilla JS. No React, no build step, no CSS framework beyond a single hand-written stylesheet.\n\nIn scope:\n- CLI: `python -m binexp load path/to/binary` creates the project db and runs initial analysis.\n- Analysis pass: entry points from headers, function starts from symbol table plus call targets plus a per-arch prologue scan, linear sweep disassembly per executable section, basic block splitting on branches, call and data cross references stored in tables.\n- Web UI on 127.0.0.1:8000: file overview (headers, sections, imports, exports), function list with sortable size and xref counts, disassembly view with resolved branch targets as links, hex view, string list with source addresses, byte and text search.\n- Per-function CFG page: basic blocks as dot nodes with the instructions inside, taken/not-taken edges labeled.\n- User markup: rename functions and addresses, add comments, mark bytes as data. Persist to SQLite. Export and import markup as JSON.\n- Tests: pytest covering function detection and xref building against two small fixture binaries you compile in the repo with a Makefile.\n\nExplicitly out of scope, do not attempt, note in the README:\n- Any decompiler or pseudocode output.\n- Debugging, emulation, dynamic analysis.\n- Type systems, struct recovery, library signature matching.\n- Architectures beyond the four listed. Plugin API. Multi-user or collaboration features.\n- Accounts, cloud, telemetry, analytics. Nothing leaves the machine.\n\nNo secrets needed. If you add any config, use .env and ship .env.example. README must state the honest limitation: stripped, packed or obfuscated binaries will defeat this, and reading assembly without a decompiler is slow.",
+  "promptCurated": false
+}
