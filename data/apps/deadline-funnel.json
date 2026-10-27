@@ -1,0 +1,53 @@
+{
+  "slug": "deadline-funnel",
+  "name": "Deadline Funnel",
+  "domain": "deadlinefunnel.com",
+  "category": "seo-marketing",
+  "subcategory": "evergreen countdown timers",
+  "tagline": "Per-subscriber countdown timers and deadline-gated offers for evergreen email funnels.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://app.deadlinefunnel.com/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core mechanic is small: store a deadline per email address, render a countdown image or embed that reads that deadline, and redirect the sales page once the clock hits zero. An agent can build that in a weekend, including the animated GIF timer trick that email clients need, since most clients will not run JavaScript. The gaps are everywhere else: webhooks from a dozen email platforms, tag-based triggers, timezone handling, cache-busting so Gmail's image proxy does not freeze your timer, and the fact that your own clock is now a single point of failure for revenue. There is no network effect and no data moat, only a lot of integration plumbing and the quiet confidence that the redirect fires correctly at 3am. Build it if you run one funnel. Buy it if the funnel pays your rent.",
+  "coreLoopDIY": "A small service that assigns each email address a deadline on signup, serves a per-subscriber countdown GIF and a page embed that read it, and redirects the offer page to an expired version once the deadline passes.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "a server with a real domain and HTTPS",
+    "a webhook or API hook from your email platform to start deadlines",
+    "image generation for animated GIF countdowns (email clients will not run JS)",
+    "a Postgres or SQLite database for email-to-deadline mapping",
+    "careful cache headers so Gmail's image proxy does not serve a stale frame"
+  ],
+  "whatYouLose": [
+    "Prebuilt integrations with ConvertKit, ActiveCampaign, Mailchimp, Klaviyo, Drip and friends",
+    "Tracking the same subscriber across email, browser and device without them clicking a magic link",
+    "Battle-tested cache-busting against Gmail and Outlook image proxies",
+    "Visual timer editor and dozens of ready-made designs",
+    "Someone else's uptime guarantee on the thing that gates your checkout"
+  ],
+  "moatTags": [
+    "integrations",
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "The hard part is not the countdown, it is matching one human across an email open, a landing page visit and a checkout, then being right about it every single time.",
+  "whyPeopleStillPay": "Because a broken timer is worse than no timer. If your DIY service hiccups, subscribers either see a dead image in the email or hit a sales page that should have expired three days ago, and you find out from a refund request. Deadline Funnel has the integrations already written, the email client quirks already discovered, and support staff who have seen your exact failure mode before. For a funnel doing real money, that is cheap insurance against your own weekend code.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Buildable, but you are now the uptime guarantee on your own checkout page.",
+  "prompt": "Build a self-hosted evergreen deadline service called \"clockwork\".\n\nStack: Node 20, TypeScript, Fastify, SQLite via better-sqlite3, Drizzle ORM. Use sharp plus gifencoder for animated GIF generation. No React, no SPA, server-rendered HTML with plain templates. Everything in one repo, run with npm run dev.\n\nWhat it does:\n1. POST /api/deadlines with a shared secret header, body { email, campaign, hours }. Creates or returns an existing deadline for that email and campaign. Idempotent: never reset an existing deadline unless ?force=true. Store email lowercased and hashed with a salt from .env, plus a short opaque token used in URLs.\n2. GET /t/:token.gif renders an animated GIF countdown for that subscriber showing days, hours, minutes, seconds, around 60 frames at 1fps. When expired, render a static \"Offer expired\" frame. Send Cache-Control: no-store, Pragma: no-cache, and an Expires date in the past. Accept query params for width, bg color, text color, font size.\n3. GET /t/:token.js returns a small script that injects a live ticking countdown into any element with data-clockwork, for landing pages.\n4. GET /go/:token redirects to the campaign's active URL if the deadline is in the future, or the expired URL if not. 302, never cached.\n5. GET /api/status/:token returns JSON with remaining seconds, for custom use.\n\nAdmin: a single password-protected page at /admin (password from .env) to create campaigns (name, duration hours, active URL, expired URL, timer style) and list recent deadlines with their remaining time.\n\nRules:\n- Store all deadlines as UTC epoch ms. Never do timezone math beyond display.\n- A cron-free design: expiry is computed on read, nothing to schedule.\n- Secrets in .env: CLOCKWORK_SECRET, ADMIN_PASSWORD, EMAIL_SALT, BASE_URL.\n- No telemetry, no external calls, no accounts beyond the admin password.\n\nOut of scope: email platform integrations beyond the generic webhook endpoint, A/B testing, analytics dashboards, multi-tenant support.\n\nInclude: Dockerfile, a seed script creating one demo campaign, and a README with a curl example for the webhook and the exact HTML snippet for embedding the GIF in an email.",
+  "promptCurated": false
+}
