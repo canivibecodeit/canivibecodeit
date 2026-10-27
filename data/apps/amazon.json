@@ -1,0 +1,52 @@
+{
+  "slug": "amazon",
+  "name": "Amazon",
+  "domain": "amazon.com",
+  "category": "commerce",
+  "subcategory": "retail marketplace",
+  "tagline": "Global retail marketplace with same-week delivery on roughly everything.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://amazon.com/",
+    "checkedOn": "2026-09-11",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "high",
+  "verdictSummary": "You can absolutely one-shot an Amazon-shaped website: product grid, search, cart, checkout, order history. None of that is the product. Amazon is hundreds of fulfillment centers, millions of third-party sellers, a payments and returns machine, and a delivery network that puts a spatula on your doorstep tomorrow. The software is the thin skin over the logistics. The closest honest personal build is a shopping list or price-watch tool that sits on top of Amazon rather than replacing it.",
+  "coreLoopDIY": "A local price and wishlist tracker that watches product pages you paste in and tells you when something drops below your target.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node runtime on a machine that stays on, or a cheap VPS",
+    "SQLite for stored items and price history",
+    "Product URLs you actually care about",
+    "Tolerance for scraping breakage and rate limits"
+  ],
+  "whatYouLose": [
+    "Actual inventory, warehouses and next-day delivery",
+    "Millions of third-party sellers and their long-tail catalog",
+    "Reviews, ratings and Q&A written by other buyers",
+    "Payments, fraud protection and no-argument returns",
+    "Anything resembling reliability, since page scraping breaks constantly"
+  ],
+  "moatTags": [
+    "marketplace-liquidity",
+    "scale-infra",
+    "brand-trust"
+  ],
+  "moatNotes": "Two-sided liquidity plus physical logistics. Neither is a software problem you solve alone.",
+  "whyPeopleStillPay": "People pay Amazon because something arrives. The website is a catalog and a checkout button, both of which a coding agent can produce before lunch, but the value is the warehouse thirty miles away, the driver, the seller who stocked it, the refund that goes through without a phone call. No amount of clean code creates supply. The most a personal build can do is make you a smarter buyer inside the system: track prices, avoid fake discounts, keep a wishlist that is not designed to nudge you into buying now.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The storefront is a one-sitting build; the parcel on your porch is not. The moat is physical logistics plus marketplace liquidity, neither of which ships in a git repo.",
+  "prompt": "Build a local price and wishlist tracker for online product pages. Single user, runs on my own machine, no accounts, no cloud, no telemetry.\n\nStack, no substitutions:\n- Node 20 with TypeScript\n- Fastify for the HTTP server\n- SQLite via better-sqlite3\n- Server-rendered HTML with a small amount of vanilla JS, no React, no build step beyond tsc\n- node-cron for scheduling checks\n- Playwright (chromium) for fetching product pages, since plain fetch gets blocked\n\nWhat it does:\n1. A form where I paste a product URL, an optional nickname, and a target price.\n2. On save, fetch the page once with Playwright, extract title, current price, currency and image using a per-domain extractor module with a generic fallback that looks at JSON-LD Product schema and og: meta tags.\n3. Store a price_checks row every time a check runs, keyed to the item. Never overwrite history.\n4. A cron job every 6 hours rechecks every active item, with a randomized delay of 5 to 40 seconds between items and a configurable user agent.\n5. Dashboard lists items sorted by biggest drop from their own median price, showing current price, target, all-time low, and a small inline SVG sparkline drawn from price_checks.\n6. Flag an item as 'hit' when current price is at or below target. Show hits in a pinned section at the top.\n7. Optional notification via a NOTIFY_WEBHOOK env var: POST a JSON payload when an item first hits its target. Do not spam, only fire on transition into hit state.\n8. CSV export of all items and price history at /export.\n\nExplicitly out of scope: buying anything, cart, checkout, login to any retailer, affiliate links, multi-user support, mobile app.\n\nSecrets and config in .env: PORT, NOTIFY_WEBHOOK, CHECK_CRON, USER_AGENT. Ship a .env.example.\n\nBe honest in the README: scraping is fragile, per-domain extractors will break when sites change markup, and the generic JSON-LD fallback is the only thing that degrades gracefully. Include a single seeded example item so the dashboard is not empty on first run, and one vitest test for the JSON-LD extractor against a saved HTML fixture.",
+  "promptCurated": false
+}
