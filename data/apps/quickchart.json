@@ -1,0 +1,50 @@
+{
+  "slug": "quickchart",
+  "name": "QuickChart",
+  "domain": "quickchart.io",
+  "category": "dev-tools",
+  "subcategory": "chart image API",
+  "tagline": "Turns a Chart.js config in a URL into a PNG chart image you can embed anywhere.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://quickchart.io/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "QuickChart is a stateless renderer: JSON config in, image out, no accounts, no data, no network. That is the most one-shottable shape a product can have, and the core engine underneath is Chart.js, which you can run yourself in about fifty lines of Node. A personal build covers the case almost everyone actually uses, which is charts in emails, Slack messages, PDFs and README files that cannot run JavaScript. What you do not get for free is the long tail: Graphviz, word clouds, sparklines, table images, QR codes, Apex and Mermaid renderers, and the font and emoji packs that make them not look broken. If you only render bar and line charts, the hosted version is a convenience fee for uptime.",
+  "coreLoopDIY": "A tiny HTTP service that accepts a Chart.js config as a URL param or POST body and returns a rendered PNG or SVG with caching.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Node runtime you can keep online (small VPS, Fly, Render, or a home box behind a tunnel)",
+    "System fonts installed in the container, otherwise text renders as boxes",
+    "A public URL if you want images to load inside emails or Slack unfurls"
+  ],
+  "whatYouLose": [
+    "The non-Chart.js renderers: Graphviz, word clouds, Mermaid, table images, QR codes, sparklines",
+    "A CDN and cache that absorbs traffic when a chart ends up in a newsletter sent to 50,000 people",
+    "Someone else paging themselves at 3am when image rendering breaks and your emails show broken images",
+    "Font, locale and emoji coverage that has been beaten into shape by years of weird bug reports",
+    "Signed URL handling, shortened chart URLs, and the small quality-of-life endpoints you will not bother building"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is uptime and caching, not technology. An image URL that fails is visible to every recipient of whatever it was embedded in, which raises the cost of your own downtime more than the cost of the plan.",
+  "whyPeopleStillPay": "Because the chart is usually embedded in something that already left the building: an invoice, a drip email, a Slack digest, a PDF report sent to a client. If the renderer is down the artifact is visibly broken and you find out from the customer. Paying someone to keep a stateless image endpoint alive and cached is cheap insurance, and the long-tail renderers mean you do not have to go build a Graphviz pipeline the one time you need a graph diagram. The code is easy; being reachable is the product.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "One of the rare paid APIs where the DIY version is genuinely the same thing, minus a pager rotation.",
+  "prompt": "Build a self-hosted chart image rendering service.\n\nStack, no substitutions: Node 20, TypeScript, Express, chartjs-node-canvas (Chart.js 4), and the qrcode package. Docker for deployment.\n\nEndpoints:\n- GET /chart?c=CONFIG&width=500&height=300&format=png&backgroundColor=white&devicePixelRatio=2\n  CONFIG is a URL-encoded Chart.js config object. Accept both strict JSON and relaxed JSON (unquoted keys, single quotes) by parsing with json5.\n- POST /chart with the same options as a JSON body, for configs too big for a URL.\n- GET /qr?text=hello&size=300&format=png for QR codes.\n- GET /healthz returning 200 and the renderer version.\n\nBehavior:\n- Default 500x300, PNG, white background, devicePixelRatio 2.\n- Support format=svg where Chart.js can produce it, otherwise return 400 with a clear message.\n- Respond with correct Content-Type and a long Cache-Control (immutable, 1 year) since output is a pure function of input.\n- In-memory LRU cache keyed by a hash of the full normalized request, 200 MB ceiling, plus an on-disk cache directory under ./cache.\n- Hard limits: max 2000px per dimension, max 100 KB config body, 5 second render timeout. Return 400 or 413 with plain text explanations, never a stack trace.\n- Optional URL signing: if CHART_SIGNING_KEY is set in .env, require a sig query param that is an HMAC-SHA256 of the query string, and reject unsigned requests. If unset, run open.\n- Bundle Roboto and DejaVu Sans into the Docker image and register them with the canvas so text and basic emoji actually render.\n\nExplicitly out of scope: Graphviz, Mermaid, word clouds, table images, Apex charts, user accounts, dashboards, analytics, telemetry, any outbound network call.\n\nDeliver: src/, Dockerfile, docker-compose.yml, .env.example, and a README with five curl examples including a grouped bar chart, a line chart with two datasets, and a QR code. Include vitest tests that assert the PNG magic bytes, cache hit behavior on a repeated request, and a 400 on a malformed config.",
+  "promptCurated": false
+}
