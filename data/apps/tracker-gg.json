@@ -1,0 +1,52 @@
+{
+  "slug": "tracker-gg",
+  "name": "Tracker.gg",
+  "domain": "tracker.gg",
+  "category": "analytics",
+  "subcategory": "game stats and match history",
+  "tagline": "Stat pages, match history and leaderboards for competitive games like Valorant, Apex Legends and Fortnite.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Tracker Network Premium",
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tracker.gg/",
+    "checkedOn": "2026-08-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "A personal stats dashboard for one game and one account is genuinely a weekend project, assuming that game has a usable API. But almost nobody uses Tracker.gg to look at themselves only: the point is pasting a stranger's name in before a match and seeing their rank, K/D and last twenty games. That requires ingesting match data for millions of accounts continuously, across a dozen titles, half of which have no official API and change their unofficial endpoints without warning. You cannot self-host that, and you cannot borrow it, because the value is the backfilled history nobody else has. Build the personal version if you want your own charts, but do not pretend it replaces the lookup box.",
+  "coreLoopDIY": "Pull your own ranked match history from an official game API on a schedule, store it in SQLite, and render a local dashboard of rank, win rate, K/D and per-match trends.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A developer API key for the game you care about, in .env",
+    "An account or puuid you actually own or can legitimately query",
+    "A machine or small VPS to run the poller on a schedule",
+    "Tolerance for rate limits and endpoints that change between patches"
+  ],
+  "whatYouLose": [
+    "Opponent and teammate lookup, which is the actual reason the site gets traffic",
+    "Coverage across many games in one place instead of the one you built for",
+    "Years of backfilled match history for accounts you never tracked",
+    "Leaderboards, percentiles and global averages that need everyone else's data to mean anything",
+    "Overlays, mobile apps and the community stuff built on top of the dataset"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "network-effects",
+    "scale-infra"
+  ],
+  "moatNotes": "The interesting part is not the charts, it is that they already have your enemy's last hundred matches before you asked.",
+  "whyPeopleStillPay": "People pay to remove ads from a service they use in ten second bursts, several times a night, on data they could never assemble themselves. The dataset is the product: continuous ingestion across multiple titles, historical depth going back seasons, and enough coverage that a random name almost always resolves to something. A local dashboard gives you your own numbers with no percentile context and no way to scout anyone else, which is a different product wearing the same charts.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can build your own stat page in a weekend and it will be nicer than theirs. The moat is a continuously ingested match history for everyone else's account, which is exactly the part you wanted.",
+  "prompt": "Build a local personal game stats dashboard for a single Riot Games account. Stack: TypeScript, Node 20, SQLite via better-sqlite3, Next.js App Router for the UI, Recharts for graphs. No auth, no cloud, no telemetry, single user, runs on localhost.\n\nIn scope:\n1. A poller script (npm run sync) that reads RIOT_API_KEY, RIOT_REGION, GAME_NAME and TAG_LINE from .env, resolves the account to a puuid via the account-v1 endpoint, then fetches recent ranked match ids and full match details.\n2. Store raw match JSON in a matches table keyed by match id, plus a normalized participant_stats table with the columns that matter: match id, timestamp, queue, champion or agent, win, kills, deaths, assists, damage, duration, and the account's team side.\n3. Idempotent sync: skip match ids already stored, resume safely if interrupted, and never refetch raw JSON you already have.\n4. Respect rate limits with a simple token bucket and exponential backoff on 429 and 5xx. Log what you throttled.\n5. A dashboard at / showing: current record, win rate over the last 20 and last 100 games, KDA trend line by date, a per-champion table sortable by games played and win rate, and a session view that groups matches played within three hours of each other so you can see the night you went on tilt.\n6. A /matches page with a paginated table and a detail view rendering the stored raw JSON for one match.\n7. Seed script that inserts fake matches so the UI is developable without burning API quota.\n\nOut of scope, do not build: looking up other players, leaderboards, percentile comparisons against a global population, multi-game support, live match overlays, accounts, hosting, Docker.\n\nDeliverables: .env.example, README with exact setup and sync commands, a schema.sql, and one note in the README stating that a personal development key is rate limited and expires, so the dashboard is for one account only.\n\nWrite the code, run the seed script, and confirm the dashboard renders before you finish.",
+  "promptCurated": false
+}
