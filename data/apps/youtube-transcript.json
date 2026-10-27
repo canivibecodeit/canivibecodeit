@@ -1,0 +1,50 @@
+{
+  "slug": "youtube-transcript",
+  "name": "YouTube Transcript",
+  "domain": "chromewebstore.google.com",
+  "category": "audio-video",
+  "subcategory": "transcript extraction",
+  "tagline": "Chrome extension that pulls the transcript off a YouTube video so you can read, copy, or summarize it instead of watching.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://chromewebstore.google.com/detail/youtube-transcript/jgibaoklabopileepldnlkbbcibhbgmd",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "yes",
+  "verdictConfidence": "medium",
+  "verdictSummary": "YouTube already generates the captions, stores them, and serves them over a documented-enough endpoint. The entire product is a button that fetches that file, strips the timing noise, and dumps readable text. A coding agent can produce a local CLI or a tiny extension that does the same thing in well under a session, and yt-dlp already solves the ugly part of extracting caption tracks. The only real friction is that YouTube periodically changes how caption tracks are fetched, so a DIY build needs an occasional dependency bump. That is a maintenance chore, not a moat.",
+  "coreLoopDIY": "Takes a YouTube URL, pulls the existing caption track, and prints or saves clean paragraph text with optional timestamps.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "Python 3.11+ and yt-dlp installed locally",
+    "Network access to YouTube",
+    "Optional: an LLM API key if you want summaries, otherwise none"
+  ],
+  "whatYouLose": [
+    "The one-click button inside the YouTube page itself, unless you also ship the extension shell",
+    "Someone else fixing it the week YouTube changes caption delivery",
+    "Mobile, since a local CLI does not travel to your phone",
+    "Polished extras like click-a-line-to-seek, language switching UI, and formatted export options",
+    "Nothing to blame but yourself when a video has no captions at all"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The only durable advantage is being already installed in the browser at the moment you want the transcript. That is habit and placement, not technology.",
+  "whyPeopleStillPay": "Mostly they do not pay much, if at all: this category lives on free installs with a paid tier bolted on for bulk export or AI summaries. What the extension sells is zero setup and the right button in the right place. People who copy three transcripts a year will never open a terminal to do it, and that is a perfectly rational trade. People who process transcripts in volume are better served by a script they control.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A thin wrapper over a file YouTube hands out for free, which is a fine business and a terrible moat.",
+  "prompt": "Build a local command line tool called `yt-transcript` that extracts readable transcripts from YouTube videos.\n\nStack, no alternatives:\n- Python 3.11+\n- yt-dlp as a library for caption extraction\n- typer for the CLI\n- rich for terminal output\n- No web server, no database, no accounts, no telemetry\n\nBehavior:\n- `yt-transcript URL` fetches the video's caption track and prints clean text to stdout.\n- Prefer manually uploaded captions over auto-generated ones. Fall back to auto-generated.\n- `--lang en` selects the caption language, default en, and list available languages when the requested one is missing.\n- Strip VTT/SRT timing lines, dedupe the overlapping rolling-caption lines that auto captions produce, collapse whitespace, and join fragments into paragraphs of roughly 4 to 6 sentences.\n- `--timestamps` instead emits `[mm:ss] text` lines, one per caption cue group of about 30 seconds.\n- `--out FILE` writes to a file; `.md` output gets a header with the video title, channel, duration, and URL.\n- `--json` emits structured output: title, channel, video_id, language, whether captions were auto-generated, and a list of {start, end, text} cues.\n- Accept multiple URLs or a file of URLs via `--batch FILE`, writing one output file per video into a directory.\n- Cache raw caption fetches in ./.cache keyed by video id and language so reruns are instant.\n\nOut of scope: downloading audio, running Whisper, summarizing, playlists, browser extension packaging, any UI.\n\nErrors: if a video has no captions in any language, exit nonzero with a clear message saying so. If yt-dlp fails, surface its error, do not swallow it.\n\nShip a README with install steps, three example invocations, and a one-line note that yt-dlp needs upgrading whenever YouTube changes caption delivery. Include pytest tests for the VTT parser and the dedupe logic using fixture caption files committed to the repo, no network calls in tests.",
+  "promptCurated": false
+}
