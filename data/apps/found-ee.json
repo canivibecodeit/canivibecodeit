@@ -1,0 +1,53 @@
+{
+  "slug": "found-ee",
+  "name": "found.ee",
+  "domain": "found.ee",
+  "category": "link-in-bio",
+  "subcategory": "smart links for music marketing",
+  "tagline": "Smart links, pre-save pages and bio links for music releases, with click tracking and ad retargeting pixels baked in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://console.found.ee/super/",
+    "checkedOn": "2026-09-15",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible surface of found.ee is a redirect table with a pretty page on top, and an agent will build that in an afternoon: one link, many streaming destinations, a click log, a geo rule or two. Fetching the per-platform URLs is also mostly solved for you by the Odesli/Songlink API, so you do not need to hand-maintain store IDs. The parts that hurt are pre-saves, which need real Spotify and Apple Music OAuth plus stored refresh tokens plus a job that fires on release day and does not silently drop half the queue, and retargeting, which is only useful if your pixels actually land in ad accounts you are already spending money in. If you are one artist pointing fans at one release, the DIY version is genuinely fine. If you are a label running paid acquisition across dozens of releases and want the audience data to accumulate somewhere, you are rebuilding an ad stack, not a link shortener.",
+  "coreLoopDIY": "A self-hosted smart link app where you paste a Spotify or Apple Music URL, get a branded landing page with per-platform buttons, geo-aware redirects and a click log you can export.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A domain you control, ideally a short one, with DNS access",
+    "A host that can run Node and keep a SQLite file (or any small VPS)",
+    "Odesli/Songlink API access for resolving a release across platforms",
+    "Spotify and Apple developer accounts if you want pre-saves at all",
+    "Ad platform pixel IDs if you want retargeting"
+  ],
+  "whatYouLose": [
+    "Pre-save campaigns that actually work: OAuth flows, token refresh, release-day fan-out and the follow-through when a DSP changes its rules",
+    "Retargeting audiences that pool across releases and feed straight into ad accounts",
+    "Managed short domain, SSL and redirect reliability at concert-announcement traffic spikes",
+    "Analytics that marketing people trust without you explaining your own schema to them",
+    "The adjacent ad services and label relationships, which is what a lot of found.ee customers are really buying"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "brand-trust"
+  ],
+  "moatNotes": "The link is a commodity. The pipe from link click to ad audience, and the DSP integrations that keep pre-saves legal and working, are not.",
+  "whyPeopleStillPay": "Because nobody in music marketing is paid to maintain a redirect service. A label or manager wants a link that works during a release week, a pre-save that does not embarrass them, and a pixel that quietly builds an audience they can spend money against later. Paying for that is cheaper than owning the on-call pager for a URL printed on a poster, and the vendor keeps up with DSP API churn so you do not have to.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this if you are one artist with one release; buy it if someone else's ad budget depends on the link.",
+  "prompt": "Build a self-hosted smart link app for music releases. Call it \"smartlinks\".\n\nStack, no substitutions: Next.js (App Router, TypeScript), SQLite via better-sqlite3, Tailwind for styling, deployed as a single Node process. No auth provider, no analytics SaaS, no telemetry.\n\nData model (plain SQL migrations, no ORM):\n- links: id, slug (unique), title, artist, artwork_url, release_date, created_at\n- destinations: id, link_id, platform, url, sort_order\n- clicks: id, link_id, destination_id (nullable), ts, country, referrer, user_agent\n\nFeatures in scope:\n1. Admin UI at /admin, protected by a single ADMIN_PASSWORD from .env via a signed httpOnly cookie. Nothing fancier.\n2. In admin, paste any streaming URL. Call the Odesli/Songlink API (https://api.song.link/v1-alpha.1/links?url=...) to resolve title, artist, artwork and per-platform URLs. Let me edit, reorder and delete destinations before saving.\n3. Public landing page at /[slug]: artwork, title, artist, a vertical stack of platform buttons, blurred artwork background, mobile-first. Must look decent at 375px wide. Server-rendered, no client JS required to render.\n4. Clicking a platform button hits /[slug]/go/[destinationId], records a click row, then 302s to the destination.\n5. Geo routing: read the country from the CF-IPCountry or X-Vercel-IP-Country header, fall back to null. Support optional per-destination country overrides stored as a JSON column.\n6. Optional pixel injection: PIXEL_META_ID and PIXEL_TIKTOK_ID in .env, injected into landing pages only when set, and only via a server-rendered script tag.\n7. Stats page at /admin/links/[id]: total clicks, clicks per platform, clicks per day for the last 30 days (simple SQL GROUP BY, render as a plain HTML bar chart, no chart library), and a CSV export endpoint.\n\nExplicitly out of scope, do not attempt: pre-save OAuth for Spotify or Apple Music, ad account APIs, email capture with a mailing list provider, multi-user accounts, custom domain provisioning.\n\nDeliverables: working app, schema migration file, seed script with one example link, .env.example listing ADMIN_PASSWORD, ODESLI_API_KEY (optional), PIXEL_META_ID, PIXEL_TIKTOK_ID, and a README with the exact commands to run it locally and behind a reverse proxy. Keep the whole thing under roughly 1000 lines.",
+  "promptCurated": false
+}
