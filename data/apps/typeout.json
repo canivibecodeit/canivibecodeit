@@ -1,0 +1,51 @@
+{
+  "slug": "typeout",
+  "name": "TypeOut",
+  "domain": "trytypeout.com",
+  "category": "voice-dictation",
+  "subcategory": "system-wide AI dictation",
+  "tagline": "Hold a hotkey, talk, and get cleaned-up text typed into whatever app you are in.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://trytypeout.com/en/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The transcription itself is a solved commodity: Whisper-class models run locally on a modern laptop, and a hotkey-to-clipboard-to-paste loop is a couple hundred lines. What you are actually paying for is the boring part, a background process that never crashes, cold-start latency under a second, correct behavior across every text field in every app, and an LLM cleanup pass that removes filler words without inventing sentences. An agent gets you a working personal version in a sitting, but the first week of living with it will surface permission dialogs, focus-stealing bugs, and dictation into Slack that drops the first syllable. If you dictate occasionally, build it. If dictation is how you write all day, the polish tax is real.",
+  "coreLoopDIY": "A menu bar daemon that records while a global hotkey is held, transcribes locally with Whisper, optionally cleans the text with an LLM, and pastes it into the focused app.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "macOS with Apple Silicon for usable local Whisper speed",
+    "Accessibility and Microphone permissions granted to the terminal or packaged app",
+    "Optional OpenAI or Anthropic key in .env if you want the cleanup pass",
+    "Roughly 1 to 3 GB of disk for the model weights"
+  ],
+  "whatYouLose": [
+    "Sub-second cold start and a model that stays warm without eating RAM",
+    "Reliable text insertion in apps with odd input handling, Electron and remote desktops especially",
+    "Custom vocabulary, names, and jargon that stick across sessions",
+    "iOS or cross-device use, your build is one machine only",
+    "Someone else fixing it when a macOS update breaks the Accessibility API"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "integrations"
+  ],
+  "moatNotes": "The moat is latency and never-fails insertion, not the speech model. Everyone in this category uses roughly the same weights.",
+  "whyPeopleStillPay": "Dictation is a tool you use mid-thought, which means any friction kills it outright. A build that works 95 percent of the time is worse than useless because you stop trusting it and go back to typing. Paid dictation apps are mostly a bet that someone else will keep the hotkey responsive, the model warm, and the paste reliable across OS updates, and for people who dictate thousands of words a day that bet is cheap.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build this one if only to learn how thin the speech-to-text layer actually is.",
+  "prompt": "Build a local, system-wide push-to-talk dictation tool for macOS. No accounts, no cloud transcription, no telemetry.\n\nStack, use exactly this:\n- Python 3.11 managed with uv, single project in the current folder\n- rumps for the menu bar app\n- sounddevice + numpy to capture 16 kHz mono audio\n- faster-whisper for local transcription, default model \"small.en\", configurable in config.toml\n- pynput for the global hotkey\n- pyobjc to read the frontmost app and to paste via a synthetic Cmd+V\n\nBehavior:\n- Hold Right Option to record. Release to stop. Show a recording state in the menu bar icon.\n- On release, transcribe the buffer locally. Target under 1.5 seconds for a 10 second clip.\n- Optional cleanup pass: if OPENAI_API_KEY is in .env, send the raw transcript to gpt-4o-mini with a strict prompt that only removes filler words and fixes punctuation and casing, and never adds content. If no key, skip it and use the raw transcript.\n- Put the final text on the clipboard, restore the previous clipboard contents after pasting, and send Cmd+V to the frontmost app.\n- Keep the Whisper model loaded in memory between dictations so there is no cold start.\n- Keep a plain text log of the last 50 transcripts in ~/.typeout/history.txt so I can recover a lost dictation.\n\nConfig in config.toml: model size, hotkey, cleanup on/off, custom vocabulary list that gets passed to Whisper as an initial prompt.\n\nOut of scope: iOS, any sync, any GUI beyond the menu bar, speaker diarization, real-time streaming transcription.\n\nWrite a README that spells out the Accessibility and Microphone permission steps, because the app silently does nothing without them. Include a smoke test script that records 3 seconds from the mic and prints the transcript so I can verify the pipeline before wiring up the hotkey.",
+  "promptCurated": false
+}
