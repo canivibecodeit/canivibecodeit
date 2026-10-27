@@ -1,0 +1,50 @@
+{
+  "slug": "tapcook",
+  "name": "TapCook",
+  "domain": "tapcookapp.com",
+  "category": "home",
+  "subcategory": "recipes and meal planning",
+  "tagline": "A recipe keeper and meal planner that turns saved recipes into a shopping list.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://tapcookapp.com/",
+    "checkedOn": "2026-10-02",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The data model here is not hard: recipes with ingredients, steps, servings, tags, plus a week grid and a list that sums ingredients across whatever you dragged into it. An agent will give you that in a sitting, and scaling servings by a multiplier is arithmetic, not AI. The gaps are the parts you actually touch every day: a real phone app with offline access, a hands-free cooking mode that keeps the screen awake, and import from recipe sites, which is a forever war against inconsistent JSON-LD and food blogs that bury a crumble recipe under 1,200 words of memoir. Ingredient normalization is also sneakier than it looks, because \"2 cloves garlic\", \"1 tsp garlic powder\" and \"garlic, minced\" all need to collapse into one grocery line or your list is useless. Build it if you cook from a laptop or a tablet on the counter; buy it if you want something that works one-handed with wet hands.",
+  "coreLoopDIY": "A local web app where you store or import recipes, scale servings, drag them onto a week calendar, and generate a merged grocery list grouped by aisle.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a machine or small VPS to run it on",
+    "Optional LLM API key if you want URL import to handle messy recipe pages",
+    "A tablet or phone browser bookmarked to the local URL, since there is no native app"
+  ],
+  "whatYouLose": [
+    "A native mobile app with offline recipes, which is exactly when you need them most",
+    "Reliable one-tap import from arbitrary recipe URLs and screenshots",
+    "Cooking mode polish: screen wake lock, step timers, big-type hands-free navigation",
+    "Sync across family members' devices without you running a server",
+    "Any curated recipe content the product ships with, if it ships any"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "Recipe apps live or die on the 30 seconds between opening the app and chopping, not on the schema.",
+  "whyPeopleStillPay": "Cooking is a wet-hands, bad-lighting, one-free-finger context, and that is a design problem rather than a code problem. Paying gets you an app that imports a recipe from a link in two taps, keeps it offline, keeps the screen on, and is already on your partner's phone with the same shopping list. A self-hosted web app can match the features and still lose because you have to remember the local IP address while holding a raw chicken.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The scary part of a recipe app is ingredient math, not recipe storage.",
+  "prompt": "Build a local-first recipe keeper and meal planner called \"PantryDesk\". Single Next.js 15 app, App Router, TypeScript, Tailwind, SQLite via better-sqlite3 with Drizzle. No auth, no accounts, no cloud, no telemetry. It runs on localhost or a small VPS for one household.\n\nData model:\n- recipe: id, title, source_url, servings, notes, tags (string array), created_at\n- ingredient: id, recipe_id, raw_text, quantity (nullable float), unit (nullable, normalized to a fixed enum: g, kg, ml, l, tsp, tbsp, cup, piece), name, aisle (nullable)\n- step: id, recipe_id, position, text\n- plan_entry: id, date (ISO day), meal (breakfast | lunch | dinner), recipe_id, servings_override\n- pantry_item: id, name, have (boolean)\n\nFeatures, all in scope:\n1. Recipe CRUD with a paste-friendly editor: one textarea for ingredients, one line per ingredient, parsed on save into quantity/unit/name with a simple deterministic parser. Show the parse result and let the user correct any line.\n2. Recipe detail page with a servings stepper that rescales quantities live, rendering fractions nicely (0.5 becomes 1/2).\n3. Week planner: a 7 by 3 grid, drag recipes from a sidebar list into slots, click a slot to set a servings override.\n4. Grocery list for any date range: sum ingredients across planned recipes, convert within unit families (tsp/tbsp/cup, g/kg, ml/l), merge lines whose normalized name matches, subtract anything flagged in pantry_item, group by aisle, print-friendly and copyable as plain text.\n5. Cook mode at /recipes/[id]/cook: one step per screen, giant type, next/prev buttons, Screen Wake Lock API when supported, and any \"N minutes\" in a step becomes a tappable countdown timer.\n6. URL import at /import: fetch the page server-side, parse JSON-LD Recipe if present, fall back to microdata. If neither exists, show the raw text and let the user paste into the editor. If OPENAI_API_KEY is set in .env, offer an optional \"clean this up with AI\" button for that fallback case only; the app must work fully without the key.\n7. Export and import the whole database as a single JSON file. This is the backup story.\n\nOut of scope, do not build: native apps, push notifications, nutrition data, user accounts, sharing links, photo uploads beyond one optional image URL per recipe.\n\nSeed the database with 6 real recipes so the planner and grocery list are demoable immediately. Ship a README with setup, the aisle list, and a short note on how the unit conversion table works. Write unit tests for the ingredient parser and the grocery merge logic; those are the only two places bugs will actually hurt.",
+  "promptCurated": false
+}
