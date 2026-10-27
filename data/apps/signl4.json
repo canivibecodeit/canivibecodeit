@@ -1,0 +1,53 @@
+{
+  "slug": "signl4",
+  "name": "SIGNL4",
+  "domain": "signl4.com",
+  "category": "monitoring",
+  "subcategory": "mobile alerting and on-call escalation",
+  "tagline": "Turns monitoring alerts and webhooks into mobile pages with acknowledgment, escalation, and on-call duty schedules.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://www.signl4.com/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The logic here is not hard: accept a webhook, dedupe it, fan it out to a notification channel, wait for an ack, escalate if nobody answers. An agent can give you that in a weekend using ntfy or Pushover for push and Twilio for SMS and voice, plus a YAML on-call rotation. What you cannot hand-roll is the part SIGNL4 actually sells: a hardened native app that screams through Do Not Disturb, delivery you would bet a production outage on, and a catalog of prebuilt connectors to every monitoring tool in the building. For one person watching their own servers, the DIY version is honestly fine. For a team where a missed page costs money, you are now the on-call engineer for your own pager.",
+  "coreLoopDIY": "Receives alert webhooks, deduplicates them into incidents, pages you through push then SMS then voice call on an escalation timer, and stops when you click acknowledge.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on VPS or home server with a public HTTPS endpoint",
+    "An ntfy or Pushover account for push delivery",
+    "A Twilio account if you want SMS and voice escalation (costs money per message)",
+    "Your monitoring tools must support outbound webhooks"
+  ],
+  "whatYouLose": [
+    "A native app with critical-alert delivery that punches through silent mode and Do Not Disturb",
+    "Delivery reliability you did not have to think about: redundant push infra, carrier fallback, retries",
+    "Dozens of prebuilt integrations and email-to-alert parsing instead of hand-mapping each webhook payload",
+    "Team features: duty plans, shift handovers, who-acked-what audit trails, multi-responder coordination",
+    "Someone else being awake when your pager pipeline is the thing that broke"
+  ],
+  "moatTags": [
+    "integrations",
+    "collaboration",
+    "scale-infra"
+  ],
+  "moatNotes": "The alerting logic is commodity. The last mile, getting a phone to make noise at 3am no matter what, is where the engineering actually lives.",
+  "whyPeoplePay": null,
+  "whyPeopleStillPay": "Because a pager you built yourself has the same uptime as the thing it is supposed to be watching, and that is a genuinely bad property. Teams pay for alerting tools roughly the way they pay for insurance: the per-seat cost is trivial next to one outage nobody noticed until morning. Add shift rotations, escalation policies auditors want to see, and a connector list that means nobody writes glue code, and the buy decision is usually over in five minutes.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Great weekend project for one person's homelab, dubious choice for anything with a customer-facing SLA.",
+  "prompt": "Build a self-hosted personal alerting and escalation service in an empty folder.\n\nStack, no substitutions: TypeScript, Fastify, SQLite via better-sqlite3, node-cron for timers, Docker Compose for deploy. No frontend framework, server-rendered HTML with a bit of vanilla JS is fine.\n\nIn scope:\n1. POST /hook/:channelKey accepts arbitrary JSON. Map payloads with a small per-channel config: title path, body path, severity path, dedupe key path. Support generic JSON, Prometheus Alertmanager, and Grafana shapes out of the box.\n2. Dedupe incoming events into incidents by dedupe key. Repeat events on an open incident increment a counter instead of paging again.\n3. Escalation policy per channel, defined in config/policies.yaml: an ordered list of steps, each with a channel (ntfy, sms, voice) and a wait-for-ack duration. Run steps until acked or exhausted.\n4. Delivery adapters: ntfy (HTTP POST with priority and an Actions header for ack), Twilio SMS, Twilio voice call with a short TwiML message. Twilio is optional, skip gracefully if creds are absent.\n5. Ack via GET /ack/:token, a single-use signed token embedded in every notification. Acking stops escalation and writes who acked and when.\n6. On-call schedule in config/oncall.yaml: named people with ntfy topic and phone number, plus weekly rotation blocks. Resolve the current responder at page time, with a fixed fallback person.\n7. Web UI at /: open incidents, history with timeline per incident, manual resolve, and a test-page button per channel.\n8. Quiet hours per channel that downgrade severity instead of suppressing, because suppressing pages is how you miss things.\n9. /healthz plus a self-check cron that pings a configured healthchecks.io-style URL so you find out when the pager itself is dead.\n\nOut of scope: mobile app, multi-tenant accounts, email-to-alert parsing, SSO, any telemetry phoned home.\n\nSecrets in .env: NTFY_URL, NTFY_TOKEN, TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM, ACK_SIGNING_SECRET, HOOK_KEYS. Never commit them, ship .env.example.\n\nDeliver: working code, Dockerfile, docker-compose.yml, seeded example configs, and a README with a curl command that fires a test alert and walks through the full escalation path end to end.",
+  "promptCurated": false
+}
