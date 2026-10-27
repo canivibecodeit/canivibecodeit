@@ -1,0 +1,51 @@
+{
+  "slug": "makerapvideo",
+  "name": "MakeRapVideo",
+  "domain": "makerapvideo.com",
+  "category": "ai-video",
+  "subcategory": "photo-to-rap-video generator",
+  "tagline": "Upload two photos, get back a short vertical rap video with an AI-generated performance.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://makerapvideo.com/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is a form, a queue, and a credit counter wrapped around someone else's video model. An agent can rebuild that shell in an afternoon: two file inputs, a prompt template, a polling job, a vertical MP4 download. What it cannot rebuild is the generation itself, which comes from a hosted image-to-video model you rent per second from a provider like fal or Replicate, so your personal version swaps one bill for another and you now own the retry logic. The real work the paid app did for you is the invisible part: the prompt scaffolding, aspect ratio and duration choices, and the audio pass that makes the output land as a rap video instead of a photo twitching for nine seconds. Expect your first ten outputs to be noticeably worse than theirs.",
+  "coreLoopDIY": "A local web page that takes two photos, fires them at a hosted image-to-video endpoint with a baked-in rap prompt, mixes a beat and a vocal track over the result, and hands back a 9-second vertical MP4.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "A fal.ai or Replicate account with billing enabled and an API key",
+    "Node 20 and ffmpeg installed locally",
+    "A beat or instrumental you have the rights to use, plus a TTS or music API if you want generated vocals",
+    "Patience for per-generation costs while you tune the prompt"
+  ],
+  "whatYouLose": [
+    "Prompt tuning someone else already paid for in failed renders, so your early outputs look cheaper",
+    "The free first video, which is how most people decide whether they care at all",
+    "Hosted queueing and retries, meaning a failed generation is now your problem at 1am",
+    "Phone-friendly upload flow and a share-ready output, which is most of why this gets used at parties",
+    "Any licensed or cleared audio bed, so your version is a legal grey area if you post it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra"
+  ],
+  "moatNotes": "The underlying video model is rented, not owned, so the defensibility is taste plus the willingness to eat GPU bills on behalf of strangers.",
+  "whyPeopleStillPay": "Because the alternative is a provider dashboard, a billing page, and twenty minutes of prompt fiddling to get one clip that is worse than the one you would have had for free. The entire value here is compression of effort: two photos, one tap, a file you can post. People paying for this are not comparing it to a self-hosted pipeline, they are comparing it to not bothering, and at novelty-video prices the paid path wins almost every time.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "A thin wrapper is still a wrapper you did not have to write, and the model bill arrives either way.",
+  "prompt": "Build a local, single-user web app called \"raptool\" that turns two photos into a short vertical rap video.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, running locally with `npm run dev`. No database, no auth, no accounts, no telemetry. Jobs live in an in-memory map plus files on disk under ./output.\n\nCore flow:\n1. One page with two file inputs (subject photo, optional second photo), a text field for an optional style hint, and a Generate button.\n2. On submit, POST to /api/generate. The route uploads the images to fal.ai and calls an image-to-video model (use the fal JS client, model id configurable via env so I can swap it) with a hardcoded prompt template for a performing-rapper look: vertical 9:16, 720p, roughly 5 to 9 seconds, upper-body framing, handheld camera energy.\n3. Poll the job status from the client and show a progress state. Do not block the request.\n4. When the video returns, download it to ./output/{jobId}/raw.mp4.\n5. Run ffmpeg via child_process to loop or trim the clip to exactly 9 seconds, overlay an audio file from ./assets/beat.mp3 if present, normalise loudness, and write ./output/{jobId}/final.mp4.\n6. Show the result in a video tag with a download link.\n\nIn scope: the generation request, polling, ffmpeg post-processing, a job list page reading from ./output, and clear error messages when the provider fails or the key is missing.\n\nOut of scope: user accounts, credits, payments, cloud storage, sharing links, lyric generation, voice cloning, and any mobile app.\n\nSecrets: FAL_KEY and FAL_MODEL_ID in .env.local, loaded server-side only, with a .env.example checked in. Never put the key in client code.\n\nWrite a README that states plainly that every generation costs real money at the provider, lists the current per-second rate as a TODO for me to fill in, and warns that overlaying copyrighted music makes the output unpostable.\n\nAdd a scripts/estimate.ts that prints the number of videos in ./output so I can see how much I have spent.",
+  "promptCurated": false
+}
