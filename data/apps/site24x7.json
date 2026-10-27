@@ -1,0 +1,53 @@
+{
+  "slug": "site24x7",
+  "name": "Site24x7",
+  "domain": "site24x7.com",
+  "category": "monitoring",
+  "subcategory": "infrastructure and application monitoring",
+  "tagline": "Zoho's all-in-one monitoring suite: website checks, server and network agents, APM, real user monitoring, and log management under one console.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://www.site24x7.com/",
+    "checkedOn": "2026-09-22",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Site24x7 sells tiered bundles with add-on monitor, agent, and log volume counts, so a single monthly number is misleading.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "If you only want to know whether your homepage returns 200, yes, that is an afternoon and a cron job. Site24x7 is not that. It is a global probe network in dozens of locations, OS agents that ship CPU, disk, process and service metrics, SNMP network discovery, APM tracing inside your runtime, real user monitoring from actual browsers, and log ingestion with retention, all feeding one alerting and escalation engine. You can replace any one of those slices in a session; replacing the seam between them is a platform project, and the multi-region probes are physically not something you one-shot. Self-hosting the honest equivalent means running Prometheus, node_exporter, Blackbox, Loki, Grafana and Alertmanager, and then owning the thing that watches your things.",
+  "coreLoopDIY": "A single self-hosted service that runs HTTP and TCP checks on a schedule, collects basic host metrics from a tiny agent you install on your own boxes, stores history in SQLite, and fires webhook or email alerts with flap suppression.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A small always-on VPS somewhere that is not the thing you are monitoring",
+    "SMTP credentials or a Slack/Discord webhook for alerts",
+    "Root or sudo on each host you want the metrics agent running on",
+    "Willingness to monitor from one location only, or to pay for a second VPS in another region"
+  ],
+  "whatYouLose": [
+    "Distributed probes: your checks run from one box, so you cannot tell a regional outage from your own VPS having a bad day",
+    "Agents that actually know things: process and service state, disk inode pressure, Windows event logs, Docker and Kubernetes discovery",
+    "APM and real user monitoring: no traces, no slow query attribution, no Core Web Vitals from real browsers",
+    "Log management: ingestion, parsing, retention and search over anything at volume",
+    "On-call machinery: escalation policies, schedules, SMS and voice calls, status pages, incident timelines",
+    "Someone else being awake when your monitoring box dies"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "switching-costs"
+  ],
+  "moatNotes": "The probe network and the agent fleet are the product. Everything in the console is a view over data you cannot collect from one machine.",
+  "whyPeopleStillPay": "Monitoring is the one piece of infrastructure you specifically do not want to self-host, because it has to survive the outage it is reporting on. Paying Site24x7 buys observers outside your blast radius, an agent that already knows what a healthy Postgres looks like, and an escalation chain that reaches a human phone at 3am. Teams also pay because auditors and customers accept a vendor dashboard and an SLA report as evidence, and will not accept your SQLite file. The uptime-check slice is genuinely commoditised and worth doing yourself; the rest is a staffing decision dressed up as a subscription.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The uptime checks are a weekend; the probes, agents, traces and logs are not. The moat is infrastructure that lives outside your failure domain, plus agents that already know what every runtime looks like when it is sick.",
+  "prompt": "Build a self-hosted monitoring service called \"watchdog\". Consolation build: this replaces uptime and basic host metrics, not APM or logs.\n\nStack, no substitutions: TypeScript, Node 20, Fastify, better-sqlite3, server-rendered HTML via Fastify templates with plain CSS, no frontend framework, no build step beyond tsc.\n\nTwo deliverables in one repo:\n1. server/: the collector, scheduler, alerter and web UI.\n2. agent/: a single-file Node script, under 200 lines, installed on each monitored host.\n\nServer requirements:\n- Checks table in SQLite: id, name, type (http | tcp), target, interval_seconds, expected_status, timeout_ms, enabled.\n- Scheduler using setTimeout per check, not a single global tick. Record every result: timestamp, ok, latency_ms, status_code, error string.\n- HTTP checks follow redirects, honour timeout, and optionally assert a substring appears in the body.\n- Hosts table plus a POST /ingest endpoint that accepts agent payloads authenticated by a shared token from .env. Store cpu_pct, mem_pct, disk_pct per mount, load_1, uptime_s.\n- Alerting: a check or host goes ALERT after 3 consecutive failures, RECOVERED after 2 consecutive successes. Never alert on a single blip. Send to a Slack-style webhook URL and optionally SMTP, both from .env. Log the alert to a notifications table.\n- Missing agent heartbeat for more than 3 intervals is itself an alert.\n- Thresholds per host: alert when disk_pct is above 90 or mem_pct above 95 for 3 samples in a row.\n- Web UI at /: one page, all checks and hosts with current state, 24h uptime percent, p95 latency, and a sparkline drawn as inline SVG from the raw rows. A detail page per check with the last 200 results in a table.\n- Retention job: keep raw results 30 days, then roll up to hourly min/avg/max and delete the raw rows.\n- Config via .env only: PORT, INGEST_TOKEN, ALERT_WEBHOOK_URL, SMTP_URL, ALERT_EMAIL_TO. Commit .env.example, never .env.\n\nAgent requirements: read host stats from /proc and os module, POST to the server every 60 seconds, exit non-zero and log on failure, no dependencies outside Node stdlib.\n\nExplicitly out of scope, do not build: APM or distributed tracing, log ingestion, SNMP or network topology discovery, real user monitoring, multi-tenant accounts, SMS or phone calls, a public status page, Kubernetes discovery.\n\nShip: README with a one-command start, a systemd unit file for both server and agent, a seed script that inserts three example HTTP checks, and vitest tests covering the consecutive-failure alert state machine and the retention rollup. No telemetry, no analytics, no external services beyond the webhook and SMTP the operator configures.",
+  "promptCurated": false
+}
