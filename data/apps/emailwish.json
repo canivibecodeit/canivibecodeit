@@ -1,0 +1,53 @@
+{
+  "slug": "emailwish",
+  "name": "Emailwish",
+  "domain": "emailwish.com",
+  "category": "email",
+  "subcategory": "ecommerce email marketing and popups",
+  "tagline": "Email marketing, popups, SMS and automated flows aimed at Shopify and other ecommerce stores.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.emailwish.com/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The software part is not the hard part. An agent can build you a contacts table, a template editor, a campaign sender and a cron-driven abandoned-cart flow in a weekend, and it will work. What it cannot build is a warm sending reputation, so your first real send lands in Promotions at best and spam at worst, and fixing that is weeks of domain warmup, DMARC fiddling and complaint-rate babysitting. You also inherit the unglamorous middle: store webhooks, unsubscribe compliance, bounce handling, and a popup script that does not tank your page speed. Build it if you have one store and patience; buy it if deliverability is revenue.",
+  "coreLoopDIY": "Pulls store orders and signups into a local contacts database, then sends templated campaigns and event-triggered flows through a transactional email provider with open and click tracking.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A sending domain you control, with SPF, DKIM and DMARC records set up",
+    "An email API account (Resend, SES or Postmark) and its key in .env",
+    "Store webhooks or an API key if you want cart and order triggers",
+    "Somewhere always-on to run the scheduler, a small VPS is fine",
+    "Patience for domain warmup before any list over a few hundred people"
+  ],
+  "whatYouLose": [
+    "Inbox placement work: shared IP reputation, complaint monitoring, seed testing and the deliverability team behind it",
+    "Done-for-you flows that are already written, timed and brand-matched instead of your own empty template",
+    "The unified customer profile that stitches browse, cart, order and email events into one timeline you can segment on",
+    "Native app-store install into Shopify, including the popup script, theme hooks and one-click consent sync",
+    "Someone else owning compliance edges: suppression lists, regional consent rules, unsubscribe headers"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "Deliverability is infrastructure plus reputation plus human monitoring, which is exactly the category of thing a weekend build cannot fake.",
+  "whyPeopleStillPay": "Because an email that does not arrive is worth zero, and arrival is not a feature you code, it is a reputation you rent. Stores also pay to skip the blank page: pre-built welcome, cart and win-back flows that already know the right delays and subject line patterns beat a homegrown sender with three half-written emails in it. Add the Shopify install being two clicks versus you maintaining webhook handlers forever, and the monthly fee is cheap relative to the revenue sitting in those flows.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The sender is a weekend; the inbox is not.",
+  "prompt": "Build a self-hosted ecommerce email marketing tool in an empty folder.\n\nStack, no substitutions: Node 20, TypeScript, Fastify for the HTTP server, SQLite via better-sqlite3, React with Vite for the admin UI, Tailwind for styling. No auth provider, no cloud services beyond the email API.\n\nData model in SQLite: contacts (email, name, consent status, source, created_at, suppressed flag), events (contact_id, type, payload JSON, occurred_at), templates (name, subject, mjml or html body), campaigns (template_id, segment query, scheduled_at, status), sends (campaign_id, contact_id, provider_message_id, opened_at, clicked_at, bounced_at), flows (trigger type, step definitions JSON).\n\nFeatures that must work:\n1. Contact import from CSV with dedupe on email, plus a POST /api/contacts endpoint.\n2. A webhook receiver at POST /api/webhooks/store that accepts Shopify-shaped order and checkout payloads, upserts the contact and writes an event.\n3. Template editor: plain textarea for HTML plus a live iframe preview, with {{name}} and {{unsubscribe_url}} merge tags.\n4. Campaigns: pick a template, pick a segment by simple filter (consent, tag, days since last order), schedule, send.\n5. Flows: trigger on an event type, then a list of steps, each step a delay in hours and a template. Ship three seeded flows: welcome, abandoned checkout at 1h and 24h, win-back at 60 days.\n6. A single node-cron worker that every minute picks due campaign and flow sends and dispatches them.\n7. Sending through Resend using RESEND_API_KEY from .env. Batch at most 50 per minute and log every failure.\n8. Open tracking via a 1x1 pixel route and click tracking via a redirect route. Both write back to sends.\n9. Working unsubscribe: signed token in the URL, one click sets suppressed, include List-Unsubscribe and List-Unsubscribe-Post headers on every send.\n10. Bounce and complaint webhook from the provider that auto-suppresses the contact.\n\nOut of scope, do not build: SMS, popup widgets, A/B testing, multi-user accounts, analytics dashboards beyond a simple per-campaign sent/open/click count.\n\nAll secrets in .env with a committed .env.example. No telemetry, no external analytics. Include a README that states plainly that this will land in spam until the sending domain has SPF, DKIM and DMARC configured and has been warmed up, and give the warmup schedule as a table.\n\nFinish with: npm run dev starting both the API and the admin UI, and a seed script that loads 20 fake contacts so every screen has data.",
+  "promptCurated": false
+}
