@@ -1,0 +1,51 @@
+{
+  "slug": "notch-crew",
+  "name": "Notch Crew",
+  "domain": "notchcrew.com",
+  "category": "productivity-utilities",
+  "subcategory": "macOS notch utilities",
+  "tagline": "A macOS utility suite that turns the MacBook notch into a hover-activated dock for media controls, a file shelf, and quick widgets.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://notchcrew.com/",
+    "checkedOn": "2026-10-27",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The architecture here is not a secret: a borderless always-on-top NSPanel pinned under the menu bar, an expand-on-hover animation, and a few widgets stuffed inside it. An agent can get you a working notch shelf with drag-and-drop files and media controls in a session, because the open source notch apps already proved the pattern. What it will not get right the first time is the feel: the corner radius that matches the hardware, the spring animation that does not stutter, multi-display and sleep/wake behavior, and Now Playing data that depends on private MediaRemote APIs Apple keeps moving. There is no network, no server, and no data moat, so the ceiling is entirely polish. Expect something you use happily and show nobody.",
+  "coreLoopDIY": "A menu-bar-less SwiftUI app that parks a panel over the notch, expands it on hover, and gives you media controls plus a drag-and-drop file shelf.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A Mac running macOS 14 or newer, ideally one with an actual notch",
+    "Xcode and a free Apple developer account for local signing",
+    "Accessibility and Automation permissions for media and window control",
+    "Tolerance for private or undocumented APIs if you want real Now Playing metadata"
+  ],
+  "whatYouLose": [
+    "Animation and geometry polish that actually matches the hardware curve",
+    "Multi-display, clamshell, and external monitor handling that does not glitch",
+    "The long tail of widgets: calendar, timers, AirDrop, clipboard, battery, HUD replacement",
+    "Updates when Apple breaks the private APIs that make Now Playing work",
+    "Notarized, signed, non-scary install for anyone but you"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "brand-trust"
+  ],
+  "moatNotes": "Fit and finish is the whole product. Nobody tolerates a laggy overlay sitting at the top of their screen all day.",
+  "whyPeopleStillPay": "Because this is a thing you stare at every waking hour on your main machine, and a janky version is worse than none. Paid notch apps earn their money in the one percent of details: the exact easing curve, not stealing focus, not fighting full screen apps, surviving a macOS point release that moves the private media APIs. A one-shot build gets you ninety percent of the function and maybe thirty percent of the feel, and the feel is why people installed it.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The open source notch apps already mapped this territory, which is both the reason your build works and the reason it will look second-rate next to one.",
+  "prompt": "Build a macOS menu bar utility called NotchShelf, a personal clone of the MacBook notch utility apps.\n\nStack: Swift 5.9+, SwiftUI with AppKit bridging, Xcode project, macOS 14 minimum. No third party packages. No server, no accounts, no analytics, no network calls at all.\n\nStructure:\n- An NSApplication with LSUIElement true: no Dock icon, no main window.\n- An NSPanel subclass: borderless, nonactivatingPanel, level .statusBar, ignoresMouseEvents false, collectionBehavior canJoinAllSpaces and fullScreenAuxiliary. It must never steal key focus.\n- Position the panel centered on the top edge of the screen that currently has the mouse, sized to the notch when collapsed (read NSScreen safeAreaInsets.top and auxiliaryTopLeftArea to detect a real notch; fall back to a 200x32 fake notch on screens without one).\n- Collapsed state: matches the notch footprint, invisible black, with the same bottom corner radius as the hardware.\n- Hover expands to roughly 640x180 with a spring animation, bottom corners rounded, drop shadow. Mouse exit collapses after a short delay. Use an NSTrackingArea, not a polling timer.\n\nWidgets inside the expanded panel, three only:\n1. Now Playing: album art, title, artist, play/pause, prev, next. Drive it with the MediaRemote private framework loaded via dlopen at runtime, and degrade gracefully to a \"nothing playing\" state if the symbols are missing. Do not crash when Apple changes it.\n2. File shelf: accepts dropped files, stores security scoped bookmarks in Application Support, shows thumbnails via QLThumbnailGenerator, supports dragging items back out to Finder or any app, and a clear-all button.\n3. Battery and date: current charge, charging state, and today's date. Poll IOKit no more than once a minute.\n\nAlso build: a tiny Settings window (a plain SwiftUI Form) for expand delay, collapse delay, which widgets are on, and launch at login via SMAppService.\n\nExplicitly out of scope: calendar sync, AirDrop, clipboard history, notifications, iPhone mirroring, custom HUD replacement, auto update, notarization, and anything that talks to the internet.\n\nPut no secrets in the repo; there are none to put. Write a README with the exact steps to build, sign locally with a development certificate, grant permissions, and uninstall. Note in the README that the Now Playing widget uses a private API and will break on some macOS releases.",
+  "promptCurated": false
+}
