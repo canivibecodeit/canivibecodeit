@@ -1,0 +1,51 @@
+{
+  "slug": "makiroll",
+  "name": "MakiRoll",
+  "domain": "apps.apple.com",
+  "category": "audio-video",
+  "subcategory": "talking head video recording and editing",
+  "tagline": "iOS app for shooting and cleaning up talking head videos: teleprompter, captions, trimming, vertical export.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "custom",
+    "source": "https://apps.apple.com/us/app/makiroll-talking-head-video/id6801274678",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The pieces of a talking head pipeline are all commodity now: ffmpeg for cutting and cropping, a local Whisper model for transcription and caption burn-in, simple energy detection for dead air and filler words. An agent can wire that into a local tool in a weekend and the output will be genuinely close on the editing side. What it will not produce is an iPhone app you open at a traffic light: the camera capture, the teleprompter that scrolls at the right speed over a live preview, the stabilization, the share sheet, the thing surviving a phone call mid-record. If you shoot on your phone and edit at a desk, the DIY version is fine. If the whole point is that recording and publishing happen on the same device in four minutes, you are rebuilding a mobile app, which is not a one-shot.",
+  "coreLoopDIY": "Takes a raw self-shot video, transcribes it locally, cuts silences and filler words, burns styled captions, and exports a vertical crop ready to post.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "ffmpeg installed locally",
+    "Python 3.11 and a few GB of disk for a local Whisper model",
+    "A machine that can transcribe without melting, Apple Silicon or any GPU helps",
+    "You still shoot the footage on your phone and move files around"
+  ],
+  "whatYouLose": [
+    "Recording on the phone itself, with a teleprompter over the live camera preview",
+    "One-tap export to the share sheet and straight into TikTok or Reels",
+    "Caption styling presets that already look like what people expect, instead of whatever your first pass at ASS subtitles looks like",
+    "Auto framing and face tracking during capture, which you cannot fake in post",
+    "Someone else maintaining the thing when a codec or an OS update breaks it"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "hardware"
+  ],
+  "moatNotes": "The defensible part is the capture experience on a specific device, not the edit list. Post-production is ffmpeg with opinions.",
+  "whyPeopleStillPay": "Because the editing is the easy half. Paying for this buys a capture loop that works on the device where the footage is already sitting, and a set of caption and crop defaults that look right the first time. A local pipeline gets you equivalent output with an extra step of airdropping files to a laptop and waiting for transcription, which is exactly the kind of friction that stops people from posting at all.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The edit pipeline is a weekend; the phone is the product.",
+  "prompt": "Build a local command line tool called \"makicut\" that turns a raw talking head recording into a post-ready vertical video.\n\nStack, no substitutions:\n- Python 3.11, uv for dependency management, Typer for the CLI.\n- faster-whisper for local transcription, model size configurable, default \"small\".\n- ffmpeg and ffprobe invoked as subprocesses. Assume they are on PATH and fail loudly with a clear message if not.\n- No cloud APIs, no accounts, no telemetry, no network calls at runtime except the one-time Whisper model download.\n\nCommands:\n1. `makicut transcribe INPUT` : writes a word-level JSON transcript next to the input.\n2. `makicut plan INPUT` : from the transcript plus audio loudness, emits a cut plan JSON listing segments to keep. Drop silences longer than a configurable threshold, default 600ms, and drop words matching a filler list in config.toml, default um, uh, like, you know, so, basically. Keep 120ms of padding on each side of a keep segment.\n3. `makicut render INPUT` : applies the cut plan with ffmpeg concat, crops to 1080x1920 centered on a fixed crop box, burns captions as ASS subtitles, writes OUTPUT.mp4.\n4. `makicut run INPUT` : all three in order.\n\nCaptions: generate an ASS file from the word timings, two to four words per line, bold sans-serif, white text with a thick black outline, bottom third, one line highlighted word by word. Put the font, size, colors and vertical offset in config.toml.\n\nEditing the plan: `plan` also writes a plain-text transcript where each line is a keep segment. If the user deletes lines from that file and reruns `render`, honor the edits. That is the only review UI. Do not build a GUI.\n\nExplicitly out of scope: camera capture, teleprompter, face tracking, background removal, music, uploading anywhere.\n\nDeliverables: working CLI, config.toml with sane defaults, a README showing a full run on a sample file, and a .env.example only if you end up needing any secret at all (you should not). Make `makicut run sample.mp4` work end to end before you call it done.",
+  "promptCurated": false
+}
