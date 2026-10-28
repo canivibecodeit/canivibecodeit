@@ -1,0 +1,51 @@
+{
+  "slug": "psl-scale",
+  "name": "PSL Scale",
+  "domain": "pslscale.art",
+  "category": "ai-image",
+  "subcategory": "facial analysis / looksmaxxing ratings",
+  "tagline": "Upload a photo, get a facial aesthetics score on the PSL scale plus a breakdown of individual features.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.pslscale.art/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The mechanical half of this is genuinely easy: a face landmark model gives you canthal tilt, facial thirds and fifths, FWHR, jaw angle estimates and symmetry deltas in a few hundred lines, all running locally. The hard half is the number at the end, because a PSL rating is not a measurement, it is a convention agreed on by a specific internet subculture and calibrated against thousands of their own ratings. Your weekend build will output defensible geometry and then make up a score, and the score is the entire product. If you only want the measurements for yourself, build it and skip the grade. If you want a number other people recognise, you are buying into someone else's rating distribution.",
+  "coreLoopDIY": "Runs a local face mesh on an uploaded photo, computes the standard looksmaxxing measurements with an annotated overlay, and renders them next to published ideal ranges instead of inventing a single score.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Python 3.11 and a machine that can run MediaPipe Face Mesh locally",
+    "A front-facing photo at reasonable resolution, neutral expression, no glasses",
+    "Optional OPENAI_API_KEY in .env if you want a qualitative written read on top of the numbers"
+  ],
+  "whatYouLose": [
+    "A calibrated score, your version measures angles but has no grounded mapping from geometry to a 1 to 8 rating",
+    "Consistency with how the community actually rates, which is the only reason the number means anything socially",
+    "Polished mobile capture flow with pose and lighting guidance, which is most of why these apps produce usable photos",
+    "Side by side progress tracking over months, unless you build the storage and comparison views yourself",
+    "Any benchmark population, you have no distribution to tell you what percentile a measurement sits in"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "brand-trust",
+    "execution-polish"
+  ],
+  "moatNotes": "The moat is a shared rating vocabulary, not a model. Any scorer that disagrees with the forum consensus is simply wrong by definition, regardless of its geometry.",
+  "whyPeopleStillPay": "People pay because they want a verdict, not a spreadsheet of angles. A self-built tool can tell you your canthal tilt is 4 degrees and your lower third is proportionally long, and that is useful, but it cannot tell you where you sit relative to everyone else who has ever been rated, and that comparison is the whole emotional payload. The product also handles the annoying parts: photo guidance, consistent framing, a readable report. Worth noting that the accuracy claims in this entire category are unfalsifiable, so what you are really buying is a confident presentation layer over the same landmark model you could run yourself.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Build the measurements, be very suspicious of the score, including theirs.",
+  "prompt": "Build a local facial measurement tool called meshcheck. Single machine, no accounts, no cloud, no telemetry.\n\nStack, non negotiable:\n- Python 3.11, FastAPI, uvicorn\n- MediaPipe Face Mesh for 478 point landmarks, running locally\n- OpenCV and numpy for geometry and overlay drawing\n- One server rendered HTML page with vanilla JS and plain CSS, no React, no build step\n\nWhat it does:\n1. GET / serves an upload page with clear capture instructions: front facing, neutral expression, camera at eye level, no glasses, even lighting.\n2. POST /analyze accepts one image, runs Face Mesh, and fails loudly with a readable message if zero or multiple faces are found.\n3. Computes these measurements from landmarks, each with the exact landmark indices used documented in a comment:\n   - canthal tilt, left and right, in degrees\n   - facial thirds ratio, trichion estimate to glabella to subnasale to menton\n   - facial fifths, five vertical widths across the face\n   - bizygomatic width to facial height ratio (FWHR)\n   - interpupillary distance to bizygomatic width\n   - nose width to mouth width\n   - gonial angle estimate, clearly labelled as an estimate since it needs a profile shot\n   - left/right symmetry delta as mean landmark mirror distance normalised by face width\n4. Returns an annotated PNG with the measured lines drawn on the photo, plus a table of values next to published ideal ranges stored in a single ranges.py file with a source comment per range.\n\nExplicitly out of scope:\n- No single aggregate score, no 1 to 10 or PSL rating. Each metric stands alone.\n- No user accounts, no database, no uploads leaving the machine. Images are processed in memory and discarded.\n- No mobile app.\n\nOptional: if OPENAI_API_KEY is present in .env, add a /narrative endpoint that sends only the numeric measurements, never the image, to a model and returns a plain prose summary. Off by default.\n\nShip a README with setup, a sample run, and a short honest paragraph saying these ratios are conventions from aesthetics literature and internet subcultures, not medical or predictive measures.",
+  "promptCurated": false
+}
