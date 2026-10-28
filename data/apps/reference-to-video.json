@@ -1,0 +1,52 @@
+{
+  "slug": "reference-to-video",
+  "name": "Reference to Video",
+  "domain": "reference2video.com",
+  "category": "ai-video",
+  "subcategory": "motion transfer / reference-driven generation",
+  "tagline": "Takes a short reference clip for the motion and a handful of photos for the subject, and generates a video that copies one onto the other.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://reference2video.com/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The product is a web form, a job queue, and a gallery wrapped around a video model that already does reference-conditioned generation. That wrapper is genuinely a one-session build, and open weights like Wan with VACE do accept a control clip plus subject reference images, so this is not a locked door. The catch is that you are either renting GPUs by the minute or waiting several minutes per clip on your own card, and you will spend most of your time on the unglamorous part: resolution and frame caps, reference image preprocessing, and the prompt scaffolding that keeps a face from drifting between shots. Call it a weekend, and expect your first twenty outputs to look worse than theirs for reasons that are not in the code.",
+  "coreLoopDIY": "A local web app where you upload a 2 to 15 second motion clip and up to nine subject photos, queue a reference-conditioned generation against a hosted or local video model, and browse past renders.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a hosted video model that supports reference-to-video (or a local GPU with 24GB+ VRAM for open weights)",
+    "ffmpeg installed locally",
+    "Python 3.11+",
+    "Patience with multi-minute render times and a credit meter"
+  ],
+  "whatYouLose": [
+    "The curated template library, which is where most casual users actually start",
+    "Tuned preprocessing and prompt scaffolding that keeps the subject's face consistent across frames",
+    "Burst GPU capacity, so your third render queues behind your second",
+    "Any content moderation or rights safety net, which matters more than you think when the input is someone's face",
+    "A flow that works on a phone without you building it"
+  ],
+  "moatTags": [
+    "proprietary-models",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The model is almost certainly not theirs either, so the real edge is defaults, presets, and not making you install CUDA.",
+  "whyPeopleStillPay": "Because the hard part was never the upload form. Getting a reference clip's motion to land on a stranger's face without warping it takes a pile of preprocessing choices, resolution compromises, and prompt boilerplate that someone else already lost a month to. Paying per clip also beats paying for an idle GPU, and the templates mean you can produce something shareable in ninety seconds instead of debugging a diffusion pipeline on a Saturday.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The wrapper is trivial, the render quality is not. Budget your weekend for preprocessing, not UI.",
+  "prompt": "Build a local-only web app called \"refvid\" that generates reference-conditioned videos: one short driving clip supplies the motion, a set of photos supplies the subject.\n\nStack, no substitutions:\n- Python 3.11, FastAPI, Jinja2 templates, plain HTML plus a little vanilla JS. No React, no build step.\n- SQLite via sqlite3 for job records. No ORM.\n- ffmpeg via subprocess for all media handling.\n- Background work via a single asyncio worker task inside the app process, with a jobs table as the queue.\n\nFeatures that are in scope:\n- Upload page: one motion reference clip (mp4 or mov, 2 to 15 seconds, reject anything outside that after probing with ffprobe) and 1 to 9 subject images (jpg or png).\n- Normalize on upload: transcode the clip to 480p or 720p h264 at 16fps, hard cap duration at 15s, strip audio, and center-crop subject images to square 1024px. Store originals and normalized copies under ./data/uploads/.\n- A text prompt field and a seed field, both optional.\n- Submit creates a job row (status queued) and redirects to a job page that polls /api/jobs/{id} every 3 seconds.\n- The worker calls a hosted reference-to-video endpoint. Put the base URL, model id, and API key in .env, read with python-dotenv, and isolate the call in one file providers/hosted.py behind a function generate(clip_path, image_paths, prompt, seed) that returns a local mp4 path. Include a providers/fake.py that just loops the input clip with ffmpeg, and select the provider with PROVIDER in .env so the whole app is testable with no key and no spend.\n- Job page shows status, elapsed time, the error string on failure, and an inline video player plus download link on success.\n- Library page: reverse-chronological grid of finished jobs with thumbnails extracted by ffmpeg, click through to the job page, and a delete button that removes the row and the files.\n- Retry button on failed jobs that re-queues with the same inputs.\n\nExplicitly out of scope: accounts, auth, billing, templates, telemetry, cloud storage, any analytics, Docker.\n\nOther requirements: the app binds to 127.0.0.1 only. All secrets in .env, with a committed .env.example and .env in .gitignore. Store absolute cost nowhere and estimate nothing. Write a README with setup, the ffmpeg dependency, how to swap providers, and one blunt paragraph on render times and what a bad output usually means (too much motion, subject photos too varied, resolution too low).",
+  "promptCurated": false
+}
