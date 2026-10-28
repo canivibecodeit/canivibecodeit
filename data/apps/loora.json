@@ -1,0 +1,51 @@
+{
+  "slug": "loora",
+  "name": "Loora",
+  "domain": "loora.com",
+  "category": "education",
+  "subcategory": "AI English speaking tutor",
+  "tagline": "An AI voice tutor you talk to in English, with corrections and feedback after each conversation.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "flat",
+    "source": "https://www.loora.com/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The core loop here is a realtime voice conversation with an LLM that plays a patient tutor and then tells you what you got wrong. That is now a well-trodden API call, and an agent can wire a browser mic to a realtime speech model and get you talking in an afternoon. What you cannot one-shot is the part that makes a language app actually work: lesson structure, difficulty that tracks your level, pronunciation scoring, and a phone app you will open on a bus. You also inherit a hard dependency on somebody else's speech model and a per-minute bill that quietly rewards you for practicing less. Build it if you want unlimited unstructured speaking practice; buy it if you need something that nags you into a habit.",
+  "coreLoopDIY": "A browser page that holds a live spoken conversation with an AI tutor on a chosen topic, then writes a short correction report to a local database.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "An API key for a realtime speech-to-speech model",
+    "A browser with microphone access, ideally desktop Chrome",
+    "Node 20 and comfort with a terminal",
+    "Tolerance for per-minute inference costs during long sessions"
+  ],
+  "whatYouLose": [
+    "Native iOS and Android apps, which is where almost all real practice happens",
+    "A graded curriculum and level tracking instead of freeform chat with no plan",
+    "Pronunciation and fluency scoring tuned on actual learner speech",
+    "Streaks, reminders, and the habit machinery that makes you come back",
+    "Latency and interruption handling that has been polished until conversation feels natural"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "proprietary-data"
+  ],
+  "moatNotes": "The hard parts are conversational latency and feedback that is accurate without being demoralizing. Both come from watching a lot of learners, not from a clever prompt.",
+  "whyPeopleStillPay": "Because the product is not the model, it is the discipline wrapper around the model. A self-hosted tutor page sits in a browser tab and loses to your own inertia within a week, while the paid app lives on your phone, knows your level, picks the topic for you, and pokes you at 8pm. People also pay for the feeling that the feedback is calibrated: that a score means something relative to other learners, not just an LLM being encouraging.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The conversation is the easy part now; the hard part is still getting a human to open the app on a Tuesday.",
+  "prompt": "Build a local web app called \"Tutor\" that gives me spoken English conversation practice with an AI tutor.\n\nStack, no substitutions:\n- Next.js (App Router) with TypeScript and Tailwind.\n- OpenAI Realtime API over WebRTC, called directly from the browser using a short-lived ephemeral session token minted by a Next.js route handler.\n- better-sqlite3 for local persistence, single file at ./data/tutor.db. No ORM.\n- Runs with `npm run dev` on localhost. No auth, no accounts, no cloud, no telemetry, no analytics.\n\nSecrets:\n- OPENAI_API_KEY in .env.local, read server side only. Never ship the real key to the browser. Include .env.example and gitignore the rest.\n\nCore flow:\n1. Home screen: pick a scenario (job interview, small talk, ordering food, explaining your work, free chat) and a level (beginner, intermediate, advanced). Then a single big \"Start talking\" button.\n2. Starting a session opens a WebRTC connection to the realtime model with a system prompt that makes it a patient English tutor: it stays in character for the scenario, speaks at a pace matching the chosen level, asks follow-up questions, and never lectures mid-conversation.\n3. Live view shows a mic level indicator, a running transcript of both sides, elapsed time, and a \"End session\" button.\n4. On end, send the full transcript to a text model and get back structured JSON: three to five specific corrections (what I said, a better version, a one-line reason), two phrases worth reusing, and a one-paragraph summary of how I did. Render it on a report page.\n5. Store sessions, transcripts, and reports in SQLite. A /history page lists past sessions with date, scenario, duration, and links to reports.\n\nExplicitly out of scope: mobile apps, push notifications, pronunciation or accent scoring, numeric fluency grades, streaks, leaderboards, payment, multi-user support, offline mode.\n\nAlso required:\n- Hard stop: warn at 10 minutes and auto-end at 15 to limit API spend. Show estimated session cost based on duration.\n- Graceful failure if the mic is blocked or the connection drops mid-session, and save whatever transcript exists.\n- README with setup steps, the exact model names used in one place, and a one-line note on where to change the tutor system prompt.",
+  "promptCurated": false
+}
