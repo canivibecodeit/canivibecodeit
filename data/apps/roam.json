@@ -1,0 +1,52 @@
+{
+  "slug": "roam",
+  "name": "Roam",
+  "domain": "ro.am",
+  "category": "video-conferencing",
+  "subcategory": "virtual office",
+  "tagline": "A persistent virtual office where your whole company has a desk, a floor plan, and one-click video calls instead of scheduled meetings.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": "monthly per user",
+    "unit": "per-seat",
+    "source": "https://ro.am/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "no",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The software here is a floor plan on top of a video SFU, and yes, an agent can wire LiveKit to a React canvas in an afternoon. The problem is that a virtual office with one occupant is a screensaver. What you are paying for is that forty colleagues are already logged in all day, that audio does not clip when someone walks into a room, that the mobile app rings when you get knocked on, and that it survives bad hotel wifi. Real-time media at always-on duration is the part that eats weekends: TURN relays, bandwidth adaptation, echo cancellation, reconnection logic. Build the toy to understand the idea, do not build it to replace the office.",
+  "coreLoopDIY": "A self-hosted spatial office: a 2D floor plan of rooms, avatars showing who is where, and joining a room auto-connects you to everyone else's audio and video.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A LiveKit server, self-hosted via Docker or the free cloud tier",
+    "A TURN server for anyone behind a symmetric NAT",
+    "A always-on host so the office is there when people are",
+    "Browsers only, no native mobile"
+  ],
+  "whatYouLose": [
+    "Native desktop and mobile apps that ring you when someone knocks",
+    "Audio engineering: echo cancellation, noise suppression, levels that hold up for eight hours a day",
+    "Reconnection and bandwidth adaptation on bad networks, which is most networks",
+    "Admin and org plumbing: SSO, provisioning, guest links, calendar hooks",
+    "The actual point, which is that your coworkers are already in the building"
+  ],
+  "moatTags": [
+    "collaboration",
+    "scale-infra",
+    "execution-polish"
+  ],
+  "moatNotes": "The floor plan is the demo. The eight-hour uptime of forty simultaneous audio streams is the product.",
+  "whyPeopleStillPay": "Nobody buys a virtual office for the UI, they buy it because the team agreed to be in one place and the thing has to work every single morning without anyone thinking about it. Always-on real-time media is unglamorous and expensive to get right: relays in the right regions, graceful degradation, native apps that survive sleep and wake. A self-hosted clone will work great in a two-person test and fall apart the first time someone joins from an airport, and at that point you own the pager.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The floor plan is a weekend; the dial tone is not. The moat is always-on real-time media infrastructure plus the fact that everyone you work with is already logged into it.",
+  "prompt": "Build a self-hosted spatial virtual office web app. Stack: Next.js (App Router, TypeScript), Tailwind, and LiveKit for WebRTC. No database beyond a single SQLite file via better-sqlite3. No accounts, no signup flow, no telemetry.\n\nWhat to build:\n1. A single-page office view: a 2D floor plan rendered as absolutely positioned divs, defined by a hardcoded rooms.ts config (id, label, x, y, width, height, type: 'desk' | 'meeting' | 'lounge').\n2. On first load, ask for a display name, store it in localStorage. No auth.\n3. Presence: a LiveKit room per office, with participant metadata holding the current roomId. Clicking a room moves your avatar there and updates metadata. Everyone sees avatars reposition live.\n4. Media: you are published audio+video only to people in the same floor-plan room. Use LiveKit track subscriptions, subscribe only to participants whose metadata roomId matches yours. Leaving a room unsubscribes.\n5. Video tiles for co-located participants render in a strip at the bottom. Mute and camera toggle buttons. Push-to-talk is out of scope.\n6. A 'knock' action: click an avatar in another room to send a LiveKit data message; the recipient sees a toast with accept, which moves them to your room.\n7. A /api/token route that mints LiveKit tokens server-side from LIVEKIT_API_KEY and LIVEKIT_API_SECRET in .env.local. Never ship the secret to the client.\n\nExplicitly out of scope: screen sharing, recording, chat history, mobile layout, SSO, calendars, persistence of anything except display name.\n\nAlso write: a docker-compose.yml running livekit-server in dev mode with a coturn container, a .env.example, and a README that says plainly this works on a LAN or decent home connection and will struggle behind corporate NAT without a real TURN deployment.\n\nRun it, open two browser tabs, and confirm that moving between rooms connects and disconnects audio correctly before calling it done.",
+  "promptCurated": false
+}
