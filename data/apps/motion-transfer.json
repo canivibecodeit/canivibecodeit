@@ -1,0 +1,53 @@
+{
+  "slug": "motion-transfer",
+  "name": "Motion Transfer",
+  "domain": "motiontransfer.app",
+  "category": "ai-video",
+  "subcategory": "photo-to-video templates",
+  "tagline": "Turns a still photo into a short animated clip using preset motion templates aimed at social feeds.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "usage",
+    "source": "https://www.motiontransfer.app/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Freemium credit model is typical for this category but the tiers were not confirmed.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The app itself is a thin, pretty shell: upload image, pick a template, send an image-to-video job to a model, poll, show the result. An agent can rebuild that shell in one sitting, and the result will genuinely work. What it cannot rebuild is the part that costs money: the hosted video model, the GPU queue, and the hand tuned prompt presets that make a clip look like the trend instead of a melting hand. You will be renting Kling or Veo or Seedance through fal.ai or Replicate and paying per render, so you have swapped a subscription for a metered bill, which is sometimes cheaper and sometimes much worse. Call it a weekend build with a permanent third-party dependency bolted to its spine.",
+  "coreLoopDIY": "Upload a photo, pick one of a handful of hand written motion presets, fire an image-to-video job at a hosted model, poll until done, download the mp4.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "fal.ai or Replicate account with billing enabled and an API key",
+    "An image-to-video endpoint you are willing to pay per second for",
+    "Local disk or S3-ish bucket for the finished mp4s",
+    "Tolerance for 60 to 180 second render times and the occasional cursed output",
+    "Your own prompt presets, written by hand and tuned by trial and error"
+  ],
+  "whatYouLose": [
+    "The curated template library, which is really a prompt and reference-motion catalog someone keeps re-tuning as trends and models shift",
+    "A free tier that eats the GPU bill while you decide whether you care",
+    "Native mobile capture and share, which is where most of these clips actually get made",
+    "Queue management, retries and graceful failure when the upstream model is overloaded",
+    "Someone else absorbing the breakage every time a model provider deprecates an endpoint"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "scale-infra",
+    "proprietary-models"
+  ],
+  "moatNotes": "The moat is template curation and absorbed GPU cost, not code. If they ever fine-tune their own motion models, that moves from polish to something harder to copy.",
+  "whyPeopleStillPay": "Because the subscription is mostly a bet that someone else will keep the prompt presets current and swallow the render costs. Picking a thumbnail labeled with a trend name is a very different experience from writing camera-motion prompts and burning three dollars on failed generations to find out which phrasing works this month. The DIY build gives you the same mechanism and none of the taste, and taste is the whole product here.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "You can clone the button; you are still renting the thing the button talks to.",
+  "prompt": "Build a local photo-to-video tool called \"motion-bench\" in this empty folder.\n\nStack, no substitutions: Next.js 15 with the App Router, TypeScript, Tailwind, SQLite via better-sqlite3. Single process, runs with `npm run dev`. No auth, no accounts, no telemetry, no analytics.\n\nVideo generation: use fal.ai via the @fal-ai/client package. Read FAL_KEY from .env.local and never hardcode it. Write a .env.example with FAL_KEY= and a README line explaining where to get one and that renders cost real money per second.\n\nCore flow:\n1. Home page with a drop zone for a single image, max 10MB, jpeg/png/webp only. Store it under ./data/uploads with a uuid filename.\n2. Below it, a grid of motion presets loaded from presets.json at the repo root. Each preset has: id, label, prompt, negativePrompt, durationSeconds, aspectRatio. Ship 6 presets written by you: slow orbit, dolly in, hair and fabric drift, subtle head turn, parallax zoom out, handheld sway. Make the prompts specific about camera language and about keeping the subject's face stable.\n3. Clicking Generate inserts a job row in SQLite (id, imagePath, presetId, status, falRequestId, outputPath, error, createdAt) and submits to fal.ai's image-to-video queue API. Pick one model endpoint, hardcode it in a single MODEL constant with a comment that it will rot.\n4. A /jobs page lists all jobs newest first with status badges. Poll the queue status every 5 seconds from the client for any job that is queued or running.\n5. When a job completes, download the mp4 server-side into ./data/renders and serve it from a route handler. Inline video player plus a download link.\n\nExplicitly out of scope: editing or trimming, audio, watermarks, upscaling, batch runs, sharing links, mobile app, any trend feed.\n\nRequired: handle fal.ai errors by storing the message on the job row and showing it in the UI instead of swallowing it. Add a cost warning above the Generate button stating that each render bills the connected fal.ai account. Gitignore .env.local and ./data. Finish with a README covering setup, the one model constant to swap, and how to add a preset.",
+  "promptCurated": false
+}
