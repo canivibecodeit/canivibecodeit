@@ -1,0 +1,51 @@
+{
+  "slug": "state-property-meme",
+  "name": "State Property Meme",
+  "domain": "statepropertymeme.org",
+  "category": "ai-video",
+  "subcategory": "meme video generator",
+  "tagline": "Upload a photo of a person or pet and get back a short State Property style meme video with generated dialogue.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "one-time",
+    "source": "https://statepropertymeme.org/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified. Looks like a one-off credit purchase rather than a subscription."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "Under the hood this is a form, a prompt template, and three API calls: a language model for the dialogue, a text to speech voice, and an image to video model that animates the uploaded face. An agent can wire that up in an afternoon and your version will produce a video. What it will not do on the first try is produce a funny one, because the actual product here is a tuned prompt, a chosen voice, a reference clip format, and a hundred rejected variants you never saw. You also inherit the per render cost, which for a few seconds of generated video is not trivial, so a handful of homemade attempts can cost about what one finished video costs here. Buildable, yes. Cheaper or better, only if you enjoy the tuning.",
+  "coreLoopDIY": "A local web app that takes a photo plus a short scenario, writes meme dialogue with an LLM, voices it with TTS, animates the photo with a hosted image to video model, and muxes the result into an MP4 with ffmpeg.",
+  "diyTimeEstimate": "one sitting",
+  "requirements": [
+    "An image to video API key (fal.ai or Replicate)",
+    "An LLM API key for dialogue generation",
+    "A TTS API key, or a local voice model if you want zero per call cost",
+    "ffmpeg installed locally",
+    "Node 20 and a willingness to burn credits on bad takes"
+  ],
+  "whatYouLose": [
+    "The tuned prompt and reference clip format that makes the output read as the meme instead of generic AI slop",
+    "Voice selection and timing that actually lands the punchline",
+    "Someone else eating the failed generations instead of you paying for each one",
+    "A flow that works on a phone in thirty seconds with no API keys",
+    "Any content moderation, which matters the moment you let other people upload faces"
+  ],
+  "moatTags": [
+    "execution-polish",
+    "content-rights"
+  ],
+  "moatNotes": "The format is borrowed from a film with real rights holders, which is leverage right up until it is a liability. Either way it is not a technical moat.",
+  "whyPeopleStillPay": "Because the thing being sold is not video generation, it is a known good result for ten dollars with no setup. Anyone can call the same models; almost nobody wants to spend an evening discovering which prompt, voice, duration and aspect ratio make the joke work, then pay for the twelve attempts that did not. This is a novelty purchase with a very short attention span attached to it, and friction kills novelty purchases, so a one click page beats your local script even when your local script is technically identical.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "The code is a weekend toy; the comedy timing is the unlisted dependency.",
+  "prompt": "Build a local meme video generator as a single Next.js 15 app (App Router, TypeScript, Tailwind). No auth, no database, no payments, no telemetry, no deploy config. Single user on localhost.\n\nStack, non negotiable:\n- Next.js 15 App Router with route handlers for all API work\n- fal.ai for image to video (use an image to video model with audio support if available, otherwise video only)\n- OpenAI for dialogue generation\n- ElevenLabs for text to speech\n- fluent-ffmpeg plus a local ffmpeg binary for muxing and trimming\n- All keys in .env.local: FAL_KEY, OPENAI_API_KEY, ELEVENLABS_API_KEY. Ship .env.example. Never read keys client side.\n\nFlow:\n1. One page with a drop zone for a single image (jpg/png, max 10MB), a text input for the subject (\"my cat Gary\", \"my coworker Dave\"), a short scenario input, and a tone select with three fixed options: hyped, deadpan, menacing.\n2. POST /api/script: send subject, scenario and tone to the LLM with a system prompt that returns strict JSON {\"lines\":[{\"speaker\":\"A\",\"text\":\"...\"}]} , two to four lines, each under 12 words, street movie bravado register, no slurs. Validate with zod and retry once on parse failure.\n3. Show the script and let the user edit any line before rendering. This matters more than the rest of the app.\n4. POST /api/render: for each line call ElevenLabs with one hardcoded voice id per speaker, concatenate the audio, measure total duration with ffprobe, then call fal.ai image to video with the uploaded image, a motion prompt derived from the tone, and a duration clamped to the model's max.\n5. Download the generated video to ./out, mux the voice track over it with ffmpeg, burn in captions from the script using drawtext, write out/{timestamp}.mp4 and return the path.\n6. Stream progress to the UI with simple polling on a /api/status/{jobId} route backed by an in memory Map. Jobs die on restart; that is fine.\n\nIn scope: local file storage under ./out, a gallery page listing previous renders from disk, cost logging per render to a plain costs.jsonl.\nOut of scope: accounts, queues, S3, rate limiting, moderation, multi user, lip sync beyond whatever the model gives you.\n\nREADME must state: required API keys, how to install ffmpeg, the approximate per render cost, and a plain warning that recreating a copyrighted film's format for anything public is a legal problem, not a technical one.",
+  "promptCurated": false
+}
