@@ -1,0 +1,51 @@
+{
+  "slug": "huntflow",
+  "name": "Huntflow",
+  "domain": "huntflow.ru",
+  "category": "hr",
+  "subcategory": "applicant tracking system",
+  "tagline": "Recruiting ATS for tracking candidates through hiring pipelines, built around the Russian job board ecosystem.",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": null,
+    "basis": null,
+    "unit": "per-seat",
+    "source": "https://huntflow.ru/",
+    "checkedOn": "2026-10-28",
+    "confidence": "low",
+    "notes": "AI-drafted from a site submission; price unverified.",
+    "native": null
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "low",
+  "verdictSummary": "The visible part of an ATS is a kanban board with candidate cards, stage history, and notes, and that genuinely is a one-session build. The part that makes Huntflow worth paying for is everything feeding the board: resume parsing, the browser extension that pulls a candidate off hh.ru in one click, job board posting, and mailbox sync so replies land on the right card. A solo build gives you a tidy pipeline you have to type into by hand, which is fine for someone hiring three people and miserable for someone hiring thirty. Multi-recruiter workflows, hiring manager access, and reporting are also real features you would be rebuilding from zero. Call it a usable personal tracker, not a replacement.",
+  "coreLoopDIY": "A local kanban pipeline where you create vacancies, drag candidate cards between stages, attach resume files, and log notes and interview dates with full stage history.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "Node 20 and a local disk for SQLite and uploaded resumes",
+    "Optional LLM API key in .env if you want resume text pulled into fields automatically",
+    "You enter candidates yourself: no job board scraping, no email ingestion"
+  ],
+  "whatYouLose": [
+    "One-click candidate import from job boards and the browser extension that does it",
+    "Resume parsing that reliably fills name, contacts, and work history from a PDF or DOC",
+    "Mailbox and calendar sync, so candidate correspondence stays in your inbox instead of on the card",
+    "Shared access for hiring managers, comment threads, and approval steps",
+    "Reporting on funnel conversion, time to hire, and source effectiveness"
+  ],
+  "moatTags": [
+    "integrations",
+    "proprietary-data",
+    "collaboration"
+  ],
+  "moatNotes": "The hh.ru and SuperJob plumbing is the actual product; the board is the wrapper around it.",
+  "whyPeopleStillPay": "Recruiting is a data entry job, and an ATS earns its fee by removing the data entry. Huntflow sits next to the job boards Russian recruiters actually source from, so a candidate goes from search result to tracked applicant without anyone retyping a phone number. On top of that it is a shared workspace: hiring managers leave feedback, coordinators schedule, and the history of who said what about whom survives staff turnover. A local board you type into yourself solves the organizing problem and none of the intake problem, which is where the hours go.",
+  "priorArt": [],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "pagePriority": 3,
+  "verifiedOneShot": false,
+  "notes": "Fine for hiring your first few people, painful at volume.",
+  "prompt": "Build a local-first applicant tracking system called \"Pipeline\" that runs entirely on my machine.\n\nStack, no substitutions: Next.js 14 App Router with TypeScript, Prisma with SQLite, Tailwind, dnd-kit for drag and drop. No auth, no cloud, no telemetry, single user.\n\nData model:\n- Vacancy: title, department, status (open/on-hold/closed), stage list (ordered, defaults: New, Screening, Interview, Offer, Hired, Rejected), createdAt.\n- Candidate: name, email, phone, currentRole, source (freeform text, e.g. hh.ru, referral, inbound), salaryExpectation, resumeFilePath, createdAt.\n- Application: links one Candidate to one Vacancy, has currentStage, createdAt. A candidate can apply to multiple vacancies.\n- StageEvent: applicationId, fromStage, toStage, at, comment. Written on every move, never edited or deleted.\n- Note: applicationId, body, createdAt.\n- Interview: applicationId, scheduledAt, kind (call/tech/final), outcome (pending/pass/fail), notes.\n\nScreens:\n1. /vacancies: list with open application counts, create and edit forms.\n2. /vacancies/[id]: kanban board, one column per stage, cards show candidate name, current role, days in stage. Drag a card to move stages, which opens a small dialog for an optional comment, then writes a StageEvent.\n3. /candidates/[id]: profile with contacts, resume download link, all applications, and a merged reverse-chronological timeline of StageEvents, Notes, and Interviews.\n4. /: dashboard with per-vacancy funnel counts and a list of interviews scheduled in the next 7 days.\n\nResume handling: file upload to ./uploads, path stored in the DB, served through a route handler. Extract plain text from PDFs with pdf-parse and store it on the candidate so search can hit it.\n\nSearch: one input in the header doing case-insensitive match over candidate name, email, phone, and resume text.\n\nOptional and off by default: if OPENAI_API_KEY is set in .env, add a \"parse resume\" button on the candidate form that sends the extracted text and prefills name, email, phone, and current role. Never call out when the key is absent.\n\nExplicitly out of scope: job board integrations, email sending or inbox sync, calendar sync, multi-user accounts, permissions, careers page.\n\nShip a seed script with 2 vacancies and 12 candidates spread across stages, a README with setup in four commands, and .env.example. Secrets only in .env.",
+  "promptCurated": false
+}
