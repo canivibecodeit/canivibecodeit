@@ -1,0 +1,71 @@
+{
+ "slug": "licitacao-pro",
+ "name": "licitacao.pro",
+ "domain": "licitacao.pro",
+ "category": "sales-outreach",
+ "subcategory": "Brazilian public tender monitoring",
+ "tagline": "Watches Brazil's national procurement portal (PNCP) for a company's CNPJ and has AI read each tender notice",
+ "priceMonthly": 9,
+ "discontinued": null,
+ "pricing": {
+  "plan": "Profissional",
+  "basis": "monthly; R$ 49/month converted at about 5.4 BRL per USD. Annual is R$ 397/year (about $6/month)",
+  "unit": "flat",
+  "source": "https://licitacao.pro/radar",
+  "checkedOn": "2026-11-06",
+  "confidence": "medium",
+  "notes": "Single plan, billed in BRL via Pix or card. The monthly price is being A/B tested at R$ 49 vs R$ 67 (about $12); the annual stays at R$ 397. USD figures move with the exchange rate.",
+  "native": "49 BRL",
+  "freeTier": "No free plan or trial. A free CNPJ lookup on the site shows matching open tenders without an account."
+ },
+ "verdict": "kinda",
+ "verdictConfidence": "medium",
+ "verdictSummary": "The data is public: PNCP has an open API with every federal, state and municipal tender, and an LLM reads a tender PDF fine. A personal version that polls PNCP for your CNAE codes and region, pulls the notice, and asks an LLM \"can I bid on this, and what documents do I need\" is a weekend. The gaps are the boring ones: notices arrive as scanned PDFs, zips and annexes in a dozen layouts, the API paginates slowly and changes shape, and the winning-price history only gets useful after months of collecting it. Keep paying if you want someone else running the 15-minute collector and the PDF pipeline every morning.",
+ "coreLoopDIY": "Poll the PNCP API for new tenders matching your CNAE codes and states, download each notice, have an LLM summarize fit, deadline and required documents, and email a morning digest.",
+ "diyTimeEstimate": "a weekend",
+ "requirements": [
+  "OpenAI or Anthropic API key",
+  "your company's CNAE codes and the states you sell to",
+  "an always-on box for the poller (a cheap VPS or a home server)",
+  "SMTP credentials for the digest"
+ ],
+ "whatYouLose": [
+  "notice parsing that already handles scans, zips and multi-annex tenders",
+  "months of collected winning prices to anchor a bid",
+  "ready-made declaration templates (.docx) filled with your company data",
+  "a deadline agenda and kanban that already knows the tender stages",
+  "someone noticing when PNCP changes or goes slow"
+ ],
+ "moatTags": [
+  "execution-polish",
+  "proprietary-data"
+ ],
+ "moatNotes": "the data source is public; the collected price history and the PDF pipeline are the work",
+ "whyPeopleStillPay": "Small suppliers who sell to government are not going to run a poller and a PDF pipeline. For about the price of a lunch a month they get a daily list of tenders they can actually bid on, with the notice already read, which is what they were paying a person or a spreadsheet habit to do.",
+ "priorArt": [
+  {
+   "name": "PNCP API",
+   "url": "https://pncp.gov.br/api/consulta/swagger-ui/index.html",
+   "desc": "the official open API for Brazilian public procurement; every DIY build starts here"
+  },
+  {
+   "name": "Querido Diário",
+   "url": "https://github.com/okfn-brasil/querido-diario",
+   "desc": "open-source scrapers for municipal official gazettes, where some tenders still show up first"
+  }
+ ],
+ "alternatives": [],
+ "rejectedAlternatives": [
+  {
+   "name": "PNCP portal search",
+   "url": "https://pncp.gov.br/app/editais",
+   "desc": "Free and official, but it is a search box: no saved alerts, no digest, and nobody reads the notice for you."
+  }
+ ],
+ "relatedSlugs": [],
+ "pagePriority": 2,
+ "verifiedOneShot": false,
+ "notes": "Brazil-only. R$ 49/month (A/B testing R$ 67) or R$ 397/year, checked 2026-11-06.",
+ "prompt": "Build me a personal Brazilian public tender monitor to replace licitacao.pro. Requirements:\n\n- Node + TypeScript, better-sqlite3 for storage, node-cron for scheduling. A tiny\n  Express page on localhost:3000, no frontend framework.\n- config.yaml holds my CNPJ, CNAE codes, keywords, excluded keywords, the states\n  (UF) I sell to, and a max contract value.\n- Every 30 minutes, query the public PNCP consulta API for tenders published since\n  the last run. Respect pagination and back off on 429/5xx. Store each tender once\n  by its PNCP control number.\n- Pre-filter cheaply on keywords, UF and value before any LLM call.\n- For survivors, download the notice (PDF, or the first PDF inside a zip), extract\n  text with pdf-parse, and send at most 40k characters to an LLM (key in .env).\n  Ask for JSON: fit score 0-100, one-line reason, proposal deadline, session date,\n  required qualification documents, and red flags (e.g. exclusive to ME/EPP).\n- Mark scanned PDFs with no text as \"read it yourself\" instead of guessing.\n- At 08:00, email a digest via SMTP (.env) of new tenders scoring 60+, sorted by\n  deadline, each with the PNCP link.\n- Dashboard: table of tenders with score, deadline, status (new, bidding, skipped,\n  won, lost) and the LLM summary. Status changes are one click.\n- No accounts, no telemetry. Secrets in .env.\n- Out of scope: OCR for scanned notices, winning-price history, filling\n  declarations, and submitting bids. Bidding still happens on the government portal.\n- README: how to find my CNAE codes, the .env keys, and a note that PNCP is slow\n  and sometimes down, so missed runs catch up on the next one.",
+ "promptCurated": true
+}
