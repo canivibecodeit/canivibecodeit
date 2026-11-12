@@ -1,0 +1,75 @@
+{
+  "slug": "anyhook",
+  "name": "AnyHook",
+  "domain": "anyhook.net",
+  "category": "dev-tools",
+  "subcategory": "inbound webhook relay",
+  "tagline": "One public URL that takes delivery of your inbound webhooks, so connecting a service does not mean standing up a receiver and keeping it alive.",
+  "priceMonthly": 20,
+  "pricing": {
+    "plan": "Pro",
+    "basis": "monthly flat plus usage overage",
+    "unit": "flat",
+    "source": "https://anyhook.net/pricing",
+    "checkedOn": "2026-08-26",
+    "confidence": "high",
+    "notes": "Pro is $20/month with 50,000 events included, then $0.90 per 1,000. Scale is $90/month with 250,000 included, then $0.70 per 1,000. Enterprise is contact-sales. Billed monthly, no annual plan advertised. Replays do not consume quota.",
+    "native": "20 USD",
+    "freeTier": "The free plan covers 3,000 events a month on one app, capped at 100 events a day, with 3 delivery attempts and a 3-day replay window."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "An agent will write this in one session: accept a POST, put it on a durable queue, forward with backoff. That is the half a prompt can produce. The other half is a public HTTPS address that answers at any hour, which is not code and cannot be generated, and it is where the whole difficulty lives. A webhook receiver has no local mode. So the price of connecting one small thing, a chat bot, comment events from a social platform, a payment processor, is a host you now operate for as long as that integration exists, and the second service does not reuse it for free, because each sender signs differently and keeping up with that is yours. Two details also cost more than they look. The sender's signature expires, so an hour-old retry fails at your own door unless you re-sign on the way out. And model providers want a 2xx in roughly ten seconds, so the queue has to take the request before your handler starts, or the provider retries and the same tokens get paid for twice. The verdict is not really about the code, which is genuinely a weekend. It is that at the end of the weekend you are running a server for a twenty-line feature.",
+  "coreLoopDIY": "Accepts provider POSTs at a stable per-app URL, verifies the source signature, acks immediately, queues each event durably, forwards it to your server with retries and backoff, and keeps the payload so you can replay it later.",
+  "diyTimeEstimate": "a weekend",
+  "requirements": [
+    "A host that answers publicly over HTTPS at any hour, because a webhook receiver cannot run on your laptop",
+    "A durable queue you did not write yourself (Cloudflare Queues, QStash, SQS)",
+    "An ack path fast enough for a ten-second provider window, which rules out doing the work inline",
+    "Somewhere to keep request bodies, and a plan for when that table grows",
+    "A URL that never changes once a provider has been given it"
+  ],
+  "whatYouLose": [
+    "A public HTTPS address you do not operate, which is the actual cost of receiving a webhook and the one part an agent cannot generate for you",
+    "Signature verification for each provider, kept current as they change their schemes",
+    "Re-signing on every delivery, so a retry hours later still verifies instead of failing on the sender's expired timestamp",
+    "An ack inside the provider's window whatever your handler is doing, which is what stops a slow model call becoming a retried and twice-billed run",
+    "The stored request bodies, which is the difference between seeing what a provider actually sent and guessing from your own logs"
+  ],
+  "moatTags": [
+    "scale-infra",
+    "integrations",
+    "execution-polish"
+  ],
+  "moatNotes": "Nothing structural in the code. The structure is that a webhook receiver cannot be local: a public host answering at any hour, for as long as the integration exists, plus signature upkeep for every sender added. That is the part being rented, and the part a one-shot build hands back to you rather than solves.",
+  "whyPeopleStillPay": "The awkward thing about webhooks is the ratio. The handler for a new integration is often twenty lines, and receiving it takes a public host that never sleeps, so the marginal cost of the fifth service is not five more handlers, it is five more signature schemes on a box you are now responsible for. Which is why the people who pay for this are usually not running anything dramatic. They are wiring a chat bot to a backend, or catching comment events off a social platform, and they do not want a VPS in the loop for it. The stakes get interesting at the two ends of the range. A dropped payment event is a customer who paid and never got access, found weeks later by someone reading a statement. A dropped model callback is worse arithmetic, because the GPU time was already spent and getting the result back means paying for the run twice. In the ordinary middle, an endpoint that times out often enough gets switched off at the source, and then the work is not debugging a queue, it is re-enrolling with the provider and reconciling by hand whatever arrived in the gap.",
+  "priorArt": [
+    { "name": "Convoy", "url": "https://github.com/frain-dev/convoy", "desc": "Open-source webhook gateway; heavier than a relay, but the ingest and retry model is worth reading before writing your own" },
+    { "name": "smee.io", "url": "https://github.com/probot/smee.io", "desc": "GitHub's webhook forwarder, small enough to read in one sitting if you want the tunnel half of the problem" },
+    { "name": "Cloudflare Queues", "url": "https://developers.cloudflare.com/queues/", "desc": "The durable hop the whole build depends on, with a free tier" }
+  ],
+  "alternatives": [
+    {
+      "name": "Convoy",
+      "url": "https://getconvoy.io",
+      "type": "open-source",
+      "repo": "https://github.com/frain-dev/convoy",
+      "platforms": ["self-hosted", "web"],
+      "desc": "A full webhook gateway you run yourself: ingest, fan-out, retries, a log and replay. Costs you a Postgres, a Redis and the upkeep.",
+      "stars": 2862,
+      "lastCommit": "2026-08",
+      "selfHost": "ops",
+      "checkedOn": "2026-08-26"
+    }
+  ],
+  "rejectedAlternatives": [
+    { "name": "smee.io", "url": "https://smee.io", "desc": "The usual recommendation, and a development tunnel. It forwards to localhost while you watch it, does not retry, and keeps nothing you could look at later." },
+    { "name": "ngrok", "url": "https://ngrok.com", "desc": "Solves reaching localhost, not surviving a failed delivery, and on the free tier the URL changes between sessions, which an inbound webhook URL cannot do." }
+  ],
+  "relatedSlugs": ["svix", "pipedream"],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Submitted by the maintainer. The line that matters for this site: an agent can write the handler, it cannot produce a URL that exists.",
+  "prompt": "Build a self-hosted inbound webhook relay: one public URL that takes delivery for every service you connect, so you are not standing up a receiver per integration. One Cloudflare Workers project, TypeScript, Hono for routing, Cloudflare Queues for durability, D1 for the event log, KV for app config. Workers because this has to answer publicly at any hour and a laptop cannot: there is no local mode for a webhook receiver. Nothing else: no Postgres, no Redis, no always-on box of your own. Secrets live in wrangler.toml and worker secrets.\n\nD1 schema:\n- apps: id, slug, source, source_secret, destination_url, signing_secret, created_at\n- events: id, app_id, event_type, status (queued|success|retrying|failed|rejected), attempt, max_attempts, inbound_headers json, inbound_body text, outbound_status, latency_ms, created_at\n\nIngress, POST /:app-slug:\n- Look up the app in KV; on a miss, 404 and negative-cache the miss for 60 seconds so a slug scan cannot amplify cost.\n- Before any other work, 400 if the provider's required signature header is absent.\n- If source_secret is set, verify the provider signature. Senders do not agree on a scheme: implement a chat platform's, a payment processor's, and the standard-webhooks header trio, and write a rejected event row rather than dropping anything silently.\n- Put the raw body and headers on a Cloudflare Queue, then return 200. Do no forwarding work on this path: senders can give you as little as ten seconds, and a late ack means the provider retries and the job is charged for twice. If the enqueue fails, return 503 so the sender's own retry is the last fallback. Never return 200 for something that was not persisted.\n\nQueue consumer:\n- POST the original body to destination_url, forwarding the provider's headers untouched.\n- Add your own Webhook-Signature: hex HMAC-SHA256 over \"{timestamp}.{body}\" with the app's signing_secret, plus Webhook-Timestamp. Re-sign on every attempt, so an hour-old retry still verifies at the far end.\n- Success is any 2xx. Retry with backoff 5m, 30m, 3h, 18h, 24h, then mark failed.\n- Write one events row per attempt, truncating stored bodies at 512KB.\n\nAlso build a server-rendered log page at / behind a static API key: list events with status and time, expand one to see the headers and body a provider actually sent, and a replay button that re-enqueues an event flagged as a replay so it is not counted twice.\n\nOut of scope: user accounts, billing, fan-out to several destinations, payload transformation, an archive tier.\n\nInclude a README with wrangler deploy, the D1 migration, and a curl that registers an app pointing at a local sink. Add a script that runs a sink on port 4000 which verifies Webhook-Signature and prints the payload. Write tests for each signature verifier, for the backoff schedule, and for the ack returning before any forwarding happens.",
+  "promptCurated": true
+}
