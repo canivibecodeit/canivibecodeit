@@ -334,7 +334,9 @@ async function deriveBoard(now) {
       // open unit; /sponsor still sells the slot (state stays 'open').
       house: !live && !blocked && !heldByOperator.has(id) ? HOUSE_CARDS.find((h) => h.slot === id) ?? null : null,
       // Subscriptions: the end of the paid period, not the renewal grace.
-      endsAt: live ? paidEndAt(live) : null,
+      // During a failed renewal's week-long hold the paid end is already
+      // past; the hold's end is the honest date to show then.
+      endsAt: live ? (paidEndAt(live) > now ? paidEndAt(live) : live.ends_at) : null,
       sponsor: live
         ? {
             name: live.name,

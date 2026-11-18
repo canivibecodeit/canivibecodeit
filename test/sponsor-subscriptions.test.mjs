@@ -243,17 +243,21 @@ async function subscribeAndApprove(slot, subId, { paidAt = Date.now() } = {}) {
   return db.purchaseById(purchaseId);
 }
 
-/* A database write that fails for one row, on either driver (finding 1). */
-async function failWritesFor(id) {
+/* A database write that fails for one row, on either driver (finding 1).
+   onlyEnds: fail only a write that changes ends_at, i.e. the second of two
+   separate writes in the code before N1 was fixed. */
+async function failWritesFor(id, { onlyEnds = false } = {}) {
   const raw = await db.authDatabase();
   const safe = id.replace(/[^a-z0-9-]/gi, '');
   if (PG) {
+    const cond = `OLD.id = '${safe}'${onlyEnds ? ' AND NEW.ends_at IS DISTINCT FROM OLD.ends_at' : ''}`;
     await raw.query(`CREATE OR REPLACE FUNCTION cvci_test_fail() RETURNS trigger AS $$
-      BEGIN IF OLD.id = '${safe}' THEN RAISE EXCEPTION 'injected failure'; END IF; RETURN NEW; END $$ LANGUAGE plpgsql`);
+      BEGIN IF ${cond} THEN RAISE EXCEPTION 'injected failure'; END IF; RETURN NEW; END $$ LANGUAGE plpgsql`);
     await raw.query('DROP TRIGGER IF EXISTS cvci_test_fail ON sponsor_purchases');
     await raw.query('CREATE TRIGGER cvci_test_fail BEFORE UPDATE ON sponsor_purchases FOR EACH ROW EXECUTE FUNCTION cvci_test_fail()');
   } else {
-    raw.exec(`CREATE TRIGGER cvci_test_fail BEFORE UPDATE ON sponsor_purchases WHEN OLD.id = '${safe}'
+    const cond = `OLD.id = '${safe}'${onlyEnds ? ' AND NEW.ends_at IS NOT OLD.ends_at' : ''}`;
+    raw.exec(`CREATE TRIGGER cvci_test_fail BEFORE UPDATE ON sponsor_purchases WHEN ${cond}
       BEGIN SELECT RAISE(ABORT, 'injected failure'); END`);
   }
 }
@@ -680,7 +684,80 @@ test('1: a handler that throws answers 500 and alerts Rob once; the redelivery t
     await healWrites();
   }
   await deliver('invoice.paid', inv, { id });
-  assert.equal((await db.purchaseById(row.id)).paid_through, row.paid_through + 30 * DAY);
+  const healed = await db.purchaseById(row.id);
+  assert.equal(healed.paid_through, row.paid_through + 30 * DAY);
+  assert.equal(healed.ends_at, healed.paid_through + row.shift_ms + sponsors.RENEWAL_GRACE_MS, 'N1: the card was extended too');
+});
+
+test('N1: a renewal whose write fails is not half-applied; the redelivery extends the card', async () => {
+  const row = await subscribeAndApprove('L2', 'sub_atomic1');
+  const inv = invoice('in_atomic1_2', 'sub_atomic1', row.paid_through, row.paid_through + 30 * DAY);
+  const id = `evt_${crypto.randomUUID()}`;
+  await failWritesFor(row.id, { onlyEnds: true });
+  try {
+    await deliver('invoice.paid', inv, { expect: 500, id });
+  } finally {
+    await healWrites();
+  }
+  const mid = await db.purchaseById(row.id);
+  assert.equal(mid.paid_through, row.paid_through, 'nothing recorded by the failed delivery');
+  assert.equal(mid.ends_at, row.ends_at);
+  await deliver('invoice.paid', inv, { id });
+  const after1 = await db.purchaseById(row.id);
+  assert.equal(after1.paid_through, row.paid_through + 30 * DAY);
+  assert.equal(after1.ends_at, after1.paid_through + row.shift_ms + sponsors.RENEWAL_GRACE_MS);
+});
+
+test('N1: the late-payment variant: a failed write, then the redelivery puts the card back up', async () => {
+  const row = await subscribeAndApprove('L4', 'sub_atomic2');
+  await db.updatePurchase(row.id, { paid_through: Date.now() - 9 * DAY, shift_ms: 0, ends_at: Date.now() - 2 * DAY });
+  sponsors.clearCache();
+  const inv = invoice('in_atomic2_2', 'sub_atomic2', Date.now() - 9 * DAY, Date.now() + 21 * DAY);
+  const id = `evt_${crypto.randomUUID()}`;
+  await failWritesFor(row.id, { onlyEnds: true });
+  try {
+    await deliver('invoice.paid', inv, { expect: 500, id });
+  } finally {
+    await healWrites();
+  }
+  assert.ok((await db.purchaseById(row.id)).ends_at < Date.now(), 'still down, nothing half-applied');
+  mails.length = 0;
+  await deliver('invoice.paid', inv, { id });
+  const back = await db.purchaseById(row.id);
+  assert.equal(back.status, 'live');
+  assert.equal(back.ends_at, back.paid_through + sponsors.RENEWAL_GRACE_MS);
+  assert.ok(back.ends_at > Date.now() + 21 * DAY);
+  assert.equal((await sponsors.getBoard()).slots.find((s) => s.id === 'L4').state, 'live');
+  assert.ok(!toRob().some((m) => /not running/.test(m.subject)), 'no misleading "card we are not running" alert');
+});
+
+test('N2: a late payment racing a new buyer for the same slot: exactly one keeps it', async () => {
+  for (let round = 0; round < 4; round++) {
+    const row = await subscribeAndApprove('R3', `sub_lateRace${round}`);
+    await db.updatePurchase(row.id, { paid_through: Date.now() - 9 * DAY, shift_ms: 0, ends_at: Date.now() - 2 * DAY });
+    sponsors.clearCache();
+    const s = await startCheckout('R3');
+    addSub(`sub_newRace${round}`, { start: Date.now(), end: Date.now() + 30 * DAY });
+    stripe.delay = 6;
+    await Promise.all([
+      deliver('invoice.paid', invoice(`in_lateRace${round}_2`, `sub_lateRace${round}`, Date.now() - 9 * DAY, Date.now() + 21 * DAY)),
+      deliver('checkout.session.completed', sessionFor(s, `sub_newRace${round}`)),
+    ]);
+    stripe.delay = 0;
+    const blocking = (await db.activePurchases()).filter((p) => p.slot_id === 'R3' && sponsors.blocksSlot(p, Date.now()));
+    assert.equal(blocking.length, 1, `round ${round}: one holder, got ${blocking.map((b) => b.status).join(',')}`);
+  }
+});
+
+test('6 residual: a first invoice whose session cannot be looked up alerts Rob', async () => {
+  await free('R4');
+  const s = await startCheckout('R4');
+  const pid = s.body.get('metadata[purchase_id]');
+  addSub('sub_nolookup1', { start: Date.now(), end: Date.now() + 30 * DAY });
+  // The session is unknown to the fake Stripe: the lookup fails.
+  mails.length = 0;
+  await deliver('invoice.paid', invoice('in_nolookup1_1', 'sub_nolookup1', Date.now(), Date.now() + 30 * DAY, { reason: 'subscription_create', meta: { purchase_id: pid } }));
+  assert.ok(toRob().some((m) => /never checked in/.test(m.subject)));
 });
 
 test('a one-off payment session still follows the old path', async () => {

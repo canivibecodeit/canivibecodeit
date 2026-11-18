@@ -138,6 +138,8 @@ const msg = Astro.url.searchParams.get('msg') || '';
 const sub = purchase && isSubscription(purchase) ? purchase : null;
 const subEnd = sub ? paidEndAt(sub) : null;
 const subEnding = !!(sub && (sub.cancel_at || sub.canceled_at));
+// A failed renewal's hold: paid time is over, the card is still up.
+const subRetrying = !!(sub && !subEnding && sub.status === 'live' && subEnd <= now && sub.ends_at > now);
 const canCancel = !!(sub && !subEnding && sub.status === 'live');
 const title = 'Your sponsor stats · canivibecodeit';
 const description = 'Private placement stats for your sponsor slot.';
@@ -313,7 +315,9 @@ const description = 'Private placement stats for your sponsor slot.';
               <p class="sps-sub-line">
                 {subEnding
                   ? `Cancelled. Your card stays up until ${shortDate(subEnd)}.`
-                  : sub.status === 'live'
+                  : subRetrying
+                    ? `Your last payment failed. The card stays up until ${shortDate(sub.ends_at)} while it is retried.`
+                    : sub.status === 'live'
                     ? `Renews monthly. Paid until ${shortDate(subEnd)}.`
                     : `Ended ${shortDate(subEnd)}.`}
               </p>

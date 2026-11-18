@@ -1325,6 +1325,19 @@ async function pgDriver() {
       const r = await pool.query(sql, params);
       return r.rowCount;
     },
+    async advancePaid(id, { paidThrough, invoiceId, subscriptionId, extraMs, status }, whereStatusIn) {
+      const r = await pool.query(
+        `UPDATE sponsor_purchases
+            SET paid_through = $2::bigint,
+                stripe_invoice_id = $3,
+                stripe_subscription_id = COALESCE(stripe_subscription_id, $4),
+                ends_at = $2::bigint + COALESCE(shift_ms, 0) + $5::bigint,
+                status = COALESCE($6::text, status)
+          WHERE id = $1 AND (paid_through IS NULL OR paid_through < $2::bigint) AND status = ANY($7)`,
+        [id, paidThrough, invoiceId, subscriptionId, extraMs, status ?? null, whereStatusIn]
+      );
+      return r.rowCount;
+    },
     async setEndsFromPaid(id, extraMs, whereStatusIn) {
       const r = await pool.query(
         `UPDATE sponsor_purchases SET ends_at = paid_through + COALESCE(shift_ms, 0) + $2
@@ -2236,6 +2249,22 @@ async function sqliteDriver() {
       }
       return db.prepare(sql).run(...params).changes;
     },
+    async advancePaid(id, { paidThrough, invoiceId, subscriptionId, extraMs, status }, whereStatusIn) {
+      return db
+        .prepare(
+          `UPDATE sponsor_purchases
+              SET paid_through = @paid, stripe_invoice_id = @inv,
+                  stripe_subscription_id = COALESCE(stripe_subscription_id, @sub),
+                  ends_at = @paid + COALESCE(shift_ms, 0) + @extra,
+                  status = COALESCE(@status, status)
+            WHERE id = @id AND (paid_through IS NULL OR paid_through < @paid)
+              AND status IN (${whereStatusIn.map((_, i) => `@s${i}`).join(', ')})`
+        )
+        .run({
+          id, paid: paidThrough, inv: invoiceId, sub: subscriptionId, extra: extraMs, status: status ?? null,
+          ...Object.fromEntries(whereStatusIn.map((v, i) => [`s${i}`, v])),
+        }).changes;
+    },
     async setEndsFromPaid(id, extraMs, whereStatusIn) {
       return db
         .prepare(
@@ -2882,6 +2911,14 @@ export async function updatePurchase(id, fields, whereStatusIn, guard) {
 /* A subscription's card end, computed in the same statement from the row's
    own paid_through and shift_ms: two events landing together can never write
    an end from a paid_through the other one already moved. */
+/* A paid renewal in ONE statement: paid_through moves forward and the card's
+   end follows it, or nothing changes at all. A failure can never leave a
+   recorded payment whose card was not extended (a redelivery would then see
+   the payment as applied and skip it). status, when given, is set too. */
+export async function advancePaid(id, fields, whereStatusIn) {
+  return (await getDriver()).advancePaid(id, fields, whereStatusIn);
+}
+
 export async function setEndsFromPaid(id, extraMs, whereStatusIn) {
   return (await getDriver()).setEndsFromPaid(id, extraMs, whereStatusIn);
 }

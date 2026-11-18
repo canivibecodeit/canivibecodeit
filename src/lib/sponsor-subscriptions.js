@@ -19,8 +19,8 @@
 
 import crypto from 'node:crypto';
 import {
-  activePurchases, insertPurchase, purchaseById, purchaseBySubscription, setEndsFromPaid,
-  updatePurchase,
+  activePurchases, advancePaid, insertPurchase, purchaseById, purchaseBySubscription,
+  setEndsFromPaid, updatePurchase,
 } from './db.js';
 import { alertRob, brandShell, button, esc, recPs, sendMail, shell } from './mail.js';
 import {
@@ -166,6 +166,7 @@ async function invoicePaid(inv, subId, promote, now) {
        usually lands seconds later, but if it was lost the row would stay
        unpaid while Stripe bills every month: settle it from the session. */
     let promoted = false;
+    let lookupFailed = false;
     if (promote && row.stripe_session_id) {
       try {
         const session = await getSession(row.stripe_session_id);
@@ -174,10 +175,13 @@ async function invoicePaid(inv, subId, promote, now) {
           promoted = !!after && !['hold', 'expired_hold'].includes(after.status);
         }
       } catch (err) {
+        lookupFailed = true;
         console.error(`invoice ${inv.id}: session lookup for ${row.id} failed: ${err?.message || err}`);
       }
     }
-    if (!promoted && inv.billing_reason !== 'subscription_create') {
+    // A first invoice normally just beats its checkout completion: quiet,
+    // unless we could not even look the session up.
+    if (!promoted && (inv.billing_reason !== 'subscription_create' || lookupFailed)) {
       await alertRob(
         `sponsor paid but never checked in · ${row.slot_id}`,
         shell(
@@ -221,10 +225,10 @@ async function invoicePaid(inv, subId, promote, now) {
   }
 
   const extra = TERM_EXTRA_MS[row.cancel_at ? 'ending' : 'renewing'];
+  const paid = { paidThrough: periodEnd, invoiceId: inv.id, subscriptionId: subId, extraMs: extra };
 
   if (row.status === 'live' && row.ends_at > now) {
-    if (!(await updatePurchase(row.id, fields, ['live'], forward))) return true;
-    await setEndsFromPaid(row.id, extra, ['live']);
+    if (!(await advancePaid(row.id, paid, ['live']))) return true;
     clearCache();
     await alertRob(
       `sponsor renewed · ${row.slot_id} ${who(row)} (${usd(inv.amount_paid)})`,
@@ -235,13 +239,18 @@ async function invoicePaid(inv, subId, promote, now) {
 
   /* The card came down (the week's hold ran out) and a later retry paid. It
      goes back up if nobody has taken the slot since; otherwise the money goes
-     back and the subscription stops. */
+     back and the subscription stops. The check and the write run under the
+     slot's lock (the same one checkout promotions take; lock order is always
+     subscription, then slot), so a new buyer cannot slip in between. */
+  return withSubLock(`slot:${row.slot_id}`, () => latePayment(row, inv, subId, paid, now));
+}
+
+async function latePayment(row, inv, subId, paid, now) {
   const rivals = (await activePurchases()).filter(
     (o) => o.slot_id === row.slot_id && o.id !== row.id && blocksSlot(o, now)
   );
   if (rivals.length === 0) {
-    if (!(await updatePurchase(row.id, { ...fields, status: 'live' }, ['live', 'expired'], forward))) return true;
-    await setEndsFromPaid(row.id, extra, ['live']);
+    if (!(await advancePaid(row.id, { ...paid, status: 'live' }, ['live', 'expired']))) return true;
     clearCache();
     await alertRob(
       `sponsor paid late, card back up · ${row.slot_id} ${who(row)}`,
@@ -250,15 +259,23 @@ async function invoicePaid(inv, subId, promote, now) {
     return true;
   }
 
-  await markCancelling(row, now);
+  /* Recorded first, in one statement: the payment as applied, the row ended
+     and marked as cancelled by us. A redelivery after a failure below then
+     sees the payment as applied and stays quiet; the alert says what failed. */
+  const claimed = await updatePurchase(
+    row.id,
+    { paid_through: paid.paidThrough, stripe_invoice_id: inv.id, status: 'expired', canceled_at: now, cancel_at: row.cancel_at ?? now },
+    ['live', 'expired'],
+    { below: { paid_through: paid.paidThrough } }
+  );
+  if (!claimed) return true;
+  clearCache();
   let failure = null;
   try {
     await cancelAndRefund(row, { invoiceId: inv.id, refundKey: `refund-late-${row.id}` });
   } catch (err) {
     failure = err;
   }
-  await updatePurchase(row.id, { ...fields, status: 'expired' }, ['live', 'expired']);
-  clearCache();
   if (!failure) {
     await sendMail({
       to: row.email,
