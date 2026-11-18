@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { impressionRows, purchaseByToken, sponsorClickRows } from '../../lib/db.js';
 import {
-  DEFAULT_TINT, faviconUrl, shortDate, tintChannels, usd, withUtm,
+  DEFAULT_TINT, faviconUrl, isSubscription, paidEndAt, shortDate, tintChannels, usd, withUtm,
 } from '../../lib/sponsors.js';
 
 /* Private per-sponsor stats. The URL token is the same per-purchase secret the
@@ -131,6 +131,16 @@ const sponsor = hasRun
   : null;
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-US');
+const msg = Astro.url.searchParams.get('msg') || '';
+
+/* A subscription's line: when it renews, or when it ends once cancelled. The
+   cancel button shows only while there is a renewal left to stop. */
+const sub = purchase && isSubscription(purchase) ? purchase : null;
+const subEnd = sub ? paidEndAt(sub) : null;
+const subEnding = !!(sub && (sub.cancel_at || sub.canceled_at));
+// A failed renewal's hold: paid time is over, the card is still up.
+const subRetrying = !!(sub && !subEnding && sub.status === 'live' && subEnd <= now && sub.ends_at > now);
+const canCancel = !!(sub && !subEnding && sub.status === 'live');
 const title = 'Your sponsor stats · canivibecodeit';
 const description = 'Private placement stats for your sponsor slot.';
 ---
@@ -186,7 +196,9 @@ const description = 'Private placement stats for your sponsor slot.';
               <span class="sps-name">{sponsor.name}</span>
             </span>
             <span class="sps-term microlabel">
-              slot {purchase.slot_id} · {shortDate(purchase.starts_at)} – {shortDate(purchase.ends_at)} · {usd(purchase.amount_cents)}
+              {sub
+                ? `slot ${purchase.slot_id} · since ${shortDate(purchase.starts_at)} · ${usd(purchase.amount_cents)}/month`
+                : `slot ${purchase.slot_id} · ${shortDate(purchase.starts_at)} – ${shortDate(purchase.ends_at)} · ${usd(purchase.amount_cents)}`}
             </span>
           </div>
 
@@ -296,13 +308,77 @@ const description = 'Private placement stats for your sponsor slot.';
               </p>
             </section>
           </div>
+
+          {sub && (
+            <section class="sps-sub" id="subscription">
+              {msg && <p class="sp-notice">{msg}</p>}
+              <p class="sps-sub-line">
+                {subEnding
+                  ? `Cancelled. Your card stays up until ${shortDate(subEnd)}.`
+                  : subRetrying
+                    ? `Your last payment failed. The card stays up until ${shortDate(sub.ends_at)} while it is retried.`
+                    : sub.status === 'live'
+                    ? `Renews monthly. Paid until ${shortDate(subEnd)}.`
+                    : `Ended ${shortDate(subEnd)}.`}
+              </p>
+              {canCancel && (
+                <form
+                  method="post"
+                  action="/api/sponsor/cancel"
+                  data-astro-reload
+                  data-confirm={`Stop renewing? Your card stays up until ${shortDate(subEnd)}.`}
+                >
+                  <input type="hidden" name="t" value={token} />
+                  <button class="btn ghost" type="submit">cancel renewal</button>
+                </form>
+              )}
+            </section>
+          )}
         </>
       )
     }
   </main>
 </Base>
 
+<script>
+  // Same confirm-before-submit as the admin page (shared guard, so the two
+  // never stack listeners across soft navigations).
+  if (!window.__confirmArmed) {
+    window.__confirmArmed = true;
+    document.addEventListener(
+      'submit',
+      (e) => {
+        const form = e.target.closest('form[data-confirm]');
+        if (form && !confirm(form.dataset.confirm)) e.preventDefault();
+      },
+      true
+    );
+  }
+</script>
+
 <style>
+  .sps-sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    flex-wrap: wrap;
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .sps-sub .sp-notice {
+    flex-basis: 100%;
+    margin-top: 0;
+  }
+
+  .sps-sub-line {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
   .sps :global(.sps-identity) {
     display: flex;
     justify-content: space-between;

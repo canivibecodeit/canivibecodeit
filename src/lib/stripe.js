@@ -89,6 +89,159 @@ export async function createCheckoutSession({
   });
 }
 
+/* Checkout for a monthly sponsor subscription. Same buyer profile as the
+   one-off checkout (business tax id, billing address), minus the options
+   Stripe refuses in subscription mode: a subscription always creates a
+   Customer and always invoices. The subscription's own metadata carries the
+   purchase id, so every later invoice can be traced back to its row. */
+export async function createSubscriptionCheckoutSession({
+  purchaseId, slotId, priceCents, successUrl, cancelUrl, expiresAt,
+}) {
+  const metadata = { kind: 'sponsor_slot', purchase_id: purchaseId, slot_id: slotId };
+  return stripeFetch(
+    '/v1/checkout/sessions',
+    {
+      mode: 'subscription',
+      'payment_method_types[]': 'card',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      expires_at: Math.floor(expiresAt / 1000),
+      client_reference_id: purchaseId,
+      metadata,
+      subscription_data: { metadata },
+      adaptive_pricing: { enabled: false },
+      tax_id_collection: { enabled: true },
+      billing_address_collection: 'required',
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: priceCents,
+            recurring: { interval: 'month' },
+            product_data: {
+              name: 'canivibecodeit.com · sponsor slot (monthly)',
+              description:
+                'Your product on every page of canivibecodeit.com: icon, name, tagline and link.'
+                + ' Billed monthly until you cancel. Cancel any time.',
+            },
+          },
+        },
+      ],
+    },
+    'POST',
+    `subcheckout-${purchaseId}`
+  );
+}
+
+export async function getSubscription(id) {
+  return stripeFetch(`/v1/subscriptions/${encodeURIComponent(id)}`, null, 'GET');
+}
+
+export async function getInvoice(id) {
+  return stripeFetch(`/v1/invoices/${encodeURIComponent(id)}`, null, 'GET');
+}
+
+export async function getCustomer(id) {
+  return stripeFetch(`/v1/customers/${encodeURIComponent(id)}`, null, 'GET');
+}
+
+// Ends billing now. Nothing is prorated or refunded by this call.
+export async function cancelSubscriptionNow(id, idempotencyKey) {
+  return stripeFetch(`/v1/subscriptions/${encodeURIComponent(id)}`, null, 'DELETE', idempotencyKey);
+}
+
+// Stops renewing at the end of the paid period (or undoes that).
+export async function setCancelAtPeriodEnd(id, value = true) {
+  return stripeFetch(`/v1/subscriptions/${encodeURIComponent(id)}`, { cancel_at_period_end: value });
+}
+
+/* ---------- subscription shapes ----------
+
+   The webhook payload follows the endpoint's API version, which is set in
+   the dashboard, not here. Stripe moved these fields in 2025 (invoice.parent,
+   invoice.payments, items[].current_period_end), so every reader accepts the
+   older and the newer shape alike. */
+
+const idOf = (v) => (typeof v === 'string' ? v : v?.id ?? null);
+
+export function invoiceSubscriptionId(inv) {
+  return idOf(inv?.parent?.subscription_details?.subscription) ?? idOf(inv?.subscription) ?? null;
+}
+
+export function invoiceSubscriptionMeta(inv) {
+  return inv?.parent?.subscription_details?.metadata ?? inv?.subscription_details?.metadata ?? {};
+}
+
+// The end of the latest period this invoice pays for, in ms.
+export function invoicePeriodEnd(inv) {
+  const ends = (inv?.lines?.data ?? []).map((l) => Number(l?.period?.end) || 0);
+  const end = Math.max(0, ...ends);
+  return end > 0 ? end * 1000 : null;
+}
+
+export function invoicePeriodStart(inv) {
+  const starts = (inv?.lines?.data ?? []).map((l) => Number(l?.period?.start) || 0).filter(Boolean);
+  return starts.length ? Math.min(...starts) * 1000 : null;
+}
+
+export function subscriptionPeriod(sub) {
+  const item = sub?.items?.data?.[0] ?? {};
+  const start = Number(sub?.current_period_start ?? item.current_period_start) || 0;
+  const end = Number(sub?.current_period_end ?? item.current_period_end) || 0;
+  return { start: start ? start * 1000 : null, end: end ? end * 1000 : null };
+}
+
+// The card's money: the payment intent behind an invoice, whichever shape it came in.
+function invoicePaymentIntent(inv) {
+  if (inv?.payment_intent) return { payment_intent: idOf(inv.payment_intent) };
+  if (inv?.charge) return { charge: idOf(inv.charge) };
+  for (const p of inv?.payments?.data ?? []) {
+    const pi = p?.payment?.payment_intent;
+    if (pi && (p.status === 'paid' || !p.status)) return { payment_intent: idOf(pi) };
+  }
+  return null;
+}
+
+/* Refunds what an invoice collected, in full. Looks the invoice up with its
+   payments expanded when the shape at hand doesn't name them. */
+export async function refundInvoice(invoiceId, idempotencyKey) {
+  let target = null;
+  try {
+    target = invoicePaymentIntent(
+      await stripeFetch(`/v1/invoices/${encodeURIComponent(invoiceId)}?expand[]=payments`, null, 'GET')
+    );
+  } catch {
+    target = invoicePaymentIntent(await getInvoice(invoiceId));
+  }
+  if (!target) throw new Error(`no payment found on invoice ${invoiceId}`);
+  return stripeFetch('/v1/refunds', target, 'POST', idempotencyKey);
+}
+
+// Every paid invoice of a subscription, newest first (a sponsor subscription
+// never gets near the page size).
+export async function listPaidInvoices(subscriptionId) {
+  const q = `subscription=${encodeURIComponent(subscriptionId)}&status=paid&limit=100`;
+  return (await stripeFetch(`/v1/invoices?${q}`, null, 'GET'))?.data ?? [];
+}
+
+export async function invoiceAlreadyRefunded(invoiceId) {
+  let target = null;
+  try {
+    target = invoicePaymentIntent(
+      await stripeFetch(`/v1/invoices/${encodeURIComponent(invoiceId)}?expand[]=payments`, null, 'GET')
+    );
+  } catch {
+    target = invoicePaymentIntent(await getInvoice(invoiceId));
+  }
+  if (!target) return false;
+  const q = target.payment_intent
+    ? `payment_intent=${encodeURIComponent(target.payment_intent)}`
+    : `charge=${encodeURIComponent(target.charge)}`;
+  const list = await stripeFetch(`/v1/refunds?${q}&limit=10`, null, 'GET');
+  return (list?.data ?? []).some((r) => r.status === 'succeeded' || r.status === 'pending');
+}
+
 /* Checkout for a Build Games placement. COPY DISCIPLINE (non-negotiable, from
    the payments research): the checkout page and the Stripe product/description
    say "sponsor placement / advertising" and NEVER bid/stake/prize/entry —

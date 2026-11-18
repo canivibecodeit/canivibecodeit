@@ -9,15 +9,12 @@ import SignupModal from '../components/SignupModal.astro';
 import SponsorRails from '../components/SponsorRails.astro';
 import SponsorTape from '../components/SponsorTape.astro';
 import { buildGamesLive, buildsLive, studiesLive } from '../lib/flags.js';
-import { composeRails, getBoard, nextRunMonthName, railRows, railSizingCss, tapSlotOn } from '../lib/sponsors.js';
+import { composeRails, getBoard, railRows, railSizingCss, sponsorPriceCents, tapSlotOn, usd } from '../lib/sponsors.js';
 import { scriptJson } from '../lib/request.js';
 import { REC_HIDE_SCRIPT, THEME_SCRIPT } from '../lib/csp.js';
 
-// Next-month pre-book count for the footer link. Board is cached, so this
-// costs the layout nothing extra; the month names itself.
-const septBoard = await getBoard();
-const septLeft = septBoard.slots.length - septBoard.prebookedCount;
-const prebookLabel = nextRunMonthName();
+// The footer's sponsor link carries the one price (lib/sponsors.js).
+const sponsorPrice = usd(sponsorPriceCents());
 
 // socialTitle lets a page rank under one <title> while share cards keep
 // another (og/twitter). Defaults to the same string.
@@ -38,7 +35,8 @@ const {
 // Rail sizing: every card in both rails the same height, sized by the rail
 // that holds more cards (lib/sponsors.js). The rules depend on the number
 // of rows, so they are generated here and go out in <head>.
-const railCss = hideSponsors ? '' : railSizingCss(railRows(composeRails(septBoard), septBoard.allLive));
+const board = await getBoard();
+const railCss = hideSponsors ? '' : railSizingCss(railRows(composeRails(board), board.allLive));
 // The house slot carries the ad wherever the rails display; the inline
 // module is then for small screens only (global.css, .has-tap-slot).
 const hasTapSlot = !hideSponsors && tapSlotOn();
@@ -198,7 +196,7 @@ const headerLinks = navSections.filter((s) => s.top);
         built by <a href="https://x.com/robj3d3">@robj3d3</a>
       </span>
       <span>
-        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a> · <a href="/sponsor">pre-book {prebookLabel}{septBoard.prebookedCount > 0 ? ` · ${septLeft} of ${septBoard.slots.length} left` : ''}</a>
+        MIT · no third-party trackers · <a href="/privacy">privacy</a> · <a href="/terms">terms</a> · <a href="/sponsor">sponsor from {sponsorPrice}/month</a>
       </span>
       </div>
     </footer>

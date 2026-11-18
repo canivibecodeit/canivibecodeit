@@ -1,16 +1,18 @@
 import {
-  activePurchases, purchaseById, rateLimit, setSlotNextState, setSlotPrice,
-  updatePurchase, waitlistEmails,
+  activePurchases, purchaseById, rateLimit, updatePurchase, waitlistEmails,
 } from '../../../lib/db.js';
 import { alertRob, brandShell, esc, sendBatch, sendMail, shell, unsubscribedEmails } from '../../../lib/mail.js';
 import { json, readBody } from '../../../lib/request.js';
+import { attachSubscription, cancelAndRefund, markCancelling } from '../../../lib/sponsor-subscriptions.js';
 import {
-  cleanText, cleanTint, cleanUrl, clearCache, getBoard, isAdmin, isLive, LIMITS, nextRunStart,
-  RUN_DAYS, RUN_MS, shortDate, siteUrl, SLOT_IDS, SPILL_MS, usd, verifyAction,
+  approvalTerm, cleanText, cleanTint, cleanUrl, clearCache, getBoard, isAdmin, isLive, isSubscription,
+  LIMITS, paidEndAt, RUN_DAYS, RUN_MS, shortDate, siteUrl, SLOT_IDS, SPILL_MS, sponsorPriceCents,
+  usd, verifyAction,
 } from '../../../lib/sponsors.js';
-import { alreadyRefunded, createPaymentLink, createRefund } from '../../../lib/stripe.js';
-
-const NEXT_STATES = ['pending', 'open', 'reserved'];
+import {
+  alreadyRefunded, cancelSubscriptionNow, createPaymentLink, createRefund, getSubscription,
+  subscriptionPeriod,
+} from '../../../lib/stripe.js';
 
 const REFUNDABLE = ['submitted', 'paid', 'reject_failed'];
 
@@ -52,15 +54,11 @@ export async function POST({ request }) {
      go back to the page with the reason; JSON callers keep the status code. */
   const fail = (error, status) => (wantsJson ? json({ error }, status) : backTo(error));
 
-  if (action === 'price') {
-    const slot = String(body.slot ?? '').trim().toUpperCase();
-    const dollars = Number(body.price);
-    if (!SLOT_IDS.includes(slot)) return fail('unknown slot', 400);
-    if (!Number.isFinite(dollars) || dollars < 1 || dollars > 100000) {
-      return fail('bad price', 400);
-    }
-    await setSlotPrice(slot, Math.round(dollars * 100));
-    return done(`${slot} priced at ${usd(Math.round(dollars * 100))}`);
+  /* Attaches a subscription paid through a hand-issued link to a slot; the
+     card follows the subscription from then on (lib/sponsor-subscriptions.js). */
+  if (action === 'attach') {
+    const res = await attachSubscription({ subscriptionId: body.subscription, slotId: body.slot });
+    return res.ok ? done(res.message) : fail(res.message, 409);
   }
 
   /* One tap, human-triggered, never automatic: tell everyone who asked to be
@@ -70,12 +68,7 @@ export async function POST({ request }) {
   if (action === 'queue_blast') {
     const board = await getBoard();
     const nowOpen = board.slots.filter((s) => s.state === 'open');
-    const nextOpen = board.slots.filter(
-      (s) => s.state !== 'open' && s.nextState === 'open' && !s.nextTaken
-    );
-    if (nowOpen.length === 0 && nextOpen.length === 0) {
-      return fail('nothing open to announce', 409);
-    }
+    if (nowOpen.length === 0) return fail('nothing open to announce', 409);
     let recipients;
     try {
       const gone = await unsubscribedEmails();
@@ -89,18 +82,11 @@ export async function POST({ request }) {
       return fail('queue was already emailed in the last 12h', 429);
     }
 
-    const startLabel = shortDate(nextRunStart());
-    const lines = [
-      ...nowOpen.map((s) => `<li>slot ${esc(s.id)} · ${usd(s.priceCents)}, live as soon as your card is approved</li>`),
-      ...nextOpen.map((s) => `<li>slot ${esc(s.id)} · ${usd(s.priceCents)}, yours from ${esc(startLabel)}</li>`),
-    ].join('');
-    const subject = nowOpen.length > 0
-      ? 'a sponsor slot just opened on canivibecodeit'
-      : `${startLabel.split(' ')[0].toLowerCase()} sponsor slots just opened on canivibecodeit`;
+    const subject = 'a sponsor slot just opened on canivibecodeit';
     const html = brandShell(
-      `<p>You asked to be pinged when a canivibecodeit sponsor slot opens. Open right now:</p>`
-      + `<ul>${lines}</ul>`
-      + `<p>Fixed slots, one-off 30-day terms, first paid, first placed.</p>`
+      `<p>You asked to be pinged when a canivibecodeit sponsor slot opens.`
+      + ` ${nowOpen.length === 1 ? 'One is open' : `${nowOpen.length} are open`} right now.</p>`
+      + `<p>${usd(sponsorPriceCents())} a month, cancel any time. First paid, first placed.</p>`
       + `<p><a href="${esc(siteUrl('/sponsor'))}">take one → ${esc(siteUrl('/sponsor'))}</a></p>`
       + `<p style="color:#6e6e67; font-size:12px;">You're getting this because you left your`
       + ` email on the sponsor page. Reply "stop" and you won't again.</p>`
@@ -110,15 +96,6 @@ export async function POST({ request }) {
     return done(`queue emailed: ${sent} of ${recipients.length}`);
   }
 
-  if (action === 'next_state') {
-    const slot = String(body.slot ?? '').trim().toUpperCase();
-    const state = String(body.state ?? '').trim();
-    if (!SLOT_IDS.includes(slot)) return fail('unknown slot', 400);
-    if (!NEXT_STATES.includes(state)) return fail('bad state', 400);
-    await setSlotNextState(slot, state);
-    return done(`${slot} next run: ${state}`);
-  }
-
   /* Mints a shareable checkout link for a slot's next run. The metadata is the
      whole contract: the webhook turns the eventual payment into a purchase row
      with the right term, so the link can be sent anywhere. */
@@ -126,7 +103,7 @@ export async function POST({ request }) {
     const slot = String(body.slot ?? '').trim().toUpperCase();
     const kind = String(body.kind ?? '') === 'public' ? 'public' : 'renewal';
     const dollars = Number(body.price);
-    const months = String(body.months ?? '1').trim() === '3' ? 3 : 1;
+    const months = 1;
     const term = /^(\d{4})-(\d{2})$/.exec(String(body.term ?? '').trim());
     const sponsor = cleanText(body.sponsor, 60) ?? '';
     if (!SLOT_IDS.includes(slot)) return fail('unknown slot', 400);
@@ -162,10 +139,27 @@ export async function POST({ request }) {
     // starts its clock at approval, not payment: nobody pays for the days we
     // spent reviewing them.
     const scheduled = purchase.starts_at && purchase.starts_at > now;
+    /* A subscription runs from approval for as long as it has been paid
+       (approvalTerm). Its period comes from the payment; if that was never
+       recorded, ask Stripe once. */
+    const sub = isSubscription(purchase) && !scheduled;
+    let subTerm = null;
+    if (sub) {
+      let row = purchase;
+      if (!row.paid_through) {
+        try {
+          const period = subscriptionPeriod(await getSubscription(row.stripe_subscription_id));
+          if (period.end) row = { ...row, paid_through: period.end };
+        } catch (err) {
+          console.error(`approve: subscription lookup failed: ${err?.message || err}`);
+        }
+      }
+      subTerm = approvalTerm(row, now);
+    }
     const startsAt = scheduled ? purchase.starts_at : now;
     const endsAt = scheduled
       ? purchase.ends_at
-      : now + RUN_MS * (Number(purchase.months) || 1);
+      : sub ? subTerm.ends_at : now + RUN_MS * (Number(purchase.months) || 1);
 
     /* Last line of defence against double-booking. For a run starting now,
        refuse if the slot is already showing someone. For a future run, refuse
@@ -184,10 +178,25 @@ export async function POST({ request }) {
 
     const changed = await updatePurchase(
       purchase.id,
-      { status: 'live', approved_at: now, starts_at: startsAt, ends_at: endsAt },
+      { status: 'live', approved_at: now, starts_at: startsAt, ends_at: endsAt, ...(subTerm ?? {}) },
       ['submitted']
     );
     if (!changed) return fail('not awaiting approval', 409);
+    if (sub) {
+      const stats = `${siteUrl('/sponsor/stats')}?t=${encodeURIComponent(purchase.details_token)}`;
+      await sendMail({
+        to: purchase.email,
+        subject: "you're live on canivibecodeit",
+        html: brandShell(
+          `<p><b>${esc(purchase.name)}</b> is approved for slot ${esc(purchase.slot_id)} and live right now.`
+          + ` It renews monthly until you cancel; this month runs until ${esc(shortDate(paidEndAt({ ...purchase, ...subTerm })))}.</p>`
+          + `<p>Your numbers, and the cancel button: <a href="${esc(stats)}">your stats page</a>. Keep the link.</p>`
+          + `<p>Your link carries campaign tags, so the traffic shows up in your analytics as`
+          + ` canivibecodeit / referral.</p>`
+        ),
+      });
+      return done(`${purchase.slot_id} live, paid until ${shortDate(paidEndAt({ ...purchase, ...subTerm }))}`);
+    }
     await sendMail({
       to: purchase.email,
       subject: scheduled
@@ -209,20 +218,29 @@ export async function POST({ request }) {
     if (!REFUNDABLE.includes(purchase.status)) return fail('nothing to refund', 409);
     const isRetry = action === 'retry_refund';
     try {
-      if (!purchase.stripe_payment_intent) throw new Error('no payment intent on this purchase');
-      /* Stripe stores and replays the response for an idempotency key, errors
-         included — so a first attempt that failed on something temporary (an
-         insufficient balance on a young account) would replay that same failure
-         forever if the retry reused the key. A manual retry therefore looks up
-         the payment first and, only if nothing is on its way back, tries again
-         under a fresh key. The automatic path keeps the static key: it fires
-         without a human and must never refund twice. */
-      const settled = isRetry && (await alreadyRefunded(purchase.stripe_payment_intent));
-      if (!settled) {
-        await createRefund(
-          purchase.stripe_payment_intent,
-          isRetry ? `refund-${purchase.id}-retry-${Date.now()}` : `refund-${purchase.id}`
-        );
+      if (isSubscription(purchase)) {
+        /* Stop the billing, then refund EVERY paid invoice: a month can renew
+           while the card is still awaiting approval, and the email below says
+           "refunded in full". Marked as ours first, so Stripe's deletion
+           event raises no second alert. A retry skips what is already back. */
+        await markCancelling(purchase);
+        await cancelAndRefund(purchase, { allPaid: true, refundKey: `refund-${purchase.id}`, retry: isRetry });
+      } else {
+        if (!purchase.stripe_payment_intent) throw new Error('no payment intent on this purchase');
+        /* Stripe stores and replays the response for an idempotency key, errors
+           included — so a first attempt that failed on something temporary (an
+           insufficient balance on a young account) would replay that same failure
+           forever if the retry reused the key. A manual retry therefore looks up
+           the payment first and, only if nothing is on its way back, tries again
+           under a fresh key. The automatic path keeps the static key: it fires
+           without a human and must never refund twice. */
+        const settled = isRetry && (await alreadyRefunded(purchase.stripe_payment_intent));
+        if (!settled) {
+          await createRefund(
+            purchase.stripe_payment_intent,
+            isRetry ? `refund-${purchase.id}-retry-${Date.now()}` : `refund-${purchase.id}`
+          );
+        }
       }
     } catch (err) {
       await updatePurchase(purchase.id, { status: 'reject_failed' }, REFUNDABLE);
@@ -250,12 +268,27 @@ export async function POST({ request }) {
   }
 
   if (action === 'expire') {
+    const now = Date.now();
     const changed = await updatePurchase(
       purchase.id,
-      { status: 'expired', ends_at: Date.now() },
+      { status: 'expired', ends_at: now, ...(isSubscription(purchase) ? { canceled_at: now, cancel_at: now } : {}) },
       ['live']
     );
     if (!changed) return fail('not live', 409);
+    /* A card taken down must stop billing too. Nothing is refunded here: any
+       unused days are Rob's call, from the Stripe dashboard. */
+    if (isSubscription(purchase) && !purchase.canceled_at) {
+      try {
+        await cancelSubscriptionNow(purchase.stripe_subscription_id);
+      } catch (err) {
+        await alertRob(
+          `sponsor taken down but billing NOT stopped (${purchase.slot_id})`,
+          shell(`<p>Cancelling subscription <code>${esc(purchase.stripe_subscription_id)}</code> failed: ${esc(err?.message || err)}. Cancel it in the Stripe dashboard.</p>`)
+        );
+        return done(`${purchase.slot_id} taken down; cancelling the subscription FAILED, cancel it in Stripe`);
+      }
+      return done(`${purchase.slot_id} taken down, billing stopped (no refund issued)`);
+    }
     return done(`${purchase.slot_id} taken down`);
   }
 

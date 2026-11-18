@@ -16,13 +16,86 @@ export const SLOT_IDS = ['L1', 'L2', 'L3', 'L4', 'L5', 'R1', 'R2', 'R3', 'R4', '
    promoteFromSession and refunded, not blocked by an expiry clock. */
 export const SESSION_TTL_MS = 30 * 60 * 1000;
 export const HOLD_TTL_MS = 35 * 60 * 1000;
+// One-off 30-day runs: how sponsors bought before subscriptions, and still how
+// hand-minted one-off links and the rows already running work.
 export const RUN_DAYS = 30;
-
-// Big slots can be locked for a quarter: three 30-day runs, paid upfront,
-// price frozen for the whole run. Only offered above this price.
-export const QUARTER_MONTHS = 3;
-export const QUARTER_MIN_CENTS = 100000;
 export const RUN_MS = RUN_DAYS * 24 * 60 * 60 * 1000;
+
+/* ---------- subscriptions ----------
+
+   A slot is sold as a monthly Stripe subscription. The price lives here and
+   nowhere else: SPONSOR_PRICE_CENTS overrides it without a deploy. A price
+   change only reaches new subscriptions; Stripe keeps billing every existing
+   one at the price it started at.
+
+   A subscription row's card runs from approval for as long as Stripe has
+   been paid, so the row keeps:
+     paid_through  end of the latest period Stripe has been paid for
+     shift_ms      how far the card's run sits after Stripe's periods (the time
+                   between payment and approval, or a run being carried over)
+     ends_at       what the board reads: paid_through + shift_ms, plus
+                   whatever the subscription's state adds (TERM_EXTRA_MS):
+       renewing  a 2-day grace, because Stripe bills a renewal up to an hour
+                 after the period ends and the card must not flicker off (and
+                 the slot must not look free) meanwhile;
+       retrying  a renewal failed and Stripe is retrying: the card stays up
+                 and the slot stays held for 7 days, then both end;
+       ending    cancelled, or Stripe gave up: nothing, the card ends with the
+                 paid period.
+   Render-time expiry is unchanged. */
+export const SPONSOR_PRICE_DEFAULT_CENTS = 100000;
+export const RENEWAL_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
+export const FAILED_HOLD_MS = 7 * 24 * 60 * 60 * 1000;
+export const TERM_EXTRA_MS = Object.freeze({ renewing: RENEWAL_GRACE_MS, retrying: FAILED_HOLD_MS, ending: 0 });
+
+export function sponsorPriceCents(env = process.env) {
+  const n = Number(env.SPONSOR_PRICE_CENTS);
+  return Number.isInteger(n) && n >= 100 && n <= 10000000 ? n : SPONSOR_PRICE_DEFAULT_CENTS;
+}
+
+export function isSubscription(p) {
+  return !!p?.stripe_subscription_id;
+}
+
+// The end of the time the sponsor has paid for, as the card counts it.
+export function paidEndAt(p) {
+  if (!p?.paid_through) return p?.ends_at ?? null;
+  return Number(p.paid_through) + Math.max(0, Number(p.shift_ms) || 0);
+}
+
+export function subscriptionEndsAt({ paidThrough, shiftMs = 0, mode = 'renewing' }) {
+  if (!paidThrough) return null;
+  return paidThrough + Math.max(0, Number(shiftMs) || 0) + (TERM_EXTRA_MS[mode] ?? 0);
+}
+
+// Stripe's own word on whether a subscription will bill again.
+export function subscriptionRenews(sub) {
+  if (!sub) return false;
+  return ['active', 'trialing'].includes(sub.status) && !sub.cancel_at_period_end && !sub.cancel_at;
+}
+
+// Which TERM_EXTRA_MS applies to a subscription in this state.
+export function subscriptionMode(sub) {
+  if (!sub || sub.status === 'canceled' || sub.status === 'unpaid' || sub.status === 'incomplete_expired') return 'ending';
+  if (sub.cancel_at_period_end || sub.cancel_at) return 'ending';
+  if (sub.status === 'past_due') return 'retrying';
+  return 'renewing';
+}
+
+/* Approval starts the card's clock: the sponsor gets every day they paid for,
+   counted from the moment the card goes up, not from the payment. */
+export function approvalTerm(p, now = Date.now()) {
+  const periodStart = Number(p.paid_at) || now;
+  const paidThrough = Number(p.paid_through) || periodStart + RUN_MS;
+  const shiftMs = Math.max(0, now - periodStart);
+  const mode = p.cancel_at || p.canceled_at ? 'ending' : 'renewing';
+  return {
+    starts_at: now,
+    paid_through: paidThrough,
+    shift_ms: shiftMs,
+    ends_at: subscriptionEndsAt({ paidThrough, shiftMs, mode }),
+  };
+}
 
 // An outgoing placement may run this far into a slot's next booked term before
 // it counts as a conflict — approvals never dock the outgoing run's days.
@@ -32,15 +105,6 @@ export const SPILL_MS = 3 * 24 * 60 * 60 * 1000;
 export function nextRunStart(now = Date.now()) {
   const d = new Date(now);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
-}
-
-const FULL_MONTHS = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december',
-];
-
-export function nextRunMonthName(now = Date.now()) {
-  return FULL_MONTHS[new Date(nextRunStart(now)).getUTCMonth()];
 }
 
 // Used until a real icon colour is extracted, and when the sponsor's favicon is
@@ -257,7 +321,8 @@ async function deriveBoard(now) {
     return {
       id,
       side: slotSide(id),
-      priceCents: slot?.price_cents ?? 0,
+      // One price for every slot, from config (sponsorPriceCents).
+      priceCents: sponsorPriceCents(),
       renewalPriceCents: slot?.renewal_price_cents ?? null,
       nextState: slot?.next_state || 'pending',
       nextTaken,
@@ -268,7 +333,10 @@ async function deriveBoard(now) {
       // House card for an otherwise-open slot: rails render it instead of an
       // open unit; /sponsor still sells the slot (state stays 'open').
       house: !live && !blocked && !heldByOperator.has(id) ? HOUSE_CARDS.find((h) => h.slot === id) ?? null : null,
-      endsAt: live?.ends_at ?? null,
+      // Subscriptions: the end of the paid period, not the renewal grace.
+      // During a failed renewal's week-long hold the paid end is already
+      // past; the hold's end is the honest date to show then.
+      endsAt: live ? (paidEndAt(live) > now ? paidEndAt(live) : live.ends_at) : null,
       sponsor: live
         ? {
             name: live.name,

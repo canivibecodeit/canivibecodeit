@@ -1,29 +1,26 @@
 ---
 import Base from '../../layouts/Base.astro';
 import VisitorGlobe from '../../components/VisitorGlobe.astro';
+import { audienceStats } from '../../lib/audience.js';
 import { allApps } from '../../lib/apps.js';
-import {
-  getBoard, nextRunStart, QUARTER_MIN_CENTS, QUARTER_MONTHS, RUN_DAYS, shortDate, usd,
-} from '../../lib/sponsors.js';
-
-// The slot cards sell next month by name, so the copy renews itself.
-const nextStart = nextRunStart();
-const NEXT_MONTH = shortDate(nextStart).split(' ')[0].toUpperCase();
-const nextStartLabel = shortDate(nextStart).toLowerCase();
+import { getBoard, sponsorPriceCents, usd } from '../../lib/sponsors.js';
 
 const board = await getBoard();
 const apps = allApps();
 const notice = Astro.url.searchParams.get('error') || Astro.url.searchParams.get('msg') || '';
+const price = usd(sponsorPriceCents());
+
+/* Page views: the measured 30-day figure from the same source as /audience
+   (PostHog, cached six hours, or its dated snapshot), never a projection. */
+const audience = await audienceStats().catch(() => null);
+const views = audience?.views ? Number(audience.views).toLocaleString('en-US') : null;
+
+// Slots someone pays for or is about to: running, or paid and awaiting
+// approval. House cards are ours and stay for sale, so they count as open.
+const takenCount = board.slots.filter((s) => s.state !== 'open').length;
 
 const title = 'Sponsor canivibecodeit · ten fixed slots, read by builders';
-const description =
-  'Sponsor slots in front of builders choosing their AI-era stack. Buy 30 days in one click, no contract, no account manager. Sponsorship never touches a verdict.';
-
-const SEPT_TIMELINE = [
-  { date: 'aug 21', note: 'first refusal ends for current sponsors', live: true },
-  { date: 'aug 22', note: 'unrenewed slots open · first paid, first placed', live: false },
-  { date: 'sep 1', note: 'board goes live', live: false },
-];
+const description = `Sponsor slots in front of builders choosing their AI-era stack. ${price} a month, cancel any time. Sponsorship never touches a verdict.`;
 
 const testimonials = [
   {
@@ -40,25 +37,18 @@ const testimonials = [
   },
 ];
 
-// "Taken" = not buyable right now: live runs whose next month is still the
-// incumbent's to refuse count as held.
-const buyableCount = board.slots.filter(
-  (s) => s.state === 'open' || (s.state !== 'open' && s.nextState === 'open' && !s.nextTaken)
-).length;
-const takenCount = board.slots.length - buyableCount;
-
 const steps = [
   {
-    head: 'pick a slot and pay',
-    body: 'one click to Stripe. no account, no call, no contract. the slot is held while you check out.',
+    head: 'pick a slot and subscribe',
+    body: 'one click to Stripe. no call, no contract.',
   },
   {
     head: 'tell us who you are',
-    body: `name, one line, and your link: straight after payment. takes a minute. we grab your icon automatically.`,
+    body: 'name, one line and your link, straight after payment. takes a minute.',
   },
   {
     head: 'we approve it, then it runs',
-    body: `${RUN_DAYS} days from the moment it goes live, not from the moment you paid. rejected? full refund, same day.`,
+    body: 'your first month counts from approval. rejected? full refund, same day.',
   },
 ];
 ---
@@ -73,10 +63,14 @@ const steps = [
         gets picked from.
       </p>
       <div class="sp-statband">
-        <div class="sp-stat" style="--i: 0"><b>300,000+</b><span>views a month, current pace</span></div>
-        <div class="sp-stat" style="--i: 1"><b>{apps.length}</b><span>apps on the list</span></div>
+        {views && (
+          <div class="sp-stat" style="--i: 0"><b>{views}</b><span><a href="/audience">page views, last 30 days</a></span></div>
+        )}
+        <div class="sp-stat" style="--i: 1"><b>{apps.length.toLocaleString('en-US')}</b><span>apps on the list</span></div>
         <div class="sp-stat" style="--i: 2"><b>builders</b><span>choosing their AI-era stack</span></div>
-        <div class="sp-stat green" style="--i: 3"><b>{takenCount}/{board.slots.length}</b><span>{NEXT_MONTH} slots taken</span></div>
+        {takenCount > 0 && (
+          <div class="sp-stat green" style="--i: 3"><b class="sp-taken">{takenCount}/{board.slots.length}</b><span>slots taken</span></div>
+        )}
       </div>
     </section>
 
@@ -84,27 +78,16 @@ const steps = [
 
     <VisitorGlobe embed />
 
-    <section class="sp-sept" id="september">
-      <div class="sp-sept-head">
-        <h2>September.</h2>
-        <span class="note">10 fixed slots. yours is yours: no rotation, no sharing.</span>
+    <section class="sp-price" id="price">
+      <div class="sp-price-head">
+        <h2>Ten fixed slots.</h2>
+        <span class="note">yours is yours: no rotation, no sharing.</span>
       </div>
       <div class="sp-flat">
-        <span class="sp-flat-price">$2,500</span>
+        <span class="sp-flat-price">{price}<span class="sp-flat-per">/month</span></span>
         <span class="sp-flat-note">
-          one price, any open slot, 30 days. what you pay never changes mid-run.
+          Renews monthly until you cancel. The price you start at never rises while you stay subscribed.
         </span>
-      </div>
-      <div class="sp-sept-timeline" role="list" aria-label="September timeline">
-        {
-          SEPT_TIMELINE.map((s) => (
-            <div class="sp-sept-step" role="listitem">
-              <span class={`sp-sept-dot ${s.live ? 'live' : ''}`} aria-hidden="true" />
-              <span class="sp-sept-date">{s.date}</span>
-              <span class="sp-sept-what">{s.note}</span>
-            </div>
-          ))
-        }
       </div>
       <div class="sp-quotes">
         {
@@ -153,15 +136,12 @@ const steps = [
     <section class="sp-board" id="slots">
       <div class="list-head">
         <h2>The slots</h2>
-        <span class="note">$2,500 flat · your rate never rises while you stay</span>
+        <span class="note">{price} a month · cancel any time</span>
       </div>
       <div class="sp-grid">
         {
           board.slots.map((slot) => (
-            <div
-              class={`sp-slot ${slot.state}${slot.state === 'live' && !slot.nextTaken && slot.nextState === 'open' ? ' sept-open' : ''}`}
-              data-slot={slot.id}
-            >
+            <div class={`sp-slot ${slot.state}`} data-slot={slot.id}>
               <span class="microlabel">
                 slot {slot.id} · {slot.side} rail
               </span>
@@ -169,7 +149,7 @@ const steps = [
                 <>
                   <span class="sp-slot-price">
                     {usd(slot.priceCents)}
-                    <span class="sp-per">/{RUN_DAYS} days</span>
+                    <span class="sp-per">/month</span>
                   </span>
                   <form method="post" action="/api/sponsor/checkout" data-checkout data-astro-reload>
                     <input type="hidden" name="slot" value={slot.id} />
@@ -177,46 +157,16 @@ const steps = [
                       take this slot →
                     </button>
                   </form>
-                  {slot.priceCents >= QUARTER_MIN_CENTS && (
-                    <form method="post" action="/api/sponsor/checkout" data-checkout data-astro-reload>
-                      <input type="hidden" name="slot" value={slot.id} />
-                      <input type="hidden" name="months" value={QUARTER_MONTHS} />
-                      <button class="sp-quarter" type="submit" data-price={slot.priceCents * QUARTER_MONTHS}>
-                        or lock {QUARTER_MONTHS} months at this price · {usd(slot.priceCents * QUARTER_MONTHS)}
-                      </button>
-                    </form>
-                  )}
                 </>
               ) : slot.state === 'live' ? (
                 <>
                   <span class="sp-slot-taken">{slot.sponsor.name}</span>
-                  <span class="sp-slot-note">taken until {shortDate(slot.endsAt)}</span>
-                  <span class="sp-slot-next">
-                    {slot.nextTaken ? (
-                      <span class="sn taken">{NEXT_MONTH} · TAKEN</span>
-                    ) : slot.nextState === 'open' ? (
-                      <form method="post" action="/api/sponsor/checkout" data-checkout data-astro-reload>
-                        <input type="hidden" name="slot" value={slot.id} />
-                        <input type="hidden" name="term" value="next" />
-                        <button class="sn open" type="submit" data-price={slot.priceCents}>
-                          {NEXT_MONTH} · OPEN · {usd(slot.priceCents)} · yours from {nextStartLabel} →
-                        </button>
-                      </form>
-                    ) : slot.nextState === 'reserved' ? (
-                      <span class="sn taken">{NEXT_MONTH} · RESERVED</span>
-                    ) : (
-                      <span class="sn deciding">{NEXT_MONTH} · SPONSOR DECIDING</span>
-                    )}
-                  </span>
+                  <span class="sp-slot-note">taken</span>
                 </>
               ) : (
                 <>
-                  <span class="sp-slot-taken">{slot.nextTaken ? 'booked' : 'reserved'}</span>
-                  <span class="sp-slot-note">
-                    {slot.nextTaken && slot.nextStartsAt
-                      ? `next run starts ${shortDate(slot.nextStartsAt)}`
-                      : 'someone is mid-checkout or waiting on approval'}
-                  </span>
+                  <span class="sp-slot-taken">reserved</span>
+                  <span class="sp-slot-note">not available right now</span>
                 </>
               )}
             </div>
@@ -268,11 +218,12 @@ const steps = [
     <section class="sp-terms">
       <span class="microlabel">the boring part</span>
       <p>
-        What you're buying is placement bought once: {RUN_DAYS} days in one slot (or {RUN_DAYS * QUARTER_MONTHS} days
-        on the big slots, price locked, still one payment), starting when the placement is approved. It is not a subscription and it does not
-        renew itself; when it ends, it ends, and you're welcome to buy it again. Price
-        changes only ever apply to new sponsors; the rate you start at is yours for as
-        long as you keep renewing.
+        Each of the ten slots is a monthly subscription at {price}. It renews each month until you
+        cancel, which you can do any time from your stats page or by email; the card
+        stays up until the end of the month you've paid for. If a renewal payment
+        fails, the card stays up for a week while the payment is retried, then comes
+        down. The price you start
+        at never rises while you stay subscribed.
         Sponsorship never touches a verdict, a ranking, or a prompt: not yours, not your
         competitor's, and the answer to "can I vibecode it" stays whatever it was.
         Every placement is approved by hand, so anything we won't run gets a full refund,
@@ -284,11 +235,11 @@ const steps = [
 </Base>
 
 <style>
-  .sp-sept {
+  .sp-price {
     padding-top: 40px;
   }
 
-  .sp-sept-head {
+  .sp-price-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
@@ -296,7 +247,7 @@ const steps = [
     flex-wrap: wrap;
   }
 
-  .sp-sept-head h2 {
+  .sp-price-head h2 {
     font-family: var(--font-display);
     font-size: clamp(30px, 4vw, 44px);
     font-weight: 600;
@@ -322,69 +273,39 @@ const steps = [
     font-variant-numeric: tabular-nums;
   }
 
+  .sp-flat-per {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
   .sp-flat-note {
     font-family: var(--font-mono);
     font-size: 13px;
+    line-height: 1.6;
     color: var(--muted);
+    max-width: 52ch;
+    text-wrap: pretty;
   }
 
-  .sp-sept-timeline {
-    display: flex;
-    position: relative;
-    margin-top: 40px;
+  /* Changes with the board: tabular figures so 9/10 and 10/10 sit alike. */
+  .sp-taken {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
   }
 
-  /* The rail: one hairline through every dot. Dots are 8px, so the line sits
-     at their vertical middle. */
-  .sp-sept-timeline::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 4px;
-    height: 1px;
-    background: var(--border);
+  .sp-stat a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--border);
+    text-underline-offset: 3px;
   }
 
-  .sp-sept-step {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 1;
-    padding-right: 20px;
-    min-width: 0;
-  }
-
-  .sp-sept-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 100px;
-    background: var(--muted);
-    position: relative;
-  }
-
-  .sp-sept-dot.live {
-    background: var(--primary);
-    animation: sp-dot-pulse 2s ease infinite;
-  }
-
-  @keyframes sp-dot-pulse {
-    50% {
-      opacity: 0.3;
-    }
-  }
-
-  .sp-sept-date {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  .sp-sept-what {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1.55;
-    color: var(--muted);
+  .sp-stat a:hover {
+    text-decoration-color: currentColor;
   }
 
   .sp-quotes {
@@ -480,54 +401,11 @@ const steps = [
     color: var(--muted);
   }
 
-  /* Per-slot September line on the board cards. */
-  .sp-slot :global(.sp-slot-next) {
-    display: block;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px dashed var(--border);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-  }
-
-  .sp-slot :global(.sn.taken) {
-    color: var(--muted);
-  }
-
-  .sp-slot :global(.sp-slot-next form) {
-    display: block;
-  }
-
-  .sp-slot :global(.sn.open) {
-    display: inline-block;
-    font: inherit;
-    letter-spacing: inherit;
-    background: none;
-    border: 0;
-    padding: 0;
-    text-align: left;
-    cursor: pointer;
-    color: var(--primary);
-    text-decoration: none;
-    transition: transform 0.12s var(--ease-snap);
-  }
-
-  .sp-slot :global(.sn.open:hover) {
-    transform: translateX(2px);
-  }
-
-  .sp-slot :global(.sn.open:active) {
-    transform: scale(0.97);
-  }
-
-  .sp-slot :global(.sn.deciding) {
-    color: var(--kinda-bg);
-  }
-
-  .sp-slot.sept-open {
-    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  /* Three stats on a two-column phone grid: the odd one out spans the row. */
+  @media (max-width: 700px) {
+    .sp-statband > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
   }
 
   @media (max-width: 900px) {
@@ -535,27 +413,6 @@ const steps = [
       flex-direction: column;
       gap: 10px;
       padding: 24px 0;
-    }
-
-    .sp-sept-timeline {
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .sp-sept-timeline::before {
-      display: none;
-    }
-
-    .sp-sept-step {
-      display: grid;
-      grid-template-columns: 8px 64px 1fr;
-      gap: 12px;
-      align-items: baseline;
-      padding-right: 0;
-    }
-
-    .sp-sept-dot {
-      top: 2px;
     }
 
     .sp-quotes {
