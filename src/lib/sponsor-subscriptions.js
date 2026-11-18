@@ -187,7 +187,9 @@ export async function handleInvoicePaid(inv, now = Date.now()) {
 /* A renewal that fails takes the card down at the end of the paid period.
    Stripe retries on its own schedule; a retry that pays lands in
    handleInvoicePaid above. Every failed attempt sends this event again, so the
-   emails go out only the first time. */
+   emails go out once per paid period (payment_failed_for). The card may
+   already be down by then: customer.subscription.updated (past_due) can
+   arrive first and drop the grace on its own. */
 export async function handleInvoiceFailed(inv, now = Date.now()) {
   const subId = invoiceSubscriptionId(inv);
   if (!subId) return false;
@@ -198,9 +200,15 @@ export async function handleInvoiceFailed(inv, now = Date.now()) {
   if (row.status !== 'live') return true;
 
   const paidEnd = paidEndAt(row);
-  if (!paidEnd || row.ends_at <= paidEnd) return true;
-  await updatePurchase(row.id, { ends_at: paidEnd }, ['live']);
+  if (!paidEnd) return true;
+  const notified = row.payment_failed_for != null && row.payment_failed_for === row.paid_through;
+  const fields = {};
+  if (row.ends_at > paidEnd) fields.ends_at = paidEnd;
+  if (!notified) fields.payment_failed_for = row.paid_through;
+  if (Object.keys(fields).length === 0) return true;
+  await updatePurchase(row.id, fields, ['live']);
   clearCache();
+  if (notified) return true;
 
   const down = paidEnd <= now;
   await sendMail({

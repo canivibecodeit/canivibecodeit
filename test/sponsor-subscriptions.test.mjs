@@ -289,6 +289,23 @@ test('a failed renewal ends the card at the end of the paid period, once', async
   assert.equal(mails.length, sentFirst, 'a retry that fails again sends nothing new');
 });
 
+test('a failed renewal still emails when past_due arrives before the failure event', async () => {
+  const row = await subscribeAndApprove('R5', 'sub_fail2');
+  const sub = stripe.subs.get('sub_fail2');
+  sub.status = 'past_due';
+  await deliver('customer.subscription.updated', sub);
+  assert.equal((await db.purchaseById(row.id)).ends_at, row.paid_through + row.shift_ms);
+  mails.length = 0;
+  await deliver('invoice.payment_failed', invoice('in_fail2_2', 'sub_fail2', row.paid_through, row.paid_through + 30 * DAY));
+  assert.ok(mails.some((m) => m.subject === 'your canivibecodeit renewal did not go through'));
+  assert.ok(mails.some((m) => m.to === 'rob@example.test' && /renewal FAILED/.test(m.subject)));
+  const n = mails.length;
+  await deliver('invoice.payment_failed', invoice('in_fail2_2', 'sub_fail2', row.paid_through, row.paid_through + 30 * DAY));
+  assert.equal(mails.length, n, 'a retry that fails again sends nothing new');
+  // Free R5 again for the race test below.
+  await db.updatePurchase(row.id, { status: 'expired', ends_at: Date.now() - 1 });
+});
+
 test('a late payment puts the card back when the slot is still free', async () => {
   const paidAt = Date.now() - 31 * DAY;
   const row = await subscribeAndApprove('L4', 'sub_late1', { paidAt });

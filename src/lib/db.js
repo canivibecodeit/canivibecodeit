@@ -821,13 +821,14 @@ const PURCHASE_FIELDS = [
   'reminder_renew_at', 'reminder_offer_at', 'months',
   // Monthly subscriptions (see lib/sponsors.js, "subscriptions").
   'stripe_subscription_id', 'stripe_invoice_id', 'paid_through', 'shift_ms', 'cancel_at',
-  'canceled_at',
+  'canceled_at', 'payment_failed_for',
 ];
 
 const NUMERIC_COLUMNS = [
   'amount_cents', 'created_at', 'hold_expires_at', 'paid_at', 'submitted_at',
   'approved_at', 'starts_at', 'ends_at', 'reminder_details_at', 'reminder_renew_at',
   'reminder_offer_at', 'months', 'paid_through', 'shift_ms', 'cancel_at', 'canceled_at',
+  'payment_failed_for',
 ];
 
 /* Subscription columns, added to sponsor_purchases on boot by both drivers:
@@ -841,6 +842,8 @@ const SUB_COLUMNS = [
   ['shift_ms', 'INTEGER', 'BIGINT'],
   ['cancel_at', 'INTEGER', 'BIGINT'],
   ['canceled_at', 'INTEGER', 'BIGINT'],
+  // The paid_through a failed renewal was already reported for (one email per period).
+  ['payment_failed_for', 'INTEGER', 'BIGINT'],
 ];
 // One row per subscription. Partial, so every one-off purchase (NULL) is exempt.
 const SUB_INDEX =

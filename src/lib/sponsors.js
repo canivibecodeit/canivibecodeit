@@ -319,7 +319,8 @@ async function deriveBoard(now) {
       // House card for an otherwise-open slot: rails render it instead of an
       // open unit; /sponsor still sells the slot (state stays 'open').
       house: !live && !blocked && !heldByOperator.has(id) ? HOUSE_CARDS.find((h) => h.slot === id) ?? null : null,
-      endsAt: live?.ends_at ?? null,
+      // Subscriptions: the end of the paid period, not the renewal grace.
+      endsAt: live ? paidEndAt(live) : null,
       sponsor: live
         ? {
             name: live.name,

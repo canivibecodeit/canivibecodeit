@@ -107,7 +107,7 @@ export async function POST({ request }) {
     const slot = String(body.slot ?? '').trim().toUpperCase();
     const kind = String(body.kind ?? '') === 'public' ? 'public' : 'renewal';
     const dollars = Number(body.price);
-    const months = String(body.months ?? '1').trim() === '3' ? 3 : 1;
+    const months = 1;
     const term = /^(\d{4})-(\d{2})$/.exec(String(body.term ?? '').trim());
     const sponsor = cleanText(body.sponsor, 60) ?? '';
     if (!SLOT_IDS.includes(slot)) return fail('unknown slot', 400);
