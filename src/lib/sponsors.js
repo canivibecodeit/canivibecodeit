@@ -16,13 +16,72 @@ export const SLOT_IDS = ['L1', 'L2', 'L3', 'L4', 'L5', 'R1', 'R2', 'R3', 'R4', '
    promoteFromSession and refunded, not blocked by an expiry clock. */
 export const SESSION_TTL_MS = 30 * 60 * 1000;
 export const HOLD_TTL_MS = 35 * 60 * 1000;
+// One-off 30-day runs: how sponsors bought before subscriptions, and still how
+// hand-minted one-off links and the rows already running work.
 export const RUN_DAYS = 30;
-
-// Big slots can be locked for a quarter: three 30-day runs, paid upfront,
-// price frozen for the whole run. Only offered above this price.
-export const QUARTER_MONTHS = 3;
-export const QUARTER_MIN_CENTS = 100000;
 export const RUN_MS = RUN_DAYS * 24 * 60 * 60 * 1000;
+
+/* ---------- subscriptions ----------
+
+   A slot is sold as a monthly Stripe subscription. The price lives here and
+   nowhere else: SPONSOR_PRICE_CENTS overrides it without a deploy. A price
+   change only reaches new subscriptions; Stripe keeps billing every existing
+   one at the price it started at.
+
+   A subscription row's card runs from approval for as long as Stripe has
+   been paid, so the row keeps:
+     paid_through  end of the latest period Stripe has been paid for
+     shift_ms      how far the card's run sits after Stripe's periods (the time
+                   between payment and approval, or a run being carried over)
+     ends_at       what the board reads: paid_through + shift_ms, plus a grace
+                   while the subscription is renewing, because Stripe bills a
+                   renewal up to an hour after the period ends and the card must
+                   not flicker off (and the slot must not look free) meanwhile.
+   A failed renewal or a cancellation drops the grace, so the card comes down
+   at the end of the paid period. Render-time expiry is unchanged. */
+export const SPONSOR_PRICE_DEFAULT_CENTS = 100000;
+export const RENEWAL_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
+
+export function sponsorPriceCents(env = process.env) {
+  const n = Number(env.SPONSOR_PRICE_CENTS);
+  return Number.isInteger(n) && n >= 100 && n <= 10000000 ? n : SPONSOR_PRICE_DEFAULT_CENTS;
+}
+
+export function isSubscription(p) {
+  return !!p?.stripe_subscription_id;
+}
+
+// The end of the time the sponsor has paid for, as the card counts it.
+export function paidEndAt(p) {
+  if (!p?.paid_through) return p?.ends_at ?? null;
+  return Number(p.paid_through) + Math.max(0, Number(p.shift_ms) || 0);
+}
+
+export function subscriptionEndsAt({ paidThrough, shiftMs = 0, renewing = true }) {
+  if (!paidThrough) return null;
+  return paidThrough + Math.max(0, Number(shiftMs) || 0) + (renewing ? RENEWAL_GRACE_MS : 0);
+}
+
+// Stripe's own word on whether a subscription will bill again.
+export function subscriptionRenews(sub) {
+  if (!sub) return false;
+  return ['active', 'trialing'].includes(sub.status) && !sub.cancel_at_period_end && !sub.cancel_at;
+}
+
+/* Approval starts the card's clock: the sponsor gets every day they paid for,
+   counted from the moment the card goes up, not from the payment. */
+export function approvalTerm(p, now = Date.now()) {
+  const periodStart = Number(p.paid_at) || now;
+  const paidThrough = Number(p.paid_through) || periodStart + RUN_MS;
+  const shiftMs = Math.max(0, now - periodStart);
+  const renewing = !p.cancel_at && !p.canceled_at;
+  return {
+    starts_at: now,
+    paid_through: paidThrough,
+    shift_ms: shiftMs,
+    ends_at: subscriptionEndsAt({ paidThrough, shiftMs, renewing }),
+  };
+}
 
 // An outgoing placement may run this far into a slot's next booked term before
 // it counts as a conflict — approvals never dock the outgoing run's days.
@@ -32,15 +91,6 @@ export const SPILL_MS = 3 * 24 * 60 * 60 * 1000;
 export function nextRunStart(now = Date.now()) {
   const d = new Date(now);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
-}
-
-const FULL_MONTHS = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december',
-];
-
-export function nextRunMonthName(now = Date.now()) {
-  return FULL_MONTHS[new Date(nextRunStart(now)).getUTCMonth()];
 }
 
 // Used until a real icon colour is extracted, and when the sponsor's favicon is
@@ -257,7 +307,8 @@ async function deriveBoard(now) {
     return {
       id,
       side: slotSide(id),
-      priceCents: slot?.price_cents ?? 0,
+      // One price for every slot, from config (sponsorPriceCents).
+      priceCents: sponsorPriceCents(),
       renewalPriceCents: slot?.renewal_price_cents ?? null,
       nextState: slot?.next_state || 'pending',
       nextTaken,

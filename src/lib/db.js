@@ -819,13 +819,32 @@ const PURCHASE_FIELDS = [
   'email', 'name', 'tagline', 'url', 'logo_url', 'tint', 'hold_expires_at', 'paid_at',
   'submitted_at', 'approved_at', 'starts_at', 'ends_at', 'reminder_details_at',
   'reminder_renew_at', 'reminder_offer_at', 'months',
+  // Monthly subscriptions (see lib/sponsors.js, "subscriptions").
+  'stripe_subscription_id', 'stripe_invoice_id', 'paid_through', 'shift_ms', 'cancel_at',
+  'canceled_at',
 ];
 
 const NUMERIC_COLUMNS = [
   'amount_cents', 'created_at', 'hold_expires_at', 'paid_at', 'submitted_at',
   'approved_at', 'starts_at', 'ends_at', 'reminder_details_at', 'reminder_renew_at',
-  'reminder_offer_at', 'months',
+  'reminder_offer_at', 'months', 'paid_through', 'shift_ms', 'cancel_at', 'canceled_at',
 ];
+
+/* Subscription columns, added to sponsor_purchases on boot by both drivers:
+   the Stripe subscription a row follows, the last invoice that paid it, the
+   end of the period Stripe has been paid for, the shift between Stripe's
+   periods and the card's run, and when it stops renewing / stopped. */
+const SUB_COLUMNS = [
+  ['stripe_subscription_id', 'TEXT', 'TEXT'],
+  ['stripe_invoice_id', 'TEXT', 'TEXT'],
+  ['paid_through', 'INTEGER', 'BIGINT'],
+  ['shift_ms', 'INTEGER', 'BIGINT'],
+  ['cancel_at', 'INTEGER', 'BIGINT'],
+  ['canceled_at', 'INTEGER', 'BIGINT'],
+];
+// One row per subscription. Partial, so every one-off purchase (NULL) is exempt.
+const SUB_INDEX =
+  'CREATE UNIQUE INDEX IF NOT EXISTS sponsor_purchases_sub ON sponsor_purchases (stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL';
 
 // Postgres hands BIGINT back as a string; the rest of the code does date maths.
 function purchaseRow(row) {
@@ -843,7 +862,7 @@ function updateParts(fields) {
 
 // Same rule for lookups: purchaseBy interpolates the column name, so it only
 // accepts the three identifiers the exported helpers actually use.
-const PURCHASE_LOOKUP_COLS = ['id', 'stripe_session_id', 'details_token'];
+const PURCHASE_LOOKUP_COLS = ['id', 'stripe_session_id', 'details_token', 'stripe_subscription_id'];
 
 // Submission columns the pipeline may rewrite after insert. Same rule as
 // PURCHASE_FIELDS: names reach SQL as identifiers, never from a request body.
@@ -1024,6 +1043,10 @@ async function pgDriver() {
   await pool.query('ALTER TABLE sponsor_slots ADD COLUMN IF NOT EXISTS renewal_price_cents INTEGER');
   // When the automated next-run offer email went out for a purchase.
   await pool.query('ALTER TABLE sponsor_purchases ADD COLUMN IF NOT EXISTS reminder_offer_at BIGINT');
+  for (const [col, , pgType] of SUB_COLUMNS) {
+    await pool.query(`ALTER TABLE sponsor_purchases ADD COLUMN IF NOT EXISTS ${col} ${pgType}`);
+  }
+  await pool.query(SUB_INDEX);
   // Maker handle: claimed once at first build post, unique case-insensitive,
   // shown (and used in /builds URLs) instead of the OAuth display name.
   await pool.query('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "handle" TEXT');
@@ -1932,6 +1955,14 @@ async function sqliteDriver() {
   } catch (err) {
     if (!/duplicate column/i.test(err.message)) throw err;
   }
+  for (const [col, liteType] of SUB_COLUMNS) {
+    try {
+      db.exec(`ALTER TABLE sponsor_purchases ADD COLUMN ${col} ${liteType}`);
+    } catch (err) {
+      if (!/duplicate column/i.test(err.message)) throw err;
+    }
+  }
+  db.exec(SUB_INDEX);
   // Maker handle: claimed once at first build post, unique case-insensitive,
   // shown (and used in /builds URLs) instead of the OAuth display name.
   try {
@@ -2794,6 +2825,10 @@ export async function purchaseBySession(sessionId) {
 
 export async function purchaseByToken(token) {
   return (await getDriver()).purchaseBy('details_token', token);
+}
+
+export async function purchaseBySubscription(subscriptionId) {
+  return (await getDriver()).purchaseBy('stripe_subscription_id', subscriptionId);
 }
 
 /* The idempotency primitive: every state transition is a conditional update and

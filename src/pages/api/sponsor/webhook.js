@@ -8,6 +8,10 @@ import { json } from '../../../lib/request.js';
 import {
   blocksSlot, clearCache, isLive, newToken, RUN_MS, shortDate, siteUrl, SLOT_IDS, SPILL_MS, usd,
 } from '../../../lib/sponsors.js';
+import {
+  applySubscriptionUpdate, cancelAndRefund, handleInvoiceFailed, handleInvoicePaid,
+  handleManualSubscriptionSession, handleSubscriptionDeleted, subscriptionFieldsFromSession,
+} from '../../../lib/sponsor-subscriptions.js';
 import { createRefund, verifyStripeSignature } from '../../../lib/stripe.js';
 
 const detailsLink = (purchase) =>
@@ -212,6 +216,10 @@ export async function promoteFromSession(session, { notify = false } = {}) {
   }
 
   const now = Date.now();
+  // A subscription checkout: the row follows the subscription from here on.
+  const subscription = session.mode === 'subscription' && (purchase.status === 'hold' || purchase.status === 'expired_hold')
+    ? await subscriptionFieldsFromSession(session, now)
+    : {};
   const changed = await updatePurchase(
     purchase.id,
     {
@@ -220,6 +228,7 @@ export async function promoteFromSession(session, { notify = false } = {}) {
       stripe_session_id: session.id,
       stripe_payment_intent: session.payment_intent ?? null,
       email: session.customer_details?.email ?? null,
+      ...subscription,
     },
     ['hold', 'expired_hold']
   );
@@ -279,8 +288,9 @@ export async function promoteFromSession(session, { notify = false } = {}) {
         to: email,
         subject: `you're in · slot ${purchase.slot_id} just needs your card details`,
         html: brandShell(
-          `<p>Payment received for slot ${esc(purchase.slot_id)}. One step left: tell us what`
-          + ` the card should say.</p>`
+          `<p>Payment received for slot ${esc(purchase.slot_id)}`
+          + (mine?.stripe_subscription_id ? ', billed monthly until you cancel' : '')
+          + `. One step left: tell us what the card should say.</p>`
           + `<p>${button(detailsLink(purchase), 'finish your card')}</p>`
           + `<p style="color:#6e6e67; font-size:12px;">Name, one line, and your link. We review`
           + ` every placement by hand after that, usually within a few hours. Keep this email;`
@@ -296,8 +306,17 @@ export async function promoteFromSession(session, { notify = false } = {}) {
   let refundError = null;
   try {
     // Keyed on the purchase: a retry after a lost response can't refund twice.
-    await createRefund(session.payment_intent, `refund-${purchase.id}`);
-    await updatePurchase(purchase.id, { status: 'refunded_conflict' }, ['paid']);
+    // A subscription is stopped as well, or it would bill again next month.
+    if (mine?.stripe_subscription_id) {
+      await cancelAndRefund(mine, { refundKey: `refund-${purchase.id}` });
+    } else {
+      await createRefund(session.payment_intent, `refund-${purchase.id}`);
+    }
+    await updatePurchase(
+      purchase.id,
+      { status: 'refunded_conflict', ...(mine?.stripe_subscription_id ? { canceled_at: Date.now() } : {}) },
+      ['paid']
+    );
     await sendMail({
       to: email,
       subject: 'your sponsor slot was taken first · refunded',
@@ -359,10 +378,19 @@ export async function POST({ request }) {
   try {
     if (event.type === 'checkout.session.completed') {
       // Hand-issued link sessions have no purchase to promote; they get a row
-      // of their own instead. Everything else takes the normal path.
-      if (!(await reconcileLinkSession(object))) {
+      // of their own instead (one-off links), or wait to be attached to a slot
+      // (subscription links). Everything else takes the normal path.
+      if (!(await reconcileLinkSession(object)) && !(await handleManualSubscriptionSession(object))) {
         await promoteFromSession(object, { notify: true });
       }
+    } else if (event.type === 'invoice.paid') {
+      await handleInvoicePaid(object);
+    } else if (event.type === 'invoice.payment_failed') {
+      await handleInvoiceFailed(object);
+    } else if (event.type === 'customer.subscription.updated') {
+      await applySubscriptionUpdate(object);
+    } else if (event.type === 'customer.subscription.deleted') {
+      await handleSubscriptionDeleted(object);
     } else if (event.type === 'checkout.session.expired') {
       const purchase = object?.metadata?.purchase_id
         ? await purchaseById(object.metadata.purchase_id)
