@@ -36,13 +36,21 @@ export async function POST({ request, clientAddress }) {
   if (purchase.cancel_at || purchase.canceled_at) return back('already cancelled');
   if (!['paid', 'submitted', 'live'].includes(purchase.status)) return back('nothing left to cancel');
 
+  let sub;
   try {
-    const sub = await setCancelAtPeriodEnd(purchase.stripe_subscription_id, true);
-    await applySubscriptionUpdate(sub);
+    sub = await setCancelAtPeriodEnd(purchase.stripe_subscription_id, true);
   } catch (err) {
     console.error(`sponsor cancel ${purchase.id} failed: ${err?.message || err}`);
     if (wantsJson) return json({ error: 'could not cancel; email hello@canivibecodeit.com' }, 502);
     return back('could not cancel right now; email hello@canivibecodeit.com');
+  }
+  /* Stripe has it: the subscription will not renew, whatever happens next.
+     Recording it here is a courtesy; customer.subscription.updated records it
+     too, and the claim on cancel_at means only one of them sends the email. */
+  try {
+    await applySubscriptionUpdate(sub, { fresh: false });
+  } catch (err) {
+    console.error(`sponsor cancel ${purchase.id}: recorded by Stripe, local write failed: ${err?.message || err}`);
   }
   return back('cancelled');
 }

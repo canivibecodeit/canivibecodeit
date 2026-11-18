@@ -863,6 +863,16 @@ function updateParts(fields) {
   return keys;
 }
 
+/* Optional extra conditions for updatePurchase, so a write only lands on the
+   state it was decided on: { isNull: ['cancel_at'] } and/or
+   { below: { paid_through: 123 } } (NULL or smaller). Column names are
+   checked against the same whitelist. */
+function guardParts(guard) {
+  const isNull = (guard?.isNull ?? []).filter((c) => PURCHASE_FIELDS.includes(c));
+  const below = Object.entries(guard?.below ?? {}).filter(([c]) => PURCHASE_FIELDS.includes(c));
+  return { isNull, below };
+}
+
 // Same rule for lookups: purchaseBy interpolates the column name, so it only
 // accepts the three identifiers the exported helpers actually use.
 const PURCHASE_LOOKUP_COLS = ['id', 'stripe_session_id', 'details_token', 'stripe_subscription_id'];
@@ -1282,9 +1292,9 @@ async function pgDriver() {
     async insertPurchase(p) {
       await pool.query(
         `INSERT INTO sponsor_purchases
-           (id, slot_id, status, amount_cents, months, details_token, created_at, hold_expires_at, stripe_session_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [p.id, p.slot_id, p.status, p.amount_cents, p.months ?? 1, p.details_token, p.created_at, p.hold_expires_at, p.stripe_session_id ?? null]
+           (id, slot_id, status, amount_cents, months, details_token, created_at, hold_expires_at, stripe_session_id, stripe_subscription_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [p.id, p.slot_id, p.status, p.amount_cents, p.months ?? 1, p.details_token, p.created_at, p.hold_expires_at, p.stripe_session_id ?? null, p.stripe_subscription_id ?? null]
       );
     },
     async activePurchases() {
@@ -1298,7 +1308,7 @@ async function pgDriver() {
       const r = await pool.query(`SELECT * FROM sponsor_purchases WHERE ${lookupCol(column)} = $1`, [value]);
       return purchaseRow(r.rows[0]);
     },
-    async updatePurchase(id, fields, whereStatusIn) {
+    async updatePurchase(id, fields, whereStatusIn, guard) {
       const keys = updateParts(fields);
       const params = [id, ...keys.map((k) => fields[k])];
       let sql = `UPDATE sponsor_purchases SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')} WHERE id = $1`;
@@ -1306,7 +1316,21 @@ async function pgDriver() {
         params.push(whereStatusIn);
         sql += ` AND status = ANY($${params.length})`;
       }
+      const g = guardParts(guard);
+      for (const c of g.isNull) sql += ` AND ${c} IS NULL`;
+      for (const [c, v] of g.below) {
+        params.push(v);
+        sql += ` AND (${c} IS NULL OR ${c} < $${params.length})`;
+      }
       const r = await pool.query(sql, params);
+      return r.rowCount;
+    },
+    async setEndsFromPaid(id, extraMs, whereStatusIn) {
+      const r = await pool.query(
+        `UPDATE sponsor_purchases SET ends_at = paid_through + COALESCE(shift_ms, 0) + $2
+          WHERE id = $1 AND paid_through IS NOT NULL AND status = ANY($3)`,
+        [id, extraMs, whereStatusIn]
+      );
       return r.rowCount;
     },
     async purchasesForAdmin(limit) {
@@ -2182,9 +2206,9 @@ async function sqliteDriver() {
     async insertPurchase(p) {
       db.prepare(
         `INSERT INTO sponsor_purchases
-           (id, slot_id, status, amount_cents, months, details_token, created_at, hold_expires_at, stripe_session_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(p.id, p.slot_id, p.status, p.amount_cents, p.months ?? 1, p.details_token, p.created_at, p.hold_expires_at, p.stripe_session_id ?? null);
+           (id, slot_id, status, amount_cents, months, details_token, created_at, hold_expires_at, stripe_session_id, stripe_subscription_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(p.id, p.slot_id, p.status, p.amount_cents, p.months ?? 1, p.details_token, p.created_at, p.hold_expires_at, p.stripe_session_id ?? null, p.stripe_subscription_id ?? null);
     },
     async activePurchases() {
       const marks = ACTIVE_STATUSES.map(() => '?').join(', ');
@@ -2196,7 +2220,7 @@ async function sqliteDriver() {
     async purchaseBy(column, value) {
       return purchaseRow(db.prepare(`SELECT * FROM sponsor_purchases WHERE ${lookupCol(column)} = ?`).get(value));
     },
-    async updatePurchase(id, fields, whereStatusIn) {
+    async updatePurchase(id, fields, whereStatusIn, guard) {
       const keys = updateParts(fields);
       const params = [...keys.map((k) => fields[k]), id];
       let sql = `UPDATE sponsor_purchases SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`;
@@ -2204,7 +2228,21 @@ async function sqliteDriver() {
         sql += ` AND status IN (${whereStatusIn.map(() => '?').join(', ')})`;
         params.push(...whereStatusIn);
       }
+      const g = guardParts(guard);
+      for (const c of g.isNull) sql += ` AND ${c} IS NULL`;
+      for (const [c, v] of g.below) {
+        sql += ` AND (${c} IS NULL OR ${c} < ?)`;
+        params.push(v);
+      }
       return db.prepare(sql).run(...params).changes;
+    },
+    async setEndsFromPaid(id, extraMs, whereStatusIn) {
+      return db
+        .prepare(
+          `UPDATE sponsor_purchases SET ends_at = paid_through + COALESCE(shift_ms, 0) + ?
+            WHERE id = ? AND paid_through IS NOT NULL AND status IN (${whereStatusIn.map(() => '?').join(', ')})`
+        )
+        .run(extraMs, id, ...whereStatusIn).changes;
     },
     async purchasesForAdmin(limit) {
       return db
@@ -2837,8 +2875,15 @@ export async function purchaseBySubscription(subscriptionId) {
 /* The idempotency primitive: every state transition is a conditional update and
    the row count says whether this caller was the one that made it. A duplicate
    webhook gets 0 and does nothing. */
-export async function updatePurchase(id, fields, whereStatusIn) {
-  return (await getDriver()).updatePurchase(id, fields, whereStatusIn);
+export async function updatePurchase(id, fields, whereStatusIn, guard) {
+  return (await getDriver()).updatePurchase(id, fields, whereStatusIn, guard);
+}
+
+/* A subscription's card end, computed in the same statement from the row's
+   own paid_through and shift_ms: two events landing together can never write
+   an end from a paid_through the other one already moved. */
+export async function setEndsFromPaid(id, extraMs, whereStatusIn) {
+  return (await getDriver()).setEndsFromPaid(id, extraMs, whereStatusIn);
 }
 
 export async function addSponsorClick(slotId, surface, country, ts = Date.now()) {

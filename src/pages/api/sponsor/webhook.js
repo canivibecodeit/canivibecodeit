@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import {
-  activePurchases, insertPurchase, purchaseById, purchaseBySession, setSlotNextState,
+  activePurchases, insertPurchase, purchaseById, purchaseBySession, rateLimit, setSlotNextState,
   updatePurchase,
 } from '../../../lib/db.js';
 import { recPs, alertRob, brandShell, button, esc, sendMail, shell } from '../../../lib/mail.js';
@@ -10,7 +10,8 @@ import {
 } from '../../../lib/sponsors.js';
 import {
   applySubscriptionUpdate, cancelAndRefund, handleInvoiceFailed, handleInvoicePaid,
-  handleManualSubscriptionSession, handleSubscriptionDeleted, subscriptionFieldsFromSession,
+  handleManualSubscriptionSession, handleSubscriptionDeleted, isSponsorKind, markCancelling,
+  subscriptionFieldsFromSession, withSubLock,
 } from '../../../lib/sponsor-subscriptions.js';
 import { createRefund, verifyStripeSignature } from '../../../lib/stripe.js';
 
@@ -28,6 +29,22 @@ export async function reconcileLinkSession(session) {
   if (!m) return false;
 
   const [, kind, year, month] = m;
+  /* A subscription-mode link that also carries a one-off purpose would get a
+     30-day row its renewals never reach. A sponsor kind goes to the
+     subscription path instead; anything else is left for Rob. */
+  if (session.mode === 'subscription') {
+    if (isSponsorKind(meta.kind)) return false;
+    await alertRob(
+      `subscription link carries a one-off purpose · ${meta.purpose}`,
+      shell(
+        `<p>Session <code>${esc(session.id)}</code> is a subscription but its link metadata says`
+        + ` <code>purpose=${esc(meta.purpose)}</code> and no sponsor kind. Nothing was recorded.</p>`
+        + `<p>Attach its subscription on <a href="${esc(siteUrl('/admin/sponsors'))}">the admin page</a>`
+        + ` and fix the link's metadata (kind=sponsor_subscription_manual, slot_id, no purpose).</p>`
+      )
+    );
+    return true;
+  }
   if (session.payment_status !== 'paid') {
     console.warn(`link session ${session.id} (${meta.purpose}) not paid, ignoring`);
     return true;
@@ -215,11 +232,26 @@ export async function promoteFromSession(session, { notify = false } = {}) {
     return purchase;
   }
 
-  const now = Date.now();
   // A subscription checkout: the row follows the subscription from here on.
   const subscription = session.mode === 'subscription' && (purchase.status === 'hold' || purchase.status === 'expired_hold')
-    ? await subscriptionFieldsFromSession(session, now)
+    ? await subscriptionFieldsFromSession(session)
     : {};
+  /* Promotions for one slot run one at a time in this process (the site runs
+     as one process), each stamped with a strictly later paid_at than the one
+     before. So the second payer always finds the first already committed, and
+     the order on (paid_at, id) below never meets a tie it could break both
+     ways. */
+  return withSubLock(`slot:${purchase.slot_id}`, () => settlePromotion(purchase, session, subscription, notify));
+}
+
+let lastPaidStamp = 0;
+function paidStamp() {
+  lastPaidStamp = Math.max(Date.now(), lastPaidStamp + 1);
+  return lastPaidStamp;
+}
+
+async function settlePromotion(purchase, session, subscription, notify) {
+  const now = paidStamp();
   const changed = await updatePurchase(
     purchase.id,
     {
@@ -262,13 +294,16 @@ export async function promoteFromSession(session, { notify = false } = {}) {
     }
     return blocksSlot(o, at);
   };
+  /* Both sides of the comparison are STORED paid_at values, so every promotion
+     sees the same strict order on (paid_at, id) and exactly one payer wins. */
+  const mineAt = mine?.paid_at ?? now;
   const beatenBy = async () => {
     const at = Date.now();
     return (await activePurchases()).filter((o) => {
       if (o.slot_id !== purchase.slot_id || o.id === purchase.id) return false;
       if (!rivalTo(o, at)) return false;
       const theirs = o.paid_at ?? 0;
-      return theirs < now || (theirs === now && o.id < purchase.id);
+      return theirs < mineAt || (theirs === mineAt && o.id < purchase.id);
     });
   };
   let rivals = await beatenBy();
@@ -308,15 +343,12 @@ export async function promoteFromSession(session, { notify = false } = {}) {
     // Keyed on the purchase: a retry after a lost response can't refund twice.
     // A subscription is stopped as well, or it would bill again next month.
     if (mine?.stripe_subscription_id) {
+      await markCancelling(mine);
       await cancelAndRefund(mine, { refundKey: `refund-${purchase.id}` });
     } else {
       await createRefund(session.payment_intent, `refund-${purchase.id}`);
     }
-    await updatePurchase(
-      purchase.id,
-      { status: 'refunded_conflict', ...(mine?.stripe_subscription_id ? { canceled_at: Date.now() } : {}) },
-      ['paid']
-    );
+    await updatePurchase(purchase.id, { status: 'refunded_conflict' }, ['paid']);
     await sendMail({
       to: email,
       subject: 'your sponsor slot was taken first · refunded',
@@ -384,7 +416,7 @@ export async function POST({ request }) {
         await promoteFromSession(object, { notify: true });
       }
     } else if (event.type === 'invoice.paid') {
-      await handleInvoicePaid(object);
+      await handleInvoicePaid(object, { promote: promoteFromSession });
     } else if (event.type === 'invoice.payment_failed') {
       await handleInvoiceFailed(object);
     } else if (event.type === 'customer.subscription.updated') {
@@ -401,9 +433,26 @@ export async function POST({ request }) {
       }
     }
   } catch (err) {
-    // A verified event that we mishandled is our bug, not Stripe's: log it and
-    // acknowledge, or Stripe retries the same failure for days.
-    console.error(`sponsor webhook ${event.type} failed: ${err?.message || err}`);
+    /* A verified event we failed to handle (a database blip, a Stripe call
+       timing out) must come back: answer 500 so Stripe redelivers it, which
+       is safe because every handler is idempotent. Rob hears about it, at most
+       once per event every six hours while Stripe keeps retrying. */
+    console.error(`sponsor webhook ${event.type} ${event.id} failed: ${err?.message || err}`);
+    let tell = true;
+    try {
+      tell = await rateLimit(`sponsor-webhook-fail:${event.id}`, 1, 6 * 60 * 60 * 1000);
+    } catch {}
+    if (tell) {
+      await alertRob(
+        `sponsor webhook FAILED · ${event.type}`,
+        shell(
+          `<p>Stripe event <code>${esc(event.id)}</code> (${esc(event.type)}) failed: ${esc(err?.message || err)}.</p>`
+          + '<p>Stripe will redeliver it for up to three days. If this repeats, check the logs and'
+          + ` <a href="${esc(siteUrl('/admin/sponsors'))}">the admin page</a>.</p>`
+        )
+      ).catch(() => {});
+    }
+    return json({ error: 'handler failed' }, 500);
   }
 
   return json({ ok: true });

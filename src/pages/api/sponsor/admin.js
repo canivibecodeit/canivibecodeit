@@ -3,7 +3,7 @@ import {
 } from '../../../lib/db.js';
 import { alertRob, brandShell, esc, sendBatch, sendMail, shell, unsubscribedEmails } from '../../../lib/mail.js';
 import { json, readBody } from '../../../lib/request.js';
-import { attachSubscription, cancelAndRefund } from '../../../lib/sponsor-subscriptions.js';
+import { attachSubscription, cancelAndRefund, markCancelling } from '../../../lib/sponsor-subscriptions.js';
 import {
   approvalTerm, cleanText, cleanTint, cleanUrl, clearCache, getBoard, isAdmin, isLive, isSubscription,
   LIMITS, paidEndAt, RUN_DAYS, RUN_MS, shortDate, siteUrl, SLOT_IDS, SPILL_MS, sponsorPriceCents,
@@ -11,7 +11,7 @@ import {
 } from '../../../lib/sponsors.js';
 import {
   alreadyRefunded, cancelSubscriptionNow, createPaymentLink, createRefund, getSubscription,
-  invoiceAlreadyRefunded, subscriptionPeriod,
+  subscriptionPeriod,
 } from '../../../lib/stripe.js';
 
 const REFUNDABLE = ['submitted', 'paid', 'reject_failed'];
@@ -57,11 +57,7 @@ export async function POST({ request }) {
   /* Attaches a subscription paid through a hand-issued link to a slot; the
      card follows the subscription from then on (lib/sponsor-subscriptions.js). */
   if (action === 'attach') {
-    const res = await attachSubscription({
-      subscriptionId: body.subscription,
-      slotId: body.slot,
-      carry: String(body.carry ?? '') === '1',
-    });
+    const res = await attachSubscription({ subscriptionId: body.subscription, slotId: body.slot });
     return res.ok ? done(res.message) : fail(res.message, 409);
   }
 
@@ -223,17 +219,12 @@ export async function POST({ request }) {
     const isRetry = action === 'retry_refund';
     try {
       if (isSubscription(purchase)) {
-        // Stop the billing, then give back what it collected (once).
-        const settled = isRetry && purchase.stripe_invoice_id
-          && (await invoiceAlreadyRefunded(purchase.stripe_invoice_id));
-        if (settled) {
-          await cancelSubscriptionNow(purchase.stripe_subscription_id).catch(() => {});
-        } else {
-          await cancelAndRefund(purchase, {
-            refundKey: isRetry ? `refund-${purchase.id}-retry-${Date.now()}` : `refund-${purchase.id}`,
-          });
-        }
-        await updatePurchase(purchase.id, { canceled_at: Date.now() });
+        /* Stop the billing, then refund EVERY paid invoice: a month can renew
+           while the card is still awaiting approval, and the email below says
+           "refunded in full". Marked as ours first, so Stripe's deletion
+           event raises no second alert. A retry skips what is already back. */
+        await markCancelling(purchase);
+        await cancelAndRefund(purchase, { allPaid: true, refundKey: `refund-${purchase.id}`, retry: isRetry });
       } else {
         if (!purchase.stripe_payment_intent) throw new Error('no payment intent on this purchase');
         /* Stripe stores and replays the response for an idempotency key, errors

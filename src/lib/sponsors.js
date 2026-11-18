@@ -33,14 +33,20 @@ export const RUN_MS = RUN_DAYS * 24 * 60 * 60 * 1000;
      paid_through  end of the latest period Stripe has been paid for
      shift_ms      how far the card's run sits after Stripe's periods (the time
                    between payment and approval, or a run being carried over)
-     ends_at       what the board reads: paid_through + shift_ms, plus a grace
-                   while the subscription is renewing, because Stripe bills a
-                   renewal up to an hour after the period ends and the card must
-                   not flicker off (and the slot must not look free) meanwhile.
-   A failed renewal or a cancellation drops the grace, so the card comes down
-   at the end of the paid period. Render-time expiry is unchanged. */
+     ends_at       what the board reads: paid_through + shift_ms, plus
+                   whatever the subscription's state adds (TERM_EXTRA_MS):
+       renewing  a 2-day grace, because Stripe bills a renewal up to an hour
+                 after the period ends and the card must not flicker off (and
+                 the slot must not look free) meanwhile;
+       retrying  a renewal failed and Stripe is retrying: the card stays up
+                 and the slot stays held for 7 days, then both end;
+       ending    cancelled, or Stripe gave up: nothing, the card ends with the
+                 paid period.
+   Render-time expiry is unchanged. */
 export const SPONSOR_PRICE_DEFAULT_CENTS = 100000;
 export const RENEWAL_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
+export const FAILED_HOLD_MS = 7 * 24 * 60 * 60 * 1000;
+export const TERM_EXTRA_MS = Object.freeze({ renewing: RENEWAL_GRACE_MS, retrying: FAILED_HOLD_MS, ending: 0 });
 
 export function sponsorPriceCents(env = process.env) {
   const n = Number(env.SPONSOR_PRICE_CENTS);
@@ -57,9 +63,9 @@ export function paidEndAt(p) {
   return Number(p.paid_through) + Math.max(0, Number(p.shift_ms) || 0);
 }
 
-export function subscriptionEndsAt({ paidThrough, shiftMs = 0, renewing = true }) {
+export function subscriptionEndsAt({ paidThrough, shiftMs = 0, mode = 'renewing' }) {
   if (!paidThrough) return null;
-  return paidThrough + Math.max(0, Number(shiftMs) || 0) + (renewing ? RENEWAL_GRACE_MS : 0);
+  return paidThrough + Math.max(0, Number(shiftMs) || 0) + (TERM_EXTRA_MS[mode] ?? 0);
 }
 
 // Stripe's own word on whether a subscription will bill again.
@@ -68,18 +74,26 @@ export function subscriptionRenews(sub) {
   return ['active', 'trialing'].includes(sub.status) && !sub.cancel_at_period_end && !sub.cancel_at;
 }
 
+// Which TERM_EXTRA_MS applies to a subscription in this state.
+export function subscriptionMode(sub) {
+  if (!sub || sub.status === 'canceled' || sub.status === 'unpaid' || sub.status === 'incomplete_expired') return 'ending';
+  if (sub.cancel_at_period_end || sub.cancel_at) return 'ending';
+  if (sub.status === 'past_due') return 'retrying';
+  return 'renewing';
+}
+
 /* Approval starts the card's clock: the sponsor gets every day they paid for,
    counted from the moment the card goes up, not from the payment. */
 export function approvalTerm(p, now = Date.now()) {
   const periodStart = Number(p.paid_at) || now;
   const paidThrough = Number(p.paid_through) || periodStart + RUN_MS;
   const shiftMs = Math.max(0, now - periodStart);
-  const renewing = !p.cancel_at && !p.canceled_at;
+  const mode = p.cancel_at || p.canceled_at ? 'ending' : 'renewing';
   return {
     starts_at: now,
     paid_through: paidThrough,
     shift_ms: shiftMs,
-    ends_at: subscriptionEndsAt({ paidThrough, shiftMs, renewing }),
+    ends_at: subscriptionEndsAt({ paidThrough, shiftMs, mode }),
   };
 }
 

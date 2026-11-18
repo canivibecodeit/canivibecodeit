@@ -218,6 +218,13 @@ export async function refundInvoice(invoiceId, idempotencyKey) {
   return stripeFetch('/v1/refunds', target, 'POST', idempotencyKey);
 }
 
+// Every paid invoice of a subscription, newest first (a sponsor subscription
+// never gets near the page size).
+export async function listPaidInvoices(subscriptionId) {
+  const q = `subscription=${encodeURIComponent(subscriptionId)}&status=paid&limit=100`;
+  return (await stripeFetch(`/v1/invoices?${q}`, null, 'GET'))?.data ?? [];
+}
+
 export async function invoiceAlreadyRefunded(invoiceId) {
   let target = null;
   try {
