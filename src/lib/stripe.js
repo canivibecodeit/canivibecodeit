@@ -123,7 +123,8 @@ export async function createSubscriptionCheckoutSession({
               name: 'canivibecodeit.com · sponsor slot (monthly)',
               description:
                 'Your product on every page of canivibecodeit.com: icon, name, tagline and link.'
-                + ' Billed monthly until you cancel. Cancel any time.',
+                + ' Billed monthly until you cancel. Cancel any time.'
+                + ' No refunds once your card is live.',
             },
           },
         },

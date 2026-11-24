@@ -190,7 +190,9 @@ export async function POST({ request }) {
         html: brandShell(
           `<p><b>${esc(purchase.name)}</b> is approved for slot ${esc(purchase.slot_id)} and live right now.`
           + ` It renews monthly until you cancel; this month runs until ${esc(shortDate(paidEndAt({ ...purchase, ...subTerm })))}.</p>`
-          + `<p>Your numbers, and the cancel button: <a href="${esc(stats)}">your stats page</a>. Keep the link.</p>`
+          + `<p>Your numbers, and the cancel button: <a href="${esc(stats)}">your stats page</a>. Keep the link.`
+          + ` Cancelling stops the next bill; now that the card is live, the month you've paid for isn't`
+          + ` refundable and the card runs to the end of it.</p>`
           + `<p>Your link carries campaign tags, so the traffic shows up in your analytics as`
           + ` canivibecodeit / referral.</p>`
         ),
