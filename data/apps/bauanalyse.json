@@ -1,0 +1,81 @@
+{
+  "slug": "bauanalyse",
+  "name": "BauAnalyse",
+  "domain": "bauanalyse.com",
+  "category": "design",
+  "subcategory": "AI building feasibility studies for German plots",
+  "tagline": "Enter an address, get a building-law feasibility study for your plot: neighbour analysis, maximum build volume and AI renders",
+  "priceMonthly": null,
+  "pricing": {
+    "plan": "Machbarkeitsstudie §34 BauGB",
+    "basis": "per plot, one-off order, net of 19% VAT",
+    "unit": "one-time",
+    "native": "245 to 875 EUR",
+    "source": "https://bauanalyse.com/",
+    "checkedOn": "2026-11-03",
+    "confidence": "medium",
+    "notes": "Priced per order by plot size (four size bands), not per month. Net prices from the shop's own price catalog: Grundstueckspaket 25 to 95 EUR, Machbarkeitsstudie §34 245 to 875 EUR (one revision round), Machbarkeitsstudie §30 with zoning plan 375 to 1,345 EUR (two revision rounds), AI visualisation 195 to 495 EUR, 3D print model 145 EUR. Bauvoranfrage (2,000 to 5,000 EUR) and Baugenehmigung (10,000 to 30,000 EUR) are also listed as products. No USD price is quoted, so priceMonthly stays null.",
+    "freeTier": "No free tier; every product is a paid order, though sample PDFs of finished studies are public."
+  },
+  "verdict": "kinda",
+  "verdictConfidence": "medium",
+  "verdictSummary": "The inputs are mostly public: ALKIS parcel data, LOD2 buildings and DGM1 terrain come from the state survey offices, and the 3D mesh comes from Google. A coding agent can pull them for one plot, compute neighbour GRZ and GFZ, apply setbacks and extrude a maximum volume in a weekend. The gaps are real, though. Open-data access and formats differ per Bundesland, setback rules differ per Landesbauordnung, picking a sensible reference building for the §34 BauGB 'Einfuegungsgebot' is judgment work, and the photoreal renders plus the architect sign-off are what the studies are sold on. Fine for a rough personal read on your own plot, not for a document you hand to a client.",
+  "coreLoopDIY": "Pull parcel, LOD2 building and DGM1 terrain data for one address, measure the neighbouring buildings, and extrude a plausible maximum building volume that respects setbacks.",
+  "diyTimeEstimate": "multi-day",
+  "requirements": [
+    "ALKIS parcel, LOD2 and DGM1 open data for your Bundesland",
+    "Python or Node with a geometry library such as shapely",
+    "three.js or a CAD export for the 3D view",
+    "optional Google Maps Platform key for aerial imagery",
+    "optional image-generation API key for renders"
+  ],
+  "whatYouLose": [
+    "photoreal AI renders and drone-style images of a sample building",
+    "§30 BauGB studies that apply a zoning plan",
+    "a team of registered architects behind the output",
+    "coverage across all 16 Bundeslaender without per-state data wrangling",
+    "DIN 276 cost frame and a polished PDF expose"
+  ],
+  "moatTags": [
+    "proprietary-data",
+    "compliance-regulatory",
+    "execution-polish"
+  ],
+  "moatNotes": "state-by-state data pipelines, building-law judgment, white-label PDF output",
+  "whyPeopleStillPay": "Developers, agents and architects pay to skip the data wrangling and to get a presentable, white-label expose with an architect's name behind it in a day. Per-plot prices are small next to the cost of a wrong guess on a purchase. The pipeline is the product, not any single dataset. The vendor itself says the results are a non-binding first assessment and that only a Bauvoranfrage or a permit is legally reliable.",
+  "priorArt": [
+    {
+      "name": "TopoExport",
+      "url": "https://topoexport.com",
+      "desc": "Source of the LOD2 building, DGM1 terrain and tree data BauAnalyse lists; exports DXF, IFC, OBJ and STL for CAD workflows"
+    },
+    {
+      "name": "Bavaria Open Geodata",
+      "url": "https://geodaten.bayern.de/opengeodata/",
+      "desc": "Free geodata from the Bavarian survey administration, including terrain and building models; check the current layer list for parcels"
+    },
+    {
+      "name": "NRW Open Geodata",
+      "url": "https://www.opengeodata.nrw.de/produkte/",
+      "desc": "Official open data catalog for North Rhine-Westphalia, with its own formats"
+    },
+    {
+      "name": "Google Photorealistic 3D Tiles",
+      "url": "https://developers.google.com/maps/documentation/tile/3d-tiles",
+      "desc": "The textured mesh behind Google Earth views, served as an API with its own usage terms and billing"
+    },
+    {
+      "name": "3dfier",
+      "url": "https://github.com/tudelft3d/3dfier",
+      "desc": "Open-source tool that turns 2D footprints and height data into 3D city models"
+    }
+  ],
+  "alternatives": [],
+  "rejectedAlternatives": [],
+  "relatedSlugs": [],
+  "pagePriority": 2,
+  "verifiedOneShot": false,
+  "notes": "Honest kinda: the data is public, the per-state wrangling and the architect-grade output are not. Consolation build covers one plot, one state.",
+  "prompt": "Build me a local plot-feasibility viewer for one German Bundesland, the part of BauAnalyse a coding agent can honestly reproduce. Requirements:\n\n- Python 3.12 + FastAPI backend, shapely and pyproj for geometry, a Vite + React + three.js frontend. No alternative stacks.\n- Pick Bavaria first. A `fetch_data.py` script downloads LOD2 buildings and DGM1 terrain tiles for a bounding box into ./data, plus parcels from the state's open Flurkarte/ALKIS service if one is available (no accounts, official open-data portals only). If parcels are not open, let me draw the plot polygon by hand.\n- Input: an address or a lat/lon plus the parcel(s) the plot consists of. Geocode with Nominatim, then let me click parcels on a 2D map (MapLibre with OpenStreetMap tiles).\n- Neighbourhood analysis: for buildings within 100 m, compute footprint, height, GRZ and GFZ per neighbour and show a table with min, median and max.\n- Maximum volume: apply a simple setback rule (a configurable Abstandsflaeche factor, default 0.4 H with a 3 m minimum, clearly labelled as a Bavarian approximation), then extrude the largest rectangle that fits to the median neighbour height.\n- 3D view: terrain from DGM1, neighbouring LOD2 buildings in grey, the proposed volume in colour, orbit controls.\n- Export the volume and parcel as DXF and OBJ.\n- Output a one-page HTML summary: plot area, GRZ, GFZ, gross floor area estimate, and a visible disclaimer that this is a non-binding first guess and not a §34 BauGB assessment.\n- Secrets in .env only; none required for the base build.\n- Out of scope: other Bundeslaender, zoning plans (§30 BauGB), Google mesh textures, AI renders, cost estimates per DIN 276, PDF expose, accounts and payments.\n- README: data sources and licences, how to add a second state, setup commands, and an honest limits section.",
+  "promptCurated": true
+}
