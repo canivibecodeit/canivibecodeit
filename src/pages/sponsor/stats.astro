@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { impressionRows, purchaseByToken, sponsorClickRows } from '../../lib/db.js';
 import {
-  DEFAULT_TINT, faviconUrl, isSubscription, paidEndAt, shortDate, tintChannels, usd, withUtm,
+  cardDownAt, DEFAULT_TINT, faviconUrl, isSubscription, paidEndAt, shortDate, tintChannels, usd, withUtm,
 } from '../../lib/sponsors.js';
 
 /* Private per-sponsor stats. The URL token is the same per-purchase secret the
@@ -138,6 +138,9 @@ const msg = Astro.url.searchParams.get('msg') || '';
 const sub = purchase && isSubscription(purchase) ? purchase : null;
 const subEnd = sub ? paidEndAt(sub) : null;
 const subEnding = !!(sub && (sub.cancel_at || sub.canceled_at));
+// Already down (its time ran out, or it was taken down early): the line says
+// when it ended, never that it is still up.
+const subDownAt = sub ? cardDownAt(sub, now) : null;
 // A failed renewal's hold: paid time is over, the card is still up.
 const subRetrying = !!(sub && !subEnding && sub.status === 'live' && subEnd <= now && sub.ends_at > now);
 const canCancel = !!(sub && !subEnding && sub.status === 'live');
@@ -313,7 +316,9 @@ const description = 'Private placement stats for your sponsor slot.';
             <section class="sps-sub" id="subscription">
               {msg && <p class="sp-notice">{msg}</p>}
               <p class="sps-sub-line">
-                {subEnding
+                {subDownAt
+                  ? `Ended ${shortDate(subDownAt)}.`
+                  : subEnding
                   ? `Cancelled. Your card stays up until ${shortDate(subEnd)}.`
                   : subRetrying
                     ? `Your last payment failed. The card stays up until ${shortDate(sub.ends_at)} while it is retried.`
