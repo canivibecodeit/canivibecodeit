@@ -63,6 +63,16 @@ export function paidEndAt(p) {
   return Number(p.paid_through) + Math.max(0, Number(p.shift_ms) || 0);
 }
 
+/* When a card that is no longer showing came down, else null. A card taken
+   down by hand ends before its paid month does, so once it is down the paid
+   end is the wrong date to show anyone. */
+export function cardDownAt(p, now = Date.now()) {
+  if (!p?.ends_at) return null;
+  if (p.status === 'expired') return Number(p.ends_at);
+  if (p.status === 'live' && Number(p.ends_at) <= now) return Number(p.ends_at);
+  return null;
+}
+
 export function subscriptionEndsAt({ paidThrough, shiftMs = 0, mode = 'renewing' }) {
   if (!paidThrough) return null;
   return paidThrough + Math.max(0, Number(shiftMs) || 0) + (TERM_EXTRA_MS[mode] ?? 0);

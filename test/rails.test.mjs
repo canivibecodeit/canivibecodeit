@@ -111,3 +111,21 @@ test('sizing rules: rows, then the tagline gives way a line at a time only where
   assert.match(railSizingCss(5), /--sp-rows:5/);
   assert.match(railSizingCss(3), /--sp-rows:3/);
 });
+
+/* A card that is down says when it came down, not when its paid month would
+   have ended. */
+test('cardDownAt: the real end of a card that is no longer showing', async () => {
+  const { cardDownAt } = await import('../src/lib/sponsors.js');
+  const now = Date.UTC(2026, 0, 10);
+  const day = 24 * 60 * 60 * 1000;
+  // Taken down early: ends_at is the takedown, the paid month runs on.
+  assert.equal(cardDownAt({ status: 'expired', ends_at: now - day, paid_through: now + 20 * day }, now), now - day);
+  // Its time ran out and the daily job has not marked it yet.
+  assert.equal(cardDownAt({ status: 'live', ends_at: now - 1 }, now), now - 1);
+  // Still showing, cancelled or not.
+  assert.equal(cardDownAt({ status: 'live', ends_at: now + day, cancel_at: now }, now), null);
+  // Not a card yet, or nothing to go on.
+  assert.equal(cardDownAt({ status: 'submitted', ends_at: null }, now), null);
+  assert.equal(cardDownAt({ status: 'expired', ends_at: null }, now), null);
+  assert.equal(cardDownAt(null, now), null);
+});
